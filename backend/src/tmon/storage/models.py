@@ -186,6 +186,30 @@ class CorporateEvent(Base, Provenance):
     source: Mapped[str | None] = mapped_column(String(32))
     payment_schedule: Mapped[dict[str, Any] | None] = mapped_column(JsonType)
     published_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    # Codal-derived events: the letter they came from and its stage (invitation, decisions, ...).
+    tracing_no: Mapped[int | None] = mapped_column(BigInteger, unique=True)
+    stage: Mapped[str | None] = mapped_column(String(32))
+    title: Mapped[str | None] = mapped_column(Text)
+
+
+class CodalLetter(Base, Provenance):
+    """One row of the Codal letter index (search.codal.ir), as published."""
+
+    __tablename__ = "codal_letters"
+
+    tracing_no: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"), index=True)
+    symbol: Mapped[str] = mapped_column(String(64), index=True)
+    company_name: Mapped[str | None] = mapped_column(Text)
+    letter_code: Mapped[str | None] = mapped_column(String(16), index=True)
+    title: Mapped[str] = mapped_column(Text)
+    sent_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    published_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    url: Mapped[str | None] = mapped_column(Text)
+    has_html: Mapped[bool] = mapped_column(Boolean, default=False)
+    has_excel: Mapped[bool] = mapped_column(Boolean, default=False)
+    has_pdf: Mapped[bool] = mapped_column(Boolean, default=False)
+    under_supervision: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class RawPayload(Base):

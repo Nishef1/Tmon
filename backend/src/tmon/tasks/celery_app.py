@@ -37,4 +37,10 @@ app.conf.beat_schedule = {
         "task": "tmon.tasks.jobs.daily_cycle_tick",
         "schedule": crontab(minute="*/5", day_of_week=TRADING_DOW),
     },
+    # Newest page of every AGM / capital-increase letter code on Codal (docs/02: event-driven
+    # source). Hourly on every day: companies also publish on non-trading days.
+    "codal-events-hourly": {
+        "task": "tmon.tasks.jobs.ingest_codal_events",
+        "schedule": crontab(minute=15),
+    },
 }

@@ -86,3 +86,10 @@ def publish_signals(timeframe: str = "D1") -> dict[str, object]:
         "recommended": res.n_recommended,
         "message": res.message,
     }
+
+
+@app.task(name="tmon.tasks.jobs.ingest_codal_events")
+def ingest_codal_events() -> dict[str, int]:
+    from tmon.ingest.codal.pipeline import run_events
+
+    return run_events(max_pages=1)

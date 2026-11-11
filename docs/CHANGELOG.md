@@ -107,3 +107,7 @@
 - طبقه‌بندی نماد با کد نوع خود TSETMC (`yVal`) و نوع صندوق (`faraDesc`)؛ ۷۹۸ نماد اصلاح شد (صندوق‌های درآمد ثابت و کالایی، اختیار، حق‌تقدم، سلف و تسهیلات دیگر در جهان توصیه نیستند)، نوع تازهٔ `other`، حذف میله‌های یک‌ریالی و میانگین بازار ایمن در برابر NaN؛ [ممیزی](reports/instrument-classification-audit.md)، OPEN_QUESTIONS ۶۲–۶۵.
 - چهار گزارش واقعی: [baseline D1](reports/m3-baseline-d1-real.md)، [LightGBM D1](reports/m4-lgbm-d1-real.md)، [W1](reports/m4-lgbm-w1-real.md)، [M1](reports/m4-lgbm-m1-real.md)، با مقایسه با ورود تصادفی به تفکیک رژیم. سطح A در هر سه تایم‌فریم بسته است: مدل در هیچ‌کدام از baseline بهتر نیست (D1 و M1 امید ریاضی خالص منفی، W1 مثبت ولی زیر baseline و اخزا). فروپاشی کالیبراسیون در روزهای هم‌جهت: OPEN_QUESTIONS ۶۶.
 - [پژوهش روش‌های فعالان بازار ایران و ناهنجاری‌های خارجی](reports/research-practices-and-anomalies.md)، با آزمون روی دادهٔ خودمان: قدرت خریدار حقیقی پایدارترین اطلاعات مقطعی را دارد و کمبود اصلی شکل برچسب مدل است، نه ویژگی؛ OPEN_QUESTIONS ۶۷–۶۹.
+
+## تکمیل فاز ۱ — C4 کدال (۲۰ آبان ۱۴۰۵)
+
+- **فهرست نامه‌های کدال (گام ۱ و ۲):** کلاینت `tmon.ingest.codal` روی API جست‌وجو؛ پاسخ خام JSON پیش از تجزیه در `raw_payloads`، جدول تازهٔ `codal_letters` و رویدادهای مجمع و افزایش سرمایه در `corporate_events` با `tracing_no`، `stage` و عنوان (مهاجرت 0003). نگاشت کد نامه به رویداد از عنوان‌های واقعی؛ تست‌ها روی پاسخ‌های واقعی در `tests/fixtures/codal/`. اجرای واقعی: ۱٬۰۹۸ نامه و ۴۶۹ رویداد. CLI `python -m tmon.ingest.codal.cli` و وظیفهٔ ساعتی `codal-events-hourly`. سهمیهٔ ۴۲۹ و ویژگی‌های فیلتر ← OPEN_QUESTIONS ۷۰–۷۳.

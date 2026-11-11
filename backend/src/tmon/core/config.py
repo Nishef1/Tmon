@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     http_user_agent: str = "tmon-research-bot/0.1"
     # Optional proxy supplied by the operator (e.g. a network route that can reach Iranian hosts).
     http_proxy: str | None = None
+    # Codal answers HTTP 429 after a few dozen requests at ~1/s; it gets a slower interval.
+    codal_min_interval_seconds: float = 4.0
     # Intraday polling is limited to the exchange's trading hours (market_rules.trading_hours).
     intraday_interval_seconds: float = 30.0
     book_top_n: int = 15
