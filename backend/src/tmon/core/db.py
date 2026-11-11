@@ -12,7 +12,10 @@ from tmon.core.config import get_settings
 
 @lru_cache
 def get_engine() -> Engine:
-    return create_engine(get_settings().database_url, pool_pre_ping=True, future=True)
+    url = get_settings().database_url
+    # SQLite (the local no-Docker stack) allows one writer; wait for it instead of failing at 5 s
+    args = {"timeout": 120} if url.startswith("sqlite") else {}
+    return create_engine(url, pool_pre_ping=True, future=True, connect_args=args)
 
 
 @lru_cache

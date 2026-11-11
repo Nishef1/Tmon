@@ -27,11 +27,20 @@ class TimeframeCfg(_Frozen):
     atr_scale_days: int
 
 
+class GridCfg(_Frozen):
+    """Barrier multiples tried per walk-forward window (ADR 0002 section 4)."""
+
+    k_tp: list[float] = Field(min_length=1)
+    k_sl: list[float] = Field(min_length=1)
+
+
 class LabelingCfg(_Frozen):
+    # default pair: used when no grid selection runs (single-label datasets, live fallback)
     k_tp: float
     k_sl: float
     atr_period: int
     timeframes: dict[str, TimeframeCfg]
+    grid: dict[str, GridCfg]
 
 
 class CostsCfg(_Frozen):
@@ -39,12 +48,13 @@ class CostsCfg(_Frozen):
 
 
 class TierACfg(_Frozen):
-    p_win_min: float
-    recent_bucket_accuracy_min: float
+    # offsets above the break-even probability (ADR 0002 section 3)
+    p_win_margin: float
+    recent_bucket_accuracy_margin: float
 
 
 class TierBCfg(_Frozen):
-    p_win_min: float
+    p_win_margin: float
 
 
 class TiersCfg(_Frozen):
@@ -53,8 +63,12 @@ class TiersCfg(_Frozen):
 
 
 class ThresholdsCfg(_Frozen):
-    p_min: dict[str, float]
-    ev_min_cost_multiple: float
+    """``p_min = max(p_breakeven + margin, p_floor)`` and ``EV_net >= ev_min_abs`` (ADR 0002
+    section 3). ``p_breakeven = (L + c) / (W + L)`` is computed per probability bucket."""
+
+    margin: float
+    p_floor: float
+    ev_min_abs: float
     min_bucket_samples: int
     tiers: TiersCfg
 
@@ -113,6 +127,8 @@ class ModelCfg(_Frozen):
     recent_days: int = Field(ge=1)
     min_recent_samples: int = Field(ge=1)
     tier_a_min_trades: int = Field(ge=1)
+    # fewer signals than this on the inner validation slice => the barrier pair has no score
+    grid_min_signals: int = Field(ge=1)
 
 
 class BacktestCfg(_Frozen):
@@ -151,6 +167,9 @@ class EngineConfig(_Frozen):
         missing = {"D1", "W1", "M1"} - set(self.labeling.timeframes)
         if missing:
             raise ValueError(f"labeling.timeframes missing {sorted(missing)}")
+        no_grid = set(self.labeling.timeframes) - set(self.labeling.grid)
+        if no_grid:
+            raise ValueError(f"labeling.grid missing {sorted(no_grid)}")
         return self
 
     def regime_of(self, d: date) -> str:

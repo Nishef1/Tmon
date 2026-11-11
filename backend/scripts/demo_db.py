@@ -46,8 +46,9 @@ def main(path: str) -> None:
         update={
             "thresholds": cfg.thresholds.model_copy(
                 update={
-                    "p_min": {"D1": 0.15, "W1": 0.15, "M1": 0.15},
-                    "ev_min_cost_multiple": 0.0,
+                    "margin": -1.0,
+                    "p_floor": 0.15,
+                    "ev_min_abs": 0.0,
                     "min_bucket_samples": 20,
                 }
             )

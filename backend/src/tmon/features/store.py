@@ -18,7 +18,15 @@ from sqlalchemy.orm import Session
 from tmon.domain.rules import RuleBook
 from tmon.features.builder import KEYS, FeatureSet, build_features, get_feature_set
 from tmon.ingest.tsetmc.classify import Classifier, get_classifier
-from tmon.storage.models import ClientTypeDaily, FeatureRow, Instrument, PriceDaily
+from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
+from tmon.storage.models import (
+    ClientTypeDaily,
+    FeatureRow,
+    Instrument,
+    MacroSeries,
+    MarketIndexDaily,
+    PriceDaily,
+)
 from tmon.storage.objectstore import ObjectStore
 from tmon.storage.repositories import upsert
 
@@ -112,6 +120,37 @@ def load_inputs(
         orient="row",
     )
     return prices, clients, sectors
+
+
+def load_benchmark_inputs(session: Session) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """``(index_daily, rf)`` for the backtest comparison lines (ADR 0002 section 6).
+
+    ``index_daily``: ``index_code``, ``date``, ``close`` of the official indices.
+    ``rf``: ``date``, ``value`` of the one-year treasury-bill yield (``rf_1y_ytm``) as an annual
+    fraction, dated by the day it refers to (``ref_period``). Either frame is empty when the
+    ingestion has not run; the report then says so.
+    """
+    idx = session.execute(
+        select(MarketIndexDaily.index_code, MarketIndexDaily.date, MarketIndexDaily.close).order_by(
+            MarketIndexDaily.index_code, MarketIndexDaily.date
+        )
+    ).all()
+    index_daily = pl.DataFrame(
+        [tuple(r) for r in idx],
+        schema={"index_code": pl.Utf8, "date": pl.Date, "close": pl.Float64},
+        orient="row",
+    )
+    rf_rows = session.execute(
+        select(MacroSeries.ref_period, MacroSeries.value)
+        .where(MacroSeries.series == RF_SERIES)
+        .order_by(MacroSeries.ref_period)
+    ).all()
+    rf = pl.DataFrame(
+        [tuple(r) for r in rf_rows],
+        schema={"date": pl.Date, "value": pl.Float64},
+        orient="row",
+    )
+    return index_daily, rf
 
 
 def build_from_db(session: Session) -> pl.DataFrame:

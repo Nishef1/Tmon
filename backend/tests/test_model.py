@@ -166,10 +166,11 @@ def _cost() -> float:
 
 
 def test_thresholds_and_tiers():
-    out = StubModel([0.55, 0.61, 0.65, 0.75, 0.99], allow_tier_a=True).predict(_frame(5))
-    # p < p_min (0.60) is never a signal; EV must also clear 2x costs (3.5%)
-    assert out["signal"].to_list() == [False, True, True, True, True]
-    assert out["tier"].to_list() == ["C", "C", "B", "A", "A"]
+    out = StubModel([0.30, 0.36, 0.65, 0.99], allow_tier_a=True).predict(_frame(4))
+    # p_breakeven + 0.05 is ~0.26 here, so the 0.35 floor binds: p < 0.35 is never a signal
+    assert out["p_min"].to_list() == pytest.approx([CFG.thresholds.p_floor] * 4)
+    assert out["signal"].to_list() == [False, True, True, True]
+    assert out["tier"].to_list() == ["C", "A", "A", "A"]  # all clear p_breakeven + 0.12
 
 
 def test_tier_a_needs_explicit_permission():
@@ -179,7 +180,7 @@ def test_tier_a_needs_explicit_permission():
 
 def test_tier_a_needs_recent_accuracy():
     m = StubModel([0.75], allow_tier_a=True)
-    m.buckets.recent_accuracy[:] = 0.5  # below 0.65
+    m.buckets.recent_accuracy[:] = 0.2  # below p_breakeven + 0.08 (~0.29)
     assert m.predict(_frame(1))["tier"][0] == "B"
 
 
@@ -191,26 +192,28 @@ def test_thin_buckets_block_signals():
 
 def test_defensive_mode_raises_the_bar_by_the_configured_bump():
     bump = CFG.defensive_mode.p_min_bump
-    p = CFG.thresholds.p_min["D1"] + bump / 2  # passes normally, not when defensive
+    p = CFG.thresholds.p_floor + bump / 2  # passes normally, not when defensive
     assert StubModel([p]).predict(_frame(1, defensive=False))["signal"][0]
     assert not StubModel([p]).predict(_frame(1, defensive=True))["signal"][0]
 
 
-def test_ev_threshold_is_a_multiple_of_costs():
-    m = StubModel([0.62])
-    m.buckets.e_win[:] = 0.03  # EV = 0.62*0.03 - 0.38*0.01 - cost < 2 x cost
+def test_ev_must_clear_the_absolute_floor_even_above_p_min():
+    m = StubModel([0.745])
+    m.buckets.e_win[:] = 0.03  # W + L = 0.04: p_min ~0.74 is met, but EV ~0.2% < 0.5%
     out = m.predict(_frame(1))
-    assert not out["signal"][0] and out["ev"][0] < 2 * out["round_trip_cost"][0]
+    assert out["p_win"][0] >= out["p_min"][0]
+    assert not out["signal"][0] and out["ev"][0] < CFG.thresholds.ev_min_abs
 
 
 def test_kelly_sizing_is_fractional_and_capped():
-    out = StubModel([0.75]).predict(_frame(1))
+    m = StubModel([0.75])
+    out = m.predict(_frame(1))
     b = 0.12 / 0.01
     kelly = 0.75 - 0.25 / b
     expected = min(
         CFG.sizing.kelly_fraction * kelly,
         CFG.sizing.max_position_pct,
-        CFG.sizing.risk_per_trade / (CFG.labeling.k_sl * 0.02),
+        CFG.sizing.risk_per_trade / (m.barrier[1] * 0.02),
     )
     assert out["weight"][0] == pytest.approx(expected)
     assert 0 < out["weight"][0] <= CFG.sizing.max_position_pct
@@ -399,8 +402,9 @@ def test_service_persists_signals_with_levels_reasons_and_snapshot(session, mark
         update={
             "thresholds": CFG.thresholds.model_copy(
                 update={
-                    "p_min": {"D1": 0.15, "W1": 0.15, "M1": 0.15},
-                    "ev_min_cost_multiple": 0.0,
+                    "margin": -1.0,
+                    "p_floor": 0.15,
+                    "ev_min_abs": 0.0,
                     "min_bucket_samples": 20,
                 }
             )
@@ -452,8 +456,9 @@ def test_later_run_resolves_earlier_pending_signals(session, market):
         update={
             "thresholds": CFG.thresholds.model_copy(
                 update={
-                    "p_min": {"D1": 0.15, "W1": 0.15, "M1": 0.15},
-                    "ev_min_cost_multiple": 0.0,
+                    "margin": -1.0,
+                    "p_floor": 0.15,
+                    "ev_min_abs": 0.0,
                     "min_bucket_samples": 20,
                 }
             )

@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import io
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
@@ -25,13 +26,14 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from tmon.backtest.baseline import BaselineD1
-from tmon.backtest.runner import BacktestRun, prepare_dataset, run_backtest
+from tmon.backtest.runner import BacktestRun, prepare_dataset, prepare_label_sets, run_backtest
 from tmon.core.config import get_settings
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import RuleBook
 from tmon.engine.gating import BRIER_RECENT_DAYS, GateResult, brier_degraded, evaluate_gate
 from tmon.engine.portfolio import select_portfolio
 from tmon.features.builder import get_feature_set
+from tmon.labeling.grid import Combo, with_labels
 from tmon.models.explain import top_reasons
 from tmon.models.lgbm import LightGBMStrategy, _matrix
 from tmon.storage.models import ModelRun, Signal, SignalNote
@@ -75,30 +77,62 @@ def write_snapshot(ds: pl.DataFrame, store: ObjectStore, bucket: str, prefix: st
     return sid
 
 
-def resolve_outcomes(session: Session, ds: pl.DataFrame, timeframe: str) -> int:
+def _barrier_of(metrics: dict[str, Any] | None) -> Combo | None:
+    b = ((metrics or {}).get("model") or {}).get("barrier")
+    return (float(b[0]), float(b[1])) if b else None
+
+
+def resolve_outcomes(
+    session: Session,
+    ds: pl.DataFrame,
+    timeframe: str,
+    label_sets: Mapping[Combo, pl.DataFrame] | None = None,
+) -> int:
     """Fill ``outcome``/``realized_return``/``outcome_date`` of pending signals whose label window
-    has closed. Uses the same labels the model is trained on."""
+    has closed. A signal is resolved with the barrier pair its model version was trained and
+    published with (``ModelRun.metrics["model"]["barrier"]``); versions without a recorded pair, or
+    pairs missing from ``label_sets``, use the labels already in ``ds``."""
     pending = session.execute(
-        select(Signal.id, Signal.instrument_id, Signal.date).where(
+        select(Signal.id, Signal.instrument_id, Signal.date, Signal.model_version).where(
             Signal.timeframe == timeframe, Signal.outcome == "pending"
         )
     ).all()
     if not pending:
         return 0
+    barriers = {
+        r.version: _barrier_of(r.metrics)
+        for r in session.execute(
+            select(ModelRun.version, ModelRun.metrics).where(ModelRun.timeframe == timeframe)
+        ).all()
+    }
     p = pl.DataFrame(
         {
             "id": [r.id for r in pending],
             "instrument_id": [r.instrument_id for r in pending],
             "date": [r.date for r in pending],
+            "barrier": [barriers.get(r.model_version) for r in pending],
         },
-        schema={"id": pl.Int64, "instrument_id": pl.Int64, "date": pl.Date},
+        schema={
+            "id": pl.Int64,
+            "instrument_id": pl.Int64,
+            "date": pl.Date,
+            "barrier": pl.List(pl.Float64),
+        },
     )
-    done = p.join(
-        ds.filter(pl.col("valid")).select(
-            "instrument_id", "date", "exit_reason", "realized_return", "exit_date"
-        ),
-        on=["instrument_id", "date"],
-    )
+    cols = ("instrument_id", "date", "exit_reason", "realized_return", "exit_date")
+    parts: list[pl.DataFrame] = []
+    for key in p["barrier"].unique().to_list():
+        sub = p.filter(
+            pl.col("barrier").is_null() if key is None else pl.col("barrier") == pl.Series([key])
+        )
+        combo = (float(key[0]), float(key[1])) if key else None
+        labels = (
+            label_sets[combo] if label_sets and combo is not None and combo in label_sets else ds
+        )
+        parts.append(
+            sub.join(labels.filter(pl.col("valid")).select(*cols), on=["instrument_id", "date"])
+        )
+    done = pl.concat(parts) if parts else pl.DataFrame()
     rows = [
         {"id": i, "outcome": OUTCOMES.get(r, r), "realized_return": g, "outcome_date": d}
         for i, r, g, d in done.select(
@@ -185,6 +219,7 @@ def train_and_publish(
     c = cfg or get_engine_config()
     bucket = bucket or get_settings().minio_artifact_bucket
     capital = capital or c.backtest.initial_capital
+    load_bench = inputs is None  # injected inputs (tests) bring no benchmark tables
     if inputs is None:
         from tmon.features.store import load_inputs
 
@@ -196,21 +231,31 @@ def train_and_publish(
         return res
 
     ds = prepare_dataset(prices, clients, rules, sectors=sectors, timeframe=timeframe, cfg=c)
+    label_sets = prepare_label_sets(prices, rules, timeframe=timeframe, cfg=c)
     as_of: date = ds["date"].max()  # type: ignore[assignment]
     res = PublishResult(timeframe, as_of)
     fs = get_feature_set(timeframe)
-    resolve_outcomes(session, ds, timeframe)
+    resolve_outcomes(session, ds, timeframe, label_sets)
 
     # 1. out-of-sample comparison with the baseline decides what the model may publish
+    index_daily: pl.DataFrame | None = None
+    rf: pl.DataFrame | None = None
+    if load_bench:
+        from tmon.features.store import load_benchmark_inputs
+
+        index_daily, rf = load_benchmark_inputs(session)
     run: BacktestRun = run_backtest(
         ds,
         rules,
         {
-            "baseline_d1": BaselineD1,
+            "baseline_d1": lambda: BaselineD1(c, rules, timeframe),
             "lgbm_d1": lambda: LightGBMStrategy(rules, c, timeframe=timeframe),
         },
         timeframe=timeframe,
         cfg=c,
+        label_sets=label_sets,
+        index_daily=index_daily,
+        rf=rf,
     )
     chal = run.strategies.get("lgbm_d1")
     base = run.strategies.get("baseline_d1")
@@ -222,10 +267,17 @@ def train_and_publish(
     res.tier_a_disabled_by_monitor = monitor_tier_a(session, timeframe, backtest_brier)
     allow_a = res.gate.tier_a_allowed and not res.tier_a_disabled_by_monitor
 
-    # 2. final model on every label already resolved at the decision date
-    train = ds.filter(pl.col("trainable") & (pl.col("exit_date") < as_of))
+    # 2. final model on every label already resolved at the decision date; the barrier pair is
+    #    chosen the same way as in each walk-forward window (ADR 0002 section 4)
+    window = ds.filter(pl.col("in_universe") & (pl.col("date") < as_of))
+
+    def train_for(combo: Combo) -> pl.DataFrame:
+        lab = with_labels(window, label_sets[combo])
+        return lab.filter(pl.col("trainable") & (pl.col("exit_date") < as_of))
+
     model = LightGBMStrategy(rules, c, timeframe=timeframe, allow_tier_a=allow_a)
-    model.fit(train)
+    model.fit_grid(list(label_sets), train_for)
+    train = train_for(model.barrier)
     snapshot_id = write_snapshot(ds, store, bucket, f"snapshots/{timeframe}/{as_of}")
     res.data_snapshot_id = f"{timeframe}-{as_of:%Y%m%d}-{snapshot_id}"
     if not model.info.get("usable"):
@@ -285,8 +337,8 @@ def train_and_publish(
                 "instrument_id": int(r["instrument_id"]),
                 "entry_price": p0,
                 "entry_rule": ENTRY_RULE,
-                "take_profit": p0 + c.labeling.k_tp * move,
-                "stop_loss": p0 - c.labeling.k_sl * move,
+                "take_profit": p0 + model.barrier[0] * move,
+                "stop_loss": p0 - model.barrier[1] * move,
                 "horizon_days": tf.horizon_days,
                 "p_win": float(r["p_win"]),
                 "ev": float(r["ev"]),

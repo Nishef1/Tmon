@@ -72,15 +72,23 @@ class BarrierSpec:
     entry: str  # "next_open" | "close"
 
     @classmethod
-    def from_config(cls, timeframe: str, cfg: EngineConfig | None = None) -> BarrierSpec:
+    def from_config(
+        cls,
+        timeframe: str,
+        cfg: EngineConfig | None = None,
+        *,
+        k_tp: float | None = None,
+        k_sl: float | None = None,
+    ) -> BarrierSpec:
+        """Barrier spec from the config; ``k_tp``/``k_sl`` override the default pair (the grid)."""
         c = cfg or get_engine_config()
         tf = c.labeling.timeframes[timeframe]
         return cls(
             timeframe=timeframe,
             horizon=tf.horizon_days,
             atr_scale=math.sqrt(tf.atr_scale_days),
-            k_tp=c.labeling.k_tp,
-            k_sl=c.labeling.k_sl,
+            k_tp=c.labeling.k_tp if k_tp is None else k_tp,
+            k_sl=c.labeling.k_sl if k_sl is None else k_sl,
             entry=ENTRY_MODES[timeframe],
         )
 
@@ -116,12 +124,17 @@ def triple_barrier_labels(
     rules: RuleBook,
     timeframe: str = "D1",
     cfg: EngineConfig | None = None,
+    *,
+    k_tp: float | None = None,
+    k_sl: float | None = None,
+    bars: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """One label row per (instrument, trading day). ``prices`` is the raw price frame used by
-    the feature builder."""
+    the feature builder. ``k_tp``/``k_sl`` pick a barrier pair of the grid; ``bars`` is a
+    :func:`prepare_bars` result to reuse across pairs."""
     c = cfg or get_engine_config()
-    spec = BarrierSpec.from_config(timeframe, c)
-    bars = prepare_bars(prices, rules, c)
+    spec = BarrierSpec.from_config(timeframe, c, k_tp=k_tp, k_sl=k_sl)
+    bars = prepare_bars(prices, rules, c) if bars is None else bars
     if bars.is_empty():
         return pl.DataFrame(schema=LABEL_SCHEMA)
 

@@ -73,17 +73,22 @@ def simulate(
     sig = sig.filter(pl.col("_r") <= bt.max_new_positions_per_day).drop("_r")
     counts["selected"] = sig.height
 
-    extra = [c_ for c_ in ("p_win", "ev", "weight") if c_ in sig.columns]
-    cand = sig.select(*KEYS, "score", *extra).join(
-        ds.select(*KEYS, *TRADE_COLUMNS), on=list(KEYS), how="left"
-    )
+    extra = [c_ for c_ in ("p_win", "ev", "weight", "k_sl") if c_ in sig.columns]
+    # Label columns come with the predictions when the barrier pair was chosen per fold (the
+    # walk-forward attaches the chosen pair's labels); otherwise from the dataset's own labels.
+    own = [c_ for c_ in TRADE_COLUMNS if c_ in sig.columns]
+    rest = [c_ for c_ in TRADE_COLUMNS if c_ not in sig.columns]
+    cand = sig.select(*KEYS, "score", *extra, *own)
+    if rest:
+        cand = cand.join(ds.select(*KEYS, *rest), on=list(KEYS), how="left")
     counts["unresolved"] = int((~cand["valid"].fill_null(False)).sum())
     cand = cand.filter(pl.col("valid").fill_null(False))
     counts["unfilled_buy_queue"] = int((~cand["executable"]).sum())
     cand = cand.filter(pl.col("executable"))
 
+    k_sl = pl.col("k_sl") if "k_sl" in cand.columns else pl.lit(c.labeling.k_sl)
     risk_w = pl.lit(c.sizing.risk_per_trade) / (
-        c.labeling.k_sl * math.sqrt(tf.atr_scale_days) * pl.col("atr_14_pct")
+        k_sl * math.sqrt(tf.atr_scale_days) * pl.col("atr_14_pct")
     )
     size = pl.col("weight") if "weight" in cand.columns else risk_w
     cand = cand.with_columns(

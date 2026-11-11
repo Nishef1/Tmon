@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta
 
 import polars as pl
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from tmon.core.db import session_scope
@@ -317,7 +318,12 @@ def _tradable_instruments(session: Session, classifier: Classifier) -> list[Inst
 
 
 async def backfill(
-    ctx: Ctx, *, since: date | None = None, limit: int | None = None, enrich: bool = True
+    ctx: Ctx,
+    *,
+    since: date | None = None,
+    limit: int | None = None,
+    enrich: bool = True,
+    missing_only: bool = False,
 ) -> dict[str, int]:
     seed_market_rules(ctx.session)
     await sync_instruments(ctx)
@@ -326,6 +332,9 @@ async def backfill(
     if limit:  # the most liquid first, so a short run covers instruments that actually trade
         instruments.sort(key=lambda i: ctx.liquidity.get(i.ins_code, 0.0), reverse=True)
         instruments = instruments[:limit]
+    if missing_only:  # resume: skip instruments that already have price history
+        have = set(ctx.session.scalars(select(PriceDaily.instrument_id).distinct()))
+        instruments = [i for i in instruments if i.id not in have]
     totals = {"instruments": 0, "bars": 0, "client_rows": 0, "failed": 0}
     for ins in instruments:
         try:
@@ -336,7 +345,7 @@ async def backfill(
             totals["client_rows"] += s["client_rows"]
             totals["instruments"] += 1
             ctx.session.commit()  # a crash hours in must not lose the instruments already done
-        except (FetchError, parsers.ParseError) as exc:
+        except (FetchError, parsers.ParseError, OperationalError) as exc:
             ctx.session.rollback()
             totals["failed"] += 1
             log.error("ingest failed for %s (%s): %s", ins.symbol_fa, ins.ins_code, exc)
@@ -451,5 +460,7 @@ def run_reclassify() -> dict[str, int]:
         return reclassify_instruments(session, get_classifier())
 
 
-def run_backfill(*, since: date | None = None, limit: int | None = None) -> dict[str, int]:
-    return asyncio.run(_run("backfill", since=since, limit=limit))
+def run_backfill(
+    *, since: date | None = None, limit: int | None = None, missing_only: bool = False
+) -> dict[str, int]:
+    return asyncio.run(_run("backfill", since=since, limit=limit, missing_only=missing_only))

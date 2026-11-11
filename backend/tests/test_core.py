@@ -41,7 +41,10 @@ def test_yyyymmdd():
 def test_engine_yaml_loads_and_regimes_match_docs():
     cfg = load_engine_config()
     assert set(cfg.labeling.timeframes) == {"D1", "W1", "M1"}
-    assert cfg.thresholds.p_min["D1"] == 0.60
+    assert cfg.thresholds.margin == 0.05 and cfg.thresholds.p_floor == 0.35  # ADR 0002 section 3
+    assert cfg.thresholds.ev_min_abs == 0.005 and cfg.thresholds.min_bucket_samples == 200
+    assert cfg.labeling.grid["D1"].k_tp == [1.0, 1.5, 2.0]  # ADR 0002 section 4
+    assert cfg.labeling.grid["D1"].k_sl == [1.0, 1.5]
     # halt window from docs/01: 9 Esfand 1404 .. day before 29 Ordibehesht 1405
     assert cfg.regime_of(parse_jalali("1404/12/08")) == "normal"
     assert cfg.regime_of(parse_jalali("1404/12/09")) == "halt"

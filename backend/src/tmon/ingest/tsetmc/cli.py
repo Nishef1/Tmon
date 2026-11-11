@@ -31,6 +31,9 @@ def main() -> None:
     bf = sub.add_parser("backfill", help="instrument list + full daily history")
     bf.add_argument("--since", type=date.fromisoformat, default=None)
     bf.add_argument("--limit", type=int, default=None, help="only the first N instruments")
+    bf.add_argument(
+        "--missing-only", action="store_true", help="skip instruments that already have prices"
+    )
     sub.add_parser("eod", help="incremental end-of-day refresh")
     adj = sub.add_parser("adjustment-check", help="compare our price adjustment with TSETMC's")
     adj.add_argument("--out", default="docs/reports/adjustment-check.md")
@@ -70,7 +73,7 @@ def main() -> None:
         print(run_reclassify())
         return
     result = (
-        run_backfill(since=args.since, limit=args.limit)
+        run_backfill(since=args.since, limit=args.limit, missing_only=args.missing_only)
         if args.cmd == "backfill"
         else ingest_end_of_day()
     )

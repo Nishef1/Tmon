@@ -55,6 +55,7 @@ def to_dict(run: BacktestRun) -> dict[str, Any]:
         "warnings": run.warnings,
         "strategies": {n: s.summary for n, s in run.strategies.items()},
         "benchmarks": run.benchmarks,
+        "grid": grid_summary(run),
         "folds": [
             {"i": f.index, "train_cutoff": f.train_cutoff.isoformat(),
              "test_start": f.test_start.isoformat(), "test_end": f.test_end.isoformat(),
@@ -62,6 +63,73 @@ def to_dict(run: BacktestRun) -> dict[str, Any]:
             for f, n in zip(run.folds, run.train_sizes, strict=False)
         ],
     }  # fmt: skip
+
+
+def grid_summary(run: BacktestRun) -> dict[str, Any]:
+    """Per strategy: every barrier pair tried (ADR 0002 section 4) with how often a fold chose it
+    and its mean inner-validation score over the folds where it produced enough signals."""
+    out: dict[str, Any] = {}
+    for name, infos in run.fold_infos.items():
+        pairs: dict[tuple[float, float], dict[str, Any]] = {}
+        for info in infos:
+            for g in info["grid"]:
+                key = (float(g["k_tp"]), float(g["k_sl"]))
+                row = pairs.setdefault(key, {"chosen": 0, "scored": 0, "sum": 0.0, "signals": 0})
+                row["signals"] += int(g.get("n_signals") or 0)
+                if g.get("score") is not None:
+                    row["scored"] += 1
+                    row["sum"] += float(g["score"])
+            ck = (float(info["k_tp"]), float(info["k_sl"]))
+            pairs.setdefault(ck, {"chosen": 0, "scored": 0, "sum": 0.0, "signals": 0})[
+                "chosen"
+            ] += 1
+        out[name] = {
+            "folds": len(infos),
+            "folds_by_score": sum(1 for i in infos if i["by_score"]),
+            "pairs": [
+                {
+                    "k_tp": k[0],
+                    "k_sl": k[1],
+                    "chosen_in_folds": v["chosen"],
+                    "folds_scored": v["scored"],
+                    "mean_inner_score": (v["sum"] / v["scored"]) if v["scored"] else None,
+                    "inner_signals": v["signals"],
+                }
+                for k, v in sorted(pairs.items())
+            ],
+        }
+    return out
+
+
+def _grid_section(run: BacktestRun) -> list[str]:
+    summary = grid_summary(run)
+    if not summary:
+        return []
+    lines = ["## شبکهٔ مانع‌ها (همهٔ ترکیب‌های آزموده‌شده)", ""]
+    n = len(run.meta.get("grid_combos") or [])
+    lines += [
+        f"هر fold جفت (k_tp, k_sl) را **فقط از پنجرهٔ آموزش خودش** و با میانگین بازده خالص هر معامله "
+        f"روی برش اعتبارسنجی درونی انتخاب می‌کند؛ دورهٔ آزمون هرگز دیده نمی‌شود. "
+        f"تعداد جفت‌های آزموده‌شده: {n} (هزینهٔ آزمون‌های چندگانه؛ نتیجه را با این تعداد بخوانید).",
+        "",
+    ]
+    for name, g in summary.items():
+        lines += [
+            f"### {name}",
+            "",
+            f"fold‌ها: {g['folds']:,} — انتخاب با امتیاز: {g['folds_by_score']:,} — "
+            f"بازگشت به جفت پیش‌فرض (سیگنال ناکافی): {g['folds'] - g['folds_by_score']:,}",
+            "",
+            "| k_tp | k_sl | انتخاب در fold | fold با امتیاز | میانگین امتیاز درونی | سیگنال درونی |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+        for r in g["pairs"]:
+            lines.append(
+                f"| {r['k_tp']} | {r['k_sl']} | {r['chosen_in_folds']:,} | {r['folds_scored']:,} | "
+                f"{_fmt(r['mean_inner_score'], 'pct')} | {r['inner_signals']:,} |"
+            )
+        lines.append("")
+    return lines
 
 
 def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[str]:
@@ -89,6 +157,18 @@ def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[st
             + ("بالاتر" if tr > ew else "پایین‌تر")
             + f" از خرید و نگهداری هم‌وزن بازار نقدشونده ({_fmt(ew, 'pct')}) است."
         )
+    for key, label in (
+        ("tedpix", "شاخص کل (TEDPIX)"),
+        ("equal_weight_index", "شاخص هم‌وزن"),
+        ("fixed_income", "اخزا (نرخ بدون ریسک)"),
+    ):
+        bm = run.benchmarks.get(key, {}).get("portfolio", {}).get("total_return")
+        if tr is not None and bm is not None:
+            out.append(
+                f"بازده کل {challenger} ({_fmt(tr, 'pct')}) "
+                + ("بالاتر" if tr > bm else "پایین‌تر")
+                + f" از {label} ({_fmt(bm, 'pct')}) است."
+            )
     if baseline and baseline in run.strategies and baseline != challenger:
         b = run.strategies[baseline]
         be = b.summary["trades"].get("expectancy_net")
@@ -150,6 +230,7 @@ def render_markdown(
         f"تعداد fold: {m.get('folds')} (بازآموزی هر {m.get('retrain_every_days')} روز، "
         f"حداقل آموزش {m.get('min_train_days')} روز، purging + embargo = افق)",
         f"- لغزش (slippage) رفت‌وبرگشت: {_fmt(m.get('slippage_fraction'), 'pct')}",
+        f"- نرخ بدون ریسک (میانگین اخزا در دورهٔ آزمون): {_fmt(m.get('risk_free_annual'), 'pct')}",
         "",
     ]
     if run.warnings:
@@ -157,7 +238,9 @@ def render_markdown(
 
     cols = [*names, *run.benchmarks]
     labels = {
-        "equal_weight_all": "شاخص هم‌وزن (همهٔ نمادها)",
+        "tedpix": "شاخص کل (TEDPIX)",
+        "equal_weight_index": "شاخص هم‌وزن (رسمی)",
+        "equal_weight_all": "هم‌وزن همهٔ نمادها (ساخت خودمان)",
         "equal_weight_universe": "هم‌وزن بازار نقدشونده",
         "fixed_income": "درآمد ثابت",
     }
@@ -203,6 +286,7 @@ def render_markdown(
     for name, sr in run.strategies.items():
         if "probabilistic" in sr.summary:
             lines += _calibration_section(name, sr.summary["probabilistic"])
+    lines += _grid_section(run)
     if gate is not None:
         lines += ["## دروازهٔ سطح A", ""]
         lines.append(

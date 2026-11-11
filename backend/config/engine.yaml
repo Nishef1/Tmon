@@ -8,6 +8,7 @@ universe:
   exclude_queue_states: [sell_queue]
 
 labeling:
+  # Default pair when no grid selection runs. The walk-forward picks from `grid` per window.
   k_tp: 2.0
   k_sl: 1.0
   atr_period: 14
@@ -15,6 +16,12 @@ labeling:
     D1: { horizon_days: 3, atr_scale_days: 1 }
     W1: { horizon_days: 10, atr_scale_days: 5 }
     M1: { horizon_days: 60, atr_scale_days: 20 }
+  # Nested selection (ADR 0002 section 4): every pair is tried inside each training window and
+  # the pair with the best mean net return per trade on the inner validation slice wins.
+  grid:
+    D1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }
+    W1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }   # same pattern, own horizon (ADR 0002 section 4)
+    M1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }
 
 costs:
   # Slippage as a fraction of price (docs/10 section 6: "half a percent"; the
@@ -24,12 +31,17 @@ costs:
   # commission_sell, sell_tax). They are never defaulted in code.
 
 thresholds:
-  p_min: { D1: 0.60, W1: 0.60, M1: 0.55 }
-  ev_min_cost_multiple: 2.0
+  # ADR 0002 section 3: p_breakeven = (L + c) / (W + L) per probability bucket;
+  # p_min = max(p_breakeven + margin, p_floor); EV_net (after costs) >= ev_min_abs.
+  margin: 0.05
+  p_floor: 0.35
+  ev_min_abs: 0.005
   min_bucket_samples: 200
   tiers:
-    A: { p_win_min: 0.70, recent_bucket_accuracy_min: 0.65 }
-    B: { p_win_min: 0.62 }
+    # offsets above p_breakeven. A also needs the bucket's accuracy over the last
+    # `model.recent_days` to reach p_breakeven + recent_bucket_accuracy_margin.
+    A: { p_win_margin: 0.12, recent_bucket_accuracy_margin: 0.08 }
+    B: { p_win_margin: 0.08 }
 
 sizing:
   kelly_fraction: 0.25
@@ -110,9 +122,10 @@ benchmarks:
 
 model:
   # Provisional (no numbers in the docs). Chronological split of each training window:
-  # fit | early stopping | calibration, separated by label-window purging.
+  # fit | early stopping | calibration (two halves: isotonic, bucket stats), purged by label window.
   calibration_fraction: 0.20
   early_stopping_fraction: 0.15
   recent_days: 60               # "last 3 months" of docs/10 section 6, in trading days
   min_recent_samples: 30        # fewer recent samples in the bucket => tier A impossible
   tier_a_min_trades: 100        # out-of-sample trades needed before a backtest can unlock tier A
+  grid_min_signals: 30          # provisional: smaller samples give a barrier pair no score
