@@ -405,6 +405,13 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
                 return await backfill(ctx, **kwargs)  # type: ignore[arg-type]
             if fn_name == "eod":
                 return await end_of_day(ctx)
+            if fn_name == "risk_free":
+                from tmon.ingest.tsetmc.risk_free import compute_risk_free, ingest_treasury_bills
+
+                out = await ingest_treasury_bills(ctx)
+                out["rf_rows"] = compute_risk_free(ctx.session)
+                ctx.session.commit()
+                return out
             if fn_name == "indices":
                 from tmon.ingest.tsetmc.indices import ingest_indices
 
@@ -421,6 +428,10 @@ def refresh_instrument_list() -> int:
 
 def ingest_end_of_day() -> dict[str, int]:
     return asyncio.run(_run("eod"))
+
+
+def run_risk_free() -> dict[str, int]:
+    return asyncio.run(_run("risk_free"))
 
 
 def run_indices() -> dict[str, int]:

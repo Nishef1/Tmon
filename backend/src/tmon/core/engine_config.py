@@ -125,6 +125,10 @@ class BenchmarksCfg(_Frozen):
     fixed_income_annual_rate: float | None = None
     # name -> TSETMC index code (ADR 0002 section 6)
     indices: dict[str, str] = {}
+    # Risk-free rate from treasury bills (ADR 0002 section 6)
+    treasury_bill_face_value: float | None = None
+    rf_target_days: int = 365
+    rf_min_days_to_maturity: int = 30
 
 
 class EngineConfig(_Frozen):

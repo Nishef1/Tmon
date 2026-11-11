@@ -100,6 +100,13 @@ benchmarks:
   indices:
     tedpix: "32097828799138957"
     equal_weight: "67130298613737946"
+  # Risk-free rate = yield to maturity of the treasury bill (اخزا) whose remaining life is nearest
+  # to rf_target_days, from its daily final price (ADR 0002 section 6). Face value 1,000,000 rial:
+  # not published by the feed; derived from data (listing-day reference price = 1,000,000 and
+  # prices converging to it near maturity), see docs/reports/risk-free-check.md.
+  treasury_bill_face_value: 1000000
+  rf_target_days: 365
+  rf_min_days_to_maturity: 30
 
 model:
   # Provisional (no numbers in the docs). Chronological split of each training window:
