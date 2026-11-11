@@ -405,6 +405,10 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
                 return await backfill(ctx, **kwargs)  # type: ignore[arg-type]
             if fn_name == "eod":
                 return await end_of_day(ctx)
+            if fn_name == "indices":
+                from tmon.ingest.tsetmc.indices import ingest_indices
+
+                return await ingest_indices(ctx)
             n = await sync_instruments(ctx)
             return {"instruments": n}
     finally:
@@ -417,6 +421,10 @@ def refresh_instrument_list() -> int:
 
 def ingest_end_of_day() -> dict[str, int]:
     return asyncio.run(_run("eod"))
+
+
+def run_indices() -> dict[str, int]:
+    return asyncio.run(_run("indices"))
 
 
 def run_reclassify() -> dict[str, int]:

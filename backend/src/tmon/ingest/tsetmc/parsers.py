@@ -376,3 +376,35 @@ def parse_best_limits(payload: str | dict[str, Any]) -> list[BookLevel]:
     except (KeyError, ValueError, TypeError) as exc:
         raise ParseError(f"bad bestLimits row: {exc}") from exc
     return sorted(levels, key=lambda lv: lv.row)
+
+
+@dataclass(frozen=True)
+class IndexBar:
+    """One day of an index. ``xNivInuClMresIbs`` close, ``xNivInuPhMresIbs`` high and
+    ``xNivInuPbMresIbs`` low (checked against the live payload: low <= close <= high)."""
+
+    day: date
+    close: float
+    high: float
+    low: float
+
+
+def parse_index_history(payload: str | dict[str, Any]) -> list[IndexBar]:
+    data = json.loads(payload) if isinstance(payload, str) else payload
+    rows = data.get("indexB2")
+    if rows is None:
+        raise ParseError("missing indexB2")
+    out: list[IndexBar] = []
+    for r in rows:
+        try:
+            bar = IndexBar(
+                day=yyyymmdd_to_date(int(r["dEven"])),
+                close=float(r["xNivInuClMresIbs"]),
+                high=float(r["xNivInuPhMresIbs"]),
+                low=float(r["xNivInuPbMresIbs"]),
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ParseError(f"bad index row {r!r}: {exc}") from exc
+        if bar.close > 0 and bar.low <= bar.high:
+            out.append(bar)
+    return out

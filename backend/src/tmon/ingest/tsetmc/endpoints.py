@@ -18,6 +18,7 @@ CLIENT_TYPES = f"{OLD}/tsev2/data/clienttype.aspx?i={{ins_code}}"
 INSTRUMENT_INFO = f"{CDN}/api/Instrument/GetInstrumentInfo/{{ins_code}}"
 BEST_LIMITS = f"{CDN}/api/BestLimits/{{ins_code}}/{{date}}"
 BEST_LIMITS_LIVE = f"{CDN}/api/BestLimits/{{ins_code}}"  # current order book (reference client)
+INDEX_HISTORY = f"{CDN}/api/Index/GetIndexB2History/{{code}}"
 LAST_TRADE_DAY = "https://service.tsetmc.com/tsev2/data/TseClient2.aspx?t=LastPossibleDeven"
 
 
@@ -39,3 +40,7 @@ def best_limits_live_url(ins_code: str) -> str:
 
 def best_limits_url(ins_code: str, date_yyyymmdd: int | str = 0) -> str:
     return BEST_LIMITS.format(ins_code=ins_code, date=date_yyyymmdd)
+
+
+def index_history_url(code: str) -> str:
+    return INDEX_HISTORY.format(code=code)

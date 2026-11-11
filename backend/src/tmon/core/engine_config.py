@@ -123,6 +123,8 @@ class BacktestCfg(_Frozen):
 
 class BenchmarksCfg(_Frozen):
     fixed_income_annual_rate: float | None = None
+    # name -> TSETMC index code (ADR 0002 section 6)
+    indices: dict[str, str] = {}
 
 
 class EngineConfig(_Frozen):

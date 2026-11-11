@@ -95,6 +95,11 @@ benchmarks:
   # rate and as a comparison line. No verified value is available offline, so it is left
   # null on purpose: reports then print "not available" and Sharpe uses 0 (docs/OPEN_QUESTIONS.md).
   fixed_income_annual_rate: null
+  # Official TSETMC indices used as benchmarks (ADR 0002 section 6). Codes were read from
+  # GetIndexB1LastAll on 2026-11-11: "شاخص كل" and "شاخص كل (هم وزن)".
+  indices:
+    tedpix: "32097828799138957"
+    equal_weight: "67130298613737946"
 
 model:
   # Provisional (no numbers in the docs). Chronological split of each training window:

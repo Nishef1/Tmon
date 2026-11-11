@@ -300,3 +300,29 @@ class SignalNote(Base):
     message: Mapped[str | None] = mapped_column(String(256))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
     __table_args__ = (UniqueConstraint("date", "timeframe", "model_version", name="uq_signal_run"),)
+
+
+class MarketIndexDaily(Base, Provenance):
+    """Daily level of an official TSETMC index (TEDPIX, the equal-weight index, ...)."""
+
+    __tablename__ = "market_index_daily"
+
+    index_code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    close: Mapped[float] = mapped_column(Float)
+    high: Mapped[float | None] = mapped_column(Float)
+    low: Mapped[float | None] = mapped_column(Float)
+
+
+class MacroSeries(Base, Provenance):
+    """A macro or reference series point (risk-free rate, inflation, FX, ...). ``ref_period``
+    is the day the value refers to; ``release_date`` is when it became public (point-in-time)."""
+
+    __tablename__ = "macro_series"
+
+    series: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source: Mapped[str] = mapped_column(String(64), primary_key=True)
+    ref_period: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    value: Mapped[float] = mapped_column(Float)
+    release_date: Mapped[dt.date | None] = mapped_column(Date)
+    meta: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict)
