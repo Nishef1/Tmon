@@ -1,0 +1,33 @@
+# Instrument classification (docs/01 `instrument_type`).
+# UNVERIFIED against live TSETMC data (see docs/OPEN_QUESTIONS.md #10): matching is by
+# keywords found in the group title (`cgrValCotTitle`) or the Persian name, first match wins.
+# Anything not matched is `stock` with tag `unclassified`.
+
+rules:
+  - type: right
+    keywords: ["حق تقدم", "حق‌تقدم"]
+  - type: option_call
+    keywords: ["اختیار خرید"]
+  - type: option_put
+    keywords: ["اختیار فروش"]
+  - type: future
+    keywords: ["آتی"]
+  - type: commodity_certificate
+    keywords: ["گواهی سپرده"]
+  - type: etf_leveraged
+    keywords: ["اهرمی"]
+  - type: etf_fixed_income
+    keywords: ["درآمد ثابت"]
+  - type: etf_commodity
+    keywords: ["صندوق کالایی"]
+  - type: etf_mixed
+    keywords: ["مختلط"]
+  - type: etf_equity
+    keywords: ["صندوق سرمایه", "صندوق"]
+  - type: bond
+    keywords: ["اوراق", "صکوک", "مرابحه", "اخزا", "مشارکت"]
+
+default_type: stock
+
+# Types that become candidates for recommendations in phase 1 (docs/00: stocks and ETFs).
+tradable_types: [stock, etf_equity, etf_mixed, etf_fixed_income, etf_commodity, etf_leveraged]
