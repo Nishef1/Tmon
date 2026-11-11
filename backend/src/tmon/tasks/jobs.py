@@ -26,3 +26,12 @@ def ingest_end_of_day() -> dict[str, int]:
     from tmon.ingest.tsetmc.pipeline import ingest_end_of_day as run
 
     return run()
+
+
+@app.task(name="tmon.tasks.jobs.compute_features")
+def compute_features(timeframe: str = "D1") -> int:
+    from tmon.core.db import session_scope
+    from tmon.features.store import refresh_features
+
+    with session_scope() as session:
+        return refresh_features(session, timeframe)

@@ -69,11 +69,12 @@ def _run(session):
     with respx.mock:
         respx.get(endpoints.MARKET_WATCH_INIT).mock(return_value=httpx.Response(200, text=WATCH))
         for code in STOCK_CODES:
+            # a distinct symbol per instrument keeps every payload (and its hash) unique
             respx.get(endpoints.daily_history_url(code)).mock(
-                return_value=httpx.Response(200, text=HISTORY)
+                return_value=httpx.Response(200, text=HISTORY.replace("SYM", f"S{code}"))
             )
             respx.get(endpoints.client_types_url(code)).mock(
-                return_value=httpx.Response(200, text=CLIENTS)
+                return_value=httpx.Response(200, text=CLIENTS + f",{code}")
             )
         totals = asyncio.run(go())
     return totals, store
@@ -89,8 +90,8 @@ def test_backfill_end_to_end(session):
 
     # raw payloads were stored and indexed (watch + history + clients)
     raws = session.scalars(select(RawPayload)).all()
-    assert len(raws) == 3  # identical synthetic payloads collapse to one object each
-    assert len(store.objects) == 3
+    assert len(raws) == 1 + 2 * 6  # watch + (history, clients) per stock
+    assert len(store.objects) == 1 + 2 * 6
     assert all(r.source_url and r.fetched_at for r in raws)
 
     first_id = session.scalar(select(Instrument.id).where(Instrument.ins_code == "111"))

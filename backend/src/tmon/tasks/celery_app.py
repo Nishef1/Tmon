@@ -30,4 +30,8 @@ app.conf.beat_schedule = {
         "task": "tmon.tasks.jobs.ingest_end_of_day",
         "schedule": crontab(hour=13, minute=30, day_of_week=TRADING_DOW),
     },
+    "compute-features-daily": {
+        "task": "tmon.tasks.jobs.compute_features",
+        "schedule": crontab(hour=14, minute=0, day_of_week=TRADING_DOW),
+    },
 }
