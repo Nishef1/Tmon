@@ -14,11 +14,12 @@ per second, so Codal gets its own slower per-host interval (``codal_min_interval
 
 from __future__ import annotations
 
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 SEARCH_HOST = "search.codal.ir"
 SEARCH_URL = f"https://{SEARCH_HOST}/api/search/v2/q"
 REPORT_BASE = "https://www.codal.ir"
+EXCEL_HOST = "excel.codal.ir"
 PAGE_SIZE = 20
 
 
@@ -54,3 +55,17 @@ def report_url(path: str) -> str:
     if path.startswith("http"):
         return path
     return REPORT_BASE + (path if path.startswith("/") else "/" + path)
+
+
+def letter_serial(url: str | None) -> str | None:
+    """``LetterSerial`` of a report URL (already URL-decoded), or None."""
+    if not url:
+        return None
+    values = parse_qs(urlparse(url).query).get("LetterSerial")
+    return values[0] if values else None
+
+
+def excel_url(serial: str) -> str:
+    """The report's Excel export. Unlike ``Decision.aspx``, which shows a CAPTCHA once a viewer
+    has opened many reports, this answered with the report body on 2026-11-11."""
+    return f"https://{EXCEL_HOST}/service/Excel/GetAll/{quote(serial, safe='')}/0"

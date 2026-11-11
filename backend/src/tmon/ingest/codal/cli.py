@@ -3,6 +3,7 @@
 python -m tmon.ingest.codal.cli letters --symbol فملی --pages 60   # one company's letter history
 python -m tmon.ingest.codal.cli letters --code ن-۵۲ --pages 5       # one letter type, market-wide
 python -m tmon.ingest.codal.cli events [--pages 1]                  # newest page per event code
+python -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 5       # parse stored letters' bodies
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import argparse
 
 from tmon.core.logging import configure_logging
-from tmon.ingest.codal.pipeline import run_events, run_letters
+from tmon.ingest.codal.pipeline import run_events, run_letters, run_reports
 
 
 def main() -> None:
@@ -25,7 +26,14 @@ def main() -> None:
     let.add_argument("--all", action="store_true", help="do not stop at already-stored pages")
     ev = sub.add_parser("events", help="scan every AGM / capital-increase letter code")
     ev.add_argument("--pages", type=int, default=1)
+    rep = sub.add_parser("reports", help="fetch and parse report bodies of stored letters")
+    rep.add_argument("--code", required=True, help="letter code, e.g. ن-۳۰ or ن-۱۰")
+    rep.add_argument("--symbol", default=None)
+    rep.add_argument("--limit", type=int, default=10)
     args = parser.parse_args()
+    if args.cmd == "reports":
+        print(run_reports(letter_code=args.code, symbol=args.symbol, limit=args.limit))
+        return
     if args.cmd == "events":
         print(run_events(max_pages=args.pages))
         return

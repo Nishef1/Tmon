@@ -212,6 +212,48 @@ class CodalLetter(Base, Provenance):
     under_supervision: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class CodalReport(Base, Provenance):
+    """One parsed report body (a Codal letter's Excel export). Every letter is its own version:
+    a correction («اصلاحیه») is a new letter for the same period, so the current figures for a
+    period are those of the latest-published report with that ``letter_code`` and ``period_end``
+    and no ``subsidiary``."""
+
+    __tablename__ = "codal_reports"
+
+    tracing_no: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("codal_letters.tracing_no"), primary_key=True, autoincrement=False
+    )
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"), index=True)
+    letter_code: Mapped[str | None] = mapped_column(String(16), index=True)
+    period_end: Mapped[str | None] = mapped_column(String(10), index=True)  # Jalali, 1405/07/30
+    is_correction: Mapped[bool] = mapped_column(Boolean, default=False)
+    # a subsidiary's report filed under the parent's symbol; not a version of the parent's report
+    subsidiary: Mapped[str | None] = mapped_column(Text)
+    published_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    format_signature: Mapped[str] = mapped_column(String(16), index=True)
+    n_tables: Mapped[int] = mapped_column(Integer)
+    n_cells: Mapped[int] = mapped_column(Integer)
+    raw_object_key: Mapped[str | None] = mapped_column(Text)
+
+
+class CodalReportCell(Base):
+    """A non-empty cell of a parsed report, with its section title, row label and header path."""
+
+    __tablename__ = "codal_report_cells"
+
+    tracing_no: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("codal_reports.tracing_no"), primary_key=True, autoincrement=False
+    )
+    table_index: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    row_index: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    col_index: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    table_title: Mapped[str | None] = mapped_column(Text)
+    row_label: Mapped[str | None] = mapped_column(Text)
+    col_header: Mapped[str | None] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)
+    value: Mapped[float | None] = mapped_column(Float)
+
+
 class RawPayload(Base):
     """Index of raw responses kept in MinIO before parsing."""
 

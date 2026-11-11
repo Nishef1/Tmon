@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
@@ -17,8 +17,24 @@ from tmon.core.timeutil import to_tehran, utcnow
 from tmon.ingest.codal import endpoints
 from tmon.ingest.codal.events import EVENT_LETTER_CODES, classify_letter
 from tmon.ingest.codal.parsers import Letter, SearchPage, parse_search
+from tmon.ingest.codal.reports import (
+    format_signature,
+    is_correction,
+    parse_number,
+    parse_report,
+    period_end,
+    row_label,
+    subsidiary_of,
+)
 from tmon.ingest.http import DomainRateLimiter, FetchError, PoliteClient
-from tmon.storage.models import CodalLetter, CorporateEvent, Instrument
+from tmon.ingest.tsetmc.parsers import ParseError
+from tmon.storage.models import (
+    CodalLetter,
+    CodalReport,
+    CodalReportCell,
+    CorporateEvent,
+    Instrument,
+)
 from tmon.storage.objectstore import ObjectStore, get_object_store, store_raw_payload
 from tmon.storage.repositories import upsert
 
@@ -183,10 +199,116 @@ async def sync_event_letters(ctx: CodalCtx, *, max_pages: int = 1) -> dict[str, 
     return totals
 
 
+def store_report(ctx: CodalCtx, letter: CodalLetter, payload: bytes, url: str) -> int:
+    """Keep the raw export, parse it, and replace any earlier parse of the same letter."""
+    fetched_at = utcnow()
+    raw = store_raw_payload(
+        ctx.session,
+        ctx.store,
+        source=SOURCE,
+        source_url=url,
+        payload=payload,
+        fetched_at=fetched_at,
+        ext="xls",
+        content_type="application/vnd.ms-excel",
+    )
+    tables = parse_report(payload)
+    cells = [
+        {
+            "tracing_no": letter.tracing_no,
+            "table_index": t.index,
+            "row_index": r,
+            "col_index": c,
+            "table_title": t.title,
+            "row_label": row_label(row),
+            "col_header": t.columns[c] or None,
+            "text": text,
+            "value": parse_number(text),
+        }
+        for t in tables
+        for r, row in enumerate(t.rows)
+        for c, text in enumerate(row)
+        if text
+    ]
+    ctx.session.execute(
+        delete(CodalReportCell).where(CodalReportCell.tracing_no == letter.tracing_no)
+    )
+    upsert(
+        ctx.session,
+        CodalReport,
+        [
+            {
+                "tracing_no": letter.tracing_no,
+                "instrument_id": letter.instrument_id,
+                "letter_code": letter.letter_code,
+                "period_end": period_end(letter.title),
+                "is_correction": is_correction(letter.title),
+                "subsidiary": subsidiary_of(letter.title),
+                "published_at": letter.published_at,
+                "format_signature": format_signature(tables),
+                "n_tables": len(tables),
+                "n_cells": len(cells),
+                "raw_object_key": raw.object_key,
+                "source_url": url,
+                "fetched_at": fetched_at,
+            }
+        ],
+    )
+    upsert(ctx.session, CodalReportCell, cells)
+    return len(cells)
+
+
+async def sync_reports(
+    ctx: CodalCtx,
+    *,
+    letter_code: str,
+    symbol: str | None = None,
+    limit: int = 10,
+) -> dict[str, int]:
+    """Fetch and parse the Excel export of stored letters with ``letter_code`` that have no
+    parsed report yet, newest first. Stops at the first refusal (429, CAPTCHA) with what it has."""
+    q = (
+        select(CodalLetter)
+        .outerjoin(CodalReport, CodalReport.tracing_no == CodalLetter.tracing_no)
+        .where(
+            CodalLetter.letter_code == letter_code,
+            CodalLetter.has_excel.is_(True),
+            CodalReport.tracing_no.is_(None),
+        )
+        .order_by(CodalLetter.published_at.desc())
+        .limit(limit)
+    )
+    if symbol:
+        q = q.where(CodalLetter.symbol == symbol)
+    totals = {"reports": 0, "cells": 0, "skipped": 0}
+    for letter in ctx.session.scalars(q).all():
+        serial = endpoints.letter_serial(letter.url)
+        if not serial:
+            totals["skipped"] += 1
+            continue
+        url = endpoints.excel_url(serial)
+        try:
+            resp = await ctx.client.get(url)
+            n = store_report(ctx, letter, resp.content, url)
+        except (FetchError, ParseError) as exc:
+            log.warning("codal: report %s stopped: %s", letter.tracing_no, exc)
+            ctx.session.rollback()
+            totals["stopped_at"] = letter.tracing_no
+            break
+        ctx.session.commit()
+        totals["reports"] += 1
+        totals["cells"] += n
+    return totals
+
+
 def codal_client() -> PoliteClient:
     s = get_settings()
     limiter = DomainRateLimiter(
-        s.http_min_interval_seconds, {endpoints.SEARCH_HOST: s.codal_min_interval_seconds}
+        s.http_min_interval_seconds,
+        {
+            endpoints.SEARCH_HOST: s.codal_min_interval_seconds,
+            endpoints.EXCEL_HOST: s.codal_min_interval_seconds,
+        },
     )
     return PoliteClient(limiter=limiter)
 
@@ -198,6 +320,8 @@ async def _run(kind: str, **kwargs: Any) -> dict[str, int]:
             ctx = CodalCtx(session, client, get_object_store())
             if kind == "events":
                 return await sync_event_letters(ctx, **kwargs)
+            if kind == "reports":
+                return await sync_reports(ctx, **kwargs)
             return await sync_letters(ctx, **kwargs)
     finally:
         await client.aclose()
@@ -205,6 +329,10 @@ async def _run(kind: str, **kwargs: Any) -> dict[str, int]:
 
 def run_letters(**kwargs: Any) -> dict[str, int]:
     return asyncio.run(_run("letters", **kwargs))
+
+
+def run_reports(**kwargs: Any) -> dict[str, int]:
+    return asyncio.run(_run("reports", **kwargs))
 
 
 def run_events(max_pages: int = 1) -> dict[str, int]:
