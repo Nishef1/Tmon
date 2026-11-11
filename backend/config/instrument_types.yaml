@@ -1,7 +1,58 @@
 # Instrument classification (docs/01 `instrument_type`).
-# UNVERIFIED against live TSETMC data (see docs/OPEN_QUESTIONS.md #10): matching is by
-# keywords found in the group title (`cgrValCotTitle`) or the Persian name, first match wins.
-# Anything not matched is `stock` with tag `unclassified`.
+#
+# Primary: TSETMC's own instrument-type code (`yVal` in GetInstrumentInfo). The mapping below was
+# read off the stored GetInstrumentInfo payloads of the full backfill (instrument names and group
+# titles per code; docs/reports/instrument-classification-audit.md). All funds share one code and
+# take their subtype from `faraDesc` ("نوع صندوق : ..."), then from the name.
+# Fallback, for instruments without an info payload or with a code not listed here: keywords
+# in the group title (`cgrValCotTitle`) or the Persian name, first match wins; anything not
+# matched is `stock` with tag `unclassified`.
+
+type_codes:
+  "300": stock            # exchange shares
+  "303": stock            # Fara Bourse shares
+  "309": stock            # Fara Bourse base-market shares
+  "313": stock            # Fara Bourse نوآفرین market; excluded below by group title
+  "305": fund             # all exchange-traded funds: subtype from fund_rules
+  "380": etf_commodity    # commodity and gold funds
+  "315": other            # project and commodity-based funds
+  "306": bond             # treasury bills, sukuk, murabaha
+  "206": bond             # گام (bank-issued commercial paper)
+  "307": other            # housing-facility rights (تسهیلات مسکن)
+  "308": other            # forward (salaf) contracts
+  "200": other            # forward (salaf) contracts
+  "201": other            # capacity certificates
+  "311": option_call
+  "320": option_call
+  "312": option_put
+  "321": option_put
+  "400": right            # subscription rights ("ح." prefix)
+  "403": right
+  "404": right
+  "701": commodity_certificate
+  "801": other            # energy exchange
+  "802": other
+  "803": other
+  "804": other
+
+# Fund subtype. Matched with spaces and ZWNJ removed, first on `faraDesc`, then on the name;
+# first match wins. Then the name suffixes TSETMC uses for fund units. A fund that matches
+# nothing is `other` with tag `unclassified` (kept, never recommended).
+fund_rules:
+  - type: etf_leveraged
+    keywords: ["اهرمی"]
+  - type: etf_fixed_income
+    keywords: ["درآمدثابت"]
+  - type: etf_mixed
+    keywords: ["مختلط"]
+  - type: other
+    keywords: ["املاک", "مستغلات", "جسورانه", "خصوصی", "صندوقدرصندوق"]
+  - type: etf_equity
+    keywords: ["سهام", "بخشی", "شاخصی"]
+fund_name_suffixes:
+  "-د": etf_fixed_income
+  "-س": etf_equity
+  "-ب": etf_equity
 
 rules:
   - type: right
@@ -41,4 +92,5 @@ recommendable_types: [stock, etf_equity, etf_mixed]
 
 # Group titles (`cgrValCotTitle`) that exclude an instrument from recommendations: the orange and
 # red base markets of the Fara Bourse. The yellow base market stays in.
-not_recommendable_groups: ["پایه نارنجی", "پایه قرمز"]
+# The نوآفرین market is not in ADR 0002's list (owner decision pending, docs/OPEN_QUESTIONS.md).
+not_recommendable_groups: ["پایه نارنجی", "پایه قرمز", "نوآفرین"]

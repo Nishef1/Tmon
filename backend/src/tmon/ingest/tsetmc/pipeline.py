@@ -16,6 +16,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
 from tmon.domain.calendar import build_calendar, halt_windows
@@ -29,6 +30,7 @@ from tmon.storage.models import (
     Instrument,
     PriceAdjustment,
     PriceDaily,
+    RawPayload,
     TradingCalendar,
 )
 from tmon.storage.objectstore import ObjectStore, get_object_store, store_raw_payload
@@ -123,6 +125,8 @@ async def enrich_instrument(ctx: Ctx, instrument: Instrument) -> None:
         group_title=info.group_title,
         name_fa=info.name_fa or instrument.name_fa,
         board=info.flow_title,
+        type_code=info.type_code,
+        fund_desc=info.fund_desc,
     )
     instrument.sector_code = info.sector_code
     instrument.board = info.flow_title
@@ -136,6 +140,8 @@ async def enrich_instrument(ctx: Ctx, instrument: Instrument) -> None:
             "sector_title": info.sector_title,
             "base_volume": info.base_volume,
             "shares": info.shares,
+            "type_code": info.type_code,
+            "fund_desc": info.fund_desc,
         }
     )
     if matched:
@@ -359,9 +365,13 @@ def reclassify_instruments(session: Session, classifier: Classifier) -> dict[str
     that enrichment saved. Needed whenever ``config/instrument_types.yaml`` changes."""
     changed = 0
     for ins in session.scalars(select(Instrument)):
-        group = (ins.tags or {}).get("group_title")
+        t = ins.tags or {}
         itype, matched = classifier.classify(
-            group_title=group, name_fa=ins.name_fa, board=ins.board
+            group_title=t.get("group_title"),
+            name_fa=ins.name_fa,
+            board=ins.board,
+            type_code=t.get("type_code"),
+            fund_desc=t.get("fund_desc"),
         )
         tags = dict(ins.tags or {})
         if matched:
@@ -455,9 +465,40 @@ def run_indices() -> dict[str, int]:
     return asyncio.run(_run("indices"))
 
 
+def backfill_info_tags(session: Session, store: ObjectStore) -> int:
+    """Copy the type code and fund description into ``tags`` from the latest stored
+    GetInstrumentInfo payload of each instrument (no network). Needed once for instruments
+    enriched before these fields were kept."""
+    latest: dict[str, str] = {}
+    rows = session.execute(
+        select(RawPayload.source_url, RawPayload.object_key)
+        .where(RawPayload.source_url.like("%GetInstrumentInfo/%"))
+        .order_by(RawPayload.fetched_at)
+    )
+    for url, key in rows:
+        latest[url.rstrip("/").rsplit("/", 1)[-1]] = key
+    bucket = get_settings().minio_raw_bucket
+    n = 0
+    for ins in session.scalars(select(Instrument).where(Instrument.ins_code.in_(list(latest)))):
+        try:
+            info = parsers.parse_instrument_info(store.get(bucket, latest[ins.ins_code]).decode())
+        except (OSError, parsers.ParseError, ValueError) as exc:
+            log.warning("info payload unreadable for %s: %s", ins.ins_code, exc)
+            continue
+        tags = dict(ins.tags or {})
+        new = {"type_code": info.type_code, "fund_desc": info.fund_desc}
+        if any(tags.get(k) != v for k, v in new.items()):
+            tags.update(new)
+            ins.tags = tags
+            n += 1
+    session.flush()
+    return n
+
+
 def run_reclassify() -> dict[str, int]:
     with session_scope() as session:
-        return reclassify_instruments(session, get_classifier())
+        tagged = backfill_info_tags(session, get_object_store())
+        return {"info_tags_backfilled": tagged, **reclassify_instruments(session, get_classifier())}
 
 
 def run_backfill(

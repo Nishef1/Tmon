@@ -129,3 +129,39 @@ def test_backfill_is_idempotent(session):
     _run(session)
     assert len(session.scalars(select(PriceDaily)).all()) == 24
     assert len(session.scalars(select(PriceAdjustment)).all()) == 6
+
+
+def test_reclassify_backfills_type_code_from_stored_info_payloads(session):
+    """Instruments enriched before ``yVal``/``faraDesc`` were kept get them from the raw store."""
+    import json
+    from datetime import UTC, datetime
+
+    from tmon.domain.enums import InstrumentType as T
+    from tmon.ingest.tsetmc.pipeline import backfill_info_tags, reclassify_instruments
+    from tmon.storage.objectstore import store_raw_payload
+
+    store = MemoryStore()
+    when = datetime(2026, 11, 1, tzinfo=UTC)
+    funds = {
+        "901": ("صندوق س. ثابت نامی", "نوع صندوق : در اوراق بهادار با درآمد ثابت"),
+        "902": ("صندوق طلای x", None),
+    }
+    codes = {"901": "305", "902": "380"}
+    for code, (name, desc) in funds.items():
+        session.add(Instrument(ins_code=code, symbol_fa=f"s{code}", name_fa=name,
+                               instrument_type="etf_equity", tags={"group_title": "x"}))  # fmt: skip
+        body = {"instrumentInfo": {"insCode": code, "lVal30": name, "yVal": codes[code],
+                                   "faraDesc": desc}}  # fmt: skip
+        store_raw_payload(
+            session, store, source="tsetmc",
+            source_url=endpoints.instrument_info_url(code),
+            payload=json.dumps(body, ensure_ascii=False).encode(), fetched_at=when, ext="json",
+        )  # fmt: skip
+    session.flush()
+
+    assert backfill_info_tags(session, store) == 2
+    assert backfill_info_tags(session, store) == 0  # idempotent
+    out = reclassify_instruments(session, load_classifier())
+    assert out["changed"] == 2
+    got = dict(session.execute(select(Instrument.ins_code, Instrument.instrument_type)).all())
+    assert got["901"] == T.ETF_FIXED_INCOME and got["902"] == T.ETF_COMMODITY

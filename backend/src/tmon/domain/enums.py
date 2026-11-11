@@ -22,6 +22,9 @@ class InstrumentType(StrEnum):
     OPTION_PUT = "option_put"
     FUTURE = "future"
     COMMODITY_CERTIFICATE = "commodity_certificate"
+    # housing-facility rights, forward (salaf) contracts, capacity certificates, real-estate,
+    # venture, private and fund-of-fund units: kept, never recommended
+    OTHER = "other"
 
 
 class QueueState(StrEnum):

@@ -33,3 +33,57 @@ def test_derivatives_are_never_stocks_and_universe_follows_adr_0002():
     assert not c.is_recommendable(T.STOCK, board="بازار مشتقه", group_title=None)
     # kept for the comparison page, though not recommendable
     assert c.is_tradable(T.ETF_FIXED_INCOME) and not c.is_recommendable(T.ETF_FIXED_INCOME, **ok)
+
+
+def test_type_code_decides_over_keywords():
+    """TSETMC's ``yVal`` (names and codes as stored from GetInstrumentInfo in the backfill)."""
+    c = load_classifier()
+    cases = {
+        ("300", "ح. کویر تایر"): T.STOCK,  # code wins over the name
+        ("400", "ح. کویر تایر"): T.RIGHT,  # "ح." rights no keyword caught
+        ("380", "صندوق طلای عیار مفید"): T.ETF_COMMODITY,
+        ("307", "امتیاز تسهیلات مسکن سال1403"): T.OTHER,
+        ("308", "سلف استاندارد مغز پسته فنسی"): T.OTHER,
+        ("306", "اسنادخزانه اسلامی"): T.BOND,
+        ("311", "اختیارخ اهرم-80000-1405/08/27"): T.OPTION_CALL,
+        ("321", "اختیارف خودرو"): T.OPTION_PUT,
+        ("701", "زعفران"): T.COMMODITY_CERTIFICATE,
+    }
+    for (code, name), want in cases.items():
+        assert c.classify(group_title=None, name_fa=name, type_code=code) == (want, True), name
+    # an unknown code falls back to the keyword rules
+    assert c.classify(group_title=None, name_fa="حق تقدم x", type_code="999")[0] == T.RIGHT
+
+
+def test_fund_subtype_from_fund_description_then_name():
+    c = load_classifier()
+
+    def fund(desc, name="صندوق س. x"):
+        return c.classify(group_title=None, name_fa=name, type_code="305", fund_desc=desc)
+
+    assert fund("نوع صندوق : در اوراق بهادار با درآمد ثابت") == (T.ETF_FIXED_INCOME, True)
+    assert fund("نوع صندوق : در اوارق بهادار با درآمد ثابت")[0] == T.ETF_FIXED_INCOME  # typo
+    assert fund("نوع صندوق: سهامي")[0] == T.ETF_EQUITY  # Arabic yeh
+    assert fund("نوع صندوق : سهامی بخشی در صنعت بانک ها")[0] == T.ETF_EQUITY
+    assert fund("نوع صندوق: سهامي شاخصي")[0] == T.ETF_EQUITY
+    assert fund("نوع صندوق: در سهام-با ساختار قابل معامله")[0] == T.ETF_EQUITY
+    assert fund("نوع صندوق : سهامی اهرمی")[0] == T.ETF_LEVERAGED
+    assert fund("نوع صندوق: مختلط")[0] == T.ETF_MIXED
+    for desc in ("نوع صندوق : املاک و مستغلات", "نوع صندوق :  جسورانه", "نوع صندوق : خصوصی",
+                 "نوع صندوق : صندوق در صندوق"):  # fmt: skip
+        assert fund(desc)[0] == T.OTHER, desc
+    # no description: the name, then the unit suffix
+    assert fund(None, "ص.س.درآمدثابت اندوخته داريوش-د")[0] == T.ETF_FIXED_INCOME
+    assert fund(None, "صندوق س.بخشي داريوش4-ب")[0] == T.ETF_EQUITY
+    assert fund(None, "صندوق س.آوان ژرف آگاه-س")[0] == T.ETF_EQUITY
+    assert fund("", "ص.س املاك وم.كاشانه خليج فارس")[0] == T.OTHER
+    # nothing to go on: kept, never recommended, flagged
+    assert fund(None, "صندوق نامعلوم") == (T.OTHER, False)
+    ok = {"board": "بازار بورس", "group_title": "بازار صندوق های قابل معامله"}
+    assert not c.is_recommendable(T.OTHER, **ok) and not c.is_tradable(T.OTHER)
+
+
+def test_noafarin_market_is_not_in_the_universe():
+    c = load_classifier()
+    for g in ("بازار نوآفرین - رشد", "بازار نوآفرین - دانش بنیان"):
+        assert not c.is_recommendable(T.STOCK, board="بازار فرابورس", group_title=g)

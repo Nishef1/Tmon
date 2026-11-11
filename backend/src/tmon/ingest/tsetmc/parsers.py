@@ -164,6 +164,9 @@ class InstrumentInfo:
     flow_title: str | None
     base_volume: float | None
     shares: float | None
+    # TSETMC's own instrument-type code and, for funds, the fund-type text
+    type_code: str | None = None
+    fund_desc: str | None = None
 
 
 def parse_instrument_info(payload: str | dict[str, Any]) -> InstrumentInfo:
@@ -198,6 +201,8 @@ def parse_instrument_info(payload: str | dict[str, Any]) -> InstrumentInfo:
         flow_title=_fa("flowTitle"),
         base_volume=_f("baseVol"),
         shares=_f("zTitad"),
+        type_code=_s("yVal"),
+        fund_desc=_fa("faraDesc"),
     )
 
 

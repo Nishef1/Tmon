@@ -41,6 +41,21 @@ CLIENT_COLS = tuple(
 )
 
 
+PLACEHOLDER_PRICE = 1.0
+
+
+def drop_placeholder_bars(prices: pl.DataFrame) -> pl.DataFrame:
+    """Drop bars whose whole range is the 1-rial placeholder (``high <= 1``).
+
+    TSETMC's daily history has such rows for second fund lines (symbols ending in "2") and a
+    few other days: open, high, low and close are all 1 and value equals volume, while
+    ``prev_close`` is the fund's real price (~10,000 rial). They are not trades at a market
+    price; kept, they turn returns and adjustment factors into nonsense and, through the
+    cross-sectional averages, poison the market features of every instrument
+    (docs/reports/instrument-classification-audit.md)."""
+    return prices.filter(~(pl.col("high") <= PLACEHOLDER_PRICE).fill_null(False))
+
+
 def load_inputs(
     session: Session, *, classifier: Classifier | None = None
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
@@ -102,6 +117,7 @@ def load_inputs(
         .with_columns(pl.coalesce("base_volume", "_tag_base").alias("base_volume"))
         .drop("_tag_base")
     )
+    prices = drop_placeholder_bars(prices)
 
     client_rows = session.execute(
         select(

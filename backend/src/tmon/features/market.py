@@ -18,7 +18,10 @@ Z_MIN_SAMPLES = 30
 def add_market_features(df: pl.DataFrame, sectors: pl.DataFrame | None = None) -> pl.DataFrame:
     """``df``: per-instrument features incl. ``ret_1``, ``value``, ``buy_value_i``,
     ``ind_net_flow``. ``sectors``: optional ``instrument_id, sector_code``."""
-    d = df
+    # a non-finite return (bad bar) must not turn the whole day's averages into NaN
+    d = df.with_columns(
+        pl.when(pl.col("ret_1").is_finite()).then(pl.col("ret_1")).otherwise(None).alias("ret_1")
+    )
     if sectors is not None:
         d = d.join(sectors.select(G, "sector_code"), on=G, how="left")
 

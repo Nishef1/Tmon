@@ -260,3 +260,39 @@ def test_vwap_gap_is_close_over_value_per_share_minus_one():
     )
     out = add_vwap_gap(df)["vwap_gap"].to_list()
     assert out[0] == pytest.approx(0.05) and out[1] == pytest.approx(0.0) and out[2] is None
+
+
+def test_placeholder_bars_are_dropped():
+    """1-rial bars (second fund lines on TSETMC) are not prices."""
+    from tmon.features.store import drop_placeholder_bars
+
+    df = pl.DataFrame(
+        {
+            "high": [1.0, 10_500.0, None, 1.0],
+            "close": [1.0, 10_400.0, None, 1.0],
+            "prev_close": [9_896.0, 10_300.0, 10_400.0, 9_868.0],
+        }
+    )
+    out = drop_placeholder_bars(df)
+    assert out["prev_close"].to_list() == [10_300.0, 10_400.0]
+
+
+def test_market_average_ignores_non_finite_returns():
+    from tmon.features.market import add_market_features
+
+    d = date(2025, 1, 1)
+    df = pl.DataFrame(
+        {
+            "instrument_id": [1, 2, 3],
+            "date": [d, d, d],
+            "ret_1": [0.02, float("nan"), 0.04],
+            "value": [1.0, 1.0, 1.0],
+            "buy_value_i": [None, None, None],
+            "ind_net_flow": [None, None, None],
+        },
+        schema_overrides={"buy_value_i": pl.Float64, "ind_net_flow": pl.Float64},
+    )
+    out = add_market_features(df)
+    assert out["mkt_ret_ew"].to_list() == pytest.approx([0.03] * 3)
+    assert out["mkt_ret_vw"][0] == pytest.approx(0.03)
+    assert out.filter(pl.col("instrument_id") == 1)["rel_ret_market"][0] == pytest.approx(-0.01)

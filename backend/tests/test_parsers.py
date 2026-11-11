@@ -82,9 +82,13 @@ def test_instrument_info():
             "flowTitle": "بورس",
             "baseVol": 123456,
             "zTitad": 1000000,
+            "yVal": "305",
+            "faraDesc": "نوع صندوق: سهامي",
         }
     }
     info = parsers.parse_instrument_info(payload)
+    assert info.type_code == "305"
+    assert info.fund_desc == "نوع صندوق: سهامی"  # normalized
     assert info.sector_code == "27"
     assert info.base_volume == 123456
     assert info.group_title.startswith("بازار اول")
