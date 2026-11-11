@@ -18,6 +18,7 @@
 | [11-architecture-and-data-model.md](11-architecture-and-data-model.md) | معماری، ساختار ریپو، اسکیما |
 | [12-roadmap.md](12-roadmap.md) | مراحل و معیار پذیرش هر مرحله |
 | [13-self-critique.md](13-self-critique.md) | ریسک‌ها و محدودیت‌ها |
+| [14-local-run.md](14-local-run.md) | اجرای محلی بدون Docker: دموی مصنوعی و اجرای زنده |
 | [glossary.md](glossary.md) | واژه‌نامه آکادمی سایت |
 | [adr/0001-tech-stack.md](adr/0001-tech-stack.md) | **تصمیم تثبیت‌شده:** زبان‌ها و ابزارها |
 | [prompts/build-phase1.md](prompts/build-phase1.md) | پرامپت نهایی برای Claude Code |
