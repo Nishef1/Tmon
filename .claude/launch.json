@@ -4,13 +4,32 @@
     {
       "name": "tmon-api-demo",
       "runtimeExecutable": "backend/.venv/Scripts/python.exe",
-      "runtimeArgs": ["backend/scripts/serve_demo.py", "demo/tmon-demo.sqlite3"],
+      "runtimeArgs": [
+        "backend/scripts/serve_demo.py",
+        "demo/tmon-demo.sqlite3"
+      ],
       "port": 8000
     },
     {
       "name": "tmon-web",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["frontend/node_modules/next/dist/bin/next", "start", "frontend", "-p", "3000"],
+      "runtimeArgs": [
+        "frontend/node_modules/next/dist/bin/next",
+        "start",
+        "frontend",
+        "-p",
+        "3000"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "tmon-live-standin",
+      "runtimeExecutable": "backend/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "backend/scripts/run_live.py",
+        "--stand-in",
+        "--no-browser"
+      ],
       "port": 3000
     }
   ]
