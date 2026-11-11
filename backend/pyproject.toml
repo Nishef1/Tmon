@@ -37,6 +37,7 @@ dev = [
     "mypy>=2.4.1",
     "types-pyyaml",
     "pandas-stubs",
+    "ta-lib>=0.6",
 ]
 
 [build-system]
