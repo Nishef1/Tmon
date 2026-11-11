@@ -1,0 +1,2 @@
+minimumReleaseAgeExclude:
+  - lightweight-charts@5.3.0

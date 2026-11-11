@@ -7,7 +7,7 @@
 
 | لایه | انتخاب | نسخه حداقل |
 | --- | --- | --- |
-| زبان بک‌اند، داده، مدل | **Python** | 3.12 |
+| زبان بک‌اند، داده، مدل | **Python** | 3.13 (ارتقا از ۳.۱۲ در ۲۰ آبان ۱۴۰۵ به درخواست مالک) |
 | مدیریت بسته Python | `uv` | آخرین پایدار |
 | API | FastAPI + Pydantic v2 | — |
 | ORM و مهاجرت | SQLAlchemy 2 + Alembic | — |
@@ -18,7 +18,7 @@
 | پایگاه داده | **PostgreSQL + TimescaleDB** | PG 16 |
 | کش و پیام | Redis | 7 |
 | فایل خام | MinIO (سازگار با S3) | — |
-| فرانت‌اند | **TypeScript** + Next.js (App Router) + Tailwind، نمودار با TradingView `lightweight-charts` | Node 20 LTS، pnpm |
+| فرانت‌اند | **TypeScript** + Next.js (App Router) + Tailwind، نمودار با TradingView `lightweight-charts` | Node 26، pnpm 12 (TypeScript 6 و ESLint 9: آخرین نسخه‌هایی که زنجیرهٔ lint پشتیبانی می‌کند) |
 | تست | pytest (+ hypothesis برای فرمول‌ها)، Vitest، Playwright | — |
 | کیفیت کد | ruff، mypy (strict در `core/`)، ESLint، Prettier | — |
 | اجرا | Docker Compose (توسعه و تک‌سرور) | — |
