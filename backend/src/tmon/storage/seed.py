@@ -1,6 +1,6 @@
 """Seed ``market_rules`` with the values stated in docs/01-market-structure-and-rules.md.
 
-Rules whose number is not given in the docs (commission, tax) are seeded as
+Costs come from dated broker pages (see COST_SOURCES); other numbers not in the docs are seeded as
 ``verified: false`` approximations and surfaced in backtest reports and
 docs/OPEN_QUESTIONS.md. ``valid_from`` equals the doc review date when the docs do not
 state when a rule started.
@@ -8,7 +8,7 @@ state when a rule started.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -21,6 +21,26 @@ from tmon.storage.models import MarketRule
 MARKET = "IR"
 REVIEW_DATE = date(2026, 11, 11)  # docs review: 20 Aban 1405
 EPOCH = date(2000, 1, 1)
+
+# Dated pages with the same totals (read 2026-11-11). All cite the SEO fee-ceiling report.
+COST_SOURCES = [
+    {
+        "url": "https://enigma.ir/blog/the-amount-of-trading-fees-in-the-capital-market",
+        "publisher": "Enigma",
+        "date": "2024-08-26",
+    },
+    {
+        "url": "https://learning.charisma.ir/beginning-investing/%DA%A9%D8%A7%D8%B1%D9%85%D8%B2%D8%AF-%D9%85%D8%B9%D8%A7%D9%85%D9%84%D8%A7%D8%AA/",
+        "publisher": "Charisma Financial Services Group (broker)",
+        "date": "2026-09-14",
+    },
+    {
+        "url": "https://learning.emofid.com/trading-fees/",
+        "publisher": "Mofid Securities (broker)",
+        "date": "2026-09-30",
+    },
+]
+COST_VERIFIED_FROM = date(2024, 8, 26)
 
 SEED_RULES: list[dict[str, Any]] = [
     {
@@ -69,23 +89,67 @@ SEED_RULES: list[dict[str, Any]] = [
         "valid_from": REVIEW_DATE,
         "source_url": "https://nabzebourse.com/fa/news/139122/",
     },
-    # --- unverified approximations: replace with official figures ---------------
+    # --- costs (ADR 0002 section 2) ---------------------------------------------------
+    # Stock trades on the Tehran Stock Exchange: total buy 0.3712%, total sell 0.88% of which 0.5%
+    # is the sell tax (so sell commissions are 0.38%). The Fara Bourse buy total is 0.3632%; the
+    # higher exchange figure is used for both (conservative, 0.008% apart). Read 2026-11-11 from
+    # three pages that all cite the SEO report "سقف نرخ کارمزدها و خدمات در بازار سرمایه ایران"
+    # (edition 49); the primary SEO document itself was not reachable, the per-body shares are
+    # images in the sources. Verified for dates from the oldest dated source onward.
     {
         "rule": "commission_buy",
-        "value": {"rate": 0.0037, "verified": False, "note": "approximate, general knowledge"},
+        "value": {
+            "rate": 0.003712,
+            "verified": True,
+            "note": "Tehran Stock Exchange stock buy total; Fara Bourse 0.003632 (not used)",
+            "sources": COST_SOURCES,
+        },
+        "valid_from": COST_VERIFIED_FROM,
+        "source_url": COST_SOURCES[1]["url"],
+    },
+    {
+        "rule": "commission_sell",
+        "value": {
+            "rate": 0.0038,
+            "verified": True,
+            "note": "sell total 0.0088 minus the 0.5% sell tax; both markets",
+            "sources": COST_SOURCES,
+        },
+        "valid_from": COST_VERIFIED_FROM,
+        "source_url": COST_SOURCES[1]["url"],
+    },
+    {
+        "rule": "sell_tax",
+        "value": {
+            "rate": 0.005,
+            "verified": True,
+            "note": "0.5% of the sale value, included in the 0.88% sell total",
+            "sources": COST_SOURCES,
+        },
+        "valid_from": COST_VERIFIED_FROM,
+        "source_url": COST_SOURCES[1]["url"],
+    },
+    # Earlier dates: the same figures are assumed (the 2024 and 2026 sources agree and no change
+    # is documented in between), but no source dates that far back. Kept unverified.
+    {
+        "rule": "commission_buy",
+        "value": {"rate": 0.003712, "verified": False, "note": "assumed equal; no dated source"},
         "valid_from": EPOCH,
+        "valid_to": COST_VERIFIED_FROM - timedelta(days=1),
         "source_url": None,
     },
     {
         "rule": "commission_sell",
-        "value": {"rate": 0.0039, "verified": False, "note": "approximate, general knowledge"},
+        "value": {"rate": 0.0038, "verified": False, "note": "assumed equal; no dated source"},
         "valid_from": EPOCH,
+        "valid_to": COST_VERIFIED_FROM - timedelta(days=1),
         "source_url": None,
     },
     {
         "rule": "sell_tax",
-        "value": {"rate": 0.005, "verified": False, "note": "approximate, general knowledge"},
+        "value": {"rate": 0.005, "verified": False, "note": "assumed equal; no dated source"},
         "valid_from": EPOCH,
+        "valid_to": COST_VERIFIED_FROM - timedelta(days=1),
         "source_url": None,
     },
 ]
@@ -102,17 +166,21 @@ def seed_rulebook() -> RuleBook:
 
 
 def seed_market_rules(session: Session) -> int:
-    """Insert seed rules that are not yet present (matched by market+rule+valid_from)."""
+    """Insert missing seed rules and refresh existing ones (matched by market+rule+valid_from)."""
     added = 0
     for spec in SEED_RULES:
-        exists = session.scalar(
-            select(MarketRule.id).where(
+        existing = session.scalar(
+            select(MarketRule).where(
                 MarketRule.market == MARKET,
                 MarketRule.rule == spec["rule"],
                 MarketRule.valid_from == spec["valid_from"],
             )
         )
-        if exists is not None:
+        if existing is not None:
+            # the seed owns these rows: a corrected value or source reaches existing databases
+            existing.value = spec["value"]
+            existing.valid_to = spec.get("valid_to")
+            existing.source_url = spec.get("source_url")
             continue
         session.add(
             MarketRule(
