@@ -15,6 +15,7 @@ from datetime import date
 from tmon.core.logging import configure_logging
 from tmon.ingest.tsetmc.pipeline import (
     ingest_end_of_day,
+    run_adjustment_check,
     run_backfill,
     run_indices,
     run_reclassify,
@@ -31,6 +32,8 @@ def main() -> None:
     bf.add_argument("--since", type=date.fromisoformat, default=None)
     bf.add_argument("--limit", type=int, default=None, help="only the first N instruments")
     sub.add_parser("eod", help="incremental end-of-day refresh")
+    adj = sub.add_parser("adjustment-check", help="compare our price adjustment with TSETMC's")
+    adj.add_argument("--out", default="docs/reports/adjustment-check.md")
     sub.add_parser("risk-free", help="treasury bill history and the one-year yield series")
     sub.add_parser("indices", help="TEDPIX and equal-weight index daily history")
     sub.add_parser("reclassify", help="re-run the type classifier over stored instruments")
@@ -53,6 +56,9 @@ def main() -> None:
                 once=args.once, force=args.force, follow=args.follow, interval=args.interval
             )
         )
+        return
+    if args.cmd == "adjustment-check":
+        print(run_adjustment_check(args.out))
         return
     if args.cmd == "risk-free":
         print(run_risk_free())

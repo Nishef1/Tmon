@@ -18,6 +18,8 @@ CLIENT_TYPES = f"{OLD}/tsev2/data/clienttype.aspx?i={{ins_code}}"
 INSTRUMENT_INFO = f"{CDN}/api/Instrument/GetInstrumentInfo/{{ins_code}}"
 BEST_LIMITS = f"{CDN}/api/BestLimits/{{ins_code}}/{{date}}"
 BEST_LIMITS_LIVE = f"{CDN}/api/BestLimits/{{ins_code}}"  # current order book (reference client)
+# TSETMC's own adjusted series (a=1; a=0 is the raw one). Integer-rounded prices.
+ADJUSTED_HISTORY = f"{OLD}/tsev2/chart/data/Financial.aspx?i={{ins_code}}&t=ph&a=1&b=0"
 INDEX_HISTORY = f"{CDN}/api/Index/GetIndexB2History/{{code}}"
 LAST_TRADE_DAY = "https://service.tsetmc.com/tsev2/data/TseClient2.aspx?t=LastPossibleDeven"
 
@@ -44,3 +46,7 @@ def best_limits_url(ins_code: str, date_yyyymmdd: int | str = 0) -> str:
 
 def index_history_url(code: str) -> str:
     return INDEX_HISTORY.format(code=code)
+
+
+def adjusted_history_url(ins_code: str) -> str:
+    return ADJUSTED_HISTORY.format(ins_code=ins_code)

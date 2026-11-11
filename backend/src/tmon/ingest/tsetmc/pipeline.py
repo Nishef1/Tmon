@@ -412,6 +412,10 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
                 out["rf_rows"] = compute_risk_free(ctx.session)
                 ctx.session.commit()
                 return out
+            if fn_name == "adjustment_check":
+                from tmon.ingest.tsetmc.adjcheck import run_check
+
+                return await run_check(ctx, str(kwargs["out"]))
             if fn_name == "indices":
                 from tmon.ingest.tsetmc.indices import ingest_indices
 
@@ -428,6 +432,10 @@ def refresh_instrument_list() -> int:
 
 def ingest_end_of_day() -> dict[str, int]:
     return asyncio.run(_run("eod"))
+
+
+def run_adjustment_check(out: str) -> dict[str, int]:
+    return asyncio.run(_run("adjustment_check", out=out))
 
 
 def run_risk_free() -> dict[str, int]:

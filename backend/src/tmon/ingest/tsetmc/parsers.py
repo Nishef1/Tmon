@@ -408,3 +408,50 @@ def parse_index_history(payload: str | dict[str, Any]) -> list[IndexBar]:
         if bar.close > 0 and bar.low <= bar.high:
             out.append(bar)
     return out
+
+
+# --------------------------------------------------------------------------- #
+# TSETMC's own adjusted daily series (chart data, a=1)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class AdjustedBar:
+    """``yyyymmdd,high,low,open,last,volume,final`` as served by ``Financial.aspx?t=ph&a=1``
+    (field order checked against the raw ``a=0`` variant: same dates, the last day equals the
+    Export-txt bar). Prices are integer-rounded by the source."""
+
+    day: date
+    high: float
+    low: float
+    open: float
+    last: float
+    volume: float
+    close: float
+
+
+def parse_adjusted_history(text: str) -> list[AdjustedBar]:
+    out: list[AdjustedBar] = []
+    for chunk in text.strip().split(";"):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        f = chunk.split(",")
+        if len(f) != 7:
+            raise ParseError(f"adjusted history row has {len(f)} fields: {chunk!r}")
+        try:
+            out.append(
+                AdjustedBar(
+                    day=yyyymmdd_to_date(f[0]),
+                    high=float(f[1]),
+                    low=float(f[2]),
+                    open=float(f[3]),
+                    last=float(f[4]),
+                    volume=float(f[5]),
+                    close=float(f[6]),
+                )
+            )
+        except (ValueError, TypeError) as exc:
+            raise ParseError(f"bad adjusted history row {chunk!r}: {exc}") from exc
+    out.sort(key=lambda b: b.day)
+    return out
