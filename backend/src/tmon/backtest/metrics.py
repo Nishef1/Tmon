@@ -114,6 +114,29 @@ def brier_score(p: np.ndarray, y: np.ndarray) -> float | None:
     return _nan_to_none(float(np.mean((p - y) ** 2))) if p.size else None
 
 
+def probabilistic_summary(p: np.ndarray, y: np.ndarray, n_buckets: int = 10) -> dict[str, Any]:
+    """Quality of probability forecasts over *all* out-of-sample rows (not only the traded ones).
+
+    ``brier_skill`` compares with always forecasting the sample's base rate (positive = better).
+    """
+    from sklearn.metrics import roc_auc_score
+
+    n = int(p.size)
+    if n == 0 or len(np.unique(y)) < 2:
+        return {"n": n}
+    brier = float(np.mean((p - y) ** 2))
+    base = float(np.mean((y.mean() - y) ** 2))
+    return {
+        "n": n,
+        "base_rate": float(y.mean()),
+        "auc": float(roc_auc_score(y, p)),
+        "brier": brier,
+        "brier_base_rate": base,
+        "brier_skill": _nan_to_none(1.0 - brier / base) if base > 0 else None,
+        "calibration": calibration_table(p, y, n_buckets),
+    }
+
+
 def summarise(
     trades: pl.DataFrame,
     daily: pl.DataFrame,

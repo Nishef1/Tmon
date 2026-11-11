@@ -11,9 +11,11 @@ from pathlib import Path
 
 from tmon.backtest.baseline import BaselineD1
 from tmon.backtest.report import write_reports
-from tmon.backtest.runner import prepare_dataset, run_backtest
+from tmon.backtest.runner import StrategyFactory, prepare_dataset, run_backtest
 from tmon.backtest.synthetic import make_market
 from tmon.domain.rules import RuleBook
+from tmon.engine.gating import evaluate_gate
+from tmon.models.lgbm import LightGBMStrategy
 from tmon.storage.seed import seed_rulebook
 
 
@@ -28,6 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", type=Path)
     ap.add_argument("--html", type=Path, help="full HTML report (not committed)")
     ap.add_argument("--title", default=None)
+    ap.add_argument("--model", action="store_true", help="also evaluate the LightGBM engine")
     args = ap.parse_args(argv)
 
     if args.synthetic:
@@ -45,8 +48,31 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     ds = prepare_dataset(prices, clients, rules, sectors=sectors, timeframe=args.timeframe)
-    run = run_backtest(ds, rules, {"baseline_d1": BaselineD1}, timeframe=args.timeframe)
-    title = args.title or f"بک‌تست baseline ({args.timeframe})"
+    strategies: dict[str, StrategyFactory] = {"baseline_d1": BaselineD1}
+    if args.model:
+        strategies["lgbm_d1"] = lambda: LightGBMStrategy(rules, timeframe=args.timeframe)
+        strategies["lgbm_diag"] = lambda: LightGBMStrategy(
+            rules, timeframe=args.timeframe, enforce_thresholds=False, name="lgbm_diag"
+        )
+    run = run_backtest(ds, rules, strategies, timeframe=args.timeframe)
+    title = args.title or (
+        f"بک‌تست مدل در برابر baseline ({args.timeframe})"
+        if args.model
+        else f"بک‌تست baseline ({args.timeframe})"
+    )
+    gate = None
+    notes: list[str] = []
+    if args.model and "lgbm_d1" in run.strategies:
+        gate = evaluate_gate(
+            run.strategies["lgbm_d1"].summary,
+            run.strategies["baseline_d1"].summary if "baseline_d1" in run.strategies else None,
+        ).to_dict()
+    if args.model:
+        notes.append(
+            "lgbm_d1 = موتور با آستانه‌های docs/10 (p_min، EV ≥ ۲×هزینه، حداقل ۲۰۰ نمونه در سطل). "
+            "lgbm_diag = فقط تشخیصی: هر ردیف با EV مثبت و سطل پر؛ برای سنجش کیفیت رتبه‌بندی است "
+            "و هرگز منتشر نمی‌شود."
+        )
     write_reports(
         run,
         title=title,
@@ -54,6 +80,9 @@ def main(argv: list[str] | None = None) -> int:
         json_path=args.json,
         html_path=args.html,
         synthetic=args.synthetic,
+        challenger="lgbm_d1" if args.model else None,
+        gate=gate,
+        notes=notes,
     )
     for name, s in run.strategies.items():
         print(name, s.summary["trades"], s.summary["portfolio"])

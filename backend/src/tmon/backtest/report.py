@@ -72,6 +72,11 @@ def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[st
         return ["بدون نتیجهٔ قابل‌گزارش: دورهٔ آزمون خارج از نمونه وجود نداشت."]
     exp = ch.summary["trades"].get("expectancy_net")
     tr = ch.summary["portfolio"].get("total_return")
+    if ch.summary["trades"].get("n_trades", 0) == 0:
+        out.append(
+            f"{challenger}: در دورهٔ خارج از نمونه هیچ سیگنالی از آستانه‌های موتور عبور نکرد؛ "
+            "نتیجهٔ صادقانه «توصیه‌ای وجود ندارد» است."
+        )
     if exp is not None:
         out.append(
             f"{challenger}: امید ریاضی هر معامله پس از هزینه {_fmt(exp, 'pct')} "
@@ -97,8 +102,37 @@ def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[st
     return out
 
 
+def _calibration_section(name: str, prob: dict[str, Any]) -> list[str]:
+    lines = [f"## کالیبراسیون {name} (همهٔ ردیف‌های خارج از نمونه)", ""]
+    if "auc" not in prob:
+        return [*lines, "دادهٔ کافی برای ارزیابی احتمال‌ها نبود.", ""]
+    skill = prob.get("brier_skill")
+    lines += [
+        f"- تعداد: {prob['n']:,} — نرخ پایهٔ برخورد به TP: {_fmt(prob['base_rate'], 'pct')} — "
+        f"AUC: {prob['auc']:.3f}",
+        f"- Brier: {prob['brier']:.4f} در برابر پیش‌بینی ثابت نرخ پایه {prob['brier_base_rate']:.4f}"
+        f" (مهارت {_fmt(skill, 'num')})",
+        "",
+        "| بازهٔ p | تعداد | میانگین p | نرخ واقعی |",
+        "| --- | --- | --- | --- |",
+    ]
+    for r in prob["calibration"]:
+        if r["n"]:
+            lines.append(
+                f"| {r['bucket']} | {r['n']:,} | {_fmt(r['mean_p'], 'pct')} | "
+                f"{_fmt(r['hit_rate'], 'pct')} |"
+            )
+    return [*lines, ""]
+
+
 def render_markdown(
-    run: BacktestRun, title: str, *, synthetic: bool = False, challenger: str | None = None
+    run: BacktestRun,
+    title: str,
+    *,
+    synthetic: bool = False,
+    challenger: str | None = None,
+    gate: dict[str, Any] | None = None,
+    notes: Sequence[str] = (),
 ) -> str:
     names = list(run.strategies)
     challenger = challenger or (names[-1] if names else "")
@@ -166,6 +200,19 @@ def render_markdown(
             f"معاملهٔ انجام‌شده: {c.get('trades', 0):,}",
             "",
         ]
+    for name, sr in run.strategies.items():
+        if "probabilistic" in sr.summary:
+            lines += _calibration_section(name, sr.summary["probabilistic"])
+    if gate is not None:
+        lines += ["## دروازهٔ سطح A", ""]
+        lines.append(
+            "- سطح A **مجاز** است."
+            if gate["tier_a_allowed"]
+            else "- سطح A **مجاز نیست**؛ هیچ سیگنال سطح A منتشر نمی‌شود."
+        )
+        lines += [f"  - {r}" for r in gate["reasons"]] + [""]
+    if notes:
+        lines += ["## یادداشت‌ها", ""] + [f"- {n}" for n in notes] + [""]
     if run.strategies:
         lines += ["## جمع‌بندی", ""] + [f"- {v}" for v in verdicts(run, challenger, baseline)] + [""]
     lines += [
@@ -239,11 +286,15 @@ def write_reports(
     html_path: Path | None = None,
     synthetic: bool = False,
     challenger: str | None = None,
+    gate: dict[str, Any] | None = None,
+    notes: Sequence[str] = (),
 ) -> None:
     if md_path:
         md_path.parent.mkdir(parents=True, exist_ok=True)
         md_path.write_text(
-            render_markdown(run, title, synthetic=synthetic, challenger=challenger),
+            render_markdown(
+                run, title, synthetic=synthetic, challenger=challenger, gate=gate, notes=notes
+            ),
             encoding="utf-8",
         )
     if json_path:
