@@ -9,11 +9,12 @@ from typing import Any
 import polars as pl
 
 from tmon.backtest.dataset import build_dataset
-from tmon.backtest.metrics import portfolio_metrics, summarise
+from tmon.backtest.metrics import portfolio_metrics, probabilistic_summary, summarise
 from tmon.backtest.simulate import SimResult, regime_frame, simulate
 from tmon.backtest.walkforward import Fold, Strategy, run_walk_forward
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import RuleBook
+from tmon.engine.defensive import add_defensive_flag
 from tmon.features.builder import build_features
 from tmon.labeling.triple_barrier import triple_barrier_labels
 
@@ -53,7 +54,10 @@ def prepare_dataset(
     c = cfg or get_engine_config()
     feats = build_features(prices, client_types, rules, sectors=sectors, config=c)
     labels = triple_barrier_labels(prices, rules, timeframe, c)
-    return build_dataset(feats, labels, c)
+    ds = build_dataset(feats, labels, c)
+    if sectors is not None and "sector_code" not in ds.columns:
+        ds = ds.join(sectors.select("instrument_id", "sector_code"), on="instrument_id", how="left")
+    return add_defensive_flag(ds, c)
 
 
 def benchmark_series(
@@ -118,6 +122,15 @@ def run_backtest(
             risk_free_annual=c.benchmarks.fixed_income_annual_rate,
         )
         summary["counts"] = sim.counts
+        if "p_win" in wf.predictions.columns:
+            lab = wf.predictions.join(
+                ds.select("instrument_id", "date", "y", "valid"), on=["instrument_id", "date"]
+            ).filter(pl.col("valid") & pl.col("y").is_not_null() & pl.col("p_win").is_not_null())
+            summary["probabilistic"] = probabilistic_summary(
+                lab["p_win"].to_numpy().astype(float),
+                lab["y"].cast(pl.Float64).to_numpy(),
+                c.calibration.n_buckets,
+            )
         run.strategies[name] = StrategyRun(name, wf.predictions, sim, summary)
     if run is None:
         raise ValueError("no strategies given")

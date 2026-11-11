@@ -69,6 +69,8 @@ lightgbm:
     lambda_l2: 10.0
     verbose: -1
     seed: 42
+    deterministic: true          # same data -> same model file (model_version is a content hash)
+    force_row_wise: true
   num_boost_round: 400
   early_stopping_rounds: 40
 
@@ -93,3 +95,12 @@ benchmarks:
   # rate and as a comparison line. No verified value is available offline, so it is left
   # null on purpose: reports then print "not available" and Sharpe uses 0 (docs/OPEN_QUESTIONS.md).
   fixed_income_annual_rate: null
+
+model:
+  # Provisional (no numbers in the docs). Chronological split of each training window:
+  # fit | early stopping | calibration, separated by label-window purging.
+  calibration_fraction: 0.20
+  early_stopping_fraction: 0.15
+  recent_days: 60               # "last 3 months" of docs/10 section 6, in trading days
+  min_recent_samples: 30        # fewer recent samples in the bucket => tier A impossible
+  tier_a_min_trades: 100        # out-of-sample trades needed before a backtest can unlock tier A

@@ -58,3 +58,14 @@ def add_costs(
             out
         ),
     )
+
+
+def round_trip_expr(rules: RuleBook, slippage: float, date_col: str = "date") -> pl.Expr:
+    """Round-trip cost fraction (buy + sell side) valid on ``date_col``, for sizing an expected
+    value before the trade's own dates are known. Null where a rule is missing."""
+    return (
+        rule_value_expr(rules, "commission_buy", "rate", date_col)
+        + rule_value_expr(rules, "commission_sell", "rate", date_col)
+        + rule_value_expr(rules, "sell_tax", "rate", date_col)
+        + slippage
+    )

@@ -90,7 +90,7 @@ class ValidationCfg(_Frozen):
 
 
 class LightGBMCfg(_Frozen):
-    params: dict[str, float | int | str]
+    params: dict[str, bool | int | float | str]
     num_boost_round: int
     early_stopping_rounds: int
 
@@ -105,6 +105,14 @@ class DefensiveCfg(_Frozen):
     p_min_bump: float
     breadth_floor: float
     market_net_flow_negative_days: int
+
+
+class ModelCfg(_Frozen):
+    calibration_fraction: float = Field(gt=0, lt=0.5)
+    early_stopping_fraction: float = Field(gt=0, lt=0.5)
+    recent_days: int = Field(ge=1)
+    min_recent_samples: int = Field(ge=1)
+    tier_a_min_trades: int = Field(ge=1)
 
 
 class BacktestCfg(_Frozen):
@@ -129,6 +137,7 @@ class EngineConfig(_Frozen):
     calibration: CalibrationCfg
     defensive_mode: DefensiveCfg
     backtest: BacktestCfg
+    model: ModelCfg
     benchmarks: BenchmarksCfg
 
     @model_validator(mode="after")
