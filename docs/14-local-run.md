@@ -27,7 +27,7 @@ backend/.venv/Scripts/python.exe backend/scripts/run_demo.py
 
 ## اجرای زنده با داده واقعی TSETMC (یک دستور)
 
-> **وضعیت راستی‌آزمایی:** نشانی‌ها و ستون‌های TSETMC از کلاینت‌های مرجع (pytse-client و finpy-tse) گرفته شده‌اند و **هنوز روی سرویس واقعی راستی‌آزمایی نشده‌اند**؛ سرویس از ماشین ساخت در دسترس نبود. به همین دلیل قدم اول همیشه `probe` است که همین را روی شبکهٔ شما می‌سنجد. ← [OPEN_QUESTIONS](OPEN_QUESTIONS.md) بندهای ۴۸ تا ۵۶.
+> **وضعیت راستی‌آزمایی:** نشانی‌ها و ستون‌های TSETMC روی سرویس واقعی آزموده شده‌اند (۲۰ آبان ۱۴۰۵): `probe` با ۶ از ۷ بررسی سبز شد و بک‌فیل کامل بازار بدون خطا انجام شد (← [OPEN_QUESTIONS](OPEN_QUESTIONS.md) بندهای ۶۰ و ۶۱). بررسی هفتم، تطبیق دیدبان با تاریخچه، فقط در ساعت بازار اجرا می‌شود و هنوز باز است (بند ۴۹). `probe` همچنان قدم اول است، چون دسترسی به TSETMC به شبکهٔ شما بستگی دارد.
 
 از ریشهٔ پروژه، **از شبکه‌ای که به tsetmc.com دسترسی دارد**:
 
@@ -69,8 +69,9 @@ cd backend
 
 ### چه چیزی راستی‌آزمایی شده است
 
-- منطق ما (تجزیه، تشخیص تغییر، ساعت معاملات، حکم probe، ذخیره‌ساز فایلی، API و پنل) با تست‌های خودکار روی payloadهای **ساختگی** دنبال‌کنندهٔ چیدمان مرجع آزموده شده است.
-- پاسخ واقعی TSETMC در هیچ تستی دیده نشده است. تا اجرای `probe` و گزارش سبز آن روی شبکهٔ شما، به ستون‌ها و نشانی‌ها اعتماد نکنید. تست‌های `pytest -m network` همین را بعد از دسترسی بررسی می‌کنند.
+- منطق ما (تجزیه، تشخیص تغییر، ساعت معاملات، حکم probe، ذخیره‌ساز فایلی، API و پنل) با تست‌های خودکار آزموده شده است.
+- اتصال واقعی: `probe`، بک‌فیل کامل (۳٬۷۶۸ نماد) و چرخهٔ روزانه روی دادهٔ واقعی اجرا شده‌اند (OPEN_QUESTIONS ۶۰ و ۶۱). تست‌های `pytest -m network` همین را روی شبکهٔ شما می‌سنجند.
+- هنوز باز: تطبیق ستون‌های دیدبان با تاریخچه در ساعت بازار (بند ۴۹)، و مقایسهٔ تعدیل قیمت با مرجع مستقل (بند ۱۱).
 
 ## اجرای زنده روی «شبیه‌ساز TSETMC» (وقتی سایت اصلی در دسترس نیست)
 
@@ -94,7 +95,7 @@ docker compose --env-file ../.env ps    # همه باید healthy یا Up باش
 ```
 
 - مهاجرت‌ها را خود سرویس `backend` پیش از بالا آمدن اجرا می‌کند (`alembic upgrade head`). سرویس‌های `worker` و `beat` فقط پس از سالم شدن `backend` شروع می‌شوند.
-- پورت‌های میزبان: ۸۰۰۰ (API)، ۳۰۰۰ (رابط)، ۵۴۳۲ (PostgreSQL)، ۶۳۷۹ (Redis)، ۹۰۰۰ و ۹۰۰۱ (MinIO). اگر پورتی اشغال است، قبل از `up` آن را آزاد کنید یا نگاشت را در `infra/docker-compose.yml` عوض کنید.
+- پورت‌های میزبان: ۸۰۰۰ (API)، ۳۰۰۰ (رابط)، ۵۴۳۲ (PostgreSQL)، ۶۳۷۹ (Redis)، ۹۰۰۰ و ۹۰۰۱ (MinIO). اگر پورتی اشغال است، قبل از `up` آن را آزاد کنید یا نگاشت را در `infra/docker-compose.yml` عوض کنید. پورت رابط با `TMON_FRONTEND_PORT` در `.env` عوض می‌شود (مثلاً `3001` وقتی `next start -p 3000` روی میزبان در حال اجراست).
 - تصویر MinIO: ایمیج رسمی `minio/minio` دیگر روی Docker Hub نیست، پس `chainguard/minio` استفاده شده. ← [OPEN_QUESTIONS](OPEN_QUESTIONS.md) (تصویر MinIO).
 - دسترسی به TSETMC باید از داخل کانتینر باز باشد (Docker Desktop معمولاً از همان شبکهٔ میزبان خارج می‌شود). بررسی: `docker compose --env-file ../.env exec -T backend python -m tmon.ingest.tsetmc.cli probe`.
 
@@ -109,6 +110,8 @@ docker compose --env-file ../.env exec -T backend sh -c \
    python -m tmon.ingest.tsetmc.cli risk-free && \
    python -m tmon.ingest.tsetmc.cli reclassify"
 ```
+
+`reclassify` فقط یک بار پس از بک‌فیل لازم است (نوع نمادها را از روی فهرست بازار اصلاح می‌کند)؛ تازه‌سازی روزانهٔ فهرست نمادها نوع نمادهای جدید را خودش تعیین می‌کند. اجرای دوباره بی‌ضرر است.
 
 بک‌فیل کامل ساعت‌ها طول می‌کشد؛ `--limit N` فقط N نماد اول را می‌گیرد (برای آزمایش).
 
@@ -125,7 +128,10 @@ docker compose --env-file ../.env exec -T backend sh -c \
 1. `ingest_eod`: قیمت‌ها و حقیقی/حقوقی
 2. `indices` و `risk_free`: شاخص‌ها و بازده اخزا (اختیاری؛ شکستشان چرخه را متوقف نمی‌کند)
 3. `features`
-4. `publish_and_resolve_outcomes`: آموزش/انتشار سیگنال‌های امروز و تعیین نتیجهٔ سیگنال‌های قدیمی
+4. سه گام انتشار، یکی برای هر تایم‌فریم در `engine.yaml: publish_timeframes`. هر گام مدل همان تایم‌فریم را آموزش می‌دهد، سیگنال‌های امروز را منتشر می‌کند و نتیجهٔ سیگنال‌های قدیمی را تعیین می‌کند:
+   - `publish_and_resolve_outcomes_D1`: **اجباری**؛ شکستش چرخه را متوقف می‌کند.
+   - `publish_and_resolve_outcomes_W1`: اختیاری؛ شکستش ثبت می‌شود و چرخه ادامه می‌یابد.
+   - `publish_and_resolve_outcomes_M1`: اختیاری، مثل W1.
 
 اگر یک گام اجباری شکست بخورد ادعا آزاد می‌شود و tick بعدی دوباره تلاش می‌کند، حداکثر `TMON_CYCLE_MAX_ATTEMPTS` (پیش‌فرض ۳) بار در روز. پس از موفقیت `tmon:cycle:<تاریخ>:done` ثبت می‌شود و tick‌های بعدی همان روز چیزی اجرا نمی‌کنند.
 
@@ -134,6 +140,29 @@ docker compose --env-file ../.env exec -T backend sh -c \
 ```bash
 docker compose --env-file ../.env logs -f worker | grep "cycle day="
 ```
+
+نمونهٔ واقعی، چرخهٔ ۲۰ آبان ۱۴۰۵ (2026-11-11) روی Compose، ادعا شده با tick ساعت ۲۱:۲۵ تهران:
+
+| گام | وضعیت | ثانیه | نتیجه |
+|---|---|---|---|
+| `ingest_eod` | ok | 3687.8 | ۱٬۸۴۰ نماد، ۸٬۷۲۷ کندل، ۰ شکست |
+| `indices` | ok | 1.5 | tedpix ۴٬۳۲۶، equal_weight ۳٬۰۴۲ ردیف |
+| `risk_free` | ok | 17.3 | ۱۸ اخزا، ۶۹۱ ردیف نرخ |
+| `features` | ok | 13.6 | ۶۳٬۷۳۰ ردیف |
+| `publish_and_resolve_outcomes_D1` | ok | 67.9 | ۰ توصیه (هیچ نمادی از آستانه‌ها عبور نکرد) |
+| `publish_and_resolve_outcomes_W1` | ok | 69.1 | ۱ توصیه |
+| `publish_and_resolve_outcomes_M1` | ok | 31.9 | ۵ توصیه |
+
+و در پایان `status=complete`. گام `ingest_eod` بیشترین زمان را می‌گیرد چون هر نماد جداگانه و با محدودیت نرخ دریافت می‌شود.
+
+### کدال
+
+```bash
+docker compose --env-file ../.env exec -T backend python -m tmon.ingest.codal.cli letters --symbol فملی
+docker compose --env-file ../.env exec -T backend python -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 20
+```
+
+جستجوی کدال پس از حدود ۵۵ درخواست پاسخ 429 می‌دهد؛ دستور متوقف می‌شود و اجرای بعدی از همان‌جا ادامه می‌دهد. صفحهٔ `Decision.aspx` کپچا دارد و دور زده نمی‌شود؛ بدنهٔ گزارش از خروجی Excel خوانده می‌شود (OPEN_QUESTIONS ۷۵).
 
 هر گام `status=start` و `status=ok seconds=… result=…` (یا `failed`) دارد و پایان چرخه `status=complete` است. وضعیت ادعا:
 
