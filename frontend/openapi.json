@@ -1590,6 +1590,275 @@
         "title": "RunOut",
         "type": "object"
       },
+      "ScreenerOut": {
+        "properties": {
+          "gate_reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Gate Reasons",
+            "type": "array"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "prices_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prices Date"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ScreenerRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "scores_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scores Date"
+          },
+          "tier_a_allowed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier A Allowed"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "timeframe",
+          "prices_date",
+          "scores_date",
+          "model_version",
+          "tier_a_allowed",
+          "gate_reasons",
+          "total",
+          "rows"
+        ],
+        "title": "ScreenerOut",
+        "type": "object"
+      },
+      "ScreenerRow": {
+        "description": "One symbol on the latest trading day: market data, a few features and, when a scores\nartifact exists, the model's raw output. ``signal`` true means it passed every threshold.",
+        "properties": {
+          "atr_14_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atr 14 Pct"
+          },
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "ev": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ev"
+          },
+          "ind_buy_power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ind Buy Power"
+          },
+          "ind_net_flow_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ind Net Flow Ratio"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentOut"
+          },
+          "p_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Min"
+          },
+          "p_win": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Win"
+          },
+          "reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Reason"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasons"
+          },
+          "rel_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rel Volume"
+          },
+          "rsi_14": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi 14"
+          },
+          "signal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal"
+          },
+          "trades": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trades"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "instrument",
+          "close",
+          "change_pct",
+          "value",
+          "trades",
+          "rsi_14",
+          "rel_volume",
+          "atr_14_pct",
+          "ind_buy_power",
+          "ind_net_flow_ratio",
+          "p_win",
+          "ev",
+          "p_min",
+          "signal",
+          "reasons"
+        ],
+        "title": "ScreenerRow",
+        "type": "object"
+      },
       "SignalOut": {
         "properties": {
           "confidence_tier": {
@@ -2276,6 +2545,89 @@
         },
         "summary": "Recommendations",
         "tags": ["recommendations"]
+      }
+    },
+    "/screener": {
+      "get": {
+        "description": "Every symbol that traded on the latest stored day, with its market data, a few features\nand the latest model output for ``timeframe``. The model output is a diagnostic: only rows\non /recommendations are published recommendations.",
+        "operationId": "screener_screener_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "D1",
+              "enum": ["D1", "W1", "M1"],
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "ev",
+              "enum": ["ev", "p_win", "value", "change_pct", "ind_buy_power", "rsi_14"],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 3000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenerOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Screener",
+        "tags": ["screener"]
       }
     },
     "/signals/history": {

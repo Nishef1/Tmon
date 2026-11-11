@@ -508,6 +508,15 @@ export const GLOSSARY = {
     limits: "فقط در ساعت معاملات به‌روز می‌شود.",
     related: ["rel_volume", "last_price"],
   },
+  trade_value: {
+    fa: "ارزش معاملات روز",
+    en: "Daily traded value",
+    category: "board",
+    definition: "مجموع ریالی معاملات نماد در یک روز (حجم × قیمت هر معامله)، به ریال.",
+    why: "نشان می‌دهد ورود و خروج از نماد با چه هزینه و لغزشی ممکن است؛ نماد کم‌ارزش نقدشوندگی کمی دارد.",
+    limits: "یک روز پرمعامله ممکن است استثنا باشد؛ میانگین چند روز معتبرتر است.",
+    related: ["cum_volume", "rel_volume"],
+  },
   order_book: {
     fa: "صف‌های خرید و فروش",
     en: "Order book (best 5 limits)",

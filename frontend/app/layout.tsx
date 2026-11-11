@@ -12,6 +12,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 const NAV = [
   { href: "/", label: "توصیه‌های امروز" },
+  { href: "/screener", label: "همهٔ نمادها" },
   { href: "/history", label: "سابقه سیگنال‌ها" },
   { href: "/calibration", label: "کالیبراسیون" },
   { href: "/accuracy", label: "دقت زنده" },

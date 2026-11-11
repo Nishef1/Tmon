@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -55,6 +56,7 @@ class PublishResult:
     model_version: str | None = None
     data_snapshot_id: str | None = None
     n_candidates: int = 0
+    scores_uri: str | None = None
     n_recommended: int = 0
     defensive_mode: bool = False
     message: str = ""
@@ -309,6 +311,9 @@ def train_and_publish(
     res.defensive_mode = bool(pred["defensive"].any()) if "defensive" in pred.columns else False
     cand = pred.filter(pl.col("signal"))
     res.n_candidates = cand.height
+    res.scores_uri = write_scores(
+        store, bucket, timeframe, as_of, today, pred, model, str(res.model_version)
+    )
 
     sel = pl.DataFrame()
     if cand.height:
@@ -382,6 +387,47 @@ def train_and_publish(
     return res
 
 
+SCORES_EXPLAINED = 30  # rows by EV that get feature contributions in the scores artifact
+SCORE_COLUMNS = ("p_win", "ev", "p_min", "p_breakeven", "tier", "signal")
+
+
+def write_scores(
+    store: ObjectStore,
+    bucket: str,
+    timeframe: str,
+    as_of: date,
+    today: pl.DataFrame,
+    pred: pl.DataFrame,
+    model: LightGBMStrategy,
+    model_version: str,
+) -> str | None:
+    """Store the model's output for every symbol in today's universe, published or not, so the
+    screener can show it. The top rows by EV also carry their feature contributions."""
+    if pred.is_empty() or model.booster is None:
+        return None
+    cols = [c for c in SCORE_COLUMNS if c in pred.columns]
+    tab = pred.select("instrument_id", *cols)
+    top = tab.filter(pl.col("ev").is_finite()).sort("ev", descending=True).head(SCORES_EXPLAINED)
+    ids = top["instrument_id"].to_list()
+    explained: dict[int, list[dict[str, Any]]] = {}
+    if ids:
+        rows = today.filter(pl.col("instrument_id").is_in(ids))
+        reasons = top_reasons(model.booster, _matrix(rows, model.features), model.features, 5)
+        explained = dict(zip(rows["instrument_id"].to_list(), reasons, strict=True))
+    doc = {
+        "timeframe": timeframe,
+        "date": as_of.isoformat(),
+        "model_version": model_version,
+        "rows": [
+            {**_json_safe(r), "reasons": explained.get(int(r["instrument_id"]))}
+            for r in tab.iter_rows(named=True)
+        ],
+    }
+    uri = f"scores/{timeframe}/{as_of:%Y%m%d}.json"
+    store.put(bucket, uri, json.dumps(doc, allow_nan=False).encode(), "application/json")
+    return uri
+
+
 def _write_model_run(
     session: Session,
     res: PublishResult,
@@ -402,6 +448,7 @@ def _write_model_run(
         },
         "benchmarks": run.benchmarks,
         "warnings": run.warnings,
+        "scores_uri": res.scores_uri,
     }
     window = {
         "start": str(train["date"].min()),

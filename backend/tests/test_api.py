@@ -433,3 +433,63 @@ def test_live_accuracy_and_kill_switch_window(session: Session, client: TestClie
     assert j["recent_brier"] == pytest.approx(0.66**2)
     assert j["days"][0]["date"] == "2026-09-25" and j["days"][0]["hits"] == 0
     assert j["backtest_brier"] is None and j["kill_switch_active"] is False  # no model run yet
+
+
+def test_screener_joins_prices_features_and_scores(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json
+
+    from tmon.api.routers import screener as scr
+    from tmon.storage.objectstore import MemoryStore
+
+    a = _inst(session, "s1", "الف")
+    b = _inst(session, "s2", "ب")
+    for inst, close, prev in ((a, 1100.0, 1000.0), (b, 950.0, 1000.0)):
+        session.add(
+            PriceDaily(instrument_id=inst.id, date=DAY, close=close, prev_close=prev,
+                       value=5e9, trades=10, market_halt=False)
+        )  # fmt: skip
+    session.add(
+        FeatureRow(instrument_id=a.id, date=DAY, feature_set_version=get_feature_set("D1").key,
+                   values={"rsi_14": 61.0, "ind_buy_power": 1.8})
+    )  # fmt: skip
+    store = MemoryStore()
+    doc = {
+        "timeframe": "D1",
+        "date": DAY.isoformat(),
+        "model_version": "m-x",
+        "rows": [
+            {"instrument_id": a.id, "p_win": 0.4, "ev": 0.01, "p_min": 0.45, "signal": False,
+             "reasons": [{"feature": "rsi_14", "value": 61.0, "contribution": 0.2}]},
+            {"instrument_id": b.id, "p_win": 0.5, "ev": 0.02, "p_min": 0.45, "signal": False,
+             "reasons": None},
+        ],
+    }  # fmt: skip
+    store.put("artifacts", "scores/D1/x.json", json.dumps(doc).encode(), "application/json")
+    monkeypatch.setattr(scr, "get_object_store", lambda: store)
+    session.add(
+        ModelRun(timeframe="D1", version="m-x", train_window={}, created_at=NOW,
+                 metrics={"scores_uri": "scores/D1/x.json",
+                          "gate": {"tier_a_allowed": False, "reasons": ["بدتر از baseline"]}})
+    )  # fmt: skip
+    session.flush()
+
+    body = client.get("/screener").json()
+    assert body["prices_date"] == DAY.isoformat()
+    assert body["tier_a_allowed"] is False and body["gate_reasons"] == ["بدتر از baseline"]
+    assert [r["instrument"]["symbol"] for r in body["rows"]] == ["ب", "الف"]  # by EV
+    top = body["rows"][1]
+    assert top["change_pct"] == pytest.approx(0.1)
+    assert top["rsi_14"] == 61.0 and top["ind_buy_power"] == 1.8
+    assert top["reasons"][0]["feature"] == "rsi_14"
+
+    by_change = client.get("/screener", params={"sort": "change_pct", "q": "الف"}).json()
+    assert by_change["total"] == 1 and by_change["rows"][0]["instrument"]["symbol"] == "الف"
+
+
+def test_screener_without_scores(client: TestClient, session: Session) -> None:
+    _priced(session)
+    body = client.get("/screener").json()
+    assert body["total"] == 1 and body["scores_date"] is None
+    assert body["rows"][0]["p_win"] is None

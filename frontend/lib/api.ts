@@ -26,6 +26,8 @@ export type Compare = S["CompareOut"];
 export type CompareRow = S["CompareRow"];
 export type Funds = S["FundsOut"];
 export type LiveAccuracy = S["LiveAccuracyOut"];
+export type Screener = S["ScreenerOut"];
+export type ScreenerRow = S["ScreenerRow"];
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 

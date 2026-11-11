@@ -497,7 +497,7 @@ def test_weekly_and_monthly_models_train_and_publish_on_their_own_horizon(sessio
     session.commit()
     assert res.model_version and res.model_version.startswith(f"lgbm-{timeframe.lower()}-")
     run = session.scalars(select(ModelRun).where(ModelRun.timeframe == timeframe)).one()
-    assert run.feature_set_version.startswith(f"{timeframe}_v1_")
+    assert run.feature_set_version == get_feature_set(timeframe).key
     note = session.scalars(select(SignalNote).where(SignalNote.timeframe == timeframe)).one()
     assert note.date == res.as_of
     horizon = CFG.labeling.timeframes[timeframe].horizon_days

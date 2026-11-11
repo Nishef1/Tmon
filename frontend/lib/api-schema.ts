@@ -190,6 +190,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/screener": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Screener
+     * @description Every symbol that traded on the latest stored day, with its market data, a few features
+     *     and the latest model output for ``timeframe``. The model output is a diagnostic: only rows
+     *     on /recommendations are published recommendations.
+     */
+    get: operations["screener_screener_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/signals/history": {
     parameters: {
       query?: never;
@@ -715,6 +737,64 @@ export interface components {
       /** N Recommended */
       n_recommended: number;
     };
+    /** ScreenerOut */
+    ScreenerOut: {
+      /**
+       * Gate Reasons
+       * @default []
+       */
+      gate_reasons: string[];
+      /** Model Version */
+      model_version: string | null;
+      /** Prices Date */
+      prices_date: string | null;
+      /** Rows */
+      rows: components["schemas"]["ScreenerRow"][];
+      /** Scores Date */
+      scores_date: string | null;
+      /** Tier A Allowed */
+      tier_a_allowed: boolean | null;
+      /** Timeframe */
+      timeframe: string;
+      /** Total */
+      total: number;
+    };
+    /**
+     * ScreenerRow
+     * @description One symbol on the latest trading day: market data, a few features and, when a scores
+     *     artifact exists, the model's raw output. ``signal`` true means it passed every threshold.
+     */
+    ScreenerRow: {
+      /** Atr 14 Pct */
+      atr_14_pct: number | null;
+      /** Change Pct */
+      change_pct: number | null;
+      /** Close */
+      close: number | null;
+      /** Ev */
+      ev: number | null;
+      /** Ind Buy Power */
+      ind_buy_power: number | null;
+      /** Ind Net Flow Ratio */
+      ind_net_flow_ratio: number | null;
+      instrument: components["schemas"]["InstrumentOut"];
+      /** P Min */
+      p_min: number | null;
+      /** P Win */
+      p_win: number | null;
+      /** Reasons */
+      reasons: components["schemas"]["Reason"][] | null;
+      /** Rel Volume */
+      rel_volume: number | null;
+      /** Rsi 14 */
+      rsi_14: number | null;
+      /** Signal */
+      signal: boolean | null;
+      /** Trades */
+      trades: number | null;
+      /** Value */
+      value: number | null;
+    };
     /** SignalOut */
     SignalOut: {
       /** Confidence Tier */
@@ -1063,6 +1143,40 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RecommendationsOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  screener_screener_get: {
+    parameters: {
+      query?: {
+        timeframe?: "D1" | "W1" | "M1";
+        sort?: "ev" | "p_win" | "value" | "change_pct" | "ind_buy_power" | "rsi_14";
+        q?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScreenerOut"];
         };
       };
       /** @description Validation Error */

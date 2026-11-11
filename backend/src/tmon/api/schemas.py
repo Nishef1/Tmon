@@ -303,3 +303,35 @@ class LiveAccuracyOut(ApiModel):
     defensive_mode: bool | None = None
     days: list[LiveDayOut]
     disclaimer: str = DISCLAIMER
+
+
+class ScreenerRow(ApiModel):
+    """One symbol on the latest trading day: market data, a few features and, when a scores
+    artifact exists, the model's raw output. ``signal`` true means it passed every threshold."""
+
+    instrument: InstrumentOut
+    close: float | None = None
+    change_pct: float | None = None
+    value: float | None = None
+    trades: int | None = None
+    rsi_14: float | None = None
+    rel_volume: float | None = None
+    atr_14_pct: float | None = None
+    ind_buy_power: float | None = None
+    ind_net_flow_ratio: float | None = None
+    p_win: float | None = None
+    ev: float | None = None
+    p_min: float | None = None
+    signal: bool | None = None
+    reasons: list[Reason] | None = None
+
+
+class ScreenerOut(ApiModel):
+    timeframe: str
+    prices_date: dt.date | None = None
+    scores_date: dt.date | None = None
+    model_version: str | None = None
+    tier_a_allowed: bool | None = None
+    gate_reasons: list[str] = []
+    total: int
+    rows: list[ScreenerRow]
