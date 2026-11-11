@@ -241,6 +241,19 @@ def add_volatility(
 # --------------------------------------------------------------------------- #
 
 
+def add_vwap_gap(df: pl.DataFrame) -> pl.DataFrame:
+    """``vwap_gap = close / VWAP - 1`` with the daily VWAP ``value / volume`` (docs/04).
+
+    Uses raw same-day exchange figures, so no price adjustment is involved. Null on days
+    without volume."""
+    return df.with_columns(
+        pl.when(pl.col("volume") > 0)
+        .then(pl.col("close") / (pl.col("value") / pl.col("volume")) - 1.0)
+        .otherwise(None)
+        .alias("vwap_gap")
+    )
+
+
 def add_volume_indicators(df: pl.DataFrame, mfi_n: int = 14, obv_window: int = 20) -> pl.DataFrame:
     c, v = pl.col("adj_close"), pl.col("adj_volume")
     tp = (pl.col("adj_high") + pl.col("adj_low") + c) / 3.0

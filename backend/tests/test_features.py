@@ -241,3 +241,17 @@ def test_missing_client_types_still_builds():
     feats = build_features(prices, None, RULES)
     assert feats["ind_buy_power"].null_count() == feats.height
     assert feats["rsi_14"].null_count() < feats.height
+
+
+def test_vwap_gap_is_close_over_value_per_share_minus_one():
+    from tmon.features.indicators import add_vwap_gap
+
+    df = pl.DataFrame(
+        {
+            "close": [1050.0, 1000.0, 1000.0],
+            "volume": [100.0, 100.0, 0.0],
+            "value": [100_000.0, 100_000.0, 0.0],
+        }
+    )
+    out = add_vwap_gap(df)["vwap_gap"].to_list()
+    assert out[0] == pytest.approx(0.05) and out[1] == pytest.approx(0.0) and out[2] is None

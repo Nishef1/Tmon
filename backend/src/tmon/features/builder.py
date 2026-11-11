@@ -39,7 +39,7 @@ TECHNICAL_COLUMNS: tuple[str, ...] = (
     "ichi_cloud_top_dist", "ichi_cloud_bottom_dist", "ichi_chikou_cmp",
     "rsi_14", "stoch_k", "stoch_d", "willr_14",
     "atr_14_pct", "bb_pct_b", "bb_bandwidth", "rv_20",
-    "obv_chg_20", "mfi_14",
+    "obv_chg_20", "mfi_14", "vwap_gap",
     "dist_high_20", "dist_low_20", "dist_high_52w", "dist_low_52w",
     "breakout_20_vol", "pivot_dist", "pivot_r1_dist", "pivot_s1_dist",
 )  # fmt: skip
@@ -146,6 +146,7 @@ def build_features(
 
     d = apply_adjustments(d)
     d = ind.add_trend_momentum_volatility_volume(d)
+    d = ind.add_vwap_gap(d)
 
     client_cols = [
         f"{s}_{m}_{k}"
