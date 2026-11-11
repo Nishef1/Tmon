@@ -23,7 +23,7 @@ from tmon.storage.models import Instrument, ModelRun, Signal, SignalNote
 router = APIRouter(tags=["recommendations"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
-NOT_SUPPORTED = "مدل این تایم‌فریم در فاز ۱ ساخته نشده است؛ فقط D1 فعال است."
+NOT_SUPPORTED = "این تایم‌فریم پشتیبانی نمی‌شود."
 NO_RUN = "هنوز اجرایی برای این تاریخ ثبت نشده است."
 
 

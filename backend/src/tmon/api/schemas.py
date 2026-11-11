@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 Timeframe = Literal["D1", "W1", "M1"]
-SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("D1",)  # Phase 1 only trains the D1 model
+SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("D1", "W1", "M1")
 
 DISCLAIMER = "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست"
 

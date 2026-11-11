@@ -78,8 +78,16 @@ def run_cycle(day: date, steps: Sequence[Step]) -> list[StepResult]:
     return results
 
 
-def default_steps(timeframe: str = "D1") -> list[Step]:
-    """The production steps (imports are lazy: they pull in the whole backend)."""
+def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
+    """The production steps (imports are lazy: they pull in the whole backend).
+
+    One publish step per timeframe in ``engine.yaml: publish_timeframes``. The first (D1) is
+    required; later ones are optional so a weaker horizon never blocks the main product.
+    """
+    if timeframes is None:
+        from tmon.core.engine_config import get_engine_config
+
+        timeframes = get_engine_config().publish_timeframes
 
     def ingest() -> Any:
         from tmon.ingest.tsetmc.pipeline import ingest_end_of_day
@@ -101,28 +109,35 @@ def default_steps(timeframe: str = "D1") -> list[Step]:
         from tmon.features.store import refresh_features
 
         with session_scope() as session:
-            return refresh_features(session, timeframe)
+            return refresh_features(session, timeframes[0])
 
-    def publish() -> Any:
-        from tmon.core.db import session_scope
-        from tmon.engine.service import train_and_publish
-        from tmon.storage.objectstore import get_object_store
+    def publisher(timeframe: str) -> Callable[[], Any]:
+        def publish() -> Any:
+            from tmon.core.db import session_scope
+            from tmon.engine.service import train_and_publish
+            from tmon.storage.objectstore import get_object_store
 
-        with session_scope() as session:
-            res = train_and_publish(session, get_object_store(), timeframe=timeframe)
-        return {
-            "date": str(res.as_of),
-            "model_version": res.model_version,
-            "recommended": res.n_recommended,
-            "message": res.message,
-        }
+            with session_scope() as session:
+                res = train_and_publish(session, get_object_store(), timeframe=timeframe)
+            return {
+                "timeframe": timeframe,
+                "date": str(res.as_of),
+                "model_version": res.model_version,
+                "recommended": res.n_recommended,
+                "message": res.message,
+            }
+
+        return publish
 
     return [
         Step("ingest_eod", ingest),
         Step("indices", indices, required=False),
         Step("risk_free", risk_free, required=False),
         Step("features", features),
-        Step("publish_and_resolve_outcomes", publish),
+        *(
+            Step(f"publish_and_resolve_outcomes_{tf}", publisher(tf), required=(i == 0))
+            for i, tf in enumerate(timeframes)
+        ),
     ]
 
 

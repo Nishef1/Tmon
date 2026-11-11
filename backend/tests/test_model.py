@@ -473,3 +473,34 @@ def test_later_run_resolves_earlier_pending_signals(session, market):
     if not rows:
         pytest.skip("this seed produced no candidate on the earlier day")
     assert any(s.outcome != "pending" and s.outcome_date is not None for s in rows)
+
+
+@pytest.mark.parametrize("timeframe", ["W1", "M1"])
+def test_weekly_and_monthly_models_train_and_publish_on_their_own_horizon(session, timeframe):
+    # 900 days leave room for the 60-day M1 horizon, its embargo and several walk-forward folds.
+    market = make_market(900, 30, seed=13, edge=0.03)
+    loose = CFG.model_copy(
+        update={
+            "thresholds": CFG.thresholds.model_copy(
+                update={
+                    "margin": -1.0,
+                    "p_floor": 0.0,
+                    "ev_min_abs": -1.0,
+                    "min_bucket_samples": 20,
+                }
+            )
+        }
+    )
+    res = train_and_publish(
+        session, MemoryStore(), inputs=market, rules=RULES, cfg=loose, timeframe=timeframe
+    )
+    session.commit()
+    assert res.model_version and res.model_version.startswith(f"lgbm-{timeframe.lower()}-")
+    run = session.scalars(select(ModelRun).where(ModelRun.timeframe == timeframe)).one()
+    assert run.feature_set_version.startswith(f"{timeframe}_v1_")
+    note = session.scalars(select(SignalNote).where(SignalNote.timeframe == timeframe)).one()
+    assert note.date == res.as_of
+    horizon = CFG.labeling.timeframes[timeframe].horizon_days
+    for s in session.scalars(select(Signal).where(Signal.timeframe == timeframe)):
+        assert s.horizon_days == horizon
+        assert s.stop_loss < s.entry_price < s.take_profit

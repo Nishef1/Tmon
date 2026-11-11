@@ -104,12 +104,15 @@ def test_recommendations_before_any_run(client: TestClient) -> None:
     assert "توصیه سرمایه‌گذاری نیست" in r["disclaimer"]
 
 
-def test_unsupported_timeframes_are_explicit(client: TestClient) -> None:
+def test_weekly_and_monthly_timeframes_are_supported(client: TestClient) -> None:
+    # W1/M1 have their own models; with nothing published yet they say so instead of
+    # borrowing D1 signals.
     for tf in ("W1", "M1"):
         r = client.get("/recommendations", params={"timeframe": tf}).json()
-        assert r["supported"] is False
+        assert r["supported"] is True
         assert r["no_recommendation"] is True
         assert r["signals"] == []
+        assert r["timeframe"] == tf
     assert client.get("/recommendations", params={"timeframe": "H1"}).status_code == 422
 
 
@@ -284,9 +287,10 @@ def test_calibration_reports_backtest_live_and_gate(client: TestClient, session:
     assert c["warnings"] == ["هزینه‌ها تأیید نشده‌اند"]
 
 
-def test_calibration_unsupported_timeframe(client: TestClient) -> None:
+def test_calibration_monthly_without_a_model(client: TestClient) -> None:
     c = client.get("/metrics/calibration", params={"timeframe": "M1"}).json()
-    assert c["supported"] is False
+    assert c["supported"] is True
+    assert c["model_version"] is None
 
 
 def test_cors_allows_get_only(client: TestClient) -> None:

@@ -7,8 +7,10 @@ Pipeline (all vectorised Polars, no per-row loops)::
 Every feature at date ``t`` depends only on rows ``<= t`` of the same instrument or on the
 rows of date ``t`` across instruments. ``tests/test_pit.py`` proves this by truncation.
 
-Feature sets are versioned and selected per timeframe. Only D1 exists in Phase 1; asking for
-W1/M1 raises so nothing silently trains on the wrong columns.
+Feature sets are versioned and selected per timeframe. All three are built from the same frame.
+v1 of W1/M1 is price-and-flow only; fundamental and macro columns arrive as v2 once the Codal and
+macro inputs are verified on real data (docs/12, M6/M7). An unknown timeframe raises so nothing
+silently trains on the wrong columns.
 """
 
 from __future__ import annotations
@@ -89,8 +91,17 @@ class FeatureSet:
         return f"{self.timeframe}_{self.version}_{self.fingerprint}"
 
 
+# Same-day board noise (gap to close, intraday position, queue state) says little about a
+# 20-60 day horizon; M1 keeps only the slower money-flow measures.
+SLOW_BOARD_COLUMNS: tuple[str, ...] = (
+    "ind_buy_power", "ind_net_flow_ratio", "ind_net_flow_z", "inst_to_ind",
+    "rel_volume", "vol_to_base", "smart_money_flag",
+)  # fmt: skip
+
 _D1 = FeatureSet("D1", "v1", TECHNICAL_COLUMNS + BOARD_COLUMNS + MARKET_COLUMNS)
-FEATURE_SETS: dict[str, FeatureSet] = {"D1": _D1}
+_W1 = FeatureSet("W1", "v1", TECHNICAL_COLUMNS + BOARD_COLUMNS + MARKET_COLUMNS)
+_M1 = FeatureSet("M1", "v1", TECHNICAL_COLUMNS + SLOW_BOARD_COLUMNS + MARKET_COLUMNS)
+FEATURE_SETS: dict[str, FeatureSet] = {"D1": _D1, "W1": _W1, "M1": _M1}
 
 
 def get_feature_set(timeframe: str) -> FeatureSet:
@@ -98,8 +109,7 @@ def get_feature_set(timeframe: str) -> FeatureSet:
         return FEATURE_SETS[timeframe]
     except KeyError:
         raise UnsupportedTimeframeError(
-            f"no feature set for timeframe {timeframe!r}; "
-            f"only {sorted(FEATURE_SETS)} exist in Phase 1"
+            f"no feature set for timeframe {timeframe!r}; only {sorted(FEATURE_SETS)} exist"
         ) from None
 
 

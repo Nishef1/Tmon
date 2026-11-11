@@ -23,9 +23,13 @@ labeling:
     W1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }   # same pattern, own horizon (ADR 0002 section 4)
     M1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }
 
+# Timeframes the daily cycle trains and publishes. D1 is required; W1 and M1 are optional
+# steps (a failure there does not fail the cycle). v1 of W1/M1 uses price and flow features only.
+publish_timeframes: [D1, W1, M1]
+
 costs:
-  # Slippage as a fraction of price (docs/10 section 6: "half a percent"; the
-  # wording is ambiguous, see docs/OPEN_QUESTIONS.md).
+  # Round-trip slippage as a fraction of price, split evenly between the buy and sell side:
+  # 0.005 = 0.25% per side (ADR 0002 section 2).
   slippage_fraction: 0.005
   # Commission and tax come from market_rules (rules: commission_buy,
   # commission_sell, sell_tax). They are never defaulted in code.

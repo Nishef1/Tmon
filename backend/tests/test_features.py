@@ -158,9 +158,14 @@ def test_feature_sets_are_versioned_and_timeframe_gated():
     d1 = get_feature_set("D1")
     assert d1.key.startswith("D1_v1_") and len(d1.fingerprint) == 12
     assert len(set(d1.columns)) == len(d1.columns)
-    assert list(FEATURE_SETS) == ["D1"]
+    assert list(FEATURE_SETS) == ["D1", "W1", "M1"]
+    for tf in ("W1", "M1"):
+        fs = get_feature_set(tf)
+        assert fs.key.startswith(f"{tf}_v1_") and set(fs.columns) <= set(d1.columns)
+    # M1 drops same-day board noise that says nothing about a 20-60 day horizon
+    assert "last_close_gap" not in get_feature_set("M1").columns
     with pytest.raises(UnsupportedTimeframeError):
-        get_feature_set("W1")
+        get_feature_set("H1")
 
 
 def synthetic_market(n_days: int = 330, n_inst: int = 4, seed: int = 3):
