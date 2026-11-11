@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 import polars as pl
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from tmon.backtest.baseline import BaselineD1
@@ -36,7 +36,6 @@ from tmon.models.explain import top_reasons
 from tmon.models.lgbm import LightGBMStrategy, _matrix
 from tmon.storage.models import ModelRun, Signal, SignalNote
 from tmon.storage.objectstore import ObjectStore
-from tmon.storage.repositories import upsert
 
 ENTRY_RULE = "open_next_day"
 NO_DATA = "داده کافی برای آموزش مدل وجود ندارد؛ توصیه‌ای صادر نشد."
@@ -106,7 +105,11 @@ def resolve_outcomes(session: Session, ds: pl.DataFrame, timeframe: str) -> int:
             "id", "exit_reason", "realized_return", "exit_date"
         ).iter_rows()
     ]
-    return upsert(session, Signal, rows)
+    if rows:
+        # Bulk UPDATE by primary key. An upsert would INSERT a partial row first, which fails the
+        # NOT NULL constraints on signals before ON CONFLICT is ever considered.
+        session.execute(update(Signal), rows)
+    return len(rows)
 
 
 def monitor_tier_a(session: Session, timeframe: str, backtest_brier: float | None) -> bool:

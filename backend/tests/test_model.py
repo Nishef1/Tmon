@@ -442,3 +442,29 @@ def test_service_with_no_prices_says_so(session):
     empty = pl.DataFrame(schema={"instrument_id": pl.Int64, "date": pl.Date})
     res = train_and_publish(session, MemoryStore(), inputs=(empty, empty, empty), rules=RULES)
     assert res.as_of is None and res.n_recommended == 0 and res.message
+
+
+def test_later_run_resolves_earlier_pending_signals(session, market):
+    """Regression: resolving outcomes must UPDATE existing signals (a partial-row upsert violates
+    the NOT NULL constraints)."""
+    prices, clients, sectors = market
+    loose = CFG.model_copy(
+        update={
+            "thresholds": CFG.thresholds.model_copy(
+                update={
+                    "p_min": {"D1": 0.15, "W1": 0.15, "M1": 0.15},
+                    "ev_min_cost_multiple": 0.0,
+                    "min_bucket_samples": 20,
+                }
+            )
+        }
+    )
+    dates = prices["date"].unique().sort().to_list()
+    for d in (dates[-12], dates[-1]):
+        cut = (prices.filter(pl.col("date") <= d), clients.filter(pl.col("date") <= d), sectors)
+        train_and_publish(session, MemoryStore(), inputs=cut, rules=RULES, cfg=loose)
+        session.commit()
+    rows = session.scalars(select(Signal).where(Signal.date == dates[-12])).all()
+    if not rows:
+        pytest.skip("this seed produced no candidate on the earlier day")
+    assert any(s.outcome != "pending" and s.outcome_date is not None for s in rows)
