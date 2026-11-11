@@ -85,6 +85,7 @@ class PoliteClient:
             timeout=s.http_timeout_seconds,
             headers={"User-Agent": s.http_user_agent},
             follow_redirects=True,
+            proxy=s.http_proxy,
         )
         self._sleep = sleep
 

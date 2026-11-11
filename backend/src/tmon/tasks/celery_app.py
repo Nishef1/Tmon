@@ -26,6 +26,10 @@ app.conf.beat_schedule = {
         "task": "tmon.tasks.jobs.refresh_instruments",
         "schedule": crontab(hour=7, minute=30, day_of_week=TRADING_DOW),
     },
+    "snapshot-intraday": {  # the task itself checks market_rules.trading_hours
+        "task": "tmon.tasks.jobs.snapshot_intraday",
+        "schedule": crontab(minute="*", hour="9-12", day_of_week=TRADING_DOW),
+    },
     "ingest-eod-daily": {
         "task": "tmon.tasks.jobs.ingest_end_of_day",
         "schedule": crontab(hour=13, minute=30, day_of_week=TRADING_DOW),

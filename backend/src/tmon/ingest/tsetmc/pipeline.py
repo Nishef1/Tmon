@@ -30,7 +30,7 @@ from tmon.storage.models import (
     PriceDaily,
     TradingCalendar,
 )
-from tmon.storage.objectstore import MinioStore, ObjectStore, store_raw_payload
+from tmon.storage.objectstore import ObjectStore, get_object_store, store_raw_payload
 from tmon.storage.repositories import upsert
 from tmon.storage.seed import seed_market_rules
 
@@ -47,19 +47,22 @@ class Ctx:
     store: ObjectStore
     classifier: Classifier
 
-    async def fetch_text(self, url: str, *, ext: str = "txt") -> tuple[str, datetime]:
+    async def fetch_text(
+        self, url: str, *, ext: str = "txt", keep_raw: bool = True
+    ) -> tuple[str, datetime]:
         fetched_at = utcnow()
         resp = await self.client.get(url)
         payload = resp.content
-        store_raw_payload(
-            self.session,
-            self.store,
-            source=SOURCE,
-            source_url=url,
-            payload=payload,
-            fetched_at=fetched_at,
-            ext=ext,
-        )
+        if keep_raw:  # intraday polling keeps only a sample of raw payloads (see intraday.py)
+            store_raw_payload(
+                self.session,
+                self.store,
+                source=SOURCE,
+                source_url=url,
+                payload=payload,
+                fetched_at=fetched_at,
+                ext=ext,
+            )
         return payload.decode("utf-8", errors="replace"), fetched_at
 
 
@@ -358,7 +361,7 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
     client = PoliteClient()
     try:
         with session_scope() as session:
-            ctx = Ctx(session, client, MinioStore(), get_classifier())
+            ctx = Ctx(session, client, get_object_store(), get_classifier())
             if fn_name == "backfill":
                 return await backfill(ctx, **kwargs)  # type: ignore[arg-type]
             if fn_name == "eod":

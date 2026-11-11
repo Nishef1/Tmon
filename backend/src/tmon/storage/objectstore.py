@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 from datetime import datetime
+from pathlib import Path
 from typing import Protocol
 
 from minio import Minio
@@ -61,6 +62,35 @@ class MemoryStore:
 
     def get(self, bucket: str, key: str) -> bytes:
         return self.objects[(bucket, key)]
+
+
+class FileStore:
+    """Filesystem store for runs without Docker. Same layout as the S3 buckets: root/bucket/key."""
+
+    def __init__(self, root: Path | str) -> None:
+        self._root = Path(root)
+
+    def _path(self, bucket: str, key: str) -> Path:
+        p = (self._root / bucket / key).resolve()
+        if self._root.resolve() not in p.parents:
+            raise ValueError(f"key escapes the store: {key}")
+        return p
+
+    def put(self, bucket: str, key: str, data: bytes, content_type: str) -> None:
+        p = self._path(bucket, key)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+
+    def get(self, bucket: str, key: str) -> bytes:
+        return self._path(bucket, key).read_bytes()
+
+
+def get_object_store() -> ObjectStore:
+    """The store selected by ``TMON_OBJECT_STORE`` (``minio`` or ``file``)."""
+    s = get_settings()
+    if s.object_store == "file":
+        return FileStore(s.object_store_dir)
+    return MinioStore()
 
 
 def raw_key(source: str, fetched_at: datetime, sha256: str, ext: str) -> str:

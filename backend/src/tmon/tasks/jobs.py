@@ -28,6 +28,14 @@ def ingest_end_of_day() -> dict[str, int]:
     return run()
 
 
+@app.task(name="tmon.tasks.jobs.snapshot_intraday")
+def snapshot_intraday() -> dict[str, int]:
+    """One live poll (no-op outside trading hours); scheduled every minute by beat."""
+    from tmon.ingest.tsetmc.intraday import run_intraday
+
+    return run_intraday(once=True)
+
+
 @app.task(name="tmon.tasks.jobs.compute_features")
 def compute_features(timeframe: str = "D1") -> int:
     from tmon.core.db import session_scope
@@ -43,10 +51,10 @@ def publish_signals(timeframe: str = "D1") -> dict[str, object]:
     there are none)."""
     from tmon.core.db import session_scope
     from tmon.engine.service import train_and_publish
-    from tmon.storage.objectstore import MinioStore
+    from tmon.storage.objectstore import get_object_store
 
     with session_scope() as session:
-        res = train_and_publish(session, MinioStore(), timeframe=timeframe)
+        res = train_and_publish(session, get_object_store(), timeframe=timeframe)
     return {
         "date": str(res.as_of),
         "model_version": res.model_version,

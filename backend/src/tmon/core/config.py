@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     minio_raw_bucket: str = "raw-payloads"
     minio_artifact_bucket: str = "artifacts"
 
+    # "minio" (default, Docker Compose) or "file" (no-Docker local runs: payloads and model
+    # artifacts are written under object_store_dir).
+    object_store: str = "minio"
+    object_store_dir: Path = Path("data/objects")
+
     engine_config_path: Path = Field(default=BACKEND_ROOT / "config" / "engine.yaml")
 
     # Ingestion etiquette (per domain; see docs/02-data-sources.md).
@@ -35,6 +40,11 @@ class Settings(BaseSettings):
     http_max_retries: int = 5
     http_timeout_seconds: float = 30.0
     http_user_agent: str = "tmon-research-bot/0.1"
+    # Optional proxy supplied by the operator (e.g. a network route that can reach Iranian hosts).
+    http_proxy: str | None = None
+    # Intraday polling is limited to the exchange's trading hours (market_rules.trading_hours).
+    intraday_interval_seconds: float = 30.0
+    book_top_n: int = 15
 
     cors_origins: list[str] = ["http://localhost:3000"]
 

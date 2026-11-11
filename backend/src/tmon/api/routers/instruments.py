@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from typing import Annotated
 
 import polars as pl
@@ -8,11 +9,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tmon.api.routers.recommendations import instrument_out, signal_out
-from tmon.api.schemas import Candle, FeatureValue, InstrumentDetail
+from tmon.api.schemas import BookLevelOut, Candle, FeatureValue, InstrumentDetail, LiveOut
 from tmon.core.db import get_session
+from tmon.core.timeutil import TEHRAN, utcnow
 from tmon.features.adjustment import apply_adjustments
 from tmon.features.builder import get_feature_set
-from tmon.storage.models import FeatureRow, Instrument, PriceDaily, Signal
+from tmon.storage.models import (
+    FeatureRow,
+    Instrument,
+    IntradaySnapshot,
+    OrderBookSnapshot,
+    PriceDaily,
+    Signal,
+)
 
 router = APIRouter(tags=["instruments"])
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -23,6 +32,8 @@ SHOWN_FEATURES = (
     "ind_buy_power", "ind_net_flow_ratio", "rel_volume", "smart_money_flag",
     "mkt_ret_ew", "breadth",
 )  # fmt: skip
+
+STALE_AFTER_SECONDS = 300  # a snapshot older than this is shown as stale
 
 PRICE_FIELDS = ("open", "high", "low", "close", "last", "prev_close", "volume")
 
@@ -96,4 +107,58 @@ def instrument_detail(
         features_date=frow.date if frow else None,
         features=features,
         signals=[signal_out(s, inst) for s in sigs],
+    )
+
+
+def _utc(ts: dt.datetime) -> dt.datetime:
+    return ts if ts.tzinfo else ts.replace(tzinfo=dt.UTC)
+
+
+@router.get("/instruments/{instrument_id}/live", response_model=LiveOut)
+def instrument_live(instrument_id: int, session: SessionDep) -> LiveOut:
+    """The latest stored intraday snapshot and 5-level order book. ``available=false`` is a normal
+    state (market closed, or the live poller is not running)."""
+    if session.get(Instrument, instrument_id) is None:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    snap = session.scalars(
+        select(IntradaySnapshot)
+        .where(IntradaySnapshot.instrument_id == instrument_id)
+        .order_by(IntradaySnapshot.ts.desc())
+        .limit(1)
+    ).first()
+    if snap is None:
+        return LiveOut(
+            instrument_id=instrument_id,
+            available=False,
+            message="داده لحظه‌ای ذخیره نشده است؛ بازار بسته است یا دریافت زنده فعال نیست.",
+        )
+    ts = _utc(snap.ts)
+    day = ts.astimezone(TEHRAN).date()
+    prev = session.scalars(
+        select(PriceDaily.close)
+        .where(PriceDaily.instrument_id == instrument_id, PriceDaily.date < day)
+        .order_by(PriceDaily.date.desc())
+        .limit(1)
+    ).first()
+    last = None if snap.last_price is None else float(snap.last_price)
+    ref = None if prev is None else float(prev)
+    book_row = session.scalars(
+        select(OrderBookSnapshot)
+        .where(OrderBookSnapshot.instrument_id == instrument_id)
+        .order_by(OrderBookSnapshot.ts.desc())
+        .limit(1)
+    ).first()
+    age = max(0, int((utcnow() - ts).total_seconds()))
+    return LiveOut(
+        instrument_id=instrument_id,
+        available=True,
+        as_of=ts,
+        age_seconds=age,
+        stale=age > STALE_AFTER_SECONDS,
+        last_price=last,
+        cum_volume=None if snap.cum_volume is None else float(snap.cum_volume),
+        reference_price=ref,
+        change_pct=(last / ref - 1.0) if last and ref else None,
+        book_as_of=_utc(book_row.ts) if book_row else None,
+        book=[BookLevelOut(**lv) for lv in book_row.levels] if book_row else [],
     )

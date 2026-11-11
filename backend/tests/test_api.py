@@ -295,3 +295,43 @@ def test_cors_allows_get_only(client: TestClient) -> None:
         headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "POST"},
     )
     assert r.status_code == 400
+
+
+def test_live_snapshot_and_book_with_staleness_and_change(
+    client: TestClient, session: Session
+) -> None:
+    from tmon.core.timeutil import utcnow
+    from tmon.storage.models import IntradaySnapshot, OrderBookSnapshot
+
+    a = _inst(session, "1", "فولاد")
+    assert client.get(f"/instruments/{a.id}/live").json()["available"] is False
+    assert client.get("/instruments/999/live").status_code == 404
+
+    now = utcnow()
+    yesterday = now.astimezone(dt.UTC).date() - dt.timedelta(days=1)
+    session.add(PriceDaily(instrument_id=a.id, date=yesterday, close=1000.0))
+    session.add(IntradaySnapshot(instrument_id=a.id, ts=now, last_price=1030.0, cum_volume=500.0))
+    level = {
+        "row": 1,
+        "bid_price": 1029.0,
+        "bid_volume": 100.0,
+        "bid_count": 3,
+        "ask_price": 1031.0,
+        "ask_volume": 80.0,
+        "ask_count": 2,
+    }
+    session.add(OrderBookSnapshot(instrument_id=a.id, ts=now, levels=[level]))
+    session.flush()
+    body = client.get(f"/instruments/{a.id}/live").json()
+    assert body["available"] and not body["stale"] and body["age_seconds"] < 60
+    assert body["last_price"] == 1030.0 and body["reference_price"] == 1000.0
+    assert body["change_pct"] == pytest.approx(0.03)
+    assert body["book"][0]["bid_price"] == 1029.0 and "توصیه سرمایه‌گذاری نیست" in body["disclaimer"]
+
+    old = now - dt.timedelta(minutes=30)
+    session.add(IntradaySnapshot(instrument_id=a.id, ts=old, last_price=900.0, cum_volume=1.0))
+    session.flush()
+    assert client.get(f"/instruments/{a.id}/live").json()["last_price"] == 1030.0  # newest wins
+    session.query(IntradaySnapshot).filter(IntradaySnapshot.ts == now).delete()
+    session.flush()
+    assert client.get(f"/instruments/{a.id}/live").json()["stale"] is True

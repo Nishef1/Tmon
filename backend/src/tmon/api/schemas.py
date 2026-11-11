@@ -152,3 +152,32 @@ class CalibrationOut(BaseModel):
     warnings: list[str]
     extra: dict[str, Any] = {}
     disclaimer: str = DISCLAIMER
+
+
+class BookLevelOut(BaseModel):
+    row: int
+    bid_price: float
+    bid_volume: float
+    bid_count: int
+    ask_price: float
+    ask_volume: float
+    ask_count: int
+
+
+class LiveOut(BaseModel):
+    """Latest stored intraday snapshot and order book of one instrument (what the poller last
+    wrote, not a direct pass-through of the exchange)."""
+
+    instrument_id: int
+    available: bool
+    as_of: dt.datetime | None = None
+    age_seconds: int | None = None
+    stale: bool = True
+    last_price: float | None = None
+    cum_volume: float | None = None
+    reference_price: float | None = None  # previous trading day's official close
+    change_pct: float | None = None
+    book_as_of: dt.datetime | None = None
+    book: list[BookLevelOut] = []
+    message: str | None = None
+    disclaimer: str = DISCLAIMER

@@ -68,6 +68,83 @@ def parse_market_watch_init(text: str) -> list[WatchInstrument]:
     return out
 
 
+@dataclass(frozen=True)
+class WatchQuote:
+    """Live quote of one instrument from the market-watch payload.
+
+    Column positions follow the open-source reference clients (``finpy-tse``): 4 time, 5 first,
+    6 "final", 7 "close", 8 trades, 9 volume, 10 value, 11 low, 12 high, 13 yesterday's final.
+    They are NOT verified against the live site; ``tmon.ingest.tsetmc.probe`` cross-checks them
+    against the daily history (docs/OPEN_QUESTIONS.md)."""
+
+    ins_code: str
+    time_hhmmss: str
+    first: float
+    final: float
+    close: float
+    trades: int
+    volume: float
+    value: float
+    low: float
+    high: float
+    yesterday: float
+
+
+_QUOTE_MIN_FIELDS = 14
+
+
+def _num(s: str) -> float:
+    return float(s.strip() or 0)
+
+
+def parse_market_watch_quotes(text: str) -> list[WatchQuote]:
+    """Quotes for every instrument in the ``MarketWatchInit`` payload (same row layout as
+    :func:`parse_market_watch_init`). Rows that do not parse are skipped; if most do not, the
+    layout has changed and this raises instead of storing nonsense."""
+    groups = text.split("@")
+    if len(groups) < 3:
+        raise ParseError("market watch payload has fewer than 3 groups")
+    out: list[WatchQuote] = []
+    rows = bad = 0
+    for chunk in groups[2].split(";"):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        f = chunk.split(",")
+        if not f[0].strip().isdigit():
+            continue
+        rows += 1
+        if len(f) < _QUOTE_MIN_FIELDS:
+            bad += 1
+            continue
+        try:
+            q = WatchQuote(
+                ins_code=f[0].strip(),
+                time_hhmmss=f[4].strip(),
+                first=_num(f[5]),
+                final=_num(f[6]),
+                close=_num(f[7]),
+                trades=int(_num(f[8])),
+                volume=_num(f[9]),
+                value=_num(f[10]),
+                low=_num(f[11]),
+                high=_num(f[12]),
+                yesterday=_num(f[13]),
+            )
+        except ValueError:
+            bad += 1
+            continue
+        if q.high < q.low or min(q.volume, q.value, q.trades) < 0:
+            bad += 1
+            continue
+        out.append(q)
+    if not rows:
+        raise ParseError("market watch payload contained no instruments")
+    if bad > rows * 0.2:
+        raise ParseError(f"market watch quote layout not recognised ({bad}/{rows} rows invalid)")
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # Instrument info (cdn JSON)
 # --------------------------------------------------------------------------- #
