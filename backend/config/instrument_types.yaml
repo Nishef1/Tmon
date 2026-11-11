@@ -7,9 +7,9 @@ rules:
   - type: right
     keywords: ["حق تقدم", "حق‌تقدم"]
   - type: option_call
-    keywords: ["اختیار خرید"]
+    keywords: ["اختیار خرید", "اختیارخ"]
   - type: option_put
-    keywords: ["اختیار فروش"]
+    keywords: ["اختیار فروش", "اختیارف"]
   - type: future
     keywords: ["آتی"]
   - type: commodity_certificate
@@ -29,5 +29,16 @@ rules:
 
 default_type: stock
 
-# Types that become candidates for recommendations in phase 1 (docs/00: stocks and ETFs).
+# Anything traded on the derivatives board (`flowTitle`) that no rule above names is a future.
+derivatives_board: "مشتقه"
+
+# Types whose history is ingested and kept (comparison page, docs/12 M7).
 tradable_types: [stock, etf_equity, etf_mixed, etf_fixed_income, etf_commodity, etf_leveraged]
+
+# Types that may be RECOMMENDED in phase 1 (docs/adr/0002 section 1). Fixed-income, leveraged and
+# commodity funds are kept only for the inflation-comparison page.
+recommendable_types: [stock, etf_equity, etf_mixed]
+
+# Group titles (`cgrValCotTitle`) that exclude an instrument from recommendations: the orange and
+# red base markets of the Fara Bourse. The yellow base market stays in.
+not_recommendable_groups: ["پایه نارنجی", "پایه قرمز"]

@@ -20,3 +20,6 @@ var/
 # local SYNTHETIC demo database
 demo/
 data/
+
+# TypeScript incremental build cache (dirties the tree on every typecheck)
+*.tsbuildinfo

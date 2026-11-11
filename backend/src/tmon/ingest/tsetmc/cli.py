@@ -13,7 +13,7 @@ import sys
 from datetime import date
 
 from tmon.core.logging import configure_logging
-from tmon.ingest.tsetmc.pipeline import ingest_end_of_day, run_backfill
+from tmon.ingest.tsetmc.pipeline import ingest_end_of_day, run_backfill, run_reclassify
 
 
 def main() -> None:
@@ -25,6 +25,7 @@ def main() -> None:
     bf.add_argument("--since", type=date.fromisoformat, default=None)
     bf.add_argument("--limit", type=int, default=None, help="only the first N instruments")
     sub.add_parser("eod", help="incremental end-of-day refresh")
+    sub.add_parser("reclassify", help="re-run the type classifier over stored instruments")
     live = sub.add_parser("intraday", help="live price/volume snapshots and order books")
     live.add_argument("--once", action="store_true", help="a single poll")
     live.add_argument("--force", action="store_true", help="ignore trading hours")
@@ -44,6 +45,9 @@ def main() -> None:
                 once=args.once, force=args.force, follow=args.follow, interval=args.interval
             )
         )
+        return
+    if args.cmd == "reclassify":
+        print(run_reclassify())
         return
     result = (
         run_backfill(since=args.since, limit=args.limit)

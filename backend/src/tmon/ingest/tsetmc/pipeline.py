@@ -119,7 +119,9 @@ async def enrich_instrument(ctx: Ctx, instrument: Instrument) -> None:
     text, fetched_at = await ctx.fetch_text(url, ext="json")
     info = parsers.parse_instrument_info(text)
     itype, matched = ctx.classifier.classify(
-        group_title=info.group_title, name_fa=info.name_fa or instrument.name_fa
+        group_title=info.group_title,
+        name_fa=info.name_fa or instrument.name_fa,
+        board=info.flow_title,
     )
     instrument.sector_code = info.sector_code
     instrument.board = info.flow_title
@@ -343,6 +345,33 @@ async def backfill(
     return totals
 
 
+def reclassify_instruments(session: Session, classifier: Classifier) -> dict[str, int]:
+    """Re-run the classifier over stored instruments (no network): uses the group title and board
+    that enrichment saved. Needed whenever ``config/instrument_types.yaml`` changes."""
+    changed = 0
+    for ins in session.scalars(select(Instrument)):
+        group = (ins.tags or {}).get("group_title")
+        itype, matched = classifier.classify(
+            group_title=group, name_fa=ins.name_fa, board=ins.board
+        )
+        tags = dict(ins.tags or {})
+        if matched:
+            tags.pop("unclassified", None)
+        else:
+            tags["unclassified"] = True
+        if itype.value != ins.instrument_type or tags != (ins.tags or {}):
+            changed += int(itype.value != ins.instrument_type)
+            ins.instrument_type = itype.value
+            ins.tags = tags
+    session.flush()
+    counts = dict(
+        session.execute(
+            select(Instrument.instrument_type, func.count()).group_by(Instrument.instrument_type)
+        ).all()
+    )
+    return {"changed": changed, **{str(k): int(v) for k, v in counts.items()}}
+
+
 async def end_of_day(ctx: Ctx) -> dict[str, int]:
     since = utcnow().date() - timedelta(days=REFETCH_OVERLAP_DAYS)
     await sync_instruments(ctx)
@@ -388,6 +417,11 @@ def refresh_instrument_list() -> int:
 
 def ingest_end_of_day() -> dict[str, int]:
     return asyncio.run(_run("eod"))
+
+
+def run_reclassify() -> dict[str, int]:
+    with session_scope() as session:
+        return reclassify_instruments(session, get_classifier())
 
 
 def run_backfill(*, since: date | None = None, limit: int | None = None) -> dict[str, int]:

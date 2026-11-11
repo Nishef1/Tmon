@@ -36,12 +36,25 @@ CLIENT_COLS = tuple(
 def load_inputs(
     session: Session, *, classifier: Classifier | None = None
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    """``(prices, client_types, sectors)`` for tradable instruments, as float Polars frames."""
+    """``(prices, client_types, sectors)`` for RECOMMENDABLE instruments (ADR 0002 section 1),
+    as float Polars frames. Funds kept only for comparison never reach the model."""
     clf = classifier or get_classifier()
     inst = session.execute(
-        select(Instrument.id, Instrument.instrument_type, Instrument.sector_code, Instrument.tags)
+        select(
+            Instrument.id,
+            Instrument.instrument_type,
+            Instrument.board,
+            Instrument.sector_code,
+            Instrument.tags,
+        )
     ).all()
-    tradable = [r for r in inst if clf.is_tradable(r.instrument_type)]
+    tradable = [
+        r
+        for r in inst
+        if clf.is_recommendable(
+            r.instrument_type, board=r.board, group_title=(r.tags or {}).get("group_title")
+        )
+    ]
     ids = [r.id for r in tradable]
     sectors = pl.DataFrame(
         {"instrument_id": ids, "sector_code": [r.sector_code for r in tradable]},

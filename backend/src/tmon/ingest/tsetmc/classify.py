@@ -20,19 +20,41 @@ class Classifier:
     rules: tuple[tuple[InstrumentType, tuple[str, ...]], ...]
     default: InstrumentType
     tradable: frozenset[InstrumentType]
+    recommendable: frozenset[InstrumentType]
+    not_recommendable_groups: tuple[str, ...]
+    derivatives_board: str
 
     def classify(
-        self, *, group_title: str | None, name_fa: str | None
+        self, *, group_title: str | None, name_fa: str | None, board: str | None = None
     ) -> tuple[InstrumentType, bool]:
-        """Return ``(type, matched)``; ``matched`` is False when the default was used."""
+        """Return ``(type, matched)``; ``matched`` is False when the default was used.
+
+        ``board`` is the market the instrument trades in (``flowTitle``): anything that no rule
+        names but trades on the derivatives board is a future, never a stock."""
         haystack = normalize_fa(" ".join(x for x in (group_title, name_fa) if x))
         for itype, keywords in self.rules:
             if any(normalize_fa(k) in haystack for k in keywords):
                 return itype, True
+        if board and normalize_fa(self.derivatives_board) in normalize_fa(board):
+            return InstrumentType.FUTURE, True
         return self.default, False
 
     def is_tradable(self, itype: InstrumentType | str) -> bool:
+        """Ingested and kept (history, comparison page): a superset of the recommendable set."""
         return InstrumentType(itype) in self.tradable
+
+    def is_recommendable(
+        self, itype: InstrumentType | str, *, board: str | None, group_title: str | None
+    ) -> bool:
+        """The phase-1 recommendation universe (ADR 0002 section 1): stocks on the exchange,
+        the first and second Fara Bourse markets and the yellow base market, equity and mixed
+        ETFs. Orange and red base markets, rights, bonds, other funds and derivatives are out."""
+        if InstrumentType(itype) not in self.recommendable:
+            return False
+        if board and normalize_fa(self.derivatives_board) in normalize_fa(board):
+            return False
+        g = normalize_fa(group_title or "")
+        return not any(normalize_fa(x) in g for x in self.not_recommendable_groups)
 
 
 def load_classifier(path: Path = DEFAULT_PATH) -> Classifier:
@@ -42,6 +64,9 @@ def load_classifier(path: Path = DEFAULT_PATH) -> Classifier:
         rules=rules,
         default=InstrumentType(raw["default_type"]),
         tradable=frozenset(InstrumentType(t) for t in raw["tradable_types"]),
+        recommendable=frozenset(InstrumentType(t) for t in raw["recommendable_types"]),
+        not_recommendable_groups=tuple(raw["not_recommendable_groups"]),
+        derivatives_board=raw["derivatives_board"],
     )
 
 
