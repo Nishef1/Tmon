@@ -1,6 +1,73 @@
 {
   "components": {
     "schemas": {
+      "AgmDecisionOut": {
+        "properties": {
+          "decision": {
+            "enum": ["hold", "sell"],
+            "title": "Decision",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/AgmInputOut"
+            },
+            "title": "Inputs",
+            "type": "array"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "net_hold": {
+            "title": "Net Hold",
+            "type": "number"
+          },
+          "net_sell": {
+            "title": "Net Sell",
+            "type": "number"
+          },
+          "pv_dividend": {
+            "title": "Pv Dividend",
+            "type": "number"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "decision",
+          "pv_dividend",
+          "net_hold",
+          "net_sell",
+          "inputs",
+          "disclaimer"
+        ],
+        "title": "AgmDecisionOut",
+        "type": "object"
+      },
+      "AgmInputOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": ["name", "value", "source"],
+        "title": "AgmInputOut",
+        "type": "object"
+      },
       "BookLevelOut": {
         "properties": {
           "ask_count": {
@@ -114,15 +181,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "n",
-          "base_rate",
-          "auc",
-          "brier",
-          "brier_base_rate",
-          "brier_skill",
-          "buckets"
-        ],
+        "required": ["n", "base_rate", "auc", "brier", "brier_base_rate", "brier_skill", "buckets"],
         "title": "CalibrationBlock",
         "type": "object"
       },
@@ -159,12 +218,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "bucket",
-          "n",
-          "mean_p",
-          "hit_rate"
-        ],
+        "required": ["bucket", "n", "mean_p", "hit_rate"],
         "title": "CalibrationBucket",
         "type": "object"
       },
@@ -320,15 +374,64 @@
             "title": "Volume"
           }
         },
-        "required": [
-          "date",
-          "open",
-          "high",
-          "low",
-          "close",
-          "volume"
-        ],
+        "required": ["date", "open", "high", "low", "close", "volume"],
         "title": "Candle",
+        "type": "object"
+      },
+      "CorporateEventOut": {
+        "properties": {
+          "announced_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Announced At"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": ["type", "stage", "title", "announced_at", "url"],
+        "title": "CorporateEventOut",
         "type": "object"
       },
       "FeatureValue": {
@@ -349,10 +452,7 @@
             "title": "Value"
           }
         },
-        "required": [
-          "feature",
-          "value"
-        ],
+        "required": ["feature", "value"],
         "title": "FeatureValue",
         "type": "object"
       },
@@ -370,10 +470,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "tier_a_allowed",
-          "reasons"
-        ],
+        "required": ["tier_a_allowed", "reasons"],
         "title": "GateOut",
         "type": "object"
       },
@@ -424,15 +521,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "timeframe",
-          "items",
-          "total",
-          "limit",
-          "offset",
-          "summary",
-          "disclaimer"
-        ],
+        "required": ["timeframe", "items", "total", "limit", "offset", "summary", "disclaimer"],
         "title": "HistoryOut",
         "type": "object"
       },
@@ -504,6 +593,14 @@
             "title": "Disclaimer",
             "type": "string"
           },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CorporateEventOut"
+            },
+            "title": "Events",
+            "type": "array"
+          },
           "features": {
             "items": {
               "$ref": "#/components/schemas/FeatureValue"
@@ -541,6 +638,7 @@
           "features_date",
           "features",
           "signals",
+          "events",
           "disclaimer"
         ],
         "title": "InstrumentDetail",
@@ -590,13 +688,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "symbol",
-          "name",
-          "sector_code",
-          "instrument_type"
-        ],
+        "required": ["id", "symbol", "name", "sector_code", "instrument_type"],
         "title": "InstrumentOut",
         "type": "object"
       },
@@ -760,11 +852,7 @@
             "title": "Value"
           }
         },
-        "required": [
-          "feature",
-          "value",
-          "contribution"
-        ],
+        "required": ["feature", "value", "contribution"],
         "title": "Reason",
         "type": "object"
       },
@@ -1078,11 +1166,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError",
         "type": "object"
       }
@@ -1114,9 +1198,7 @@
           }
         },
         "summary": "Health",
-        "tags": [
-          "meta"
-        ]
+        "tags": ["meta"]
       }
     },
     "/instruments/{instrument_id}": {
@@ -1169,9 +1251,156 @@
           }
         },
         "summary": "Instrument Detail",
-        "tags": [
-          "instruments"
-        ]
+        "tags": ["instruments"]
+      }
+    },
+    "/instruments/{instrument_id}/agm": {
+      "get": {
+        "description": "Hold for the AGM or sell before it (docs/05). DPS and timing come from the caller; the\nprice, the risk-free rate (default for r_m and r_alt) and the costs come from the database,\nand every input says where it came from.",
+        "operationId": "agm_decision_instruments__instrument_id__agm_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "dividend per share, rial",
+            "in": "query",
+            "name": "dps",
+            "required": true,
+            "schema": {
+              "description": "dividend per share, rial",
+              "minimum": 0,
+              "title": "Dps",
+              "type": "number"
+            }
+          },
+          {
+            "description": "k",
+            "in": "query",
+            "name": "months_to_payment",
+            "required": true,
+            "schema": {
+              "description": "k",
+              "maximum": 60,
+              "minimum": 0,
+              "title": "Months To Payment",
+              "type": "number"
+            }
+          },
+          {
+            "description": "E[ΔP_after], rial",
+            "in": "query",
+            "name": "expected_drop_after",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "description": "E[ΔP_after], rial",
+              "title": "Expected Drop After",
+              "type": "number"
+            }
+          },
+          {
+            "description": "rial per share",
+            "in": "query",
+            "name": "dividend_tax",
+            "required": false,
+            "schema": {
+              "default": 0.0,
+              "description": "rial per share",
+              "minimum": 0,
+              "title": "Dividend Tax",
+              "type": "number"
+            }
+          },
+          {
+            "description": "k'; default k",
+            "in": "query",
+            "name": "months_alt",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 60,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "k'; default k",
+              "title": "Months Alt"
+            }
+          },
+          {
+            "description": "r_m",
+            "in": "query",
+            "name": "monthly_discount",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": -1,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "r_m",
+              "title": "Monthly Discount"
+            }
+          },
+          {
+            "description": "r_alt",
+            "in": "query",
+            "name": "alt_monthly_return",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": -1,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "r_alt",
+              "title": "Alt Monthly Return"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgmDecisionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Agm Decision",
+        "tags": ["instruments"]
       }
     },
     "/instruments/{instrument_id}/live": {
@@ -1212,9 +1441,7 @@
           }
         },
         "summary": "Instrument Live",
-        "tags": [
-          "instruments"
-        ]
+        "tags": ["instruments"]
       }
     },
     "/metrics/calibration": {
@@ -1228,11 +1455,7 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
+              "enum": ["D1", "W1", "M1"],
               "title": "Timeframe",
               "type": "string"
             }
@@ -1261,9 +1484,7 @@
           }
         },
         "summary": "Calibration",
-        "tags": [
-          "metrics"
-        ]
+        "tags": ["metrics"]
       }
     },
     "/recommendations": {
@@ -1277,11 +1498,7 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
+              "enum": ["D1", "W1", "M1"],
               "title": "Timeframe",
               "type": "string"
             }
@@ -1327,9 +1544,7 @@
           }
         },
         "summary": "Recommendations",
-        "tags": [
-          "recommendations"
-        ]
+        "tags": ["recommendations"]
       }
     },
     "/signals/history": {
@@ -1343,11 +1558,7 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
+              "enum": ["D1", "W1", "M1"],
               "title": "Timeframe",
               "type": "string"
             }
@@ -1432,9 +1643,7 @@
           }
         },
         "summary": "Signal History",
-        "tags": [
-          "signals"
-        ]
+        "tags": ["signals"]
       }
     }
   }

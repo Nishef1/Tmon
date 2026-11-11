@@ -14,15 +14,19 @@ from sqlalchemy.orm import Session
 
 from tmon.api.main import create_app
 from tmon.core.db import get_session
+from tmon.domain.agm import monthly_from_annual
 from tmon.features.builder import get_feature_set
 from tmon.storage.models import (
+    CorporateEvent,
     FeatureRow,
     Instrument,
+    MacroSeries,
     ModelRun,
     PriceDaily,
     Signal,
     SignalNote,
 )
+from tmon.storage.seed import seed_market_rules
 
 DAY = dt.date(2025, 3, 1)
 NOW = dt.datetime(2025, 3, 1, 12, 0, tzinfo=dt.UTC)
@@ -339,3 +343,73 @@ def test_live_snapshot_and_book_with_staleness_and_change(
     session.query(IntradaySnapshot).filter(IntradaySnapshot.ts == now).delete()
     session.flush()
     assert client.get(f"/instruments/{a.id}/live").json()["stale"] is True
+
+
+def _priced(session: Session, symbol: str = "فملی", close: float = 10000.0) -> Instrument:
+    a = _inst(session, "77", symbol)
+    session.add(
+        PriceDaily(instrument_id=a.id, date=DAY, open=close, high=close, low=close, last=close,
+                   close=close, prev_close=close, volume=1.0, market_halt=False)
+    )  # fmt: skip
+    session.flush()
+    return a
+
+
+def test_instrument_detail_lists_codal_events(client: TestClient, session: Session) -> None:
+    a = _priced(session)
+    session.add(
+        CorporateEvent(instrument_id=a.id, type="agm_dividend", stage="decisions",
+                       title="تصمیمات مجمع عمومی عادی سالیانه", announced_at=DAY,
+                       source="codal", source_url="https://www.codal.ir/Reports/x", tracing_no=1)
+    )  # fmt: skip
+    session.flush()
+    ev = client.get(f"/instruments/{a.id}").json()["events"]
+    assert ev == [
+        {
+            "type": "agm_dividend",
+            "stage": "decisions",
+            "title": "تصمیمات مجمع عمومی عادی سالیانه",
+            "announced_at": DAY.isoformat(),
+            "url": "https://www.codal.ir/Reports/x",
+        }
+    ]
+
+
+def test_agm_decision_uses_stored_price_rate_and_costs(
+    client: TestClient, session: Session
+) -> None:
+    seed_market_rules(session)
+    a = _priced(session)
+    session.add(MacroSeries(series="rf_1y_ytm", source="tsetmc", ref_period=DAY, value=0.30))
+    session.flush()
+    r = client.get(f"/instruments/{a.id}/agm", params={"dps": 1000, "months_to_payment": 6})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    inputs = {i["name"]: i for i in d["inputs"]}
+    assert inputs["price_now"]["value"] == 10000.0
+    r_m = monthly_from_annual(0.30)
+    assert inputs["monthly_discount"]["value"] == pytest.approx(r_m)
+    assert "rf_1y_ytm" in inputs["monthly_discount"]["source"]
+    assert inputs["months_alt"]["value"] == 6
+    assert inputs["dividend_tax"]["source"].startswith("default 0")
+    assert d["net_hold"] == pytest.approx(1000 / (1 + r_m) ** 6)
+    rt = inputs["round_trip_costs"]["value"]
+    assert rt > 0
+    assert d["net_sell"] == pytest.approx(10000 * ((1 + r_m) ** 6 - 1) - rt)
+    assert d["decision"] == ("hold" if d["net_hold"] > d["net_sell"] else "sell")
+
+
+def test_agm_decision_needs_a_rate_when_none_is_stored(
+    client: TestClient, session: Session
+) -> None:
+    seed_market_rules(session)
+    a = _priced(session)
+    r = client.get(f"/instruments/{a.id}/agm", params={"dps": 1000, "months_to_payment": 6})
+    assert r.status_code == 422
+    ok = client.get(
+        f"/instruments/{a.id}/agm",
+        params={"dps": 1000, "months_to_payment": 6, "monthly_discount": 0.03,
+                "alt_monthly_return": 0.02},
+    )  # fmt: skip
+    assert ok.status_code == 200
+    assert {i["name"]: i["source"] for i in ok.json()["inputs"]}["monthly_discount"] == "user"

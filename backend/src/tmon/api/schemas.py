@@ -104,6 +104,14 @@ class FeatureValue(ApiModel):
     value: float | None
 
 
+class CorporateEventOut(ApiModel):
+    type: str
+    stage: str | None = None
+    title: str | None = None
+    announced_at: dt.date | None = None
+    url: str | None = None  # the Codal letter
+
+
 class InstrumentDetail(ApiModel):
     instrument: InstrumentOut
     adjusted: bool
@@ -111,6 +119,23 @@ class InstrumentDetail(ApiModel):
     features_date: dt.date | None
     features: list[FeatureValue]
     signals: list[SignalOut]
+    events: list[CorporateEventOut] = []
+    disclaimer: str = DISCLAIMER
+
+
+class AgmInputOut(ApiModel):
+    name: str
+    value: float
+    source: str  # where the value came from: "user", a table and date, or "default 0"
+
+
+class AgmDecisionOut(ApiModel):
+    instrument_id: int
+    decision: Literal["hold", "sell"]
+    pv_dividend: float
+    net_hold: float
+    net_sell: float
+    inputs: list[AgmInputOut]
     disclaimer: str = DISCLAIMER
 
 

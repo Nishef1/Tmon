@@ -9,15 +9,30 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tmon.api.routers.recommendations import instrument_out, signal_out
-from tmon.api.schemas import BookLevelOut, Candle, FeatureValue, InstrumentDetail, LiveOut
+from tmon.api.schemas import (
+    AgmDecisionOut,
+    AgmInputOut,
+    BookLevelOut,
+    Candle,
+    CorporateEventOut,
+    FeatureValue,
+    InstrumentDetail,
+    LiveOut,
+)
 from tmon.core.db import get_session
+from tmon.core.engine_config import get_engine_config
 from tmon.core.timeutil import TEHRAN, utcnow
+from tmon.domain.agm import AgmInputs, hold_or_sell, monthly_from_annual
+from tmon.domain.rules import CostModel, MissingRuleError, RuleBook
 from tmon.features.adjustment import apply_adjustments
 from tmon.features.builder import get_feature_set
+from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
 from tmon.storage.models import (
+    CorporateEvent,
     FeatureRow,
     Instrument,
     IntradaySnapshot,
+    MacroSeries,
     OrderBookSnapshot,
     PriceDaily,
     Signal,
@@ -33,6 +48,7 @@ SHOWN_FEATURES = (
     "mkt_ret_ew", "breadth",
 )  # fmt: skip
 
+EVENTS_SHOWN = 20  # latest Codal events on the instrument page
 STALE_AFTER_SECONDS = 300  # a snapshot older than this is shown as stale
 
 PRICE_FIELDS = ("open", "high", "low", "close", "last", "prev_close", "volume")
@@ -100,6 +116,12 @@ def instrument_detail(
         .order_by(Signal.date.desc(), Signal.rank)
         .limit(50)
     ).all()
+    events = session.scalars(
+        select(CorporateEvent)
+        .where(CorporateEvent.instrument_id == instrument_id)
+        .order_by(CorporateEvent.announced_at.desc(), CorporateEvent.id.desc())
+        .limit(EVENTS_SHOWN)
+    ).all()
     return InstrumentDetail(
         instrument=instrument_out(inst),
         adjusted=True,
@@ -107,6 +129,146 @@ def instrument_detail(
         features_date=frow.date if frow else None,
         features=features,
         signals=[signal_out(s, inst) for s in sigs],
+        events=[
+            CorporateEventOut(
+                type=e.type,
+                stage=e.stage,
+                title=e.title,
+                announced_at=e.announced_at,
+                url=e.source_url,
+            )
+            for e in events
+        ],
+    )
+
+
+@router.get("/instruments/{instrument_id}/agm", response_model=AgmDecisionOut)
+def agm_decision(
+    instrument_id: int,
+    session: SessionDep,
+    dps: Annotated[float, Query(ge=0, description="dividend per share, rial")],
+    months_to_payment: Annotated[float, Query(ge=0, le=60, description="k")],
+    expected_drop_after: Annotated[float, Query(description="E[ΔP_after], rial")] = 0.0,
+    dividend_tax: Annotated[float, Query(ge=0, description="rial per share")] = 0.0,
+    months_alt: Annotated[float | None, Query(ge=0, le=60, description="k'; default k")] = None,
+    monthly_discount: Annotated[float | None, Query(gt=-1, description="r_m")] = None,
+    alt_monthly_return: Annotated[float | None, Query(gt=-1, description="r_alt")] = None,
+) -> AgmDecisionOut:
+    """Hold for the AGM or sell before it (docs/05). DPS and timing come from the caller; the
+    price, the risk-free rate (default for r_m and r_alt) and the costs come from the database,
+    and every input says where it came from."""
+    inst = session.get(Instrument, instrument_id)
+    if inst is None:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    bar = session.scalars(
+        select(PriceDaily)
+        .where(PriceDaily.instrument_id == instrument_id, PriceDaily.close.is_not(None))
+        .order_by(PriceDaily.date.desc())
+        .limit(1)
+    ).first()
+    if bar is None or not bar.close or float(bar.close) <= 0:
+        raise HTTPException(status_code=422, detail="قیمتی برای این نماد ثبت نشده است")
+    price = float(bar.close)
+    inputs: list[AgmInputOut] = [
+        AgmInputOut(name="dps", value=dps, source="user"),
+        AgmInputOut(name="price_now", value=price, source=f"prices_daily.close {bar.date}"),
+        AgmInputOut(name="months_to_payment", value=months_to_payment, source="user"),
+    ]
+
+    rf = None
+    if monthly_discount is None or alt_monthly_return is None:
+        rf = session.scalars(
+            select(MacroSeries)
+            .where(MacroSeries.series == RF_SERIES)
+            .order_by(MacroSeries.ref_period.desc())
+            .limit(1)
+        ).first()
+        if rf is None:
+            raise HTTPException(
+                status_code=422,
+                detail="نرخ بدون ریسک ثبت نشده است؛ r_m و r_alt را وارد کنید",
+            )
+    rf_src = f"macro_series.{RF_SERIES} {rf.ref_period}, monthly" if rf else ""
+    r_m = monthly_discount if monthly_discount is not None else monthly_from_annual(rf.value)  # type: ignore[union-attr]
+    r_alt = (
+        alt_monthly_return if alt_monthly_return is not None else monthly_from_annual(rf.value)  # type: ignore[union-attr]
+    )
+    inputs.append(
+        AgmInputOut(
+            name="monthly_discount",
+            value=r_m,
+            source="user" if monthly_discount is not None else rf_src,
+        )
+    )
+    inputs.append(
+        AgmInputOut(
+            name="alt_monthly_return",
+            value=r_alt,
+            source="user" if alt_monthly_return is not None else rf_src,
+        )
+    )
+    k_alt = months_alt if months_alt is not None else months_to_payment
+    inputs.append(
+        AgmInputOut(
+            name="months_alt",
+            value=k_alt,
+            source="user" if months_alt is not None else "= months_to_payment",
+        )
+    )
+
+    try:
+        costs = CostModel.from_rules(
+            RuleBook.from_session(session),
+            utcnow().astimezone(TEHRAN).date(),
+            get_engine_config().costs.slippage_fraction,
+        )
+    except MissingRuleError as exc:
+        raise HTTPException(status_code=422, detail=f"قاعدهٔ هزینه ثبت نشده است: {exc}") from exc
+    rt = price * costs.round_trip
+    inputs.append(
+        AgmInputOut(
+            name="round_trip_costs",
+            value=rt,
+            source=f"market_rules + slippage, {costs.round_trip:.4%} of price",
+        )
+    )
+    inputs.append(
+        AgmInputOut(
+            name="expected_drop_after",
+            value=expected_drop_after,
+            source="user" if expected_drop_after else "default 0 (not estimated yet)",
+        )
+    )
+    inputs.append(
+        AgmInputOut(
+            name="dividend_tax",
+            value=dividend_tax,
+            source="user" if dividend_tax else "default 0 (not verified)",
+        )
+    )
+    try:
+        out = hold_or_sell(
+            AgmInputs(
+                dps=dps,
+                price_now=price,
+                months_to_payment=months_to_payment,
+                monthly_discount=r_m,
+                expected_drop_after=expected_drop_after,
+                dividend_tax=dividend_tax,
+                alt_monthly_return=r_alt,
+                months_alt=k_alt,
+                round_trip_costs=rt,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return AgmDecisionOut(
+        instrument_id=instrument_id,
+        decision=out.decision,
+        pv_dividend=out.pv_dividend,
+        net_hold=out.net_hold,
+        net_sell=out.net_sell,
+        inputs=inputs,
     )
 
 

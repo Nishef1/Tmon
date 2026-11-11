@@ -20,6 +20,8 @@ export type History = S["HistoryOut"];
 export type CalibrationBucket = S["CalibrationBucket"];
 export type CalibrationBlock = S["CalibrationBlock"];
 export type Calibration = S["CalibrationOut"];
+export type CorporateEvent = S["CorporateEventOut"];
+export type AgmDecision = S["AgmDecisionOut"];
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 

@@ -42,6 +42,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/instruments/{instrument_id}/agm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Agm Decision
+     * @description Hold for the AGM or sell before it (docs/05). DPS and timing come from the caller; the
+     *     price, the risk-free rate (default for r_m and r_alt) and the costs come from the database,
+     *     and every input says where it came from.
+     */
+    get: operations["agm_decision_instruments__instrument_id__agm_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}/live": {
     parameters: {
       query?: never;
@@ -130,6 +152,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AgmDecisionOut */
+    AgmDecisionOut: {
+      /**
+       * Decision
+       * @enum {string}
+       */
+      decision: "hold" | "sell";
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Inputs */
+      inputs: components["schemas"]["AgmInputOut"][];
+      /** Instrument Id */
+      instrument_id: number;
+      /** Net Hold */
+      net_hold: number;
+      /** Net Sell */
+      net_sell: number;
+      /** Pv Dividend */
+      pv_dividend: number;
+    };
+    /** AgmInputOut */
+    AgmInputOut: {
+      /** Name */
+      name: string;
+      /** Source */
+      source: string;
+      /** Value */
+      value: number;
+    };
     /** BookLevelOut */
     BookLevelOut: {
       /** Ask Count */
@@ -224,6 +278,19 @@ export interface components {
       /** Volume */
       volume: number | null;
     };
+    /** CorporateEventOut */
+    CorporateEventOut: {
+      /** Announced At */
+      announced_at: string | null;
+      /** Stage */
+      stage: string | null;
+      /** Title */
+      title: string | null;
+      /** Type */
+      type: string;
+      /** Url */
+      url: string | null;
+    };
     /** FeatureValue */
     FeatureValue: {
       /** Feature */
@@ -290,6 +357,11 @@ export interface components {
        * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
        */
       disclaimer: string;
+      /**
+       * Events
+       * @default []
+       */
+      events: components["schemas"]["CorporateEventOut"][];
       /** Features */
       features: components["schemas"]["FeatureValue"][];
       /** Features Date */
@@ -525,6 +597,52 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["InstrumentDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  agm_decision_instruments__instrument_id__agm_get: {
+    parameters: {
+      query: {
+        /** @description dividend per share, rial */
+        dps: number;
+        /** @description k */
+        months_to_payment: number;
+        /** @description E[ΔP_after], rial */
+        expected_drop_after?: number;
+        /** @description rial per share */
+        dividend_tax?: number;
+        /** @description k'; default k */
+        months_alt?: number | null;
+        /** @description r_m */
+        monthly_discount?: number | null;
+        /** @description r_alt */
+        alt_monthly_return?: number | null;
+      };
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AgmDecisionOut"];
         };
       };
       /** @description Validation Error */
