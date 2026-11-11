@@ -24,6 +24,7 @@ dependencies = [
     "jdatetime>=6.1.1",
     "pyyaml>=6.0.3",
     "jinja2>=3.1.6",
+    "tenacity>=9.1",
 ]
 
 [dependency-groups]

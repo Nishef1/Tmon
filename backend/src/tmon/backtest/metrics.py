@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import polars as pl
+from sklearn.metrics import brier_score_loss, roc_auc_score
 
 # Below this many calendar years annualised figures are noise and are reported as null.
 MIN_YEARS_FOR_ANNUALISING = 0.5
@@ -111,7 +112,7 @@ def calibration_table(p: np.ndarray, y: np.ndarray, n_buckets: int = 10) -> list
 
 
 def brier_score(p: np.ndarray, y: np.ndarray) -> float | None:
-    return _nan_to_none(float(np.mean((p - y) ** 2))) if p.size else None
+    return _nan_to_none(float(brier_score_loss(y, p))) if p.size else None
 
 
 def probabilistic_summary(p: np.ndarray, y: np.ndarray, n_buckets: int = 10) -> dict[str, Any]:
@@ -119,13 +120,11 @@ def probabilistic_summary(p: np.ndarray, y: np.ndarray, n_buckets: int = 10) -> 
 
     ``brier_skill`` compares with always forecasting the sample's base rate (positive = better).
     """
-    from sklearn.metrics import roc_auc_score
-
     n = int(p.size)
     if n == 0 or len(np.unique(y)) < 2:
         return {"n": n}
-    brier = float(np.mean((p - y) ** 2))
-    base = float(np.mean((y.mean() - y) ** 2))
+    brier = float(brier_score_loss(y, p))
+    base = float(brier_score_loss(y, np.full_like(p, y.mean())))
     return {
         "n": n,
         "base_rate": float(y.mean()),

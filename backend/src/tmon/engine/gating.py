@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+from sklearn.metrics import brier_score_loss
 
 from tmon.core.engine_config import EngineConfig, get_engine_config
 
@@ -80,5 +81,5 @@ def brier_degraded(
     """True if the recent Brier score is more than ``limit`` worse than the backtest's."""
     if recent_p.size == 0 or backtest_brier <= 0:
         return False
-    recent = float(np.mean((recent_p - recent_y) ** 2))
+    recent = float(brier_score_loss(recent_y, recent_p))
     return recent > backtest_brier * (1 + limit)

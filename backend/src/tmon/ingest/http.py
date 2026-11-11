@@ -12,9 +12,17 @@ import random
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
 
 import httpx
+from tenacity import (
+    AsyncRetrying,
+    RetryCallState,
+    retry_if_exception_type,
+    stop_after_attempt,
+)
 
 from tmon.core.config import get_settings
 
@@ -25,6 +33,29 @@ RETRYABLE_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
 
 class FetchError(RuntimeError):
     pass
+
+
+class _RetryableStatusError(Exception):
+    """A response status worth retrying (429/5xx…), carrying any ``Retry-After`` seconds."""
+
+    def __init__(self, url: str, resp: httpx.Response) -> None:
+        super().__init__(f"GET {url} -> HTTP {resp.status_code}")
+        self.retry_after = _parse_retry_after(resp.headers.get("Retry-After"))
+
+
+def _parse_retry_after(value: str | None) -> float | None:
+    """Seconds from a ``Retry-After`` header (delta-seconds or HTTP-date); None if absent/bad."""
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+    try:
+        when = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, (when - datetime.now(UTC)).total_seconds())
 
 
 @dataclass(frozen=True)
@@ -89,26 +120,44 @@ class PoliteClient:
         )
         self._sleep = sleep
 
+    def _wait(self, state: RetryCallState) -> float:
+        """Exponential backoff with jitter; a server's ``Retry-After`` wins if it is longer."""
+        backoff = self._retry.delay(state.attempt_number - 1)
+        exc = state.outcome.exception() if state.outcome else None
+        if isinstance(exc, _RetryableStatusError) and exc.retry_after is not None:
+            return min(self._retry.max_delay, max(backoff, exc.retry_after))
+        return backoff
+
     async def get(self, url: str, **kwargs: object) -> httpx.Response:
         host = urlparse(url).netloc
-        last_error: Exception | None = None
-        for attempt in range(self._retry.max_retries + 1):
-            await self._limiter.wait(host)
-            try:
-                resp = await self._client.get(url, **kwargs)  # type: ignore[arg-type]
-            except (httpx.TransportError, httpx.TimeoutException) as exc:
-                last_error = exc
-                log.warning("GET %s failed (%s), attempt %d", url, exc, attempt + 1)
-            else:
-                if resp.status_code not in RETRYABLE_STATUS:
+        retrying = AsyncRetrying(
+            stop=stop_after_attempt(self._retry.max_retries + 1),
+            wait=self._wait,
+            retry=retry_if_exception_type(
+                (httpx.TransportError, httpx.TimeoutException, _RetryableStatusError)
+            ),
+            sleep=self._sleep,
+            before_sleep=lambda s: log.warning(
+                "GET %s failed (%s), attempt %d",
+                url,
+                s.outcome.exception() if s.outcome else None,
+                s.attempt_number,
+            ),
+            reraise=True,
+        )
+        try:
+            async for attempt in retrying:
+                with attempt:
+                    await self._limiter.wait(host)
+                    resp = await self._client.get(url, **kwargs)  # type: ignore[arg-type]
+                    if resp.status_code in RETRYABLE_STATUS:
+                        raise _RetryableStatusError(url, resp)
                     if resp.status_code >= 400:
                         raise FetchError(f"GET {url} -> HTTP {resp.status_code}")
                     return resp
-                last_error = FetchError(f"GET {url} -> HTTP {resp.status_code}")
-                log.warning("GET %s -> %d, attempt %d", url, resp.status_code, attempt + 1)
-            if attempt < self._retry.max_retries:
-                await self._sleep(self._retry.delay(attempt))
-        raise FetchError(f"GET {url} failed after retries: {last_error}")
+        except (httpx.TransportError, httpx.TimeoutException, _RetryableStatusError) as exc:
+            raise FetchError(f"GET {url} failed after retries: {exc}") from exc
+        raise AssertionError("unreachable")  # pragma: no cover
 
     async def aclose(self) -> None:
         await self._client.aclose()

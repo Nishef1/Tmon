@@ -107,3 +107,20 @@ def test_rate_limiter_spaces_requests_per_domain() -> None:
 def test_backoff_is_capped() -> None:
     p = RetryPolicy(max_retries=10, base_delay=1.0, max_delay=8.0, jitter=0.0)
     assert [p.delay(i) for i in range(6)] == [1, 2, 4, 8, 8, 8]
+
+
+def test_retry_after_header_is_honoured() -> None:
+    async def run() -> None:
+        with respx.mock:
+            respx.get("http://x.test/a").mock(
+                side_effect=[
+                    httpx.Response(429, headers={"Retry-After": "5"}),
+                    httpx.Response(200, text="ok"),
+                ]
+            )
+            c, sleeps = _client(None)
+            assert (await c.get("http://x.test/a")).text == "ok"
+            assert sleeps == [5.0]  # server asked for 5s, longer than the 1s backoff
+            await c.aclose()
+
+    asyncio.run(run())
