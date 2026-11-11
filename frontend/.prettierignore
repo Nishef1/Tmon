@@ -1,3 +1,7 @@
 .next
 node_modules
+next-env.d.ts
+tsconfig.tsbuildinfo
 pnpm-lock.yaml
+playwright-report
+test-results
