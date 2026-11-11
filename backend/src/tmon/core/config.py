@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # Intraday polling is limited to the exchange's trading hours (market_rules.trading_hours).
     intraday_interval_seconds: float = 30.0
     book_top_n: int = 15
+    # Days the scheduler wakes the ingest jobs (scheduling only; whether a day was a trading day is
+    # derived from data into trading_calendar). Celery day names.
+    schedule_days: str = "sat,sun,mon,tue,wed"
+    # TSETMC hosts. Overridable so a mirror, a tunnel or the local stand-in server
+    # (tmon.devtools.fake_tsetmc) can be used without touching code.
+    tsetmc_old_url: str = "http://old.tsetmc.com"
+    tsetmc_cdn_url: str = "http://cdn.tsetmc.com"
 
     cors_origins: list[str] = ["http://localhost:3000"]
 

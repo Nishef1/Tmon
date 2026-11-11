@@ -7,8 +7,10 @@ docs/02). They are NOT verified against the live site from the build machine; se
 
 from __future__ import annotations
 
-OLD = "http://old.tsetmc.com"
-CDN = "http://cdn.tsetmc.com"
+from tmon.core.config import get_settings
+
+OLD = get_settings().tsetmc_old_url.rstrip("/")
+CDN = get_settings().tsetmc_cdn_url.rstrip("/")
 
 MARKET_WATCH_INIT = f"{OLD}/tsev2/data/MarketWatchInit.aspx?h=0&r=0"
 DAILY_HISTORY = f"{OLD}/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={{ins_code}}"

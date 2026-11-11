@@ -31,6 +31,7 @@ export default defineConfig({
         API_URL: `http://127.0.0.1:${API}`,
         // read by the browser-side live panel; inlined at build time
         NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API}`,
+        NEXT_DIST_DIR: ".next-e2e",
       },
       reuseExistingServer: !process.env.CI,
       timeout: 240_000,

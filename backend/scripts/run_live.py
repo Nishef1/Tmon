@@ -12,6 +12,9 @@ one polite request per instrument per endpoint); later runs only refresh the las
   --limit N         only the first N instruments (a quick smoke run)
   --skip-probe      do not stop when the probe fails
   --no-browser
+  --stand-in        run against a local SYNTHETIC stand-in for TSETMC instead of the real site:
+                    proves the whole pipeline works over HTTP when tsetmc.com is unreachable.
+                    Data goes to data/standin/ and is NOT market data.
 """
 
 from __future__ import annotations
@@ -27,7 +30,8 @@ from datetime import date, timedelta
 
 import run_demo as demo
 
-DATA = demo.ROOT / "data"
+ROOT_DATA = demo.ROOT / "data"
+DATA = ROOT_DATA
 DB = DATA / "tmon-live.sqlite3"
 MARK = DATA / ".backfilled"
 
@@ -45,9 +49,22 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--skip-probe", action="store_true")
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--stand-in", action="store_true")
     args = ap.parse_args()
 
-    DATA.mkdir(exist_ok=True)
+    global DATA, DB, MARK
+    if args.stand_in:
+        DATA = ROOT_DATA / "standin"
+        DB, MARK = DATA / "tmon-live.sqlite3", DATA / ".backfilled"
+    DATA.mkdir(parents=True, exist_ok=True)
+    if args.stand_in:
+        from tmon.devtools.fake_tsetmc import serve
+
+        server = serve(0, live=True, n_inst=30, n_days=560)
+        base = f"http://127.0.0.1:{server.server_port}"
+        os.environ["TMON_TSETMC_OLD_URL"] = os.environ["TMON_TSETMC_CDN_URL"] = base
+        os.environ["TMON_HTTP_MIN_INTERVAL_SECONDS"] = "0"
+        print(f"→ SYNTHETIC stand-in for TSETMC at {base} (not the real site, not market data)")
     os.environ["TMON_DATABASE_URL"] = f"sqlite:///{DB.as_posix()}"
     os.environ["TMON_OBJECT_STORE"] = "file"
     os.environ["TMON_OBJECT_STORE_DIR"] = str(DATA / "objects")
@@ -100,7 +117,8 @@ def main() -> None:
         subprocess.Popen([sys.executable, "scripts/serve_demo.py", str(DB)], cwd=demo.BACKEND),
         subprocess.Popen([node, str(demo.NEXT), "start", "-p", "3000"], cwd=demo.FRONTEND),
         subprocess.Popen(
-            [sys.executable, "-m", "tmon.ingest.tsetmc.cli", "intraday", "--follow"],
+            [sys.executable, "-m", "tmon.ingest.tsetmc.cli", "intraday", "--follow"]
+            + (["--force", "--interval", "5"] if args.stand_in else []),
             cwd=demo.BACKEND,
         ),
     ]

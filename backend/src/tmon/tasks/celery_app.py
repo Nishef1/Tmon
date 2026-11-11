@@ -18,8 +18,9 @@ app.conf.update(
     task_default_queue="tmon",
 )
 
-# Trading days are Saturday..Wednesday (Celery: 0=Sunday). Thursday/Friday closed.
-TRADING_DOW = "sat,sun,mon,tue,wed"
+# Days the jobs are woken (default Saturday..Wednesday; TMON_SCHEDULE_DAYS overrides). Which days
+# actually traded is derived from data into trading_calendar, not decided here.
+TRADING_DOW = settings.schedule_days
 
 app.conf.beat_schedule = {
     "ingest-instruments-daily": {

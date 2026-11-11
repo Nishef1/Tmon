@@ -312,7 +312,7 @@ async def backfill(
 ) -> dict[str, int]:
     seed_market_rules(ctx.session)
     await sync_instruments(ctx)
-    ctx.session.flush()
+    ctx.session.commit()
     instruments = _tradable_instruments(ctx.session, ctx.classifier)
     if limit:
         instruments = instruments[:limit]
@@ -325,7 +325,9 @@ async def backfill(
             totals["bars"] += s["bars"]
             totals["client_rows"] += s["client_rows"]
             totals["instruments"] += 1
+            ctx.session.commit()  # a crash hours in must not lose the instruments already done
         except (FetchError, parsers.ParseError) as exc:
+            ctx.session.rollback()
             totals["failed"] += 1
             log.error("ingest failed for %s (%s): %s", ins.symbol_fa, ins.ins_code, exc)
     flag_market_halts(ctx.session)
