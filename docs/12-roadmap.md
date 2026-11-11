@@ -2,6 +2,22 @@
 
 هر مرحله فقط وقتی «تمام» است که معیار پذیرشش با تست یا گزارش اثبات شده باشد.
 
+## وضعیت فاز ۱ (۲۲ آبان ۱۴۰۵)
+
+| مرحله | وضعیت | شواهد |
+| --- | --- | --- |
+| M0 | تمام | Compose روی ماشین مالک بالا آمد ([docs/14](14-local-run.md)، [OQ ۱](OPEN_QUESTIONS.md)) |
+| M1 | تمام | تاریخچه ۲۰۲۱-۱۱ تا ۲۰۲۶-۱۱، ۲٬۶۲۸ نماد؛ [adjustment-check](reports/adjustment-check.md)؛ شاخص‌ها و اخزا ([risk-free-check](reports/risk-free-check.md)) |
+| M2 | تمام | تست فرمول‌ها و ضد look-ahead (`backend/tests/test_features.py`) |
+| M3 | تمام | [m3-baseline-d1-real](reports/m3-baseline-d1-real.md) |
+| M4 | ساخته شد، معیار برآورده نشد | [m4-lgbm-d1-real](reports/m4-lgbm-d1-real.md): مدل از baseline بهتر نیست؛ دروازهٔ سطح A بسته است و توصیه‌ای منتشر نمی‌شود |
+| M5 | تمام | API و رابط RTL؛ Vitest و Playwright سبز ([CHANGELOG](CHANGELOG.md)) |
+| M6 | بخشی | W1 و M1: [W1](reports/m4-lgbm-w1-real.md)، [M1](reports/m4-lgbm-m1-real.md) (از baseline بهتر نیستند)؛ کدال و مجمع ساخته شد؛ ویژگی بنیادی به‌دلیل پوشش گزارش‌ها مسدود ([OQ ۷۷](OPEN_QUESTIONS.md)) |
+| M7 | بخشی | صفحهٔ مقایسه با تورم، دلار و طلا، NAV و حباب صندوق، خط لولهٔ خبر؛ [ablation-w1](reports/ablation-w1.md): گروه بازار حذف شد، کلان کمکی نکرد. بورس کالا و تورم رسمی مسدود ([OQ ۷۹، ۸۰](OPEN_QUESTIONS.md)) |
+| M8 | تمام | همهٔ واژه‌های [glossary.md](glossary.md) در سایت (`frontend/tests/glossary.test.ts`)؛ صفحهٔ «دقت زنده»؛ کلید قطع Brier و حالت دفاعی |
+
+تصمیم‌های باز مالک: [OPEN_QUESTIONS — تصمیم‌های باز مالک](OPEN_QUESTIONS.md#تصمیم‌های-باز-مالک).
+
 | مرحله | خروجی | معیار پذیرش |
 | --- | --- | --- |
 | M0 — اسکلت | ساختار ریپو، Docker Compose (Postgres+Timescale، Redis، MinIO)، CI با ruff/mypy/pytest | `docker compose up` سالم؛ CI سبز |
