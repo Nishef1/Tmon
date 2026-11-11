@@ -4,6 +4,15 @@ import { featureInfo } from "@/lib/glossary";
 import { Num } from "./Num";
 import { TierBadge } from "./TierBadge";
 
+// The engine stores machine keys (engine/service.py `_risks`); unknown text is shown as it is.
+export const RISK_LABEL: Record<string, string> = {
+  defensive_mode: "بازار در حالت دفاعی است؛ آستانهٔ ورود سخت‌گیرانه‌تر شده است.",
+  unverified_rules: "کارمزدها و قوانین بازار هنوز با منبع رسمی تأیید نشده‌اند.",
+  tier_a_disabled: "سطح A فعال نیست، چون مدل هنوز خارج از نمونه از مبنا بهتر نشان داده نشده است.",
+  thin_probability_bucket: "نمونهٔ تاریخیِ این بازهٔ احتمال کم است؛ برآورد کم‌اطمینان‌تر است.",
+  gap_risk_next_open: "ورود در بازگشایی روز بعد است و ممکن است با شکاف قیمتی از قیمت مرجع دور شود.",
+};
+
 function Metric({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -107,7 +116,7 @@ export function SignalCard({ s }: { s: Signal }) {
           <p className="text-sm font-semibold">ملاحظات ریسک</p>
           <ul className="mt-1 list-inside list-disc text-sm text-muted">
             {s.risks.map((r) => (
-              <li key={r}>{r}</li>
+              <li key={r}>{RISK_LABEL[r] ?? r}</li>
             ))}
           </ul>
         </div>

@@ -130,3 +130,13 @@ describe("SignalTable", () => {
     expect(within(rows[2]).getByText("+۶٫۰٪")).toBeInTheDocument();
   });
 });
+
+describe("risk notes", () => {
+  it("translates the engine's risk keys and keeps unknown text as is", () => {
+    render(<SignalCard s={{ ...signal, risks: ["gap_risk_next_open", "یک هشدار آزاد"] }} />);
+    const card = screen.getByTestId("signal-card");
+    expect(card).toHaveTextContent("ورود در بازگشایی روز بعد");
+    expect(card).toHaveTextContent("یک هشدار آزاد");
+    expect(card).not.toHaveTextContent("gap_risk_next_open");
+  });
+});
