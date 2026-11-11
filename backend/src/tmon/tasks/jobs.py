@@ -28,6 +28,31 @@ def ingest_end_of_day() -> dict[str, int]:
     return run()
 
 
+@app.task(name="tmon.tasks.jobs.daily_cycle_tick")
+def daily_cycle_tick() -> str:
+    """Beat wakes this every few minutes; it runs the EOD cycle once per trading day, once the
+    session close from ``market_rules`` plus ``eod_delay_minutes`` has passed."""
+    import redis
+
+    from tmon.core.config import get_settings
+    from tmon.core.db import session_scope
+    from tmon.domain.rules import RuleBook
+    from tmon.tasks.cycle import default_steps, tick
+
+    settings = get_settings()
+    with session_scope() as session:
+        rules = RuleBook.from_session(session)
+    kv = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    return tick(
+        kv,
+        rules,
+        default_steps(),
+        schedule_days=settings.schedule_days,
+        delay_minutes=settings.eod_delay_minutes,
+        max_attempts=settings.cycle_max_attempts,
+    )
+
+
 @app.task(name="tmon.tasks.jobs.snapshot_intraday")
 def snapshot_intraday() -> dict[str, int]:
     """One live poll (no-op outside trading hours); scheduled every minute by beat."""

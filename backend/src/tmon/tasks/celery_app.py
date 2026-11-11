@@ -31,16 +31,10 @@ app.conf.beat_schedule = {
         "task": "tmon.tasks.jobs.snapshot_intraday",
         "schedule": crontab(minute="*", hour="9-12", day_of_week=TRADING_DOW),
     },
-    "ingest-eod-daily": {
-        "task": "tmon.tasks.jobs.ingest_end_of_day",
-        "schedule": crontab(hour=13, minute=30, day_of_week=TRADING_DOW),
-    },
-    "compute-features-daily": {
-        "task": "tmon.tasks.jobs.compute_features",
-        "schedule": crontab(hour=14, minute=0, day_of_week=TRADING_DOW),
-    },
-    "publish-signals-daily": {
-        "task": "tmon.tasks.jobs.publish_signals",
-        "schedule": crontab(hour=14, minute=30, day_of_week=TRADING_DOW),
+    # EOD ingest -> features -> publish -> outcome resolution. The tick only asks "is it due?": the
+    # time comes from market_rules (tmon.tasks.schedule), and a claim makes it run once per day.
+    "daily-cycle-tick": {
+        "task": "tmon.tasks.jobs.daily_cycle_tick",
+        "schedule": crontab(minute="*/5", day_of_week=TRADING_DOW),
     },
 }

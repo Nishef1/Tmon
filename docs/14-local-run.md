@@ -21,7 +21,7 @@ backend/.venv/Scripts/python.exe backend/scripts/run_demo.py
 - رابط روی <http://127.0.0.1:3000> و مستندات API روی <http://127.0.0.1:8000/docs> باز می‌شود. `Ctrl+C` هر دو را می‌بندد.
 - گزینه‌ها: `--rebuild` (ساخت دوباره)، `--no-browser`.
 - **داده کاملاً مصنوعی است:** نمادها «نمونه N» هستند و قیمت‌ها گام تصادفی با لبهٔ کاشته‌شده‌اند. چیزی دربارهٔ بازار واقعی نمی‌گویند.
-- برای اینکه کارت توصیه دیده شود، فقط در اسکریپت دمو آستانه‌ها شل شده‌اند (`p_min=0.15`، `ev_min_cost_multiple=0`). با آستانه‌های سند ([10](10-recommendation-engine.md)) روی داده مصنوعی توصیه‌ای نمی‌آید و دروازهٔ سطح A بسته می‌ماند.
+- برای اینکه کارت توصیه دیده شود، فقط در اسکریپت دمو آستانه‌ها شل شده‌اند (`margin=-1`، `p_floor=0.15`، `ev_min_abs=0` در `backend/scripts/demo_db.py`؛ آستانهٔ واقعی طبق [ADR 0002](adr/0002-engine-and-data-decisions.md) سربه‌سر + ۰٫۰۵ با کف ۰٫۳۵ و EV خالص ≥ ۰٫۵٪ است). با آستانه‌های واقعی روی داده مصنوعی توصیه‌ای نمی‌آید و دروازهٔ سطح A بسته می‌ماند.
 
 اجزا: `backend/scripts/demo_db.py` (ساخت دیتابیس)، `serve_demo.py` (API)، `run_demo.py` (همه با هم).
 
@@ -79,3 +79,70 @@ backend/.venv/Scripts/python.exe backend/scripts/run_live.py --stand-in
 ```
 
 یک سرور محلی **مصنوعی** (`tmon.devtools.fake_tsetmc`) با همان قالب پاسخ‌های مرجع بالا می‌آید و کل زنجیره روی HTTP واقعی اجرا می‌شود: probe ← بک‌فیل ← ویژگی‌ها ← مدل ← API و وب ← دریافت لحظه‌ای (قیمت و صف خرید/فروش در صفحهٔ هر نماد تازه می‌شود). داده در `data/standin/` است و **داده بازار نیست**؛ فقط ثابت می‌کند کد ما با قالب‌های مستند کار می‌کند. همین سرور را می‌توان جدا اجرا کرد: `python -m tmon.devtools.fake_tsetmc [--live]` و با `TMON_TSETMC_OLD_URL` / `TMON_TSETMC_CDN_URL` به آن اشاره داد.
+
+## مسیر تولید: Docker Compose
+
+این مسیر همان چیزی است که در ADR 0001 ثابت شده: PostgreSQL/TimescaleDB، Redis، MinIO، API، Celery worker، Celery beat و فرانت.
+
+### بالا آوردن
+
+```bash
+cp .env.example .env          # مقدارها را عوض کنید؛ .env هرگز commit نمی‌شود
+cd infra
+docker compose --env-file ../.env up -d --build
+docker compose --env-file ../.env ps    # همه باید healthy یا Up باشند
+```
+
+- مهاجرت‌ها را خود سرویس `backend` پیش از بالا آمدن اجرا می‌کند (`alembic upgrade head`). سرویس‌های `worker` و `beat` فقط پس از سالم شدن `backend` شروع می‌شوند.
+- پورت‌های میزبان: ۸۰۰۰ (API)، ۳۰۰۰ (رابط)، ۵۴۳۲ (PostgreSQL)، ۶۳۷۹ (Redis)، ۹۰۰۰ و ۹۰۰۱ (MinIO). اگر پورتی اشغال است، قبل از `up` آن را آزاد کنید یا نگاشت را در `infra/docker-compose.yml` عوض کنید.
+- تصویر MinIO: ایمیج رسمی `minio/minio` دیگر روی Docker Hub نیست، پس `chainguard/minio` استفاده شده. ← [OPEN_QUESTIONS](OPEN_QUESTIONS.md) (تصویر MinIO).
+- دسترسی به TSETMC باید از داخل کانتینر باز باشد (Docker Desktop معمولاً از همان شبکهٔ میزبان خارج می‌شود). بررسی: `docker compose --env-file ../.env exec -T backend python -m tmon.ingest.tsetmc.cli probe`.
+
+### دادهٔ اولیه
+
+پایگاه‌دادهٔ Compose خالی شروع می‌شود. یک بار:
+
+```bash
+docker compose --env-file ../.env exec -T backend sh -c \
+  "python -m tmon.ingest.tsetmc.cli backfill --since 2021-11-01 && \
+   python -m tmon.ingest.tsetmc.cli indices && \
+   python -m tmon.ingest.tsetmc.cli risk-free && \
+   python -m tmon.ingest.tsetmc.cli reclassify"
+```
+
+بک‌فیل کامل ساعت‌ها طول می‌کشد؛ `--limit N` فقط N نماد اول را می‌گیرد (برای آزمایش).
+
+### زمان‌بندی روزانه (Celery beat، به وقت تهران)
+
+| تسک | زمان | نقش |
+|---|---|---|
+| `ingest-instruments-daily` | ۰۷:۳۰ | تازه‌سازی فهرست نمادها |
+| `snapshot-intraday` | هر دقیقه، ساعت ۹ تا ۱۲ | یک دریافت لحظه‌ای |
+| `daily-cycle-tick` | هر ۵ دقیقه، روزهای `TMON_SCHEDULE_DAYS` | چرخهٔ پایان روز، فقط یک بار در هر روز |
+
+زمان چرخهٔ پایان روز **ثابت نیست**: از `market_rules` خوانده می‌شود. پایان آخرین نشست (جلسهٔ پایانی `closing_session_tal`، وگرنه `trading_hours`) به‌علاوهٔ `TMON_EOD_DELAY_MINUTES` (پیش‌فرض ۳۰) = لحظهٔ آماده بودن. با قوانین فعلی ۱۳:۳۰. هر بار که tick اجرا می‌شود و چرخهٔ امروز آماده و ادعا‌نشده باشد، آن را در Redis (`tmon:cycle:<تاریخ>:lock`) ادعا می‌کند و به‌ترتیب اجرا می‌کند:
+
+1. `ingest_eod`: قیمت‌ها و حقیقی/حقوقی
+2. `indices` و `risk_free`: شاخص‌ها و بازده اخزا (اختیاری؛ شکستشان چرخه را متوقف نمی‌کند)
+3. `features`
+4. `publish_and_resolve_outcomes`: آموزش/انتشار سیگنال‌های امروز و تعیین نتیجهٔ سیگنال‌های قدیمی
+
+اگر یک گام اجباری شکست بخورد ادعا آزاد می‌شود و tick بعدی دوباره تلاش می‌کند، حداکثر `TMON_CYCLE_MAX_ATTEMPTS` (پیش‌فرض ۳) بار در روز. پس از موفقیت `tmon:cycle:<تاریخ>:done` ثبت می‌شود و tick‌های بعدی همان روز چیزی اجرا نمی‌کنند.
+
+### دیدن یک چرخه در لاگ
+
+```bash
+docker compose --env-file ../.env logs -f worker | grep "cycle day="
+```
+
+هر گام `status=start` و `status=ok seconds=… result=…` (یا `failed`) دارد و پایان چرخه `status=complete` است. وضعیت ادعا:
+
+```bash
+docker compose --env-file ../.env exec redis redis-cli --scan --pattern 'tmon:cycle:*'
+```
+
+### تعطیلی و خرابی
+
+- روز تعطیل یا بدون معامله: ingest چیزی جدید نمی‌گیرد؛ چرخه همچنان اجرا و «توصیه‌ای برای امروز نیست» را منتشر می‌کند. تقویم تعطیلات هنوز مدل نشده است (← OPEN_QUESTIONS).
+- اگر `ingest_eod` به‌خاطر شبکه شکست بخورد، لاگ `status=failed` با خطا می‌دهد و ادعا آزاد می‌شود؛ اصلاح شبکه و منتظر tick بعدی بمانید.
+- توقف: `docker compose --env-file ../.env down` (داده در volumeها می‌ماند؛ `down -v` همه را پاک می‌کند).

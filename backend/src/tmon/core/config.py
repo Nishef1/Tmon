@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     # Days the scheduler wakes the ingest jobs (scheduling only; whether a day was a trading day is
     # derived from data into trading_calendar). Celery day names.
     schedule_days: str = "sat,sun,mon,tue,wed"
+    # The daily cycle starts this many minutes after the last session of the day closes (hours
+    # come from market_rules; see tmon.tasks.schedule) and is retried at most this many times.
+    eod_delay_minutes: int = 30
+    cycle_max_attempts: int = 3
     # TSETMC hosts. Overridable so a mirror, a tunnel or the local stand-in server
     # (tmon.devtools.fake_tsetmc) can be used without touching code.
     tsetmc_old_url: str = "https://old.tsetmc.com"

@@ -1,11 +1,11 @@
 FROM node:26-alpine AS deps
-RUN corepack enable
+RUN npm install -g pnpm@12.8.1
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM node:26-alpine AS build
-RUN corepack enable
+RUN npm install -g pnpm@12.8.1
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
