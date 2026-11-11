@@ -34,4 +34,8 @@ app.conf.beat_schedule = {
         "task": "tmon.tasks.jobs.compute_features",
         "schedule": crontab(hour=14, minute=0, day_of_week=TRADING_DOW),
     },
+    "publish-signals-daily": {
+        "task": "tmon.tasks.jobs.publish_signals",
+        "schedule": crontab(hour=14, minute=30, day_of_week=TRADING_DOW),
+    },
 }

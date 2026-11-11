@@ -35,3 +35,21 @@ def compute_features(timeframe: str = "D1") -> int:
 
     with session_scope() as session:
         return refresh_features(session, timeframe)
+
+
+@app.task(name="tmon.tasks.jobs.publish_signals")
+def publish_signals(timeframe: str = "D1") -> dict[str, object]:
+    """Train on resolved labels, run the gate and publish the day's signals (or the note that
+    there are none)."""
+    from tmon.core.db import session_scope
+    from tmon.engine.service import train_and_publish
+    from tmon.storage.objectstore import MinioStore
+
+    with session_scope() as session:
+        res = train_and_publish(session, MinioStore(), timeframe=timeframe)
+    return {
+        "date": str(res.as_of),
+        "model_version": res.model_version,
+        "recommended": res.n_recommended,
+        "message": res.message,
+    }
