@@ -1,133 +1,25 @@
 // Server-side client for the Tmon API. Pages call it from server components only,
 // so the browser never needs to reach the API host directly.
 
-export type Instrument = {
-  id: number;
-  symbol: string;
-  name: string | null;
-  sector_code: string | null;
-  instrument_type: string | null;
-};
+import type { components } from "./api-schema";
 
-export type Reason = { feature: string; value: number | null; contribution: number };
+// Response types are generated from the backend's OpenAPI schema (`pnpm gen:api`); the
+// Pydantic models in `backend/src/tmon/api/schemas.py` are the single source of truth.
+type S = components["schemas"];
 
-export type Signal = {
-  id: number;
-  date: string;
-  timeframe: string;
-  rank: number;
-  instrument: Instrument;
-  entry_price: number;
-  entry_rule: string;
-  take_profit: number;
-  stop_loss: number;
-  horizon_days: number;
-  p_win: number;
-  ev: number;
-  confidence_tier: string;
-  position_pct: number;
-  top_reasons: Reason[];
-  risks: string[];
-  model_version: string;
-  data_snapshot_id: string;
-  outcome: string;
-  realized_return: number | null;
-  outcome_date: string | null;
-};
-
-export type Run = {
-  date: string;
-  model_version: string;
-  data_snapshot_id: string;
-  n_candidates: number;
-  n_recommended: number;
-  defensive_mode: boolean;
-  message: string | null;
-  created_at: string;
-};
-
-export type Gate = { tier_a_allowed: boolean; reasons: string[] };
-
-export type Recommendations = {
-  timeframe: string;
-  supported: boolean;
-  date: string | null;
-  available_dates: string[];
-  no_recommendation: boolean;
-  message: string;
-  disclaimer: string;
-  run: Run | null;
-  gate: Gate | null;
-  signals: Signal[];
-};
-
-export type Candle = {
-  date: string;
-  open: number | null;
-  high: number | null;
-  low: number | null;
-  close: number | null;
-  volume: number | null;
-};
-
-export type InstrumentDetail = {
-  instrument: Instrument;
-  adjusted: boolean;
-  candles: Candle[];
-  features_date: string | null;
-  features: { feature: string; value: number | null }[];
-  signals: Signal[];
-  disclaimer: string;
-};
-
-export type HistorySummary = {
-  total: number;
-  resolved: number;
-  pending: number;
-  take_profit: number;
-  stop_loss: number;
-  expired: number;
-  mean_realized_return: number | null;
-};
-
-export type History = {
-  timeframe: string;
-  items: Signal[];
-  total: number;
-  limit: number;
-  offset: number;
-  summary: HistorySummary;
-  disclaimer: string;
-};
-
-export type CalibrationBucket = {
-  bucket: string;
-  n: number;
-  mean_p: number | null;
-  hit_rate: number | null;
-};
-
-export type CalibrationBlock = {
-  n: number;
-  base_rate: number | null;
-  auc: number | null;
-  brier: number | null;
-  brier_base_rate: number | null;
-  brier_skill: number | null;
-  buckets: CalibrationBucket[];
-};
-
-export type Calibration = {
-  timeframe: string;
-  supported: boolean;
-  model_version: string | null;
-  trained_through: string | null;
-  backtest: CalibrationBlock | null;
-  live: CalibrationBlock;
-  gate: Gate | null;
-  warnings: string[];
-  disclaimer: string;
-};
+export type Instrument = S["InstrumentOut"];
+export type Reason = S["Reason"];
+export type Signal = S["SignalOut"];
+export type Run = S["RunOut"];
+export type Gate = S["GateOut"];
+export type Recommendations = S["RecommendationsOut"];
+export type Candle = S["Candle"];
+export type InstrumentDetail = S["InstrumentDetail"];
+export type HistorySummary = S["HistorySummary"];
+export type History = S["HistoryOut"];
+export type CalibrationBucket = S["CalibrationBucket"];
+export type CalibrationBlock = S["CalibrationBlock"];
+export type Calibration = S["CalibrationOut"];
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
@@ -156,29 +48,7 @@ export async function apiGet<T>(path: string, params: Params = {}): Promise<ApiR
   }
 }
 
-export type BookLevel = {
-  row: number;
-  bid_price: number;
-  bid_volume: number;
-  bid_count: number;
-  ask_price: number;
-  ask_volume: number;
-  ask_count: number;
-};
+export type BookLevel = S["BookLevelOut"];
 
 /** Latest stored intraday snapshot + order book (what the poller last wrote). */
-export type LiveQuote = {
-  instrument_id: number;
-  available: boolean;
-  as_of: string | null;
-  age_seconds: number | null;
-  stale: boolean;
-  last_price: number | null;
-  cum_volume: number | null;
-  reference_price: number | null;
-  change_pct: number | null;
-  book_as_of: string | null;
-  book: BookLevel[];
-  message: string | null;
-  disclaimer: string;
-};
+export type LiveQuote = S["LiveOut"];

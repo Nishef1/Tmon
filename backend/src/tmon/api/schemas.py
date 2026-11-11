@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 Timeframe = Literal["D1", "W1", "M1"]
 SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("D1",)  # Phase 1 only trains the D1 model
@@ -13,7 +13,17 @@ SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("D1",)  # Phase 1 only trains the D1 mo
 DISCLAIMER = "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست"
 
 
-class InstrumentOut(BaseModel):
+class ApiModel(BaseModel):
+    """Base of every response model.
+
+    Fields with defaults are always serialised, so the OpenAPI schema marks them required;
+    the frontend's generated types then have no spurious ``| undefined``.
+    """
+
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+class InstrumentOut(ApiModel):
     id: int
     symbol: str
     name: str | None = None
@@ -21,13 +31,13 @@ class InstrumentOut(BaseModel):
     instrument_type: str | None = None
 
 
-class Reason(BaseModel):
+class Reason(ApiModel):
     feature: str
     value: float | None = None
     contribution: float
 
 
-class SignalOut(BaseModel):
+class SignalOut(ApiModel):
     id: int
     date: dt.date
     timeframe: str
@@ -51,7 +61,7 @@ class SignalOut(BaseModel):
     outcome_date: dt.date | None = None
 
 
-class RunOut(BaseModel):
+class RunOut(ApiModel):
     date: dt.date
     model_version: str
     data_snapshot_id: str
@@ -62,12 +72,12 @@ class RunOut(BaseModel):
     created_at: dt.datetime
 
 
-class GateOut(BaseModel):
+class GateOut(ApiModel):
     tier_a_allowed: bool
     reasons: list[str]
 
 
-class RecommendationsOut(BaseModel):
+class RecommendationsOut(ApiModel):
     timeframe: str
     supported: bool
     date: dt.date | None
@@ -80,7 +90,7 @@ class RecommendationsOut(BaseModel):
     signals: list[SignalOut]
 
 
-class Candle(BaseModel):
+class Candle(ApiModel):
     date: dt.date
     open: float | None
     high: float | None
@@ -89,12 +99,12 @@ class Candle(BaseModel):
     volume: float | None
 
 
-class FeatureValue(BaseModel):
+class FeatureValue(ApiModel):
     feature: str
     value: float | None
 
 
-class InstrumentDetail(BaseModel):
+class InstrumentDetail(ApiModel):
     instrument: InstrumentOut
     adjusted: bool
     candles: list[Candle]
@@ -104,7 +114,7 @@ class InstrumentDetail(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
-class HistorySummary(BaseModel):
+class HistorySummary(ApiModel):
     total: int
     resolved: int
     pending: int
@@ -114,7 +124,7 @@ class HistorySummary(BaseModel):
     mean_realized_return: float | None  # gross, before costs, over resolved signals
 
 
-class HistoryOut(BaseModel):
+class HistoryOut(ApiModel):
     timeframe: str
     items: list[SignalOut]
     total: int
@@ -124,14 +134,14 @@ class HistoryOut(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
-class CalibrationBucket(BaseModel):
+class CalibrationBucket(ApiModel):
     bucket: str
     n: int
     mean_p: float | None
     hit_rate: float | None
 
 
-class CalibrationBlock(BaseModel):
+class CalibrationBlock(ApiModel):
     n: int
     base_rate: float | None = None
     auc: float | None = None
@@ -141,7 +151,7 @@ class CalibrationBlock(BaseModel):
     buckets: list[CalibrationBucket] = []
 
 
-class CalibrationOut(BaseModel):
+class CalibrationOut(ApiModel):
     timeframe: str
     supported: bool
     model_version: str | None
@@ -154,7 +164,7 @@ class CalibrationOut(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
-class BookLevelOut(BaseModel):
+class BookLevelOut(ApiModel):
     row: int
     bid_price: float
     bid_volume: float
@@ -164,7 +174,7 @@ class BookLevelOut(BaseModel):
     ask_count: int
 
 
-class LiveOut(BaseModel):
+class LiveOut(ApiModel):
     """Latest stored intraday snapshot and order book of one instrument (what the poller last
     wrote, not a direct pass-through of the exchange)."""
 

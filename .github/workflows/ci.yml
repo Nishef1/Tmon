@@ -19,6 +19,8 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy src
       - run: uv run pytest   # -m "not network" is the default addopts
+      - name: OpenAPI schema is up to date
+        run: uv run python scripts/export_openapi.py && git diff --exit-code ../frontend/openapi.json
 
   frontend:
     runs-on: ubuntu-latest
@@ -36,6 +38,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: API types match openapi.json
+        run: pnpm gen:api && git diff --exit-code lib/api-schema.ts
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
