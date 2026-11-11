@@ -1,0 +1,83 @@
+# Engine parameters (docs/10-recommendation-engine.md). Nothing here is a market
+# rule: fees, taxes, price limits and trading hours live in the `market_rules` table.
+# Values marked "provisional" have no number in the docs and must be reviewed.
+
+universe:
+  min_median_value_20d: 20000000000   # rial, D1 default per docs/10 section 1
+  min_history_days: 120
+  exclude_queue_states: [sell_queue]
+
+labeling:
+  k_tp: 2.0
+  k_sl: 1.0
+  atr_period: 14
+  timeframes:
+    D1: { horizon_days: 3, atr_scale_days: 1 }
+    W1: { horizon_days: 10, atr_scale_days: 5 }
+    M1: { horizon_days: 60, atr_scale_days: 20 }
+
+costs:
+  # Slippage as a fraction of price (docs/10 section 6: "half a percent"; the
+  # wording is ambiguous, see docs/OPEN_QUESTIONS.md).
+  slippage_fraction: 0.005
+  # Commission and tax come from market_rules (rules: commission_buy,
+  # commission_sell, sell_tax). They are never defaulted in code.
+
+thresholds:
+  p_min: { D1: 0.60, W1: 0.60, M1: 0.55 }
+  ev_min_cost_multiple: 2.0
+  min_bucket_samples: 200
+  tiers:
+    A: { p_win_min: 0.70, recent_bucket_accuracy_min: 0.65 }
+    B: { p_win_min: 0.62 }
+
+sizing:
+  kelly_fraction: 0.25
+  max_position_pct: 0.10
+  risk_per_trade: 0.01
+  sector_cap_pct: 0.25
+  liquidity_cap_of_median_value: 0.05
+  correlation_window_days: 60
+  correlation_max: 0.8
+
+baseline_d1:
+  min_ind_buy_power: 1.5
+  min_rel_volume: 1.5
+  rsi_min: 45
+  rsi_max: 70
+
+validation:
+  retrain_every_days: 20
+  min_train_days: 250            # provisional
+  embargo_equals_horizon: true
+  regimes:
+    # Boundaries are Gregorian dates; the halt follows docs/01 (9 Esfand 1404 to
+    # 29 Ordibehesht 1405).
+    - { name: normal, start: null, end: 2026-02-27 }
+    - { name: halt, start: 2026-02-28, end: 2026-05-18 }
+    - { name: post_reopen, start: 2026-05-19, end: null }
+
+lightgbm:
+  params:
+    objective: binary
+    learning_rate: 0.03
+    num_leaves: 15
+    min_data_in_leaf: 200
+    feature_fraction: 0.7
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    lambda_l2: 10.0
+    verbose: -1
+    seed: 42
+  num_boost_round: 400
+  early_stopping_rounds: 40
+
+calibration:
+  method: isotonic
+  n_buckets: 10
+
+defensive_mode:
+  enabled: true
+  p_min_bump: 0.05
+  breadth_floor: 0.35
+  market_net_flow_negative_days: 3
