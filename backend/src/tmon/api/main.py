@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from tmon.api.routers import instruments, metrics, recommendations, signals
 from tmon.core.config import get_settings
 
 
@@ -20,6 +21,8 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    for r in (recommendations.router, instruments.router, signals.router, metrics.router):
+        app.include_router(r)
     return app
 
 
