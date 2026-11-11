@@ -69,6 +69,18 @@ def test_financial_statement_tables():
     assert {"صورت وضعیت مالی تلفیقی", "صورت جریان های نقدی تلفیقی"} <= titles
 
 
+def test_bank_monthly_activity_uses_its_own_template():
+    # وبملت, ن-۳۰ for 1405/07: a bank's monthly report has 11 sections, not the production table
+    tables = parse_report((FIXTURES / "report_n30_vbmellat_1405-07.xls").read_bytes())
+    assert len(tables) == 11
+    income = tables[0]
+    assert income.title is not None and income.title.startswith(
+        "گزارش فعالیت ماهانه درآمدهای عملیاتی محقق شده"
+    )
+    assert parse_number(_row(income, "درآمد تسهیلات اعطایی")[1]) == 1816866984
+    assert format_signature(tables) != format_signature(parse_report(N30))
+
+
 def test_format_signature_is_per_template():
     assert format_signature(parse_report(N30)) == format_signature(parse_report(N30))
     assert format_signature(parse_report(N30)) != format_signature(parse_report(N10))
