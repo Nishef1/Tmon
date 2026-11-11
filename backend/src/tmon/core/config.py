@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     codal_min_interval_seconds: float = 4.0
     # Intraday polling is limited to the exchange's trading hours (market_rules.trading_hours).
     intraday_interval_seconds: float = 30.0
+    # News LLM extraction (docs/08 step 4) runs only when this is set (TMON_LLM_API_KEY).
+    llm_api_key: str | None = None
+    llm_model: str = "claude-opus-5-5"
     book_top_n: int = 15
     # Days the scheduler wakes the ingest jobs (scheduling only; whether a day was a trading day is
     # derived from data into trading_calendar). Celery day names.

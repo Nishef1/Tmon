@@ -109,6 +109,11 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
 
         return run_macro()
 
+    def news() -> Any:
+        from tmon.ingest.news.pipeline import run_news
+
+        return run_news()
+
     def features() -> Any:
         from tmon.core.db import session_scope
         from tmon.features.store import refresh_features
@@ -139,6 +144,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         Step("indices", indices, required=False),
         Step("risk_free", risk_free, required=False),
         Step("macro", macro, required=False),
+        Step("news", news, required=False),
         Step("features", features),
         *(
             Step(f"publish_and_resolve_outcomes_{tf}", publisher(tf), required=(i == 0))
