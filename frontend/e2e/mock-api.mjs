@@ -131,15 +131,17 @@ function route(url) {
     if (date === "2000-01-01") return [500, { detail: "boom" }];
     const tf = url.searchParams.get("timeframe") ?? "D1";
     if (tf !== "D1") {
+      // W1/M1 are supported but have no published run in the fixture: the backend's honest
+      // "nothing yet" answer, not borrowed D1 signals.
       return [
         200,
         {
           timeframe: tf,
-          supported: false,
+          supported: true,
           date: null,
           available_dates: [],
           no_recommendation: true,
-          message: "مدل این تایم‌فریم در فاز ۱ ساخته نشده است؛ فقط D1 فعال است.",
+          message: "هنوز اجرایی برای این تاریخ ثبت نشده است.",
           disclaimer: DISCLAIMER,
           run: null,
           gate: null,

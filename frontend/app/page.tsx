@@ -9,9 +9,9 @@ import { SignalCard } from "@/components/SignalCard";
 export const dynamic = "force-dynamic";
 
 const TIMEFRAMES = [
-  { id: "D1", label: "روزانه (D1)", enabled: true },
-  { id: "W1", label: "هفتگی (W1)", enabled: false },
-  { id: "M1", label: "ماهانه (M1)", enabled: false },
+  { id: "D1", label: "روزانه (D1)" },
+  { id: "W1", label: "هفتگی (W1)" },
+  { id: "M1", label: "ماهانه (M1)" },
 ];
 
 type Search = { tf?: string; date?: string };
@@ -33,30 +33,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       <Disclaimer />
 
       <nav aria-label="تایم‌فریم" className="flex flex-wrap gap-2">
-        {TIMEFRAMES.map((t) =>
-          t.enabled ? (
-            <Link
-              key={t.id}
-              href={`/?tf=${t.id}`}
-              aria-current={tf === t.id ? "page" : undefined}
-              className={`rounded-full border px-4 py-1.5 text-sm ${
-                tf === t.id
-                  ? "border-accent bg-accent text-surface"
-                  : "border-line bg-surface hover:bg-accent-soft"
-              }`}
-            >
-              {t.label}
-            </Link>
-          ) : (
-            <span
-              key={t.id}
-              aria-disabled="true"
-              className="rounded-full border border-dashed border-line px-4 py-1.5 text-sm text-muted"
-            >
-              {t.label} · به‌زودی
-            </span>
-          ),
-        )}
+        {TIMEFRAMES.map((t) => (
+          <Link
+            key={t.id}
+            href={`/?tf=${t.id}`}
+            aria-current={tf === t.id ? "page" : undefined}
+            className={`rounded-full border px-4 py-1.5 text-sm ${
+              tf === t.id
+                ? "border-accent bg-accent text-surface"
+                : "border-line bg-surface hover:bg-accent-soft"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
       </nav>
 
       {!res.ok ? <ErrorState message={res.error} /> : <Body data={res.data} tf={tf} />}

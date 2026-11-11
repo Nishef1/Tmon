@@ -31,11 +31,21 @@ test.describe("recommendations", () => {
     await expect(page.getByRole("heading", { name: "محدودیت‌ها" })).toBeVisible();
   });
 
-  test("W1 and M1 are visibly not yet available", async ({ page }) => {
+  test("W1 and M1 are selectable and show the same honest no-recommendation state", async ({
+    page,
+  }) => {
     await page.goto("/");
-    await expect(page.getByText("هفتگی (W1) · به‌زودی")).toBeVisible();
-    await page.goto("/?tf=W1");
-    await expect(page.getByTestId("unsupported")).toBeVisible();
+    for (const [tf, label] of [
+      ["W1", "هفتگی (W1)"],
+      ["M1", "ماهانه (M1)"],
+    ]) {
+      await page.getByRole("link", { name: label }).click();
+      await expect(page).toHaveURL(new RegExp(`tf=${tf}`));
+      await expect(page.getByRole("link", { name: label })).toHaveAttribute("aria-current", "page");
+      await expect(page.getByTestId("no-recommendation")).toContainText("امروز توصیه‌ای وجود ندارد");
+      await expect(page.getByTestId("signal-card")).toHaveCount(0);
+      await expect(page.getByTestId("unsupported")).toHaveCount(0);
+    }
   });
 
   test('"no recommendation" is shown plainly and explains why tier A is absent', async ({
