@@ -159,9 +159,11 @@ def test_feature_sets_are_versioned_and_timeframe_gated():
     assert d1.key.startswith("D1_v1_") and len(d1.fingerprint) == 12
     assert len(set(d1.columns)) == len(d1.columns)
     assert list(FEATURE_SETS) == ["D1", "W1", "M1"]
-    for tf in ("W1", "M1"):
+    for tf, ver in (("W1", "v2"), ("M1", "v1")):
         fs = get_feature_set(tf)
-        assert fs.key.startswith(f"{tf}_v1_") and set(fs.columns) <= set(d1.columns)
+        assert fs.key.startswith(f"{tf}_{ver}_") and set(fs.columns) <= set(d1.columns)
+    # W1 v2: the market group was dropped by the T7 ablation
+    assert "breadth" not in get_feature_set("W1").columns
     # M1 drops same-day board noise that says nothing about a 20-60 day horizon
     assert "last_close_gap" not in get_feature_set("M1").columns
     with pytest.raises(UnsupportedTimeframeError):

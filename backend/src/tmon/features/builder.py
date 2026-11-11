@@ -99,7 +99,8 @@ SLOW_BOARD_COLUMNS: tuple[str, ...] = (
 )  # fmt: skip
 
 _D1 = FeatureSet("D1", "v1", TECHNICAL_COLUMNS + BOARD_COLUMNS + MARKET_COLUMNS)
-_W1 = FeatureSet("W1", "v1", TECHNICAL_COLUMNS + BOARD_COLUMNS + MARKET_COLUMNS)
+# W1 v2: market group dropped by the T7 ablation (docs/reports/ablation-w1.md).
+_W1 = FeatureSet("W1", "v2", TECHNICAL_COLUMNS + BOARD_COLUMNS)
 _M1 = FeatureSet("M1", "v1", TECHNICAL_COLUMNS + SLOW_BOARD_COLUMNS + MARKET_COLUMNS)
 FEATURE_SETS: dict[str, FeatureSet] = {"D1": _D1, "W1": _W1, "M1": _M1}
 

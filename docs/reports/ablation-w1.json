@@ -1,0 +1,123 @@
+{
+  "timeframe": "W1",
+  "folds": 45,
+  "variants": {
+    "full": {
+      "n_features": 73,
+      "prob": {
+        "n": 311595,
+        "base_rate": 0.1722620709574929,
+        "auc": 0.5962789035881055,
+        "brier": 0.14732205312077082,
+        "brier_base_rate": 0.14258784986692857,
+        "brier_skill": -0.033202010257258774
+      },
+      "trades": {
+        "n_trades": 2112,
+        "win_rate": 0.4630681818181818,
+        "barrier_hit_rate": 0.2002840909090909,
+        "avg_win": 0.09127194797300377,
+        "avg_loss": -0.06572820385045268,
+        "payoff_ratio": 1.3886268394108134,
+        "expectancy_net": 0.006973570999613794,
+        "expectancy_gross": 0.024809235180199733,
+        "avg_round_trip_cost": 0.017512,
+        "median_holding_days": 10.0,
+        "share_exit_delayed": 0.032196969696969696
+      },
+      "portfolio": {
+        "total_return": 0.6052305136101088,
+        "sharpe": -1.7996170949145178,
+        "max_drawdown": -0.3113216586911909
+      }
+    },
+    "minus_board": {
+      "n_features": 61,
+      "prob": {
+        "n": 311595,
+        "base_rate": 0.1722620709574929,
+        "auc": 0.5629618601506572,
+        "brier": 0.1512562973585804,
+        "brier_base_rate": 0.14258784986692857,
+        "brier_skill": -0.06079373172217495
+      },
+      "trades": {
+        "n_trades": 1931,
+        "win_rate": 0.40548938373899535,
+        "barrier_hit_rate": 0.15277058518902123,
+        "avg_win": 0.09704019336484697,
+        "avg_loss": -0.07553775451081596,
+        "payoff_ratio": 1.2846581685315013,
+        "expectancy_net": -0.005559228779772927,
+        "expectancy_gross": 0.01205445260548923,
+        "avg_round_trip_cost": 0.017512000000000003,
+        "median_holding_days": 10.0,
+        "share_exit_delayed": 0.03158984981874676
+      },
+      "portfolio": {
+        "total_return": -0.15797575257888063,
+        "sharpe": -3.668382848550282,
+        "max_drawdown": -0.5395542417453074
+      }
+    },
+    "minus_market": {
+      "n_features": 62,
+      "prob": {
+        "n": 311595,
+        "base_rate": 0.1722620709574929,
+        "auc": 0.6463329702626798,
+        "brier": 0.13959792119261838,
+        "brier_base_rate": 0.14258784986692857,
+        "brier_skill": 0.020969028406702006
+      },
+      "trades": {
+        "n_trades": 2271,
+        "win_rate": 0.5204755614266843,
+        "barrier_hit_rate": 0.25495376486129456,
+        "avg_win": 0.09661452589606762,
+        "avg_loss": -0.06831763389933802,
+        "payoff_ratio": 1.41419601911892,
+        "expectancy_net": 0.017525524567491336,
+        "expectancy_gross": 0.0355480865035953,
+        "avg_round_trip_cost": 0.017512,
+        "median_holding_days": 10.0,
+        "share_exit_delayed": 0.03302509907529723
+      },
+      "portfolio": {
+        "total_return": 2.349639028273206,
+        "sharpe": 0.1238518862581108,
+        "max_drawdown": -0.2550709210980573
+      }
+    },
+    "plus_macro": {
+      "n_features": 79,
+      "prob": {
+        "n": 311595,
+        "base_rate": 0.1722620709574929,
+        "auc": 0.5713391665879259,
+        "brier": 0.14925176297171613,
+        "brier_base_rate": 0.14258784986692857,
+        "brier_skill": -0.04673549051343939
+      },
+      "trades": {
+        "n_trades": 2256,
+        "win_rate": 0.42597517730496454,
+        "barrier_hit_rate": 0.19281914893617022,
+        "avg_win": 0.09123402228190612,
+        "avg_loss": -0.06627444218738156,
+        "payoff_ratio": 1.3766094329991476,
+        "expectancy_net": 0.0008202538919559765,
+        "expectancy_gross": 0.018546929613768474,
+        "avg_round_trip_cost": 0.017511999999999996,
+        "median_holding_days": 10.0,
+        "share_exit_delayed": 0.027925531914893616
+      },
+      "portfolio": {
+        "total_return": 0.04008284831292652,
+        "sharpe": -3.2188521281969047,
+        "max_drawdown": -0.4571786551356205
+      }
+    }
+  },
+  "macro_coverage": 0.9971817760742506
+}
