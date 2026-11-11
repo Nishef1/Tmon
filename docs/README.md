@@ -24,6 +24,7 @@
 | [adr/0002-engine-and-data-decisions.md](adr/0002-engine-and-data-decisions.md) | **تصمیم تثبیت‌شده:** جهان توصیه، هزینه، آستانه‌ها، تعریف پایان |
 | [prompts/build-phase1.md](prompts/build-phase1.md) | پرامپت ساخت M0–M5 (اجرا شده) |
 | [prompts/finish-phase1.md](prompts/finish-phase1.md) | پرامپت تکمیل فاز ۱ تا ۱۰۰٪ |
+| [prompts/continue-phase1.md](prompts/continue-phase1.md) | پرامپت ادامه پس از بازبینی (C1 تا C6) |
 
 تاریخ آخرین بازبینی: ۲۰ آبان ۱۴۰۵ (۱۱ نوامبر ۲۰۲۶).
 
