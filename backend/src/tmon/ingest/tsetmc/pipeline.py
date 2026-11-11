@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
 import polars as pl
@@ -46,6 +46,9 @@ class Ctx:
     client: PoliteClient
     store: ObjectStore
     classifier: Classifier
+    # ins_code -> traded value in the latest market-watch snapshot (filled by sync_instruments);
+    # used to pick the most liquid instruments for a limited backfill.
+    liquidity: dict[str, float] = field(default_factory=dict)
 
     async def fetch_text(
         self, url: str, *, ext: str = "txt", keep_raw: bool = True
@@ -75,6 +78,10 @@ async def sync_instruments(ctx: Ctx) -> int:
     url = endpoints.MARKET_WATCH_INIT
     text, fetched_at = await ctx.fetch_text(url)
     watch = parsers.parse_market_watch_init(text)
+    try:
+        ctx.liquidity = {q.ins_code: q.value for q in parsers.parse_market_watch_quotes(text)}
+    except parsers.ParseError:  # quotes are only used to rank; the instrument list still stands
+        ctx.liquidity = {}
 
     existing = {
         code: itype
@@ -314,7 +321,8 @@ async def backfill(
     await sync_instruments(ctx)
     ctx.session.commit()
     instruments = _tradable_instruments(ctx.session, ctx.classifier)
-    if limit:
+    if limit:  # the most liquid first, so a short run covers instruments that actually trade
+        instruments.sort(key=lambda i: ctx.liquidity.get(i.ins_code, 0.0), reverse=True)
         instruments = instruments[:limit]
     totals = {"instruments": 0, "bars": 0, "client_rows": 0, "failed": 0}
     for ins in instruments:

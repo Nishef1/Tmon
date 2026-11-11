@@ -99,6 +99,28 @@ def test_backfill_over_http_then_probe_cross_check(session, closed_market):
     assert by_name["live order book"].ok is True
 
 
+def test_limited_backfill_takes_the_most_liquid_instruments(session, closed_market):
+    async def go():
+        client = _client()
+        try:
+            ctx = Ctx(session, client, MemoryStore(), load_classifier())
+            totals = await backfill(ctx, limit=3)
+            return totals, dict(ctx.liquidity)
+        finally:
+            await client.aclose()
+
+    totals, liquidity = asyncio.run(go())
+    assert totals["instruments"] == 3
+    done = {
+        c
+        for (c,) in session.execute(
+            select(Instrument.ins_code).join(PriceDaily, PriceDaily.instrument_id == Instrument.id)
+        )
+    }
+    top3 = sorted(liquidity, key=liquidity.__getitem__, reverse=True)[:3]
+    assert done == set(top3)
+
+
 def test_intraday_poller_over_http_detects_changes(session, live_market):
     store = MemoryStore()
     state = IntradayState()

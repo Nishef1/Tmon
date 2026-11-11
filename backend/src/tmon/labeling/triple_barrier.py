@@ -214,7 +214,8 @@ def triple_barrier_labels(
 
     # warm-up and tail rows carry no label
     valid = base_ok & exists_all & ~crosses_halt & ~unresolved_delay
-    gross = exit_price / entry - 1.0
+    with np.errstate(divide="ignore", invalid="ignore"):  # rows with entry <= 0 are not valid
+        gross = exit_price / entry - 1.0
     y = np.where(tp_wins, 1, 0).astype(np.int8)
 
     reason = np.where(
