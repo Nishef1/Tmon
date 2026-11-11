@@ -4,6 +4,48 @@
  */
 
 export interface paths {
+  "/compare": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Compare
+     * @description Nominal and real return of free-market USD, gold, coin and the one-year treasury yield
+     *     over the last ``months`` months, against inflation released by the as-of day (docs/07).
+     */
+    get: operations["compare_compare_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/funds": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Funds
+     * @description Latest NAV per fund (fipiran) and, for listed units, the bubble against the close of
+     *     the same day (docs/06).
+     */
+    get: operations["funds_funds_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -278,6 +320,51 @@ export interface components {
       /** Volume */
       volume: number | null;
     };
+    /** CompareOut */
+    CompareOut: {
+      /** Annualised Monthly */
+      annualised_monthly: number | null;
+      /** As Of */
+      as_of: string | null;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      inflation: components["schemas"]["InflationOut"] | null;
+      /** Inflation Source */
+      inflation_source: string;
+      monthly_inflation: components["schemas"]["InflationOut"] | null;
+      /** Months */
+      months: number;
+      /** Rows */
+      rows: components["schemas"]["CompareRow"][];
+    };
+    /** CompareRow */
+    CompareRow: {
+      /** Beats Inflation */
+      beats_inflation: boolean | null;
+      /** End Date */
+      end_date: string | null;
+      /** End Value */
+      end_value: number | null;
+      /** Label */
+      label: string;
+      /** Nominal Return */
+      nominal_return: number | null;
+      /** Note */
+      note: string | null;
+      /** Real Return */
+      real_return: number | null;
+      /** Series */
+      series: string;
+      /** Source */
+      source: string;
+      /** Start Date */
+      start_date: string | null;
+      /** Start Value */
+      start_value: number | null;
+    };
     /** CorporateEventOut */
     CorporateEventOut: {
       /** Announced At */
@@ -297,6 +384,50 @@ export interface components {
       feature: string;
       /** Value */
       value: number | null;
+    };
+    /** FundOut */
+    FundOut: {
+      /** Bubble */
+      bubble: number | null;
+      /** Bubble Note */
+      bubble_note: string | null;
+      /** Cancel Nav */
+      cancel_nav: number | null;
+      /** Fund Type */
+      fund_type: number | null;
+      /** Instrument Id */
+      instrument_id: number | null;
+      /** Issue Nav */
+      issue_nav: number | null;
+      /** Listed */
+      listed: boolean;
+      /** Name */
+      name: string | null;
+      /**
+       * Nav Date
+       * Format: date
+       */
+      nav_date: string;
+      /** Net Asset */
+      net_asset: number | null;
+      /** Price */
+      price: number | null;
+      /** Reg No */
+      reg_no: string;
+      /** Symbol */
+      symbol: string | null;
+    };
+    /** FundsOut */
+    FundsOut: {
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Funds */
+      funds: components["schemas"]["FundOut"][];
+      /** Nav Date */
+      nav_date: string | null;
     };
     /** GateOut */
     GateOut: {
@@ -345,6 +476,34 @@ export interface components {
       take_profit: number;
       /** Total */
       total: number;
+    };
+    /** InflationOut */
+    InflationOut: {
+      /** Method */
+      method: string;
+      /** Releases */
+      releases: components["schemas"]["InflationReleaseOut"][];
+      /** Source */
+      source: string;
+      /** Value */
+      value: number;
+    };
+    /** InflationReleaseOut */
+    InflationReleaseOut: {
+      /**
+       * Ref Period
+       * Format: date
+       */
+      ref_period: string;
+      /**
+       * Release Date
+       * Format: date
+       */
+      release_date: string;
+      /** Source Url */
+      source_url: string | null;
+      /** Value */
+      value: number;
     };
     /** InstrumentDetail */
     InstrumentDetail: {
@@ -555,6 +714,69 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  compare_compare_get: {
+    parameters: {
+      query?: {
+        months?: number;
+        inflation_source?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CompareOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  funds_funds_get: {
+    parameters: {
+      query?: {
+        listed_only?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FundsOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   health_health_get: {
     parameters: {
       query?: never;

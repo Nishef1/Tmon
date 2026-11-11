@@ -7,12 +7,14 @@ service or the market (docs/OPEN_QUESTIONS.md items 48-50)."""
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from itertools import pairwise
 
 import httpx
 import pytest
 from sqlalchemy import func, select
 
+from tmon.core.timeutil import TEHRAN
 from tmon.devtools.fake_tsetmc import serve
 from tmon.ingest.http import DomainRateLimiter, PoliteClient, RetryPolicy
 from tmon.ingest.tsetmc import endpoints
@@ -94,8 +96,13 @@ def test_backfill_over_http_then_probe_cross_check(session, closed_market):
     bad = [c for c in checks if c.ok is False]
     assert not bad, [(c.name, c.detail) for c in bad]
     cross = next(c for c in checks if c.name.startswith("cross-check"))
-    # closed market: the watch equals today's bar, so the column mapping is actually compared
-    assert cross.ok is True, cross.detail
+    # closed market: the watch equals today's bar, so the column mapping is actually compared.
+    # The synthetic calendar has no bar on Thursday/Friday; there the probe rightly says it cannot
+    # compare, which is the only acceptable non-True answer.
+    if datetime.now(TEHRAN).date().weekday() in (3, 4):
+        assert cross.ok is None and "not comparable" in cross.detail, cross.detail
+    else:
+        assert cross.ok is True, cross.detail
     assert by_name["live order book"].ok is True
 
 

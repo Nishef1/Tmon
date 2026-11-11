@@ -378,6 +378,206 @@
         "title": "Candle",
         "type": "object"
       },
+      "CompareOut": {
+        "properties": {
+          "annualised_monthly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annualised Monthly"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "inflation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InflationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inflation_source": {
+            "title": "Inflation Source",
+            "type": "string"
+          },
+          "monthly_inflation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InflationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/CompareRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "months",
+          "inflation_source",
+          "inflation",
+          "monthly_inflation",
+          "annualised_monthly",
+          "rows",
+          "disclaimer"
+        ],
+        "title": "CompareOut",
+        "type": "object"
+      },
+      "CompareRow": {
+        "properties": {
+          "beats_inflation": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beats Inflation"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "end_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Value"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "nominal_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominal Return"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "real_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Return"
+          },
+          "series": {
+            "title": "Series",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "start_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Value"
+          }
+        },
+        "required": [
+          "series",
+          "label",
+          "source",
+          "start_date",
+          "end_date",
+          "start_value",
+          "end_value",
+          "nominal_return",
+          "real_return",
+          "beats_inflation",
+          "note"
+        ],
+        "title": "CompareRow",
+        "type": "object"
+      },
       "CorporateEventOut": {
         "properties": {
           "announced_at": {
@@ -454,6 +654,181 @@
         },
         "required": ["feature", "value"],
         "title": "FeatureValue",
+        "type": "object"
+      },
+      "FundOut": {
+        "properties": {
+          "bubble": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble"
+          },
+          "bubble_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble Note"
+          },
+          "cancel_nav": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Nav"
+          },
+          "fund_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fund Type"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
+          "issue_nav": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Nav"
+          },
+          "listed": {
+            "title": "Listed",
+            "type": "boolean"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "nav_date": {
+            "format": "date",
+            "title": "Nav Date",
+            "type": "string"
+          },
+          "net_asset": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Asset"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "reg_no": {
+            "title": "Reg No",
+            "type": "string"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbol"
+          }
+        },
+        "required": [
+          "reg_no",
+          "name",
+          "symbol",
+          "instrument_id",
+          "fund_type",
+          "listed",
+          "nav_date",
+          "cancel_nav",
+          "issue_nav",
+          "net_asset",
+          "price",
+          "bubble",
+          "bubble_note"
+        ],
+        "title": "FundOut",
+        "type": "object"
+      },
+      "FundsOut": {
+        "properties": {
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "funds": {
+            "items": {
+              "$ref": "#/components/schemas/FundOut"
+            },
+            "title": "Funds",
+            "type": "array"
+          },
+          "nav_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nav Date"
+          }
+        },
+        "required": ["nav_date", "funds", "disclaimer"],
+        "title": "FundsOut",
         "type": "object"
       },
       "GateOut": {
@@ -573,6 +948,64 @@
           "mean_realized_return"
         ],
         "title": "HistorySummary",
+        "type": "object"
+      },
+      "InflationOut": {
+        "properties": {
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "releases": {
+            "items": {
+              "$ref": "#/components/schemas/InflationReleaseOut"
+            },
+            "title": "Releases",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": ["source", "value", "method", "releases"],
+        "title": "InflationOut",
+        "type": "object"
+      },
+      "InflationReleaseOut": {
+        "properties": {
+          "ref_period": {
+            "format": "date",
+            "title": "Ref Period",
+            "type": "string"
+          },
+          "release_date": {
+            "format": "date",
+            "title": "Release Date",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": ["ref_period", "release_date", "value", "source_url"],
+        "title": "InflationReleaseOut",
         "type": "object"
       },
       "InstrumentDetail": {
@@ -1178,6 +1611,103 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/compare": {
+      "get": {
+        "description": "Nominal and real return of free-market USD, gold, coin and the one-year treasury yield\nover the last ``months`` months, against inflation released by the as-of day (docs/07).",
+        "operationId": "compare_compare_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 36,
+              "minimum": 1,
+              "title": "Months",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inflation_source",
+            "required": false,
+            "schema": {
+              "default": "sci",
+              "pattern": "^(sci|cbi)$",
+              "title": "Inflation Source",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompareOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare",
+        "tags": ["macro"]
+      }
+    },
+    "/funds": {
+      "get": {
+        "description": "Latest NAV per fund (fipiran) and, for listed units, the bubble against the close of\nthe same day (docs/06).",
+        "operationId": "funds_funds_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "listed_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Listed Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Funds",
+        "tags": ["macro"]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",

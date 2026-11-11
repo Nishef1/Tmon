@@ -392,3 +392,59 @@ class MacroSeries(Base, Provenance):
     value: Mapped[float] = mapped_column(Float)
     release_date: Mapped[dt.date | None] = mapped_column(Date)
     meta: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict)
+
+
+class FundNav(Base, Provenance):
+    """Daily NAV of a mutual fund or ETF from fipiran (docs/06). ``cancel_nav`` is the
+    redemption NAV used for the ETF bubble; ``instrument_id`` links listed (ETF) units."""
+
+    __tablename__ = "fund_nav"
+
+    reg_no: Mapped[str] = mapped_column(String(16), primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(256))
+    ins_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"), index=True)
+    fund_type: Mapped[int | None] = mapped_column(Integer)
+    type_of_invest: Mapped[str | None] = mapped_column(String(32))
+    cancel_nav: Mapped[float | None] = mapped_column(Float)
+    issue_nav: Mapped[float | None] = mapped_column(Float)
+    statistical_nav: Mapped[float | None] = mapped_column(Float)
+    net_asset: Mapped[float | None] = mapped_column(Float)
+
+
+class NewsRaw(Base, Provenance):
+    """One news item as collected (docs/08 step 1), with its normalised title (step 2) and the
+    first item of its duplicate cluster (step 3)."""
+
+    __tablename__ = "news_raw"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source: Mapped[str] = mapped_column(String(32), index=True)
+    url: Mapped[str] = mapped_column(Text, unique=True)
+    title: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str | None] = mapped_column(Text)
+    published_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    title_norm: Mapped[str] = mapped_column(Text)
+    cluster_id: Mapped[int | None] = mapped_column(Integer, index=True)
+
+
+class NewsEvent(Base):
+    """Structured event extracted from a news cluster by the LLM step (docs/08 step 4)."""
+
+    __tablename__ = "news_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    news_id: Mapped[int] = mapped_column(ForeignKey("news_raw.id"), unique=True)
+    event_type: Mapped[str] = mapped_column(String(32), index=True)
+    symbols: Mapped[list[str]] = mapped_column(JsonType, default=list)
+    sectors: Mapped[list[str]] = mapped_column(JsonType, default=list)
+    direction: Mapped[int] = mapped_column(Integer)
+    magnitude: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[float] = mapped_column(Float)
+    effective_from: Mapped[dt.date | None] = mapped_column(Date)
+    horizon: Mapped[str | None] = mapped_column(String(8))
+    is_official: Mapped[bool] = mapped_column(Boolean, default=False)
+    summary_fa: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))

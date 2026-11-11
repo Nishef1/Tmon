@@ -104,6 +104,11 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
 
         return run_risk_free()
 
+    def macro() -> Any:
+        from tmon.ingest.macro.pipeline import run_macro
+
+        return run_macro()
+
     def features() -> Any:
         from tmon.core.db import session_scope
         from tmon.features.store import refresh_features
@@ -133,6 +138,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         Step("ingest_eod", ingest),
         Step("indices", indices, required=False),
         Step("risk_free", risk_free, required=False),
+        Step("macro", macro, required=False),
         Step("features", features),
         *(
             Step(f"publish_and_resolve_outcomes_{tf}", publisher(tf), required=(i == 0))

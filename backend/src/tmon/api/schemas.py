@@ -216,3 +216,64 @@ class LiveOut(ApiModel):
     book: list[BookLevelOut] = []
     message: str | None = None
     disclaimer: str = DISCLAIMER
+
+
+class InflationReleaseOut(ApiModel):
+    ref_period: dt.date
+    release_date: dt.date
+    value: float
+    source_url: str | None = None
+
+
+class InflationOut(ApiModel):
+    source: str
+    value: float
+    method: str
+    releases: list[InflationReleaseOut]
+
+
+class CompareRow(ApiModel):
+    series: str
+    label: str
+    source: str
+    start_date: dt.date | None = None
+    end_date: dt.date | None = None
+    start_value: float | None = None
+    end_value: float | None = None
+    nominal_return: float | None = None
+    real_return: float | None = None
+    beats_inflation: bool | None = None
+    note: str | None = None
+
+
+class CompareOut(ApiModel):
+    as_of: dt.date | None = None
+    months: int
+    inflation_source: str
+    inflation: InflationOut | None = None
+    monthly_inflation: InflationOut | None = None
+    annualised_monthly: float | None = None  # docs/07 threshold
+    rows: list[CompareRow]
+    disclaimer: str = DISCLAIMER
+
+
+class FundOut(ApiModel):
+    reg_no: str
+    name: str | None = None
+    symbol: str | None = None
+    instrument_id: int | None = None
+    fund_type: int | None = None
+    listed: bool
+    nav_date: dt.date
+    cancel_nav: float | None = None
+    issue_nav: float | None = None
+    net_asset: float | None = None
+    price: float | None = None
+    bubble: float | None = None
+    bubble_note: str | None = None
+
+
+class FundsOut(ApiModel):
+    nav_date: dt.date | None = None
+    funds: list[FundOut]
+    disclaimer: str = DISCLAIMER

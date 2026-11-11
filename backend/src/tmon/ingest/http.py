@@ -129,6 +129,12 @@ class PoliteClient:
         return backoff
 
     async def get(self, url: str, **kwargs: object) -> httpx.Response:
+        return await self.request("GET", url, **kwargs)
+
+    async def post(self, url: str, **kwargs: object) -> httpx.Response:
+        return await self.request("POST", url, **kwargs)
+
+    async def request(self, method: str, url: str, **kwargs: object) -> httpx.Response:
         host = urlparse(url).netloc
         retrying = AsyncRetrying(
             stop=stop_after_attempt(self._retry.max_retries + 1),
@@ -138,7 +144,8 @@ class PoliteClient:
             ),
             sleep=self._sleep,
             before_sleep=lambda s: log.warning(
-                "GET %s failed (%s), attempt %d",
+                "%s %s failed (%s), attempt %d",
+                method,
                 url,
                 s.outcome.exception() if s.outcome else None,
                 s.attempt_number,
@@ -149,14 +156,14 @@ class PoliteClient:
             async for attempt in retrying:
                 with attempt:
                     await self._limiter.wait(host)
-                    resp = await self._client.get(url, **kwargs)  # type: ignore[arg-type]
+                    resp = await self._client.request(method, url, **kwargs)  # type: ignore[arg-type]
                     if resp.status_code in RETRYABLE_STATUS:
                         raise _RetryableStatusError(url, resp)
                     if resp.status_code >= 400:
-                        raise FetchError(f"GET {url} -> HTTP {resp.status_code}")
+                        raise FetchError(f"{method} {url} -> HTTP {resp.status_code}")
                     return resp
         except (httpx.TransportError, httpx.TimeoutException, _RetryableStatusError) as exc:
-            raise FetchError(f"GET {url} failed after retries: {exc}") from exc
+            raise FetchError(f"{method} {url} failed after retries: {exc}") from exc
         raise AssertionError("unreachable")  # pragma: no cover
 
     async def aclose(self) -> None:
