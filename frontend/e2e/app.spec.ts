@@ -63,6 +63,15 @@ test.describe("instrument page", () => {
     await expect(page.getByTestId("disclaimer").first()).toBeVisible();
   });
 
+  test("shows the live price, five order-book levels and the data age", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const live = page.getByTestId("live-quote");
+    await expect(live.getByTestId("order-book").getByRole("row")).toHaveCount(6); // head + 5
+    await expect(live.getByText("۱٬۰۱۲").first()).toBeVisible();
+    await expect(live.getByTestId("live-age")).toContainText("آخرین به‌روزرسانی");
+    await expect(live.getByTestId("live-age")).not.toContainText("قدیمی");
+  });
+
   test("unknown instrument is a 404", async ({ page }) => {
     const res = await page.goto("/instruments/999");
     expect(res?.status()).toBe(404);

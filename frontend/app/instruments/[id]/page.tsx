@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { apiGet, type InstrumentDetail } from "@/lib/api";
 import { featureInfo } from "@/lib/glossary";
 import { jalali } from "@/lib/format";
+import { LiveQuote } from "@/components/LiveQuote";
 import { CandleChart, type Level } from "@/components/CandleChart";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
@@ -44,6 +45,8 @@ export default async function InstrumentPage({ params }: { params: Promise<{ id:
       </div>
 
       <Disclaimer />
+
+      <LiveQuote instrumentId={d.instrument.id} />
 
       <section className="rounded-2xl border border-line bg-surface p-4">
         <h2 className="mb-2 font-bold">نمودار قیمت تعدیل‌شده</h2>

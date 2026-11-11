@@ -27,7 +27,11 @@ export default defineConfig({
       // A production build: what ships, and no dev-server origin restrictions.
       command: `pnpm exec next build && pnpm exec next start --port ${WEB}`,
       port: WEB,
-      env: { API_URL: `http://127.0.0.1:${API}` },
+      env: {
+        API_URL: `http://127.0.0.1:${API}`,
+        // read by the browser-side live panel; inlined at build time
+        NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API}`,
+      },
       reuseExistingServer: !process.env.CI,
       timeout: 240_000,
     },

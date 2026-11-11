@@ -185,6 +185,55 @@ function route(url) {
       },
     ];
   }
+  if (path === "/instruments/1/live") {
+    const level = (i) => ({
+      row: i,
+      bid_price: 1000 - i,
+      bid_volume: 1000 * i,
+      bid_count: i,
+      ask_price: 1000 + i,
+      ask_volume: 900 * i,
+      ask_count: i,
+    });
+    return [
+      200,
+      {
+        instrument_id: 1,
+        available: true,
+        as_of: new Date(Date.now() - 20_000).toISOString(),
+        age_seconds: 20,
+        stale: false,
+        last_price: 1012,
+        cum_volume: 456000,
+        reference_price: 1000,
+        change_pct: 0.012,
+        book_as_of: new Date(Date.now() - 20_000).toISOString(),
+        book: [1, 2, 3, 4, 5].map(level),
+        message: null,
+        disclaimer: DISCLAIMER,
+      },
+    ];
+  }
+  if (path === "/instruments/2/live") {
+    return [
+      200,
+      {
+        instrument_id: 2,
+        available: false,
+        as_of: null,
+        age_seconds: null,
+        stale: true,
+        last_price: null,
+        cum_volume: null,
+        reference_price: null,
+        change_pct: null,
+        book_as_of: null,
+        book: [],
+        message: "هنوز داده‌ٔ لحظه‌ای برای این نماد ذخیره نشده است.",
+        disclaimer: DISCLAIMER,
+      },
+    ];
+  }
   if (path.startsWith("/instruments/")) return [404, { detail: "نماد پیدا نشد" }];
   if (path === "/signals/history") {
     const o = url.searchParams.get("outcome");
@@ -241,6 +290,9 @@ function route(url) {
 
 createServer((req, res) => {
   const [status, body] = route(new URL(req.url ?? "/", `http://${req.headers.host}`));
-  res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
+  res.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "access-control-allow-origin": "*", // the live panel fetches from the browser
+  });
   res.end(JSON.stringify(body));
 }).listen(PORT, "127.0.0.1", () => console.log(`fixture API on ${PORT}`));

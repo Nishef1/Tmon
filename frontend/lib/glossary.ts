@@ -457,6 +457,46 @@ export const GLOSSARY = {
     limits: "اندازهٔ نمادها را در نظر نمی‌گیرد.",
     related: ["defensive_mode", "market_return"],
   },
+  last_price: {
+    fa: "آخرین قیمت",
+    en: "Last price",
+    category: "board",
+    definition:
+      "آخرین قیمت معامله‌شدهٔ نماد در آخرین به‌روزرسانی ذخیره‌شده. قیمت پایانی رسمی روز نیست و با هر معامله تغییر می‌کند.",
+    why: "نشان می‌دهد نماد همین حالا کجا معامله می‌شود.",
+    limits: "چند ثانیه تا چند دقیقه با بازار تأخیر دارد؛ به سن داده کنار آن توجه کنید.",
+    related: ["change_pct", "cum_volume"],
+  },
+  change_pct: {
+    fa: "تغییر نسبت به دیروز",
+    en: "Change vs previous close",
+    category: "board",
+    definition: "آخرین قیمت نسبت به قیمت پایانی روز معاملاتی قبل.",
+    formula: "تغییر = آخرین قیمت ÷ پایانی دیروز − ۱",
+    why: "سریع‌ترین راه دیدن جهت حرکت امروز.",
+    limits:
+      "مرجع، پایانی روز قبل است؛ بعد از افزایش سرمایه یا سود نقدی ممکن است با مرجع رسمی بازار فرق کند.",
+    related: ["last_price"],
+  },
+  cum_volume: {
+    fa: "حجم تجمیعی امروز",
+    en: "Cumulative volume today",
+    category: "board",
+    definition: "مجموع سهام معامله‌شده از ابتدای جلسهٔ امروز تا آخرین به‌روزرسانی.",
+    why: "حجم بالا حرکت قیمت را معتبرتر می‌کند.",
+    limits: "فقط در ساعت معاملات به‌روز می‌شود.",
+    related: ["rel_volume", "last_price"],
+  },
+  order_book: {
+    fa: "صف‌های خرید و فروش",
+    en: "Order book (best 5 limits)",
+    category: "board",
+    definition: "پنج سطح برتر سفارش‌های خرید و فروش: قیمت، حجم و تعداد سفارش در هر سطح.",
+    why: "نشان می‌دهد تقاضا و عرضه در نزدیکی قیمت فعلی چقدر است.",
+    limits:
+      "سفارش‌ها هر لحظه ثبت و لغو می‌شوند؛ تصویر لحظه‌ای است و تعهدی نیست. فقط برای پرمعامله‌ترین نمادها ذخیره می‌شود.",
+    related: ["last_price", "cum_volume"],
+  },
 } as const satisfies Record<string, Entry>;
 
 export type GlossaryKey = keyof typeof GLOSSARY;

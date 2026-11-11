@@ -155,3 +155,30 @@ export async function apiGet<T>(path: string, params: Params = {}): Promise<ApiR
     return { ok: false, status: 0, error: "ارتباط با سرور برقرار نشد. کمی بعد دوباره تلاش کنید." };
   }
 }
+
+export type BookLevel = {
+  row: number;
+  bid_price: number;
+  bid_volume: number;
+  bid_count: number;
+  ask_price: number;
+  ask_volume: number;
+  ask_count: number;
+};
+
+/** Latest stored intraday snapshot + order book (what the poller last wrote). */
+export type LiveQuote = {
+  instrument_id: number;
+  available: boolean;
+  as_of: string | null;
+  age_seconds: number | null;
+  stale: boolean;
+  last_price: number | null;
+  cum_volume: number | null;
+  reference_price: number | null;
+  change_pct: number | null;
+  book_as_of: string | null;
+  book: BookLevel[];
+  message: string | null;
+  disclaimer: string;
+};
