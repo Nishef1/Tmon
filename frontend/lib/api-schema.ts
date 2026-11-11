@@ -148,6 +148,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/metrics/live": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Live Accuracy
+     * @description Live accuracy of published signals by signal date, and the state of the Brier kill
+     *     switch (docs/10 section 9) and defensive mode (section 10).
+     */
+    get: operations["live_accuracy_metrics_live_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/recommendations": {
     parameters: {
       query?: never;
@@ -542,6 +563,58 @@ export interface components {
       /** Symbol */
       symbol: string;
     };
+    /** LiveAccuracyOut */
+    LiveAccuracyOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Backtest Brier */
+      backtest_brier: number | null;
+      /** Days */
+      days: components["schemas"]["LiveDayOut"][];
+      /** Defensive Mode */
+      defensive_mode: boolean | null;
+      /** Degradation Limit */
+      degradation_limit: number;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Hit Rate */
+      hit_rate: number | null;
+      /** Kill Switch Active */
+      kill_switch_active: boolean;
+      /** Mean P */
+      mean_p: number | null;
+      /** Pending */
+      pending: number;
+      /** Recent Brier */
+      recent_brier: number | null;
+      /** Recent Days */
+      recent_days: number;
+      /** Recent N */
+      recent_n: number;
+      /** Resolved */
+      resolved: number;
+      /** Timeframe */
+      timeframe: string;
+    };
+    /** LiveDayOut */
+    LiveDayOut: {
+      /** Brier */
+      brier: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Hits */
+      hits: number;
+      /** Mean P */
+      mean_p: number;
+      /** N */
+      n: number;
+    };
     /**
      * LiveOut
      * @description Latest stored intraday snapshot and order book of one instrument (what the poller last
@@ -927,6 +1000,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["CalibrationOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  live_accuracy_metrics_live_get: {
+    parameters: {
+      query?: {
+        timeframe?: "D1" | "W1" | "M1";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LiveAccuracyOut"];
         };
       };
       /** @description Validation Error */

@@ -277,3 +277,29 @@ class FundsOut(ApiModel):
     nav_date: dt.date | None = None
     funds: list[FundOut]
     disclaimer: str = DISCLAIMER
+
+
+class LiveDayOut(ApiModel):
+    date: dt.date
+    n: int
+    hits: int
+    mean_p: float
+    brier: float
+
+
+class LiveAccuracyOut(ApiModel):
+    timeframe: str
+    as_of: dt.date | None = None
+    resolved: int
+    pending: int
+    hit_rate: float | None = None
+    mean_p: float | None = None
+    backtest_brier: float | None = None
+    recent_days: int
+    recent_n: int
+    recent_brier: float | None = None
+    degradation_limit: float
+    kill_switch_active: bool
+    defensive_mode: bool | None = None
+    days: list[LiveDayOut]
+    disclaimer: str = DISCLAIMER

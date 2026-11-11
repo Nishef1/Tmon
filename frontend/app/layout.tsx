@@ -14,6 +14,7 @@ const NAV = [
   { href: "/", label: "توصیه‌های امروز" },
   { href: "/history", label: "سابقه سیگنال‌ها" },
   { href: "/calibration", label: "کالیبراسیون" },
+  { href: "/accuracy", label: "دقت زنده" },
   { href: "/compare", label: "مقایسه با تورم" },
   { href: "/glossary", label: "واژه‌نامه" },
 ];

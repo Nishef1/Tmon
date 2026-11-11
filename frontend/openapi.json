@@ -1125,6 +1125,164 @@
         "title": "InstrumentOut",
         "type": "object"
       },
+      "LiveAccuracyOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "backtest_brier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtest Brier"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/LiveDayOut"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "defensive_mode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defensive Mode"
+          },
+          "degradation_limit": {
+            "title": "Degradation Limit",
+            "type": "number"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hit Rate"
+          },
+          "kill_switch_active": {
+            "title": "Kill Switch Active",
+            "type": "boolean"
+          },
+          "mean_p": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean P"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "recent_brier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Brier"
+          },
+          "recent_days": {
+            "title": "Recent Days",
+            "type": "integer"
+          },
+          "recent_n": {
+            "title": "Recent N",
+            "type": "integer"
+          },
+          "resolved": {
+            "title": "Resolved",
+            "type": "integer"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timeframe",
+          "as_of",
+          "resolved",
+          "pending",
+          "hit_rate",
+          "mean_p",
+          "backtest_brier",
+          "recent_days",
+          "recent_n",
+          "recent_brier",
+          "degradation_limit",
+          "kill_switch_active",
+          "defensive_mode",
+          "days",
+          "disclaimer"
+        ],
+        "title": "LiveAccuracyOut",
+        "type": "object"
+      },
+      "LiveDayOut": {
+        "properties": {
+          "brier": {
+            "title": "Brier",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "hits": {
+            "title": "Hits",
+            "type": "integer"
+          },
+          "mean_p": {
+            "title": "Mean P",
+            "type": "number"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          }
+        },
+        "required": ["date", "n", "hits", "mean_p", "brier"],
+        "title": "LiveDayOut",
+        "type": "object"
+      },
       "LiveOut": {
         "description": "Latest stored intraday snapshot and order book of one instrument (what the poller last\nwrote, not a direct pass-through of the exchange).",
         "properties": {
@@ -2014,6 +2172,49 @@
           }
         },
         "summary": "Calibration",
+        "tags": ["metrics"]
+      }
+    },
+    "/metrics/live": {
+      "get": {
+        "description": "Live accuracy of published signals by signal date, and the state of the Brier kill\nswitch (docs/10 section 9) and defensive mode (section 10).",
+        "operationId": "live_accuracy_metrics_live_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "D1",
+              "enum": ["D1", "W1", "M1"],
+              "title": "Timeframe",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveAccuracyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Live Accuracy",
         "tags": ["metrics"]
       }
     },

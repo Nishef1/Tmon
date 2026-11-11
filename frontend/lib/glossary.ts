@@ -1,7 +1,20 @@
 // Glossary entries behind every number on the site (docs/glossary.md, docs/10-recommendation-engine.md).
 // Each number rendered with <Num term="..."> links to /glossary/<term>.
 
-export type Category = "engine" | "result" | "technical" | "board" | "market";
+import { REFERENCE } from "./glossary-reference";
+
+export type Category =
+  | "engine"
+  | "result"
+  | "technical"
+  | "board"
+  | "market"
+  | "structure"
+  | "fundamental"
+  | "events"
+  | "funds"
+  | "macro"
+  | "risk";
 
 export type Entry = {
   fa: string;
@@ -12,6 +25,8 @@ export type Entry = {
   why: string;
   limits: string;
   related?: readonly string[];
+  /** Other names for the term, including the exact wording of docs/glossary.md. */
+  aliases?: readonly string[];
 };
 
 export const CATEGORY_LABEL: Record<Category, string> = {
@@ -20,6 +35,12 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   technical: "اندیکاتورهای تکنیکال",
   board: "تابلوخوانی",
   market: "وضعیت بازار",
+  structure: "ساختار بازار",
+  fundamental: "بنیادی",
+  events: "رویدادهای شرکتی",
+  funds: "صندوق، کالا و مشتقه",
+  macro: "اقتصاد کلان",
+  risk: "ریسک و ارزیابی",
 };
 
 export const GLOSSARY = {
@@ -595,14 +616,47 @@ export const GLOSSARY = {
       "فقط وقتی محاسبه می‌شود که قیمت و NAV مال یک روز باشند. حباب بزرگ‌تر از ۲۰٪ علامت می‌خورد چون ممکن است از ناهمخوانی واحد یا تعدیل باشد.",
     related: ["fund_nav"],
   },
+  ...REFERENCE,
 } as const satisfies Record<string, Entry>;
+
+/** docs/glossary.md wording for entries whose `fa` is phrased differently. */
+const ALIASES: Partial<Record<string, readonly string[]>> = {
+  p_win: ["احتمال موفقیت کالیبره‌شده"],
+  ev: ["سود مورد انتظار (EV)"],
+  take_profit: ["حد سود"],
+  stop_loss: ["حد ضرر"],
+  triple_barrier: ["triple-barrier"],
+  position_pct: ["اندازه پوزیشن"],
+  brier: ["Brier score"],
+  calibration: ["کالیبراسیون"],
+  shap: ["SHAP"],
+  last_price: ["قیمت آخرین"],
+  adjusted_price: ["تعدیل قیمت"],
+  order_book: ["صف خرید/فروش"],
+  buy_power: ["قدرت خریدار حقیقی"],
+  net_flow: ["ورود پول حقیقی"],
+  smart_money: ["پول هوشمند"],
+  rel_volume: ["حجم نسبی"],
+  vwap: ["VWAP"],
+  macd: ["MACD"],
+  rsi: ["RSI"],
+  adx: ["ADX"],
+  atr: ["ATR"],
+  bollinger: ["بولینگر"],
+  dps: ["DPS", "سود نقدی"],
+  fund_nav: ["NAV صدور/ابطال"],
+  etf_bubble: ["حباب صندوق"],
+  inflation: ["تورم ماهانه", "سالانه", "نقطه‌به‌نقطه"],
+  real_return: ["بازده واقعی"],
+};
 
 export type GlossaryKey = keyof typeof GLOSSARY;
 
 export function glossaryEntry(key: string): (Entry & { key: GlossaryKey }) | undefined {
-  return key in GLOSSARY
-    ? { key: key as GlossaryKey, ...(GLOSSARY[key as GlossaryKey] as Entry) }
-    : undefined;
+  if (!(key in GLOSSARY)) return undefined;
+  const e = GLOSSARY[key as GlossaryKey] as Entry;
+  const aliases = [...(e.aliases ?? []), ...(ALIASES[key] ?? [])];
+  return { key: key as GlossaryKey, ...e, aliases };
 }
 
 export const GLOSSARY_KEYS = Object.keys(GLOSSARY) as GlossaryKey[];

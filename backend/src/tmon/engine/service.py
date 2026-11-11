@@ -146,21 +146,34 @@ def resolve_outcomes(
     return len(rows)
 
 
-def monitor_tier_a(session: Session, timeframe: str, backtest_brier: float | None) -> bool:
-    """True when tier A must be switched off: the Brier score of the last
-    ``BRIER_RECENT_DAYS`` days of resolved published signals is >20% worse than the backtest's."""
-    if backtest_brier is None:
-        return False
-    rows = session.execute(
-        select(Signal.p_win, Signal.outcome)
-        .where(Signal.timeframe == timeframe, Signal.outcome != "pending")
+def recent_resolved(session: Session, timeframe: str) -> tuple[np.ndarray, np.ndarray]:
+    """``(p_win, hit)`` of resolved published signals from the last ``BRIER_RECENT_DAYS``
+    signal dates (docs/10 section 9: "Brier of the last 20 days")."""
+    done = (Signal.timeframe == timeframe, Signal.outcome != "pending")
+    days = session.scalars(
+        select(Signal.date)
+        .where(*done)
+        .distinct()
         .order_by(Signal.date.desc())
-        .limit(BRIER_RECENT_DAYS * 10)
+        .limit(BRIER_RECENT_DAYS)
     ).all()
-    if not rows:
-        return False
+    if not days:
+        return np.array([]), np.array([])
+    rows = session.execute(
+        select(Signal.p_win, Signal.outcome).where(*done, Signal.date >= min(days))
+    ).all()
     p = np.array([r.p_win for r in rows], dtype=float)
     y = np.array([1.0 if r.outcome == "tp" else 0.0 for r in rows])
+    return p, y
+
+
+def monitor_tier_a(session: Session, timeframe: str, backtest_brier: float | None) -> bool:
+    """True when tier A must be switched off: the Brier score of the last
+    ``BRIER_RECENT_DAYS`` signal dates of resolved published signals is >20% worse than the
+    backtest's (the kill switch of docs/10 section 9)."""
+    if backtest_brier is None:
+        return False
+    p, y = recent_resolved(session, timeframe)
     return brier_degraded(p, y, backtest_brier)
 
 

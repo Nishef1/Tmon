@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { GLOSSARY, GLOSSARY_KEYS, featureInfo } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_KEYS, featureInfo, glossaryEntry } from "@/lib/glossary";
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -11,7 +11,47 @@ function sources(dir: string): string[] {
   });
 }
 
+/** Terms of docs/glossary.md: first column of tables, and comma lists outside parentheses. */
+function docTerms(md: string): string[] {
+  const out: string[] = [];
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#") || line.startsWith("قالب")) continue;
+    if (line.startsWith("|")) {
+      const cell = line.split("|")[1].trim();
+      if (cell && cell !== "واژه" && !/^-+$/.test(cell)) out.push(cell);
+      continue;
+    }
+    let depth = 0;
+    let cur = "";
+    for (const ch of line.replace(/\.$/, "")) {
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (depth === 0 && (ch === "،" || ch === "؛")) {
+        out.push(cur.trim());
+        cur = "";
+      } else cur += ch;
+    }
+    out.push(cur.trim());
+  }
+  return out.filter(Boolean);
+}
+
 describe("glossary", () => {
+  it("has an entry for every term in docs/glossary.md", () => {
+    const md = readFileSync(path.resolve(__dirname, "../../docs/glossary.md"), "utf8");
+    const terms = docTerms(md);
+    expect(terms.length).toBeGreaterThan(100);
+    const names = new Set(
+      GLOSSARY_KEYS.flatMap((k) => {
+        const e = glossaryEntry(k)!;
+        return [e.fa, ...(e.aliases ?? [])];
+      }),
+    );
+    const missing = terms.filter((t) => !names.has(t));
+    expect(missing).toEqual([]);
+  });
+
   it("has the full entry shape for every term", () => {
     for (const k of GLOSSARY_KEYS) {
       const e = GLOSSARY[k];

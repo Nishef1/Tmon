@@ -413,3 +413,23 @@ def test_agm_decision_needs_a_rate_when_none_is_stored(
     )  # fmt: skip
     assert ok.status_code == 200
     assert {i["name"]: i["source"] for i in ok.json()["inputs"]}["monthly_discount"] == "user"
+
+
+def test_live_accuracy_and_kill_switch_window(session: Session, client: TestClient) -> None:
+    from tmon.engine.service import recent_resolved
+
+    inst = _inst(session, "77", "لایو")
+    base = dt.date(2026, 9, 1)
+    # 25 signal dates: the 5 oldest are hits, the 20 newest misses
+    for k in range(25):
+        _signal(session, inst, base + dt.timedelta(days=k), outcome="tp" if k < 5 else "sl")
+    _signal(session, inst, base + dt.timedelta(days=30))  # pending
+    session.flush()
+    p, y = recent_resolved(session, "D1")
+    assert p.size == 20 and y.sum() == 0  # only the last 20 signal dates count
+    j = client.get("/metrics/live?timeframe=D1").json()
+    assert (j["resolved"], j["pending"], j["recent_n"]) == (25, 1, 20)
+    assert j["hit_rate"] == pytest.approx(5 / 25)
+    assert j["recent_brier"] == pytest.approx(0.66**2)
+    assert j["days"][0]["date"] == "2026-09-25" and j["days"][0]["hits"] == 0
+    assert j["backtest_brier"] is None and j["kill_switch_active"] is False  # no model run yet

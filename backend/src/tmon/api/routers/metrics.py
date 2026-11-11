@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 import numpy as np
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.routers.recommendations import latest_run
@@ -14,11 +14,15 @@ from tmon.api.schemas import (
     CalibrationBucket,
     CalibrationOut,
     GateOut,
+    LiveAccuracyOut,
+    LiveDayOut,
     Timeframe,
 )
 from tmon.backtest.metrics import calibration_table
 from tmon.core.db import get_session
-from tmon.storage.models import Signal
+from tmon.engine.gating import BRIER_DEGRADATION_LIMIT, BRIER_RECENT_DAYS, brier_degraded
+from tmon.engine.service import recent_resolved
+from tmon.storage.models import Signal, SignalNote
 
 router = APIRouter(tags=["metrics"])
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -100,4 +104,54 @@ def calibration(session: SessionDep, timeframe: Timeframe = "D1") -> Calibration
         live=live,
         gate=GateOut(**g) if g else None,
         warnings=[str(w) for w in m.get("warnings", [])],
+    )
+
+
+@router.get("/metrics/live", response_model=LiveAccuracyOut)
+def live_accuracy(session: SessionDep, timeframe: Timeframe = "D1") -> LiveAccuracyOut:
+    """Live accuracy of published signals by signal date, and the state of the Brier kill
+    switch (docs/10 section 9) and defensive mode (section 10)."""
+    rows = session.execute(
+        select(Signal.date, Signal.p_win, Signal.outcome).where(Signal.timeframe == timeframe)
+    ).all()
+    done = [r for r in rows if r.outcome != "pending"]
+    by_day: dict[Any, list[tuple[float, float]]] = {}
+    for r in done:
+        by_day.setdefault(r.date, []).append((r.p_win, 1.0 if r.outcome == "tp" else 0.0))
+    days = []
+    for d in sorted(by_day, reverse=True):
+        p = np.array([a for a, _ in by_day[d]])
+        y = np.array([b for _, b in by_day[d]])
+        days.append(
+            LiveDayOut(
+                date=d,
+                n=int(p.size),
+                hits=int(y.sum()),
+                mean_p=float(p.mean()),
+                brier=float(np.mean((p - y) ** 2)),
+            )
+        )
+    run = latest_run(session, timeframe)
+    prob = _model_probabilistic(run.metrics or {}) if run else None
+    bt = prob.get("brier") if prob else None
+    rp, ry = recent_resolved(session, timeframe)
+    note = session.scalars(
+        select(SignalNote).where(SignalNote.timeframe == timeframe).order_by(SignalNote.date.desc())
+    ).first()
+    y_all = np.array([1.0 if r.outcome == "tp" else 0.0 for r in done])
+    return LiveAccuracyOut(
+        timeframe=timeframe,
+        as_of=session.scalar(select(func.max(Signal.date)).where(Signal.timeframe == timeframe)),
+        resolved=len(done),
+        pending=len(rows) - len(done),
+        hit_rate=float(y_all.mean()) if done else None,
+        mean_p=float(np.mean([r.p_win for r in done])) if done else None,
+        backtest_brier=bt,
+        recent_days=BRIER_RECENT_DAYS,
+        recent_n=int(rp.size),
+        recent_brier=float(np.mean((rp - ry) ** 2)) if rp.size else None,
+        degradation_limit=BRIER_DEGRADATION_LIMIT,
+        kill_switch_active=bt is not None and brier_degraded(rp, ry, bt),
+        defensive_mode=note.defensive_mode if note else None,
+        days=days,
     )

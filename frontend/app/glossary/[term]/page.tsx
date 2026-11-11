@@ -32,6 +32,9 @@ export default async function GlossaryTerm({ params }: Props) {
         <p className="text-sm text-muted" dir="ltr">
           {e.en}
         </p>
+        {e.aliases && e.aliases.length > 0 && (
+          <p className="mt-1 text-xs text-muted">نام‌های دیگر: {e.aliases.join("، ")}</p>
+        )}
       </header>
       <Section title="تعریف">{e.definition}</Section>
       {e.formula && (
