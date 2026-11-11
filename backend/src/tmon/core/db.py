@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
 
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 from tmon.core.config import get_settings
@@ -15,7 +15,17 @@ def get_engine() -> Engine:
     url = get_settings().database_url
     # SQLite (the local no-Docker stack) allows one writer; wait for it instead of failing at 5 s
     args = {"timeout": 120} if url.startswith("sqlite") else {}
-    return create_engine(url, pool_pre_ping=True, future=True, connect_args=args)
+    engine = create_engine(url, pool_pre_ping=True, future=True, connect_args=args)
+    if url.startswith("sqlite"):
+        # WAL lets the site read while the daily cycle writes (no "database is locked")
+        @event.listens_for(engine, "connect")
+        def _wal(dbapi_conn, _record):  # type: ignore[no-untyped-def]
+            cur = dbapi_conn.cursor()
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA busy_timeout=120000")
+            cur.close()
+
+    return engine
 
 
 @lru_cache
