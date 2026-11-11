@@ -59,5 +59,8 @@ def test_instrument_info_parse(watch):
 
 
 def test_best_limits_parse(watch):
-    levels = parsers.parse_best_limits(_get(endpoints.best_limits_url(watch[0].ins_code, 0)))
+    # The dated endpoint answers {"bestLimitsHistory": [...]} (a different shape, not used); the
+    # current order book is the undated one.
+    traded = next(i for i in watch if i.ins_code)
+    levels = parsers.parse_best_limits(_get(endpoints.best_limits_live_url(traded.ins_code)))
     assert isinstance(levels, list)

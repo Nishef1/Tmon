@@ -50,8 +50,8 @@ class Settings(BaseSettings):
     schedule_days: str = "sat,sun,mon,tue,wed"
     # TSETMC hosts. Overridable so a mirror, a tunnel or the local stand-in server
     # (tmon.devtools.fake_tsetmc) can be used without touching code.
-    tsetmc_old_url: str = "http://old.tsetmc.com"
-    tsetmc_cdn_url: str = "http://cdn.tsetmc.com"
+    tsetmc_old_url: str = "https://old.tsetmc.com"
+    tsetmc_cdn_url: str = "https://cdn.tsetmc.com"
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
