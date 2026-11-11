@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tmon.core.timeutil import from_jalali
+from tmon.domain.rules import RuleBook, RuleRecord
 from tmon.storage.models import MarketRule
 
 MARKET = "IR"
@@ -88,6 +89,16 @@ SEED_RULES: list[dict[str, Any]] = [
         "source_url": None,
     },
 ]
+
+
+def seed_rulebook() -> RuleBook:
+    """The seed rules as an in-memory :class:`RuleBook` (offline runs, tests, synthetic data)."""
+    return RuleBook(
+        RuleRecord(
+            MARKET, s["rule"], s["value"], s["valid_from"], s.get("valid_to"), s.get("source_url")
+        )
+        for s in SEED_RULES
+    )
 
 
 def seed_market_rules(session: Session) -> int:

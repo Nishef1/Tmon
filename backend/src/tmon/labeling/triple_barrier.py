@@ -25,12 +25,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import date
 
 import numpy as np
 import polars as pl
 
 from tmon.core.engine_config import EngineConfig, get_engine_config
+from tmon.domain.calendar import halt_windows
 from tmon.domain.rules import RuleBook
 from tmon.features.adjustment import apply_adjustments
 from tmon.features.builder import limit_pct_expr
@@ -83,10 +83,6 @@ class BarrierSpec:
             k_sl=c.labeling.k_sl,
             entry=ENTRY_MODES[timeframe],
         )
-
-
-def _halt_windows(rules: RuleBook) -> list[tuple[date, date | None]]:
-    return [(r.valid_from, r.valid_to) for r in rules.all_for("market_halt")]
 
 
 def prepare_bars(
@@ -213,10 +209,8 @@ def triple_barrier_labels(
     start_date = dates
     end_date = dates[exit_bar_idx]
     crosses_halt = np.zeros(n, dtype=bool)
-    for h_from, h_to in _halt_windows(rules):
-        f = np.datetime64(h_from)
-        t_ = np.datetime64(h_to) if h_to is not None else np.datetime64("9999-12-31")
-        crosses_halt |= (start_date <= t_) & (end_date >= f)
+    for w in halt_windows(rules):
+        crosses_halt |= (start_date <= np.datetime64(w.end)) & (end_date >= np.datetime64(w.start))
 
     # warm-up and tail rows carry no label
     valid = base_ok & exists_all & ~crosses_halt & ~unresolved_delay

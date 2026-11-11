@@ -62,6 +62,8 @@ select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF"]
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/tmon/backtest/report.py" = ["E501"]  # Persian report strings
+"src/tmon/backtest/runner.py" = ["E501"]
 "tests/**" = ["E501"]  # synthetic TSETMC payload fixtures are long single lines
 
 [tool.mypy]

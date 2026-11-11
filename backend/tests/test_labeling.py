@@ -15,7 +15,13 @@ from tmon.labeling.triple_barrier import triple_barrier_labels
 HALT_RULES = RuleBook(
     [
         RuleRecord("IR", "price_limit", {"pct": 0.03}, date(2000, 1, 1), None),
-        RuleRecord("IR", "market_halt", {}, date(2026, 2, 28), date(2026, 5, 18)),
+        RuleRecord(
+            "IR",
+            "market_halt",
+            {"start": "2026-02-28", "end": "2026-05-18"},
+            date(2026, 2, 28),
+            None,
+        ),
     ]
 )
 

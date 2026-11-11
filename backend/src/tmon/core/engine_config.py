@@ -107,6 +107,16 @@ class DefensiveCfg(_Frozen):
     market_net_flow_negative_days: int
 
 
+class BacktestCfg(_Frozen):
+    max_new_positions_per_day: int = Field(ge=1)
+    max_gross_exposure: float = Field(gt=0)
+    initial_capital: float = Field(gt=0)
+
+
+class BenchmarksCfg(_Frozen):
+    fixed_income_annual_rate: float | None = None
+
+
 class EngineConfig(_Frozen):
     universe: UniverseCfg
     labeling: LabelingCfg
@@ -118,6 +128,8 @@ class EngineConfig(_Frozen):
     lightgbm: LightGBMCfg
     calibration: CalibrationCfg
     defensive_mode: DefensiveCfg
+    backtest: BacktestCfg
+    benchmarks: BenchmarksCfg
 
     @model_validator(mode="after")
     def _timeframes_known(self) -> EngineConfig:

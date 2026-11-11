@@ -81,3 +81,15 @@ defensive_mode:
   p_min_bump: 0.05
   breadth_floor: 0.35
   market_net_flow_negative_days: 3
+
+backtest:
+  # Provisional (no number in the docs). Portfolio-level limits for the simulator.
+  max_new_positions_per_day: 5
+  max_gross_exposure: 1.0
+  initial_capital: 1000000000        # rial; only scales absolute P&L, not returns
+
+benchmarks:
+  # Annual rate of the fixed-income fund / short treasury yield used as the risk-free
+  # rate and as a comparison line. No verified value is available offline, so it is left
+  # null on purpose: reports then print "not available" and Sharpe uses 0 (docs/OPEN_QUESTIONS.md).
+  fixed_income_annual_rate: null
