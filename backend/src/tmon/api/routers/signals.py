@@ -29,7 +29,8 @@ def signal_history(
     scope = [Signal.timeframe == timeframe]
     if instrument_id is not None:
         scope.append(Signal.instrument_id == instrument_id)
-    shown = [*scope, Signal.outcome == outcome] if outcome else scope
+    outcomes = {"sl": ["sl", "sl_same_day"]}.get(outcome or "", [outcome] if outcome else [])
+    shown = [*scope, Signal.outcome.in_(outcomes)] if outcomes else scope
 
     total = session.scalar(select(func.count()).select_from(Signal).where(*shown)) or 0
     rows = session.execute(

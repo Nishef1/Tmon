@@ -175,6 +175,9 @@ def test_history_filters_and_summary(client: TestClient, session: Session) -> No
     only = client.get("/signals/history", params={"outcome": "tp"}).json()
     assert only["total"] == 1
     assert only["summary"]["total"] == 4  # the summary covers the whole scope, not the filter
+    _signal(session, a, dt.date(2025, 2, 5), outcome="sl_same_day", realized_return=-0.03)
+    stops = client.get("/signals/history", params={"outcome": "sl"}).json()
+    assert stops["total"] == 2  # "sl" covers both stop-loss variants
     assert client.get("/signals/history", params={"outcome": "bogus"}).status_code == 422
     page = client.get("/signals/history", params={"limit": 2, "offset": 2}).json()
     assert len(page["items"]) == 2
