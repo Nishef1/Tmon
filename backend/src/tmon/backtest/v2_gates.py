@@ -340,7 +340,7 @@ def judge(
     gate(
         "G6",
         bool(g.survivorship_resolved),
-        "جهان فقط نمادهای دارای دادهٔ امروز است؛ سوگیری بقا رفع نشده و کران بدبینانه‌ای ثبت نشده (OQ 65)"
+        "سوگیری بقا فقط جزئی کم شده است (R0: جست‌وجوی دوحرفی، پوشش ناقص؛ OQ 65)؛ کران بدبینانه و شمار پیشوندهای ناتمام در گزارش R0 است"
         if not g.survivorship_resolved
         else "رفع‌شده",
     )
@@ -500,6 +500,11 @@ def main(argv: list[str] | None = None) -> int:
 
     ap = argparse.ArgumentParser(prog="tmon-v2-gates")
     ap.add_argument("--md", type=Path)
+    ap.add_argument(
+        "--survivors-only",
+        action="store_true",
+        help="drop instruments found by the R0 search crawl (reproduces the pre-R0 universe)",
+    )
     args = ap.parse_args(argv)
 
     from tmon.backtest.runner import mean_risk_free, risk_free_daily
@@ -511,6 +516,19 @@ def main(argv: list[str] | None = None) -> int:
     cfg = get_engine_config()
     with session_scope() as session:
         prices, clients, sectors = load_inputs(session)
+        if args.survivors_only:
+            from sqlalchemy import select
+
+            from tmon.storage.models import Instrument
+
+            found = {
+                i
+                for i, t in session.execute(select(Instrument.id, Instrument.tags))
+                if (t or {}).get("discovered_by") == "search"
+            }
+            prices = prices.filter(~pl.col("instrument_id").is_in(found))
+            clients = clients.filter(~pl.col("instrument_id").is_in(found))
+            sectors = sectors.filter(~pl.col("instrument_id").is_in(found))
         rules = RuleBook.from_session(session)
         index_daily, rf = load_benchmark_inputs(session)
     code = cfg.benchmarks.indices["equal_weight"]
