@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import { Gauge } from "@/components/Gauge";
-import { BADGE, heat } from "@/components/IndustryTable";
-import { faNumber, faPercent, faPrice, faToman } from "@/lib/format";
+import { faNumber, faPrice, faToman } from "@/lib/format";
 import { gaugeWhy, sortRows, type Row, type SortKey } from "@/lib/industry";
+import { heatProps, signTone, signedPct, verdictPill } from "@/lib/ui";
 
 export type SectorSummary = {
   code: string;
@@ -17,10 +17,6 @@ export type SectorSummary = {
 };
 
 type GroupKey = "name" | "n" | "value" | "avgChange" | "netReal";
-
-const tone = (n: number | null | undefined) =>
-  n == null ? "text-muted" : n > 0 ? "text-up" : n < 0 ? "text-down" : "";
-const pct = (n: number | null | undefined, d = 1) => (n == null ? "—" : faPercent(n, d, true));
 
 const GROUP_COLS: [GroupKey, string][] = [
   ["name", "گروه"],
@@ -45,7 +41,9 @@ const MEMBER_COLS: [SortKey, string][] = [
 
 function Arrow({ on, dir }: { on: boolean; dir: 1 | -1 }) {
   return (
-    <span className={on ? "text-accent" : "text-muted/50"}>{on ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
+    <span className={on ? "text-accent" : "text-muted/50"}>
+      {on ? (dir === 1 ? "▲" : "▼") : "↕"}
+    </span>
   );
 }
 
@@ -94,7 +92,7 @@ export function SectorTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+    <div className="card card-flush overflow-x-auto">
       <table className="tbl min-w-[40rem]" data-testid="sector-table">
         <thead className="bg-accent-soft text-xs text-muted">
           <tr className="text-right">
@@ -138,12 +136,12 @@ export function SectorTable({
                     </div>
                   </td>
                   <td
-                    className={`px-3 font-semibold ${tone(s.avgChange)}`}
-                    style={{ background: heat(s.avgChange) }}
+                    className={`px-3 font-semibold ${signTone(s.avgChange)}`}
+                    {...heatProps(s.avgChange)}
                   >
-                    {pct(s.avgChange, 2)}
+                    {signedPct(s.avgChange, 2)}
                   </td>
-                  <td className={`px-3 ${tone(s.netReal)}`}>{faToman(s.netReal)}</td>
+                  <td className={`px-3 ${signTone(s.netReal)}`}>{faToman(s.netReal)}</td>
                 </tr>
                 {isOpen && (
                   <tr data-testid="sector-members">
@@ -170,7 +168,10 @@ export function SectorTable({
                             </thead>
                             <tbody>
                               {sortRows(list, mk, md).map((r) => (
-                                <tr key={r.id} className="border-t border-line hover:bg-accent-soft">
+                                <tr
+                                  key={r.id}
+                                  className="border-t border-line hover:bg-accent-soft"
+                                >
                                   <td className="px-3 py-1.5">
                                     <Link
                                       href={`/instruments/${r.id}`}
@@ -189,9 +190,7 @@ export function SectorTable({
                                     <div className="flex items-center gap-2">
                                       {r.gauge != null && <Gauge value={r.gauge} size="sm" />}
                                       <div>
-                                        <span
-                                          className={`rounded-full px-2 py-0.5 text-xs font-bold ${BADGE[r.verdict]}`}
-                                        >
+                                        <span className={`${verdictPill(r.verdict)}`}>
                                           {r.verdictLabel}
                                         </span>
                                         <div className="text-xs text-muted">
@@ -200,18 +199,22 @@ export function SectorTable({
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-3">{r.close == null ? "—" : faPrice(r.close)}</td>
+                                  <td className="px-3">
+                                    {r.close == null ? "—" : faPrice(r.close)}
+                                  </td>
                                   {[r.day, r.week, r.month, r.year].map((v, i) => (
                                     <td
                                       key={i}
-                                      className={`px-3 font-semibold ${tone(v)}`}
-                                      style={{ background: heat(v) }}
+                                      className={`px-3 font-semibold ${signTone(v)}`}
+                                      {...heatProps(v)}
                                     >
-                                      {pct(v)}
+                                      {signedPct(v)}
                                     </td>
                                   ))}
                                   <td className="px-3">{faToman(r.value)}</td>
-                                  <td className={`px-3 ${tone(r.netReal)}`}>{faToman(r.netReal)}</td>
+                                  <td className={`px-3 ${signTone(r.netReal)}`}>
+                                    {faToman(r.netReal)}
+                                  </td>
                                   <td className="px-3">{r.pe == null ? "—" : faNumber(r.pe, 1)}</td>
                                 </tr>
                               ))}

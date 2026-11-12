@@ -394,6 +394,123 @@ input[type="radio"] {
     border-color: transparent;
   }
 
+  .tab-pill {
+    border-radius: 999px;
+    padding-inline: 1rem;
+  }
+  .tab-sm {
+    padding: 0.1rem 0.7rem;
+  }
+  /* a toggle that is a label around a checkbox */
+  .tab:has(:checked) {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+  /* sized form controls and summary buttons */
+  .ctl {
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    border-radius: var(--r-sm);
+    padding: 0.3rem 0.7rem;
+  }
+  .pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.05rem 0.6rem;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: 1.6;
+  }
+  .pill-lg {
+    padding: 0.1rem 1.25rem;
+    font-size: var(--text-xl);
+    font-weight: 800;
+  }
+  .v-buy {
+    background: var(--good);
+    color: #fff;
+  }
+  .v-hold {
+    background: var(--hold);
+    color: #fff;
+  }
+  .v-sell {
+    background: var(--bad);
+    color: #fff;
+  }
+  .v-none {
+    background: var(--line);
+    color: var(--muted);
+  }
+  .tone-buy {
+    border-color: color-mix(in srgb, var(--up) 40%, transparent);
+    background: var(--up-soft);
+  }
+  .tone-hold {
+    border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+    background: var(--warn-soft);
+  }
+  .tone-sell {
+    border-color: color-mix(in srgb, var(--down) 40%, transparent);
+    background: var(--down-soft);
+  }
+  .tone-none {
+    border-color: var(--line);
+    background: var(--surface);
+  }
+  .alert-lg {
+    padding: 1rem;
+    font-size: var(--text-sm);
+  }
+  .card-down {
+    border-color: color-mix(in srgb, var(--down) 35%, transparent);
+  }
+  /* heat: green for gains, red for losses, deeper with the move (--k is 0..38 percent) */
+  [data-heat] {
+    background: color-mix(in srgb, var(--heat-c) calc(var(--k) * 1%), var(--surface));
+  }
+  [data-heat="up"] {
+    --heat-c: var(--up);
+  }
+  [data-heat="down"] {
+    --heat-c: var(--down);
+  }
+
+  .float-tag {
+    border: 1px solid;
+    background: var(--surface);
+    border-radius: var(--r-sm);
+    padding: 0.15rem 0.5rem;
+    box-shadow: var(--elev-2);
+  }
+  .tile-toggle {
+    cursor: pointer;
+    transition:
+      box-shadow 0.15s,
+      border-color 0.15s;
+  }
+  .tile-toggle:hover {
+    box-shadow: var(--elev-2);
+  }
+  .tile-toggle[aria-pressed="true"] {
+    border-color: var(--accent);
+    box-shadow: var(--ring);
+  }
+  .badge-tier {
+    border-color: var(--line);
+    color: var(--muted);
+  }
+  .badge-tier-a {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .badge-tier-b {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
   /* ── tables ───────────────────────────────────────────── */
   .tbl {
     width: 100%;

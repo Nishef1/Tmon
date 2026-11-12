@@ -64,7 +64,10 @@ export function SiteHeader() {
     }`;
 
   return (
-    <header ref={root} className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur">
+    <header
+      ref={root}
+      className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur"
+    >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
         <Link
           href="/"
@@ -131,7 +134,7 @@ export function SiteHeader() {
           aria-label="منو"
           aria-expanded={menu}
           onClick={() => setMenu(!menu)}
-          className="grid size-10 place-items-center rounded-lg border border-line text-xl lg:hidden"
+          className="btn size-10 text-xl lg:hidden"
         >
           {menu ? "✕" : "☰"}
         </button>

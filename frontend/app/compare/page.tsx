@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Compare, type Funds } from "@/lib/api";
 import { faNumber, jalali } from "@/lib/format";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 
@@ -59,7 +58,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       ) : cmp.data.as_of == null ? (
         <p className="text-sm text-muted">هنوز دادهٔ بازار آزاد ثبت نشده است.</p>
       ) : (
-        <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+        <section className="card space-y-3">
           <p className="text-sm">
             تا {jalali(cmp.data.as_of)} — تورم دوره:{" "}
             {cmp.data.inflation ? (
@@ -85,21 +84,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
               <caption className="sr-only">بازده اسمی و واقعی دارایی‌ها</caption>
               <thead>
                 <tr className="border-b border-line">
-                  <th scope="col">
-                    دارایی
-                  </th>
-                  <th scope="col">
-                    از
-                  </th>
-                  <th scope="col">
-                    بازده اسمی
-                  </th>
-                  <th scope="col">
-                    بازده واقعی
-                  </th>
-                  <th scope="col">
-                    از تورم جلو؟
-                  </th>
+                  <th scope="col">دارایی</th>
+                  <th scope="col">از</th>
+                  <th scope="col">بازده اسمی</th>
+                  <th scope="col">بازده واقعی</th>
+                  <th scope="col">از تورم جلو؟</th>
                 </tr>
               </thead>
               <tbody>
@@ -161,7 +150,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+      <section className="card space-y-3">
         <h2 className="font-bold">صندوق‌های بورسی: NAV و حباب</h2>
         {!funds.ok ? (
           <ErrorState message={funds.error} />
@@ -173,18 +162,10 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
               <caption className="sr-only">ارزش ابطال و حباب صندوق‌ها</caption>
               <thead>
                 <tr className="border-b border-line">
-                  <th scope="col">
-                    نماد
-                  </th>
-                  <th scope="col">
-                    NAV ابطال
-                  </th>
-                  <th scope="col">
-                    قیمت پایانی
-                  </th>
-                  <th scope="col">
-                    حباب
-                  </th>
+                  <th scope="col">نماد</th>
+                  <th scope="col">NAV ابطال</th>
+                  <th scope="col">قیمت پایانی</th>
+                  <th scope="col">حباب</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,7 +209,6 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           </div>
         )}
       </section>
-      <Disclaimer />
     </div>
   );
 }

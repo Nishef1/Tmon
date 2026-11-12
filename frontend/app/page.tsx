@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { apiGet, type Ranking, type Recommendations } from "@/lib/api";
 import { jalali } from "@/lib/format";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { TradableRanking } from "@/components/TradableRanking";
@@ -35,19 +34,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
         </p>
       </div>
 
-      <Disclaimer />
-
       <nav aria-label="تایم‌فریم" className="flex flex-wrap gap-2">
         {TIMEFRAMES.map((t) => (
           <Link
             key={t.id}
             href={`/?tf=${t.id}`}
             aria-current={tf === t.id ? "page" : undefined}
-            className={`rounded-full border px-4 py-1.5 text-sm ${
-              tf === t.id
-                ? "border-accent bg-accent text-surface"
-                : "border-line bg-surface hover:bg-accent-soft"
-            }`}
+            className="tab tab-pill"
           >
             {t.label}
           </Link>
@@ -86,10 +79,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
             <ul className="mt-2 flex flex-wrap gap-2">
               {data.available_dates.slice(0, 12).map((d) => (
                 <li key={d}>
-                  <Link
-                    href={`/?tf=${tf}&date=${d}`}
-                    className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-accent-soft"
-                  >
+                  <Link href={`/?tf=${tf}&date=${d}`} className="chip">
                     {jalali(d, "short")}
                   </Link>
                 </li>
@@ -100,10 +90,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
       </section>
 
       {run?.defensive_mode && (
-        <aside
-          role="status"
-          className="rounded-xl border border-warn/30 bg-warn-soft p-4 text-sm text-warn"
-        >
+        <aside role="status" className="alert-warn alert-lg">
           <strong>حالت دفاعی فعال است.</strong> عرض بازار ضعیف است یا پول حقیقی چند روز پیاپی خارج
           شده؛ آستانهٔ پذیرش سیگنال بالاتر رفته است.{" "}
           <Link href="/glossary/defensive_mode" className="underline">
@@ -113,10 +100,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
       )}
 
       {data.no_recommendation ? (
-        <section
-          data-testid="no-recommendation"
-          className="card card-pad-lg sm:p-8"
-        >
+        <section data-testid="no-recommendation" className="card card-pad-lg sm:p-8">
           <h2 className="text-xl font-bold">امروز توصیه‌ای وجود ندارد</h2>
           <p className="mt-2 text-muted">{data.message}</p>
           <p className="mt-3 text-sm">
@@ -149,10 +133,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
       )}
 
       {gate && !gate.tier_a_allowed && !data.no_recommendation && (
-        <section
-          data-testid="tier-a-gate"
-          className="card p-5 text-sm"
-        >
+        <section data-testid="tier-a-gate" className="card p-5 text-sm">
           <h2 className="font-bold">چرا سیگنال رده A منتشر نمی‌شود؟</h2>
           <p className="mt-1 text-muted">
             رده A تنها وقتی فعال می‌شود که مدل در آزمون خارج از نمونه، پس از هزینه‌ها، از روش مبنا

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { apiGet, type Screener } from "@/lib/api";
 import { jalali } from "@/lib/format";
 import { toRow } from "@/lib/industry";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { IndustryTable } from "@/components/IndustryTable";
 
@@ -26,7 +25,6 @@ export default async function IndustriesPage() {
           روی هر نماد بزنید تا همهٔ داده‌هایش باز شود.
         </p>
       </div>
-      <Disclaimer />
       {!res.ok ? (
         <ErrorState message={res.error} />
       ) : (

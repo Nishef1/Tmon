@@ -11,7 +11,6 @@ import { jalali } from "@/lib/format";
 import { SymbolDashboard } from "@/components/SymbolDashboard";
 import { LiveQuote } from "@/components/LiveQuote";
 import { CandleChart, type Level } from "@/components/CandleChart";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { SignalTable } from "@/components/SignalTable";
@@ -123,8 +122,6 @@ export default async function InstrumentPage({
         <h1 className="mt-2 text-2xl font-extrabold">{d.instrument.symbol}</h1>
         {d.instrument.name && <p className="text-muted">{d.instrument.name}</p>}
       </div>
-
-      <Disclaimer />
 
       {dash.ok && <SymbolDashboard d={dash.data} />}
 
@@ -255,12 +252,12 @@ export default async function InstrumentPage({
                 required={f === "dps" || f === "months_to_payment"}
                 defaultValue={q[f] ?? ""}
                 dir="ltr"
-                className="rounded-lg border border-line bg-surface px-3 py-2"
+                className="tile"
               />
             </label>
           ))}
           <div className="flex items-end">
-            <button type="submit" className="rounded-lg bg-accent px-4 py-2 font-bold text-white">
+            <button type="submit" className="btn btn-primary">
               محاسبه
             </button>
           </div>
@@ -295,32 +292,34 @@ export default async function InstrumentPage({
                 </dd>
               </div>
             </dl>
-            <table className="tbl">
-              <thead>
-                <tr className="text-muted">
-                  <th>ورودی</th>
-                  <th>مقدار</th>
-                  <th>منبع</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agm.data.inputs.map((x) => (
-                  <tr key={x.name} className="border-t border-line">
-                    <td className="py-1.5">{AGM_INPUT_LABEL[x.name] ?? x.name}</td>
-                    <td className="py-1.5">
-                      <Num
-                        term="agm_decision"
-                        value={x.value}
-                        digits={x.value !== 0 && Math.abs(x.value) < 1 ? 4 : 0}
-                      />
-                    </td>
-                    <td className="py-1.5 text-xs text-muted" dir="ltr">
-                      {x.source}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="tbl">
+                <thead>
+                  <tr className="text-muted">
+                    <th>ورودی</th>
+                    <th>مقدار</th>
+                    <th>منبع</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {agm.data.inputs.map((x) => (
+                    <tr key={x.name} className="border-t border-line">
+                      <td className="py-1.5">{AGM_INPUT_LABEL[x.name] ?? x.name}</td>
+                      <td className="py-1.5">
+                        <Num
+                          term="agm_decision"
+                          value={x.value}
+                          digits={x.value !== 0 && Math.abs(x.value) < 1 ? 4 : 0}
+                        />
+                      </td>
+                      <td className="py-1.5 text-xs text-muted" dir="ltr">
+                        {x.source}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>

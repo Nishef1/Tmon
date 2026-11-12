@@ -40,7 +40,7 @@ export default async function GlossaryTerm({ params }: Props) {
       {e.formula && (
         <section>
           <h2 className="mb-1 font-bold">فرمول</h2>
-          <p className="rounded-lg border border-line bg-surface px-4 py-2 text-sm">{e.formula}</p>
+          <p className="tile text-sm">{e.formula}</p>
         </section>
       )}
       <Section title="چرا مهم است؟">{e.why}</Section>
@@ -53,10 +53,7 @@ export default async function GlossaryTerm({ params }: Props) {
               .filter((k) => k in GLOSSARY)
               .map((k) => (
                 <li key={k}>
-                  <Link
-                    href={`/glossary/${k}`}
-                    className="rounded-full border border-line bg-surface px-3 py-1 hover:bg-accent-soft"
-                  >
+                  <Link href={`/glossary/${k}`} className="tab tab-pill">
                     {GLOSSARY[k as keyof typeof GLOSSARY].fa}
                   </Link>
                 </li>

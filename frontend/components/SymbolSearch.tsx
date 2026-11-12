@@ -4,13 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SearchHit, SymbolSearch as Result } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
-
-const BADGE: Record<string, string> = {
-  buy: "bg-good text-white",
-  hold: "bg-hold text-white",
-  sell: "bg-bad text-white",
-  none: "bg-line text-muted",
-};
+import { verdictPill } from "@/lib/ui";
 
 /** Search box in the header: symbol, company name or industry group, with a one-line summary. */
 export function SymbolSearch() {
@@ -158,9 +152,7 @@ export function SymbolSearch() {
                 )}
               </span>
               <span className="flex shrink-0 flex-col items-center gap-0.5">
-                <span className={`rounded-full px-2 text-xs font-bold ${BADGE[h.verdict]}`}>
-                  {h.verdict_label}
-                </span>
+                <span className={`${verdictPill(h.verdict)}`}>{h.verdict_label}</span>
                 {h.gauge != null && (
                   <span className="text-xs text-muted">امتیاز {faNumber(h.gauge, 0)}</span>
                 )}

@@ -252,32 +252,21 @@ export function CandleChart({
 
   const last = real[real.length - 1];
   const bar = hover ?? last;
-  const btn = (on: boolean) =>
-    `rounded-full border px-3 py-1 text-sm ${on ? "border-accent bg-accent-soft font-semibold" : "border-line text-muted"}`;
+  const btn = "tab tab-pill";
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="تنظیم نمودار">
-        <button type="button" aria-pressed={ha} onClick={() => setHa(!ha)} className={btn(ha)}>
+        <button type="button" aria-pressed={ha} onClick={() => setHa(!ha)} className={btn}>
           شمع هایکن‌آشی
         </button>
-        <button
-          type="button"
-          aria-pressed={ma20}
-          onClick={() => setMa20(!ma20)}
-          className={btn(ma20)}
-        >
+        <button type="button" aria-pressed={ma20} onClick={() => setMa20(!ma20)} className={btn}>
           میانگین ۲۰ روزه
         </button>
-        <button
-          type="button"
-          aria-pressed={ma50}
-          onClick={() => setMa50(!ma50)}
-          className={btn(ma50)}
-        >
+        <button type="button" aria-pressed={ma50} onClick={() => setMa50(!ma50)} className={btn}>
           میانگین ۵۰ روزه
         </button>
-        <button type="button" aria-pressed={vol} onClick={() => setVol(!vol)} className={btn(vol)}>
+        <button type="button" aria-pressed={vol} onClick={() => setVol(!vol)} className={btn}>
           حجم
         </button>
         <button
@@ -287,7 +276,7 @@ export function CandleChart({
             setRuler(!ruler);
             setLive(null);
           }}
-          className={btn(ruler)}
+          className={btn}
           title="روی نمودار دو نقطه را انتخاب کنید تا درصد تغییر بین آن‌ها نشان داده شود"
         >
           خط‌کش درصدی
@@ -300,7 +289,7 @@ export function CandleChart({
               setB(null);
               setLive(null);
             }}
-            className={btn(false)}
+            className={btn}
           >
             پاک کردن خط‌کش
           </button>
@@ -312,7 +301,7 @@ export function CandleChart({
               type="button"
               aria-pressed={span === n}
               onClick={() => setSpan(n)}
-              className={btn(span === n)}
+              className={btn}
             >
               {label}
             </button>
@@ -351,7 +340,7 @@ export function CandleChart({
             <div
               dir="rtl"
               data-testid="ruler-label"
-              className={`pointer-events-none absolute z-10 flex -translate-x-1/2 items-baseline whitespace-nowrap rounded-lg border bg-surface px-2 py-1 text-sm font-bold shadow ${
+              className={`pointer-events-none absolute z-10 flex -translate-x-1/2 items-baseline whitespace-nowrap text-sm font-bold float-tag ${
                 m.pct >= 0 ? "border-up text-up" : "border-down text-down"
               }`}
               style={{

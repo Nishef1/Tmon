@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Ranking, type RankingRow } from "@/lib/api";
 import { faDigits, faNumber, faPercent, faPrice, jalali } from "@/lib/format";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 
@@ -47,7 +46,6 @@ export default async function RankingPage() {
           سابقهٔ آزمونش آمده است.
         </p>
       </div>
-      <Disclaimer />
       {!res.ok ? (
         <ErrorState message={res.error} />
       ) : !res.data.available ? (
@@ -66,10 +64,7 @@ function Body({ d }: { d: Ranking }) {
   const other = d.rows.filter((r) => r.zone === "no_data" || r.zone === "excluded");
   return (
     <>
-      <section
-        className="space-y-2 rounded-2xl border border-warn/30 bg-warn-soft p-5 text-sm"
-        data-testid="ranking-status"
-      >
+      <section className="alert-warn alert-lg space-y-2 text-ink" data-testid="ranking-status">
         <h2 className="text-lg font-bold">
           {d.recommendation_allowed
             ? "همهٔ دروازه‌های آزمون گذشته‌اند"

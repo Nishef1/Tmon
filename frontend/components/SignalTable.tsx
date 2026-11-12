@@ -20,31 +20,17 @@ export function SignalTable({
   showSymbol?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+    <div className="card card-flush overflow-x-auto">
       <table className="tbl min-w-[34rem]">
         <caption className="sr-only">سابقهٔ سیگنال‌ها و نتیجهٔ هرکدام</caption>
         <thead className="text-start text-xs text-muted">
           <tr className="border-b border-line">
-            <th scope="col">
-              تاریخ
-            </th>
-            {showSymbol && (
-              <th scope="col">
-                نماد
-              </th>
-            )}
-            <th scope="col">
-              رده
-            </th>
-            <th scope="col">
-              احتمال
-            </th>
-            <th scope="col">
-              نتیجه
-            </th>
-            <th scope="col">
-              بازده ناخالص
-            </th>
+            <th scope="col">تاریخ</th>
+            {showSymbol && <th scope="col">نماد</th>}
+            <th scope="col">رده</th>
+            <th scope="col">احتمال</th>
+            <th scope="col">نتیجه</th>
+            <th scope="col">بازده ناخالص</th>
           </tr>
         </thead>
         <tbody>

@@ -1,3 +1,4 @@
+import { verdictPill, verdictTone } from "@/lib/ui";
 import Link from "next/link";
 import type { Ranking, RankingRow } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
@@ -8,14 +9,14 @@ const inQueue = (r: RankingRow) => r.queue_state === "buy_queue" || r.queue_stat
 type Col = {
   zone: "buy" | "hold" | "avoid";
   title: string;
-  badge: string;
-  tone: string;
   why: string;
 };
 
 /** Today's three possible decisions over the liquid basket: buy, hold, sell. Only stocks an
  * ordinary buyer can place an order for today appear (no funds, none in a limit queue); what was
  * left out is counted and named. The ranking is only advice once the validation gates pass. */
+const ZONE = { buy: "buy", hold: "hold", avoid: "sell" } as const;
+
 export function TradableRanking({ d }: { d: Ranking }) {
   const tradable = d.rows.filter((r) => !isFund(r) && !inQueue(r));
   const left = d.rows.filter((r) => isFund(r) || inQueue(r));
@@ -25,30 +26,21 @@ export function TradableRanking({ d }: { d: Ranking }) {
     {
       zone: "buy",
       title: "خرید",
-      badge: "bg-good text-white",
-      tone: "border-up/40 bg-up/10",
       why: `بالاترین ${d.buy_top_frac == null ? "بخش" : faPercent(d.buy_top_frac, 0)} رتبه‌بندی ترکیبی قدرت خریدار، آرام‌بودن نوسان، نزدیکی به سقف یک‌ساله و روند ۱۲ ماهه.`,
     },
     {
       zone: "hold",
       title: "نگهداری",
-      badge: "bg-hold text-white",
-      tone: "border-warn/40 bg-warn-soft",
       why: `تا ${d.hold_top_frac == null ? "ناحیهٔ بعدی" : `${faPercent(d.hold_top_frac, 0)} برتر`} رتبه‌بندی؛ اگر دارید نگه دارید، خرید تازه توصیه نمی‌شود.`,
     },
     {
       zone: "avoid",
       title: "فروش",
-      badge: "bg-bad text-white",
-      tone: "border-down/40 bg-down/10",
       why: "پایین‌تر از ناحیهٔ نگهداری؛ خرید نکنید و اگر دارید فروش را بسنجید.",
     },
   ];
   return (
-    <section
-      className="space-y-3 rounded-2xl border border-line bg-surface p-5"
-      data-testid="tradable-ranking"
-    >
+    <section className="card space-y-3" data-testid="tradable-ranking">
       <h2 className="text-lg font-bold">تصمیم امروز: خرید، نگهداری یا فروش (توصیه نیست)</h2>
       <p className="text-sm text-muted">
         هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها ناحیهٔ خرید تهی است یا آزمون‌های اعتبار
@@ -64,7 +56,7 @@ export function TradableRanking({ d }: { d: Ranking }) {
           دلیل هر نماد در صفحهٔ خودش آمده است.
         </p>
       )}
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {cols.map((c) => (
           <Column key={c.zone} c={c} rows={tradable.filter((r) => r.zone === c.zone)} />
         ))}
@@ -84,9 +76,9 @@ function Column({ c, rows }: { c: Col; rows: RankingRow[] }) {
   const head = shown.slice(0, 12);
   const rest = shown.slice(12);
   return (
-    <div className={`rounded-xl border p-3 ${c.tone}`} data-testid={`decision-${c.zone}`}>
+    <div className={`well border ${verdictTone(ZONE[c.zone])}`} data-testid={`decision-${c.zone}`}>
       <div className="flex items-center gap-2">
-        <span className={`rounded-full px-3 py-0.5 font-extrabold ${c.badge}`}>{c.title}</span>
+        <span className={`${verdictPill(ZONE[c.zone])} pill-lg`}>{c.title}</span>
         <span className="text-sm font-semibold">{faNumber(rows.length)} سهم</span>
       </div>
       <p className="mt-2 text-xs text-muted">{c.why}</p>
@@ -122,7 +114,7 @@ function Chip({ r }: { r: RankingRow }) {
             ? `/screener?q=${encodeURIComponent(r.symbol)}`
             : `/instruments/${r.instrument_id}`
         }
-        className="block rounded-lg border border-line bg-surface px-2 py-1 hover:border-accent hover:bg-accent-soft"
+        className="chip block"
       >
         <span className="flex items-baseline gap-2">
           <span className="font-bold">{r.symbol}</span>

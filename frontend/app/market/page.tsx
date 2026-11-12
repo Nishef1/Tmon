@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type MarketOverview, type MarketMover, type Screener } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { SectorTable, type SectorSummary } from "@/components/SectorTable";
 import { toRow, type Row } from "@/lib/industry";
@@ -40,7 +39,6 @@ export default async function MarketPage() {
           نمایش داده نمی‌شود؛ اختیار معامله را هم پوشش نمی‌دهیم.
         </p>
       </div>
-      <Disclaimer />
       {!res.ok ? (
         <ErrorState message={res.error} />
       ) : !res.data.available ? (
@@ -157,7 +155,7 @@ function Body({ d, members }: { d: MarketOverview; members: Record<string, Row[]
         </section>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Movers title="بیشترین رشد" rows={d.gainers} testid="market-gainers" />
         <Movers title="بیشترین افت" rows={d.losers} testid="market-losers" />
         <Movers title="بیشترین ارزش معاملات" rows={d.by_value} testid="market-value" />
@@ -168,9 +166,9 @@ function Body({ d, members }: { d: MarketOverview; members: Record<string, Row[]
       <section className="space-y-2" data-testid="market-sectors">
         <h2 className="text-lg font-bold">گروه‌های بورسی</h2>
         <p className="text-xs text-muted">
-          روی هر گروه بزنید تا همهٔ سهم‌هایش با بازده و تصمیم مدل باز شود؛ سرستون‌ها برای
-          مرتب‌سازی قابل‌کلیک‌اند. «تغییر میانگین» میانگین ساده تغییر امروز سهم‌های گروه است، نه
-          وزن‌دار با ارزش بازار.
+          روی هر گروه بزنید تا همهٔ سهم‌هایش با بازده و تصمیم مدل باز شود؛ سرستون‌ها برای مرتب‌سازی
+          قابل‌کلیک‌اند. «تغییر میانگین» میانگین ساده تغییر امروز سهم‌های گروه است، نه وزن‌دار با
+          ارزش بازار.
         </p>
         <SectorTable sectors={sectors} members={members} />
       </section>
@@ -195,47 +193,49 @@ function Movers({
       {rows.length === 0 ? (
         <p className="text-sm text-muted">موردی نیست.</p>
       ) : (
-        <table className="tbl">
-          <thead>
-            <tr className="text-right">
-              <th>نماد و نام شرکت</th>
-              <th title="قیمت پایانی آخرین روز نسبت به پایانی روز کاری قبل">تغییر امروز</th>
-              <th>پایانی</th>
-              <th>{flow ? "خالص پول حقیقی" : "ارزش"}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.instrument_id} className="border-t border-line">
-                <td className="py-1.5">
-                  <Link
-                    href={`/instruments/${r.instrument_id}`}
-                    className="font-semibold hover:text-accent"
-                  >
-                    {r.symbol}
-                  </Link>
-                  <div className="text-xs leading-snug text-muted">
-                    {r.name}
-                    {r.sector_name && <span> · {r.sector_name}</span>}
-                  </div>
-                </td>
-                <td className={r.change == null ? "" : r.change >= 0 ? "text-up" : "text-down"}>
-                  {r.change == null ? "—" : faPercent(r.change, 2, true)}
-                </td>
-                <td>{r.close == null ? "—" : faNumber(r.close)}</td>
-                <td>
-                  {flow
-                    ? r.net_real_flow == null
-                      ? "—"
-                      : bt(r.net_real_flow)
-                    : r.value == null
-                      ? "—"
-                      : bt(r.value)}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="tbl">
+            <thead>
+              <tr className="text-right">
+                <th>نماد و نام شرکت</th>
+                <th title="قیمت پایانی آخرین روز نسبت به پایانی روز کاری قبل">تغییر امروز</th>
+                <th>پایانی</th>
+                <th>{flow ? "خالص پول حقیقی" : "ارزش"}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.instrument_id} className="border-t border-line">
+                  <td className="py-1.5">
+                    <Link
+                      href={`/instruments/${r.instrument_id}`}
+                      className="font-semibold hover:text-accent"
+                    >
+                      {r.symbol}
+                    </Link>
+                    <div className="text-xs leading-snug text-muted">
+                      {r.name}
+                      {r.sector_name && <span> · {r.sector_name}</span>}
+                    </div>
+                  </td>
+                  <td className={r.change == null ? "" : r.change >= 0 ? "text-up" : "text-down"}>
+                    {r.change == null ? "—" : faPercent(r.change, 2, true)}
+                  </td>
+                  <td>{r.close == null ? "—" : faNumber(r.close)}</td>
+                  <td>
+                    {flow
+                      ? r.net_real_flow == null
+                        ? "—"
+                        : bt(r.net_real_flow)
+                      : r.value == null
+                        ? "—"
+                        : bt(r.value)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

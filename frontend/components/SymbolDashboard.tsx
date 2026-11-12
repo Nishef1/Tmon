@@ -2,22 +2,9 @@ import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
+import { verdictPill, verdictTone } from "@/lib/ui";
 
 type D = InstrumentDashboard;
-type Verdict = D["decision"]["verdict"];
-
-const TONE: Record<Verdict, string> = {
-  buy: "border-up/40 bg-up/10",
-  hold: "border-warn/40 bg-warn-soft",
-  sell: "border-down/40 bg-down/10",
-  none: "border-line bg-surface",
-};
-const BADGE: Record<Verdict, string> = {
-  buy: "bg-good text-white",
-  hold: "bg-hold text-white",
-  sell: "bg-bad text-white",
-  none: "bg-neutral text-white",
-};
 
 /** Share counts and volumes in short Persian units. */
 function qty(n: number | null | undefined): string {
@@ -139,7 +126,7 @@ function SignalBars({ signals }: { signals: D["decision"]["signals"] }) {
 
 function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
   return (
-    <div className="mt-4 rounded-xl border border-line bg-surface p-3" data-testid="holding">
+    <div className="tile mt-4" data-testid="holding">
       <h3 className="mb-1 font-bold">تا کی نگه دارم؟ کی بفروشم؟</h3>
       <ul className="list-inside list-disc space-y-1.5">
         {h.lines.map((l) => (
@@ -154,7 +141,7 @@ function Decision({ d }: { d: D["decision"] }) {
   const [first, ...rest] = d.reasons;
   return (
     <section
-      className={`rounded-2xl border p-4 ${TONE[d.verdict]}`}
+      className={`card ${verdictTone(d.verdict)}`}
       data-testid="symbol-decision"
       data-verdict={d.verdict}
     >
@@ -166,11 +153,7 @@ function Decision({ d }: { d: D["decision"] }) {
           </p>
         </div>
         <div className="min-w-0 flex-1 space-y-2">
-          <span
-            className={`inline-block rounded-full px-5 py-1 text-xl font-extrabold ${BADGE[d.verdict]}`}
-          >
-            {d.label}
-          </span>
+          <span className={`${verdictPill(d.verdict)} pill-lg`}>{d.label}</span>
           <p className="text-lg font-semibold">{faDigits(d.summary || d.headline)}</p>
           {d.summary && <p className="text-muted">{faDigits(d.headline)}</p>}
           {first && <p>{faDigits(first)}</p>}
@@ -199,24 +182,20 @@ function Decision({ d }: { d: D["decision"] }) {
 }
 
 const FA_VERDICT: Record<string, { label: string; cls: string }> = {
-  cheap: { label: "ارزان‌تر از گروه", cls: "bg-good text-white" },
-  fair: { label: "نزدیک به گروه", cls: "bg-neutral text-white" },
-  expensive: { label: "گران‌تر از گروه", cls: "bg-bad text-white" },
-  loss: { label: "زیان‌ده", cls: "bg-bad text-white" },
-  unknown: { label: "نامشخص", cls: "bg-line text-muted" },
+  cheap: { label: "ارزان‌تر از گروه", cls: "v-buy" },
+  fair: { label: "نزدیک به گروه", cls: "v-none" },
+  expensive: { label: "گران‌تر از گروه", cls: "v-sell" },
+  loss: { label: "زیان‌ده", cls: "v-sell" },
+  unknown: { label: "نامشخص", cls: "v-none" },
 };
 
 function Fundamental({ f, sector }: { f: NonNullable<D["fundamental"]>; sector?: string | null }) {
   const v = FA_VERDICT[f.verdict] ?? FA_VERDICT.unknown;
   return (
-    <section
-      className="card"
-      data-testid="fundamental"
-      data-verdict={f.verdict}
-    >
+    <section className="card" data-testid="fundamental" data-verdict={f.verdict}>
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <h2 className="font-bold">سود و ارزش‌گذاری (EPS و P/E)</h2>
-        <span className={`rounded-full px-3 text-sm font-bold ${v.cls}`}>{v.label}</span>
+        <span className={`pill ${v.cls}`}>{v.label}</span>
       </div>
       <dl>
         <Row
@@ -319,7 +298,7 @@ export function SymbolDashboard({ d }: { d: D }) {
       {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
       <Company d={d} />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {p && (
           <Card title="قیمت" note={`روز ${jalali(p.date)}`}>
             <Row k="قیمت پایانی" v={p.close == null ? "—" : faNumber(p.close)} />

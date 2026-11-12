@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type History } from "@/lib/api";
 import type { GlossaryKey } from "@/lib/glossary";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { SignalTable } from "@/components/SignalTable";
@@ -42,7 +41,6 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           مربوط به گذشته‌اند و آینده را تضمین نمی‌کنند.
         </p>
       </div>
-      <Disclaimer />
 
       {!res.ok ? (
         <ErrorState message={res.error} />
@@ -85,11 +83,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 key={f.id}
                 href={href(f.id, 0)}
                 aria-current={outcome === f.id ? "page" : undefined}
-                className={`rounded-full border px-3 py-1 ${
-                  outcome === f.id
-                    ? "border-accent bg-accent text-surface"
-                    : "border-line bg-surface hover:bg-accent-soft"
-                }`}
+                className="tab tab-pill"
               >
                 {f.label}
               </Link>
@@ -97,10 +91,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           </nav>
 
           {res.data.items.length === 0 ? (
-            <p
-              data-testid="history-empty"
-              className="card card-pad-lg text-sm text-muted"
-            >
+            <p data-testid="history-empty" className="card card-pad-lg text-sm text-muted">
               هنوز سیگنالی منتشر نشده است. تا وقتی نمادی شرایط توصیه را نداشته باشد (دلیل دقیق در
               صفحهٔ رتبه‌بندی آمده)، چیزی در این فهرست ثبت نمی‌شود.
             </p>

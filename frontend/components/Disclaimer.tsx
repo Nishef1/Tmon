@@ -2,11 +2,7 @@ export const DISCLAIMER = "ابزار تحلیل و آموزش؛ توصیه سر
 
 export function Disclaimer({ className = "" }: { className?: string }) {
   return (
-    <p
-      role="note"
-      data-testid="disclaimer"
-      className={`alert-warn ${className}`}
-    >
+    <p role="note" data-testid="disclaimer" className={`alert-warn ${className}`}>
       {DISCLAIMER}
     </p>
   );

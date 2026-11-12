@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type LiveAccuracy } from "@/lib/api";
 import { faNumber, jalali } from "@/lib/format";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 
@@ -45,12 +44,11 @@ export default async function AccuracyPage({
           </Link>
         ))}
       </nav>
-      <Disclaimer />
       {!res.ok ? (
         <ErrorState message={res.error} />
       ) : (
         <>
-          <section className="space-y-2 rounded-2xl border border-line bg-surface p-4 text-sm">
+          <section className="card space-y-2 text-sm">
             <p data-testid="kill-switch">
               {res.data.kill_switch_active ? (
                 <strong className="text-down">
@@ -70,7 +68,7 @@ export default async function AccuracyPage({
                 </>
               )}
             </p>
-            <dl className="grid gap-2 sm:grid-cols-3">
+            <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div>
                 <dt className="text-xs text-muted">سیگنال‌های بسته‌شده</dt>
                 <dd>
@@ -116,7 +114,7 @@ export default async function AccuracyPage({
               هنوز هیچ سیگنالی در این افق بسته نشده است.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-line bg-surface p-4">
+            <div className="card overflow-x-auto">
               <table className="tbl min-w-[28rem]">
                 <caption className="sr-only">دقت سیگنال‌ها به تفکیک روز</caption>
                 <thead>

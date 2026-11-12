@@ -26,10 +26,7 @@ export function SignalCard({ s }: { s: Signal }) {
   const stopPct = (s.stop_loss - s.entry_price) / s.entry_price;
   const tpPct = (s.take_profit - s.entry_price) / s.entry_price;
   return (
-    <article
-      data-testid="signal-card"
-      className="card sm:p-5"
-    >
+    <article data-testid="signal-card" className="card sm:p-5">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-lg font-bold">

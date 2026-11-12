@@ -22,13 +22,7 @@ import {
   type SortKey,
   type Verdict,
 } from "@/lib/industry";
-
-export const BADGE: Record<Verdict, string> = {
-  buy: "bg-good text-white",
-  hold: "bg-hold text-white",
-  sell: "bg-bad text-white",
-  none: "bg-line text-muted",
-};
+import { heatProps, signTone, signedPct, verdictPill } from "@/lib/ui";
 
 const VERDICTS: [Verdict, string][] = [
   ["buy", "خرید"],
@@ -47,20 +41,6 @@ const INDUSTRY_ORDER: [IndustrySort, string][] = [
   ["month", "بازده ماه"],
   ["year", "بازده سال"],
 ];
-
-const tone = (n: number | null | undefined) =>
-  n == null ? "text-muted" : n > 0 ? "text-up" : n < 0 ? "text-down" : "";
-
-const pct = (n: number | null | undefined, digits = 1) =>
-  n == null ? "—" : faPercent(n, digits, true);
-
-/** Tile / cell background: green for gains and red for losses, deeper with the size of the move. */
-export function heat(r: number | null): string | undefined {
-  if (r == null) return undefined;
-  const strength = Math.min(1, Math.abs(r) / 0.05) * 38;
-  const colour = r >= 0 ? "var(--up)" : "var(--down)";
-  return `color-mix(in srgb, ${colour} ${strength.toFixed(0)}%, var(--surface))`;
-}
 
 type Col = {
   key: SortKey;
@@ -83,10 +63,7 @@ const COLS: Col[] = [
       <div className="flex items-center gap-2">
         <Gauge value={r.gauge} size="sm" label="امتیاز ترکیبی مدل" />
         <div className="leading-tight">
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-bold ${BADGE[r.verdict]}`}
-            data-verdict={r.verdict}
-          >
+          <span className={`${verdictPill(r.verdict)}`} data-verdict={r.verdict}>
             {r.verdictLabel || "—"}
           </span>
           <div className="text-xs text-muted">
@@ -116,50 +93,50 @@ const COLS: Col[] = [
     label: "امروز",
     title: "بازده روز: قیمت پایانی نسبت به پایانی روز قبل",
     on: true,
-    cell: (r) => pct(r.day, 2),
-    cls: (r) => tone(r.day),
-    agg: (i) => pct(i.day, 2),
-    aggCls: (i) => tone(i.day),
+    cell: (r) => signedPct(r.day, 2),
+    cls: (r) => signTone(r.day),
+    agg: (i) => signedPct(i.day, 2),
+    aggCls: (i) => signTone(i.day),
   },
   {
     key: "week",
     label: "هفته",
     title: "بازده ۷ روز گذشته (قیمت تعدیل‌شده برای مجمع و افزایش سرمایه)",
     on: true,
-    cell: (r) => pct(r.week),
-    cls: (r) => tone(r.week),
-    agg: (i) => pct(i.week),
-    aggCls: (i) => tone(i.week),
+    cell: (r) => signedPct(r.week),
+    cls: (r) => signTone(r.week),
+    agg: (i) => signedPct(i.week),
+    aggCls: (i) => signTone(i.week),
   },
   {
     key: "month",
     label: "ماه",
     title: "بازده ۳۰ روز گذشته (تعدیل‌شده)",
     on: true,
-    cell: (r) => pct(r.month),
-    cls: (r) => tone(r.month),
-    agg: (i) => pct(i.month),
-    aggCls: (i) => tone(i.month),
+    cell: (r) => signedPct(r.month),
+    cls: (r) => signTone(r.month),
+    agg: (i) => signedPct(i.month),
+    aggCls: (i) => signTone(i.month),
   },
   {
     key: "m3",
     label: "۳ ماه",
     title: "بازده ۹۰ روز گذشته (تعدیل‌شده)",
     on: false,
-    cell: (r) => pct(r.m3),
-    cls: (r) => tone(r.m3),
-    agg: (i) => pct(i.m3),
-    aggCls: (i) => tone(i.m3),
+    cell: (r) => signedPct(r.m3),
+    cls: (r) => signTone(r.m3),
+    agg: (i) => signedPct(i.m3),
+    aggCls: (i) => signTone(i.m3),
   },
   {
     key: "year",
     label: "سال",
     title: "بازده ۳۶۵ روز گذشته (تعدیل‌شده)؛ برای نمادهای کمتر از یک سال سابقه خالی است",
     on: true,
-    cell: (r) => pct(r.year, 0),
-    cls: (r) => tone(r.year),
-    agg: (i) => pct(i.year, 0),
-    aggCls: (i) => tone(i.year),
+    cell: (r) => signedPct(r.year, 0),
+    cls: (r) => signTone(r.year),
+    agg: (i) => signedPct(i.year, 0),
+    aggCls: (i) => signTone(i.year),
   },
   {
     key: "value",
@@ -212,8 +189,8 @@ const COLS: Col[] = [
     label: "تا سقف سال",
     title: "فاصلهٔ قیمت پایانی تا بالاترین قیمت تعدیل‌شدهٔ یک سال اخیر",
     on: false,
-    cell: (r) => pct(r.fromHigh, 0),
-    cls: (r) => tone(r.fromHigh),
+    cell: (r) => signedPct(r.fromHigh, 0),
+    cls: (r) => signTone(r.fromHigh),
   },
   {
     key: "power",
@@ -229,9 +206,9 @@ const COLS: Col[] = [
     title: "خرید حقیقی منهای فروش حقیقی (تومان)؛ مثبت یعنی ورود پول",
     on: true,
     cell: (r) => faToman(r.netReal),
-    cls: (r) => tone(r.netReal),
+    cls: (r) => signTone(r.netReal),
     agg: (i) => faToman(i.netReal),
-    aggCls: (i) => tone(i.netReal),
+    aggCls: (i) => signTone(i.netReal),
   },
   {
     key: "volRatio",
@@ -280,7 +257,7 @@ function RangeField({
   const [lo, setLo] = useState("");
   const [hi, setHi] = useState("");
   const send = (a: string, b: string) => onChange({ min: parse(a, scale), max: parse(b, scale) });
-  const box = "w-20 rounded-lg border border-line bg-surface px-2 py-1";
+  const box = "ctl w-20";
   return (
     <fieldset className="flex flex-col gap-1">
       <legend className="text-xs text-muted">
@@ -341,7 +318,7 @@ function SingleField({
           setV(e.target.value);
           onChange(parse(e.target.value, scale));
         }}
-        className="w-28 rounded-lg border border-line bg-surface px-2 py-1"
+        className="ctl w-28"
       />
     </label>
   );
@@ -357,7 +334,7 @@ function Check({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line px-3 py-1 has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
+    <label className="tab tab-pill">
       <input
         type="checkbox"
         checked={checked}
@@ -445,14 +422,12 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
                   type="button"
                   aria-pressed={on}
                   onClick={() => set({ sectors: toggle(f.sectors, i.name) })}
-                  style={{ background: heat(i.day) }}
-                  className={`flex h-full w-full flex-col gap-1 rounded-2xl border p-3 text-start transition-shadow hover:shadow-md ${
-                    on ? "border-accent ring-2 ring-accent" : "border-line"
-                  }`}
+                  {...heatProps(i.day)}
+                  className="tile tile-toggle flex h-full w-full flex-col gap-1 text-start"
                 >
                   <span className="font-bold leading-snug">{i.name}</span>
                   <span className="flex items-baseline justify-between gap-2 text-sm">
-                    <span className={`font-bold ${tone(i.day)}`}>{pct(i.day, 2)}</span>
+                    <span className={`font-bold ${signTone(i.day)}`}>{signedPct(i.day, 2)}</span>
                     <span className="text-xs text-muted">{faNumber(i.count)} نماد</span>
                   </span>
                   <span className="text-xs text-muted">
@@ -475,10 +450,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
       </section>
 
       {/* ------------------------------------------------------------------- filters */}
-      <section
-        aria-labelledby="filters"
-        className="space-y-3 rounded-2xl border border-line bg-surface p-4 text-sm"
-      >
+      <section aria-labelledby="filters" className="card space-y-3 text-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 id="filters" className="text-lg font-bold">
             جست‌وجو و فیلتر
@@ -490,7 +462,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
               setF(EMPTY);
               setReset((n) => n + 1);
             }}
-            className="rounded-lg border border-line px-3 py-1 font-semibold disabled:opacity-40"
+            className="btn"
           >
             حذف همهٔ فیلترها {nActive > 0 && `(${faNumber(nActive)})`}
           </button>
@@ -507,7 +479,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
             onChange={(e) => set({ q: e.target.value })}
             placeholder="جست‌وجو…"
             aria-label="جست‌وجوی نماد"
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-base"
+            className="ctl w-full"
           />
         </label>
 
@@ -521,11 +493,9 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
                 type="button"
                 aria-pressed={on}
                 onClick={() => set({ verdicts: toggle(f.verdicts, v) })}
-                className={`rounded-full border px-3 py-1 ${on ? "border-accent bg-accent-soft font-bold" : "border-line"}`}
+                className="tab tab-pill"
               >
-                <span
-                  className={`me-1 inline-block size-2 rounded-full ${BADGE[v].split(" ")[0]}`}
-                />
+                <span className={`me-1 inline-block size-2 rounded-full v-${v}`} />
                 {label}
               </button>
             );
@@ -595,7 +565,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
               <select
                 value={order}
                 onChange={(e) => setOrder(e.target.value as IndustrySort)}
-                className="rounded-lg border border-line bg-surface px-3 py-1.5"
+                className="ctl"
               >
                 {INDUSTRY_ORDER.map(([k, l]) => (
                   <option key={k} value={k}>
@@ -604,7 +574,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
                 ))}
               </select>
             </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-1.5">
+            <label className="tab">
               <input
                 type="checkbox"
                 checked={grouped}
@@ -614,9 +584,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
               دسته‌بندی بر پایهٔ صنعت
             </label>
             <details className="relative">
-              <summary className="cursor-pointer rounded-lg border border-line px-3 py-1.5">
-                ستون‌ها ({faNumber(shown.size)})
-              </summary>
+              <summary className="btn">ستون‌ها ({faNumber(shown.size)})</summary>
               <ul className="absolute end-0 z-30 mt-1 max-h-80 w-56 space-y-1 overflow-auto popover p-3">
                 {COLS.map((c) => (
                   <li key={c.key}>
@@ -648,7 +616,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
             هیچ نمادی با این فیلترها پیدا نشد. فیلترها را کم کنید یا همه را حذف کنید.
           </p>
         ) : (
-          <div className="max-h-[78vh] overflow-auto rounded-2xl border border-line bg-surface">
+          <div className="card card-flush max-h-[78vh] overflow-auto">
             <table
               className="w-full min-w-[64rem] border-separate border-spacing-0 text-sm"
               data-testid="industry-table"
@@ -816,7 +784,7 @@ function DataRow({
         <td
           key={c.key}
           className={`whitespace-nowrap border-b border-line px-2 py-1.5 ${c.cls?.(r) ?? ""}`}
-          style={c.key === "day" ? { background: heat(r.day) } : undefined}
+          {...(c.key === "day" ? heatProps(r.day) : {})}
         >
           {c.cell(r)}
         </td>

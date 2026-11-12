@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Calibration, type CalibrationBlock } from "@/lib/api";
 import { faDigits, friendlyWarning, jalali } from "@/lib/format";
-import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 
@@ -18,19 +17,11 @@ function Reliability({ block }: { block: CalibrationBlock }) {
         <caption className="sr-only">احتمال پیش‌بینی‌شده در برابر نرخ موفقیت واقعی</caption>
         <thead>
           <tr className="border-b border-line">
-            <th scope="col">
-              بازهٔ احتمال
-            </th>
-            <th scope="col">
-              نمونه
-            </th>
-            <th scope="col">
-              پیش‌بینی
-            </th>
-            <th scope="col">
-              واقعی
-            </th>
-            <th scope="col" className="w-1/3 px-2 py-1.5 text-start font-medium">
+            <th scope="col">بازهٔ احتمال</th>
+            <th scope="col">نمونه</th>
+            <th scope="col">پیش‌بینی</th>
+            <th scope="col">واقعی</th>
+            <th scope="col" className="w-1/3">
               مقایسه
             </th>
           </tr>
@@ -92,7 +83,7 @@ function Stats({ block }: { block: CalibrationBlock }) {
           <Num key="s" term="brier_skill" value={block.brier_skill} digits={3} signed />,
         ],
       ].map(([label, node]) => (
-        <div key={String(label)} className="rounded-xl border border-line bg-bg p-3">
+        <div key={String(label)} className="well">
           <dt className="text-xs text-muted">{label}</dt>
           <dd className="text-lg font-bold">{node}</dd>
         </div>
@@ -112,7 +103,6 @@ export default async function CalibrationPage() {
           (خارج از نمونه) و هم نتیجهٔ سیگنال‌های واقعاً منتشرشده را نشان می‌دهد.
         </p>
       </div>
-      <Disclaimer />
       {!res.ok ? (
         <ErrorState message={res.error} />
       ) : (
@@ -147,7 +137,7 @@ export default async function CalibrationPage() {
           </section>
 
           {res.data.warnings.length > 0 && (
-            <aside className="rounded-xl border border-warn/30 bg-warn-soft p-4 text-sm text-warn">
+            <aside className="alert-warn alert-lg">
               <p className="font-semibold">هشدارها</p>
               <ul className="mt-1 list-inside list-disc">
                 {res.data.warnings.map((w) => (
@@ -157,7 +147,7 @@ export default async function CalibrationPage() {
             </aside>
           )}
 
-          <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+          <section className="card space-y-3">
             <h2 className="font-bold">آزمون گذشته‌نگر (خارج از نمونه)</h2>
             {res.data.backtest ? (
               <>
@@ -169,7 +159,7 @@ export default async function CalibrationPage() {
             )}
           </section>
 
-          <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+          <section className="card space-y-3">
             <h2 className="font-bold">سیگنال‌های منتشرشده (نتیجهٔ واقعی)</h2>
             {res.data.live.n === 0 ? (
               <p className="text-sm text-muted" data-testid="no-live">
