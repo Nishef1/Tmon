@@ -75,6 +75,17 @@ test.describe("instrument page", () => {
     await expect(page.getByTestId("disclaimer").first()).toBeVisible();
   });
 
+  test("shows one final decision with its reasons and the per-symbol numbers", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const decision = page.getByTestId("symbol-decision");
+    await expect(decision).toHaveAttribute("data-verdict", "hold");
+    await expect(decision).toContainText("نگهداری");
+    await expect(decision).toContainText("رتبهٔ ۲۰ از ۱۰۰");
+    const dash = page.getByTestId("symbol-dashboard");
+    await expect(dash.getByText("قدرت خریدار (امروز)")).toBeVisible();
+    await expect(dash.getByText("فلزات اساسی")).toBeVisible();
+  });
+
   test("shows the live price, five order-book levels and the data age", async ({ page }) => {
     await page.goto("/instruments/1");
     const live = page.getByTestId("live-quote");
@@ -148,5 +159,5 @@ test("market page shows breadth, flow and movers, and says what it cannot show",
   await expect(page.getByTestId("market-gainers")).toContainText("الف");
   await expect(page.getByTestId("market-outflow")).toContainText("موردی نیست");
   await expect(page.getByTestId("market-sectors")).toContainText("کد گروه");
-  await expect(page.locator("main")).toContainText("در دست ما نیست");
+  await expect(page.locator("main")).toContainText("پوشش نمی‌دهیم");
 });

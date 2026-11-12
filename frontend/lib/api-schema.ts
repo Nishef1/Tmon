@@ -106,6 +106,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/instruments/{instrument_id}/dashboard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dashboard */
+    get: operations["dashboard_instruments__instrument_id__dashboard_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}/live": {
     parameters: {
       query?: never;
@@ -461,6 +478,124 @@ export interface components {
       url: string | null;
     };
     /**
+     * DashDecision
+     * @description The single final answer per symbol: buy, hold, sell or none, with the reasons.
+     */
+    DashDecision: {
+      /**
+       * Advice Allowed
+       * @default false
+       */
+      advice_allowed: boolean;
+      /** As Of */
+      as_of: string | null;
+      /** Basket Size */
+      basket_size: number | null;
+      /** Headline */
+      headline: string;
+      /** Label */
+      label: string;
+      /** Rank */
+      rank: number | null;
+      /**
+       * Reasons
+       * @default []
+       */
+      reasons: string[];
+      /** Score */
+      score: number | null;
+      /**
+       * Verdict
+       * @enum {string}
+       */
+      verdict: "buy" | "hold" | "sell" | "none";
+    };
+    /** DashFlow */
+    DashFlow: {
+      /** Avg10 Per Capita Buy */
+      avg10_per_capita_buy: number | null;
+      /** Avg10 Per Capita Sell */
+      avg10_per_capita_sell: number | null;
+      /** Avg10 Power */
+      avg10_power: number | null;
+      /** Buy Count I */
+      buy_count_i: number | null;
+      /** Buy Count N */
+      buy_count_n: number | null;
+      /** Buy Volume I */
+      buy_volume_i: number | null;
+      /** Buy Volume N */
+      buy_volume_n: number | null;
+      /** Date */
+      date: string;
+      /** Net Real Value */
+      net_real_value: number | null;
+      /** Net Real Volume */
+      net_real_volume: number | null;
+      /** Per Capita Buy */
+      per_capita_buy: number | null;
+      /** Per Capita Sell */
+      per_capita_sell: number | null;
+      /** Power */
+      power: number | null;
+      /** Sell Count I */
+      sell_count_i: number | null;
+      /** Sell Count N */
+      sell_count_n: number | null;
+      /** Sell Volume I */
+      sell_volume_i: number | null;
+      /** Sell Volume N */
+      sell_volume_n: number | null;
+    };
+    /** DashFund */
+    DashFund: {
+      /** Bubble */
+      bubble: number | null;
+      /** Nav */
+      nav: number;
+      /** Nav Date */
+      nav_date: string;
+    };
+    /** DashPrice */
+    DashPrice: {
+      /** Avg Volume 10 */
+      avg_volume_10: number | null;
+      /** Avg Volume 22 */
+      avg_volume_22: number | null;
+      /** Base Volume */
+      base_volume: number | null;
+      /** Close */
+      close: number | null;
+      /** Close Change */
+      close_change: number | null;
+      /** Date */
+      date: string;
+      /** High */
+      high: number | null;
+      /** Last */
+      last: number | null;
+      /** Last Change */
+      last_change: number | null;
+      /** Limit Down */
+      limit_down: number | null;
+      /** Limit Up */
+      limit_up: number | null;
+      /** Low */
+      low: number | null;
+      /** Open */
+      open: number | null;
+      /** Prev Close */
+      prev_close: number | null;
+      /** Trades */
+      trades: number | null;
+      /** Value */
+      value: number | null;
+      /** Volume */
+      volume: number | null;
+      /** Volume Ratio 30 */
+      volume_ratio_30: number | null;
+    };
+    /**
      * DiagnosisOut
      * @description Exact numbers behind a day with few or no recommendations.
      */
@@ -651,6 +786,24 @@ export interface components {
       source_url: string | null;
       /** Value */
       value: number;
+    };
+    /** InstrumentDashboard */
+    InstrumentDashboard: {
+      /** Board */
+      board: string | null;
+      decision: components["schemas"]["DashDecision"];
+      flow: components["schemas"]["DashFlow"] | null;
+      fund: components["schemas"]["DashFund"] | null;
+      instrument: components["schemas"]["InstrumentOut"];
+      /** Isin */
+      isin: string | null;
+      /** Market Cap */
+      market_cap: number | null;
+      price: components["schemas"]["DashPrice"] | null;
+      /** Sector Name */
+      sector_name: string | null;
+      /** Shares */
+      shares: number | null;
     };
     /** InstrumentDetail */
     InstrumentDetail: {
@@ -1451,6 +1604,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AgmDecisionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dashboard_instruments__instrument_id__dashboard_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstrumentDashboard"];
         };
       };
       /** @description Validation Error */

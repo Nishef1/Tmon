@@ -523,3 +523,77 @@ class MarketOverviewOut(ApiModel):
     inflow: list[MarketMover] = []
     outflow: list[MarketMover] = []
     sectors: list[MarketSector] = []
+
+
+class DashPrice(ApiModel):
+    date: str
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    last: float | None = None
+    close: float | None = None
+    prev_close: float | None = None
+    last_change: float | None = None
+    close_change: float | None = None
+    limit_up: float | None = None
+    limit_down: float | None = None
+    trades: int | None = None
+    volume: float | None = None
+    value: float | None = None
+    base_volume: float | None = None
+    avg_volume_10: float | None = None
+    avg_volume_22: float | None = None
+    volume_ratio_30: float | None = None
+
+
+class DashFlow(ApiModel):
+    date: str
+    buy_volume_i: float | None = None
+    buy_volume_n: float | None = None
+    sell_volume_i: float | None = None
+    sell_volume_n: float | None = None
+    buy_count_i: int | None = None
+    buy_count_n: int | None = None
+    sell_count_i: int | None = None
+    sell_count_n: int | None = None
+    per_capita_buy: float | None = None
+    per_capita_sell: float | None = None
+    power: float | None = None
+    net_real_value: float | None = None
+    net_real_volume: float | None = None
+    avg10_per_capita_buy: float | None = None
+    avg10_per_capita_sell: float | None = None
+    avg10_power: float | None = None
+
+
+class DashFund(ApiModel):
+    nav_date: str
+    nav: float
+    bubble: float | None = None
+
+
+class DashDecision(ApiModel):
+    """The single final answer per symbol: buy, hold, sell or none, with the reasons."""
+
+    verdict: Literal["buy", "hold", "sell", "none"]
+    label: str
+    advice_allowed: bool = False
+    headline: str
+    reasons: list[str] = []
+    as_of: str | None = None
+    rank: int | None = None
+    basket_size: int | None = None
+    score: float | None = None
+
+
+class InstrumentDashboard(ApiModel):
+    instrument: InstrumentOut
+    isin: str | None = None
+    sector_name: str | None = None
+    board: str | None = None
+    shares: int | None = None
+    market_cap: float | None = None
+    price: DashPrice | None = None
+    flow: DashFlow | None = None
+    fund: DashFund | None = None
+    decision: DashDecision

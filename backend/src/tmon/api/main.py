@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from tmon.api.routers import (
+    dashboard,
     instruments,
     macro,
     market,
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     for r in (
         recommendations.router,
         instruments.router,
+        dashboard.router,
         signals.router,
         metrics.router,
         macro.router,

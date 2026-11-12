@@ -8,6 +8,7 @@ import type { components } from "./api-schema";
 type S = components["schemas"];
 
 export type Instrument = S["InstrumentOut"];
+export type InstrumentDashboard = S["InstrumentDashboard"];
 export type Reason = S["Reason"];
 export type Signal = S["SignalOut"];
 export type Run = S["RunOut"];

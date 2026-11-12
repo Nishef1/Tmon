@@ -667,6 +667,551 @@
         "title": "CorporateEventOut",
         "type": "object"
       },
+      "DashDecision": {
+        "description": "The single final answer per symbol: buy, hold, sell or none, with the reasons.",
+        "properties": {
+          "advice_allowed": {
+            "default": false,
+            "title": "Advice Allowed",
+            "type": "boolean"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "basket_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basket Size"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "verdict": {
+            "enum": [
+              "buy",
+              "hold",
+              "sell",
+              "none"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict",
+          "label",
+          "advice_allowed",
+          "headline",
+          "reasons",
+          "as_of",
+          "rank",
+          "basket_size",
+          "score"
+        ],
+        "title": "DashDecision",
+        "type": "object"
+      },
+      "DashFlow": {
+        "properties": {
+          "avg10_per_capita_buy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg10 Per Capita Buy"
+          },
+          "avg10_per_capita_sell": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg10 Per Capita Sell"
+          },
+          "avg10_power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg10 Power"
+          },
+          "buy_count_i": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Count I"
+          },
+          "buy_count_n": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Count N"
+          },
+          "buy_volume_i": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Volume I"
+          },
+          "buy_volume_n": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Volume N"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "net_real_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Value"
+          },
+          "net_real_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Volume"
+          },
+          "per_capita_buy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Capita Buy"
+          },
+          "per_capita_sell": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Capita Sell"
+          },
+          "power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power"
+          },
+          "sell_count_i": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Count I"
+          },
+          "sell_count_n": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Count N"
+          },
+          "sell_volume_i": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Volume I"
+          },
+          "sell_volume_n": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Volume N"
+          }
+        },
+        "required": [
+          "date",
+          "buy_volume_i",
+          "buy_volume_n",
+          "sell_volume_i",
+          "sell_volume_n",
+          "buy_count_i",
+          "buy_count_n",
+          "sell_count_i",
+          "sell_count_n",
+          "per_capita_buy",
+          "per_capita_sell",
+          "power",
+          "net_real_value",
+          "net_real_volume",
+          "avg10_per_capita_buy",
+          "avg10_per_capita_sell",
+          "avg10_power"
+        ],
+        "title": "DashFlow",
+        "type": "object"
+      },
+      "DashFund": {
+        "properties": {
+          "bubble": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble"
+          },
+          "nav": {
+            "title": "Nav",
+            "type": "number"
+          },
+          "nav_date": {
+            "title": "Nav Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nav_date",
+          "nav",
+          "bubble"
+        ],
+        "title": "DashFund",
+        "type": "object"
+      },
+      "DashPrice": {
+        "properties": {
+          "avg_volume_10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Volume 10"
+          },
+          "avg_volume_22": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Volume 22"
+          },
+          "base_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Volume"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "close_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Change"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "last": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last"
+          },
+          "last_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Change"
+          },
+          "limit_down": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Down"
+          },
+          "limit_up": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Up"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "open": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open"
+          },
+          "prev_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Close"
+          },
+          "trades": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trades"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          },
+          "volume_ratio_30": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Ratio 30"
+          }
+        },
+        "required": [
+          "date",
+          "open",
+          "high",
+          "low",
+          "last",
+          "close",
+          "prev_close",
+          "last_change",
+          "close_change",
+          "limit_up",
+          "limit_down",
+          "trades",
+          "volume",
+          "value",
+          "base_volume",
+          "avg_volume_10",
+          "avg_volume_22",
+          "volume_ratio_30"
+        ],
+        "title": "DashPrice",
+        "type": "object"
+      },
       "DiagnosisOut": {
         "description": "Exact numbers behind a day with few or no recommendations.",
         "properties": {
@@ -1266,6 +1811,115 @@
           "source_url"
         ],
         "title": "InflationReleaseOut",
+        "type": "object"
+      },
+      "InstrumentDashboard": {
+        "properties": {
+          "board": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Board"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/DashDecision"
+          },
+          "flow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashFlow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fund": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashFund"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentOut"
+          },
+          "isin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isin"
+          },
+          "market_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Cap"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sector_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Name"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          }
+        },
+        "required": [
+          "instrument",
+          "isin",
+          "sector_name",
+          "board",
+          "shares",
+          "market_cap",
+          "price",
+          "flow",
+          "fund",
+          "decision"
+        ],
+        "title": "InstrumentDashboard",
         "type": "object"
       },
       "InstrumentDetail": {
@@ -3682,6 +4336,48 @@
           }
         },
         "summary": "Agm Decision",
+        "tags": [
+          "instruments"
+        ]
+      }
+    },
+    "/instruments/{instrument_id}/dashboard": {
+      "get": {
+        "operationId": "dashboard_instruments__instrument_id__dashboard_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentDashboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dashboard",
         "tags": [
           "instruments"
         ]

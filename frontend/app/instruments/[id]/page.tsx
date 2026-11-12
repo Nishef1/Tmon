@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { apiGet, type AgmDecision, type InstrumentDetail } from "@/lib/api";
+import {
+  apiGet,
+  type AgmDecision,
+  type InstrumentDashboard,
+  type InstrumentDetail,
+} from "@/lib/api";
 import { featureInfo } from "@/lib/glossary";
 import { jalali } from "@/lib/format";
+import { SymbolDashboard } from "@/components/SymbolDashboard";
 import { LiveQuote } from "@/components/LiveQuote";
 import { CandleChart, type Level } from "@/components/CandleChart";
 import { Disclaimer } from "@/components/Disclaimer";
@@ -79,7 +85,10 @@ export default async function InstrumentPage({
   const { id } = await params;
   const q = await searchParams;
   if (!/^\d+$/.test(id)) notFound();
-  const res = await apiGet<InstrumentDetail>(`/instruments/${id}`);
+  const [res, dash] = await Promise.all([
+    apiGet<InstrumentDetail>(`/instruments/${id}`),
+    apiGet<InstrumentDashboard>(`/instruments/${id}/dashboard`),
+  ]);
   if (!res.ok && res.status === 404) notFound();
   if (!res.ok) {
     return (
@@ -116,6 +125,8 @@ export default async function InstrumentPage({
       </div>
 
       <Disclaimer />
+
+      {dash.ok && <SymbolDashboard d={dash.data} />}
 
       <LiveQuote instrumentId={d.instrument.id} />
 

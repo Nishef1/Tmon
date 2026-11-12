@@ -1,0 +1,277 @@
+import type { ReactNode } from "react";
+import type { InstrumentDashboard } from "@/lib/api";
+import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
+
+type D = InstrumentDashboard;
+type Verdict = D["decision"]["verdict"];
+
+const TONE: Record<Verdict, string> = {
+  buy: "border-good/40 bg-good/10",
+  hold: "border-warn/40 bg-warn-soft",
+  sell: "border-bad/40 bg-bad/10",
+  none: "border-line bg-surface",
+};
+const BADGE: Record<Verdict, string> = {
+  buy: "bg-good text-white",
+  hold: "bg-warn text-white",
+  sell: "bg-bad text-white",
+  none: "bg-muted text-white",
+};
+
+/** Share counts and volumes in short Persian units. */
+function qty(n: number | null | undefined): string {
+  if (n == null) return "—";
+  const a = Math.abs(n);
+  if (a >= 1e12) return `${faNumber(n / 1e12, 2)} هزار میلیارد`;
+  if (a >= 1e9) return `${faNumber(n / 1e9, 2)} میلیارد`;
+  if (a >= 1e6) return `${faNumber(n / 1e6, 1)} میلیون`;
+  if (a >= 1e3) return `${faNumber(n / 1e3, 1)} هزار`;
+  return faNumber(n);
+}
+
+/** Rial -> toman, short units. */
+function toman(rial: number | null | undefined): string {
+  if (rial == null) return "—";
+  const t = rial / 10;
+  const a = Math.abs(t);
+  if (a >= 1e12) return `${faNumber(t / 1e12, 2)} هزار میلیارد تومان`;
+  if (a >= 1e9) return `${faNumber(t / 1e9, 1)} میلیارد تومان`;
+  if (a >= 1e6) return `${faNumber(t / 1e6, 1)} میلیون تومان`;
+  return `${faNumber(t)} تومان`;
+}
+
+function Row({ k, v, tone }: { k: string; v: ReactNode; tone?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-sm last:border-0">
+      <dt className="text-muted">{k}</dt>
+      <dd className={`font-semibold ${tone ?? ""}`}>{v}</dd>
+    </div>
+  );
+}
+
+function Card({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-4">
+      <h2 className="mb-1 font-bold">{title}</h2>
+      {note && <p className="mb-2 text-xs text-muted">{note}</p>}
+      <dl>{children}</dl>
+    </section>
+  );
+}
+
+const sign = (n: number | null | undefined) => (n == null ? "" : n >= 0 ? "text-good" : "text-bad");
+
+/** Where `v` sits between `lo` and `hi` (0-100), for the range bars. */
+function pos(v: number | null, lo: number | null, hi: number | null): number | null {
+  if (v == null || lo == null || hi == null || hi <= lo) return null;
+  return Math.min(100, Math.max(0, ((v - lo) / (hi - lo)) * 100));
+}
+
+function RangeBar({
+  title,
+  lo,
+  hi,
+  at,
+  mark,
+}: {
+  title: string;
+  lo: number | null;
+  hi: number | null;
+  at: number | null;
+  mark?: number | null;
+}) {
+  const p = pos(at, lo, hi);
+  if (p == null || lo == null || hi == null) return null;
+  const r = pos(mark ?? null, lo, hi);
+  return (
+    <div className="py-2">
+      <div className="mb-1 flex justify-between text-xs text-muted">
+        <span>{title}</span>
+        <span>
+          {faNumber(lo)} تا {faNumber(hi)}
+        </span>
+      </div>
+      <div className="relative h-2 rounded bg-accent-soft">
+        {r != null && (
+          <span className="absolute top-[-3px] h-3.5 w-px bg-muted" style={{ right: `${r}%` }} />
+        )}
+        <span
+          className="absolute top-[-2px] h-3 w-3 rounded-full bg-accent"
+          style={{ right: `calc(${p}% - 6px)` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Decision({ d }: { d: D["decision"] }) {
+  return (
+    <section
+      className={`rounded-2xl border p-4 ${TONE[d.verdict]}`}
+      data-testid="symbol-decision"
+      data-verdict={d.verdict}
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`rounded-full px-4 py-1 text-lg font-extrabold ${BADGE[d.verdict]}`}>
+          {d.label}
+        </span>
+        <p className="font-semibold">{faDigits(d.headline)}</p>
+      </div>
+      {d.reasons.length > 0 && (
+        <ul className="mt-3 list-inside list-disc space-y-1 text-sm">
+          {d.reasons.map((r) => (
+            <li key={r}>{faDigits(r)}</li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-muted">
+        {d.advice_allowed
+          ? "همهٔ آزمون‌های اعتبار مدل گذشته‌اند."
+          : "خروجی مدل، تصمیم قطعی نیست و توصیهٔ سرمایه‌گذاری محسوب نمی‌شود."}
+        {d.as_of && ` · بر پایهٔ دادهٔ ${jalali(d.as_of)}`}
+      </p>
+    </section>
+  );
+}
+
+function shareOf(part: number | null, whole: number | null): string {
+  return part != null && whole ? ` (${faPercent(part / whole, 1)})` : "";
+}
+
+export function SymbolDashboard({ d }: { d: D }) {
+  const p = d.price;
+  const f = d.flow;
+  const buyTot =
+    f && f.buy_volume_i != null && f.buy_volume_n != null ? f.buy_volume_i + f.buy_volume_n : null;
+  const sellTot =
+    f && f.sell_volume_i != null && f.sell_volume_n != null
+      ? f.sell_volume_i + f.sell_volume_n
+      : null;
+  return (
+    <div className="space-y-4" data-testid="symbol-dashboard">
+      <Decision d={d.decision} />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {p && (
+          <Card title="قیمت" note={`روز ${jalali(p.date)}`}>
+            <Row k="قیمت پایانی" v={p.close == null ? "—" : faNumber(p.close)} />
+            <Row
+              k="تغییر پایانی"
+              v={p.close_change == null ? "—" : faPercent(p.close_change, 2, true)}
+              tone={sign(p.close_change)}
+            />
+            <Row k="آخرین معامله" v={p.last == null ? "—" : faNumber(p.last)} />
+            <Row
+              k="تغییر آخرین معامله"
+              v={p.last_change == null ? "—" : faPercent(p.last_change, 2, true)}
+              tone={sign(p.last_change)}
+            />
+            <Row k="قیمت دیروز" v={p.prev_close == null ? "—" : faNumber(p.prev_close)} />
+            <Row k="اولین قیمت" v={p.open == null ? "—" : faNumber(p.open)} />
+            <RangeBar title="بازهٔ قیمت امروز" lo={p.low} hi={p.high} at={p.close} />
+            <RangeBar
+              title="دامنهٔ مجاز نوسان"
+              lo={p.limit_down}
+              hi={p.limit_up}
+              at={p.close}
+              mark={p.prev_close}
+            />
+          </Card>
+        )}
+
+        {p && (
+          <Card
+            title="معاملات"
+            note="میانگین‌ها از روزهای معاملاتی اخیر محاسبه شده‌اند؛ نسبت حجم، حجم امروز تقسیم بر میانگین ۳۰ روز قبل است."
+          >
+            <Row k="تعداد معاملات" v={p.trades == null ? "—" : faNumber(p.trades)} />
+            <Row k="حجم معاملات" v={qty(p.volume)} />
+            <Row k="ارزش معاملات" v={toman(p.value)} />
+            <Row k="میانگین حجم ۱۰ روزه" v={qty(p.avg_volume_10)} />
+            <Row k="میانگین حجم ۲۲ روزه" v={qty(p.avg_volume_22)} />
+            <Row
+              k="نسبت حجم امروز به ۳۰ روز"
+              v={p.volume_ratio_30 == null ? "—" : faNumber(p.volume_ratio_30, 2)}
+              tone={p.volume_ratio_30 != null && p.volume_ratio_30 >= 1.5 ? "text-good" : ""}
+            />
+            {p.base_volume != null && <Row k="حجم مبنا" v={qty(p.base_volume)} />}
+          </Card>
+        )}
+
+        {f && (
+          <Card title="پول حقیقی و حقوقی" note={`روز ${jalali(f.date)}`}>
+            <Row
+              k="خرید حقیقی"
+              v={`${qty(f.buy_volume_i)} سهم${shareOf(f.buy_volume_i ?? null, buyTot)}`}
+            />
+            <Row
+              k="فروش حقیقی"
+              v={`${qty(f.sell_volume_i)} سهم${shareOf(f.sell_volume_i ?? null, sellTot)}`}
+            />
+            <Row
+              k="خرید حقوقی"
+              v={`${qty(f.buy_volume_n)} سهم${shareOf(f.buy_volume_n ?? null, buyTot)}`}
+            />
+            <Row
+              k="فروش حقوقی"
+              v={`${qty(f.sell_volume_n)} سهم${shareOf(f.sell_volume_n ?? null, sellTot)}`}
+            />
+            <Row
+              k="خالص ورود پول حقیقی"
+              v={toman(f.net_real_value)}
+              tone={sign(f.net_real_value)}
+            />
+            <Row
+              k="تعداد خریدار / فروشندهٔ حقیقی"
+              v={`${f.buy_count_i == null ? "—" : faNumber(f.buy_count_i)} / ${f.sell_count_i == null ? "—" : faNumber(f.sell_count_i)}`}
+            />
+            <Row
+              k="تعداد خریدار / فروشندهٔ حقوقی"
+              v={`${f.buy_count_n == null ? "—" : faNumber(f.buy_count_n)} / ${f.sell_count_n == null ? "—" : faNumber(f.sell_count_n)}`}
+            />
+          </Card>
+        )}
+
+        {f && (
+          <Card
+            title="سرانه و قدرت خریدار"
+            note="سرانه = ارزش خرید (یا فروش) حقیقی تقسیم بر تعداد کدهای حقیقی. قدرت خریدار = سرانهٔ خرید ÷ سرانهٔ فروش."
+          >
+            <Row k="سرانهٔ خرید (امروز)" v={toman(f.per_capita_buy)} />
+            <Row k="سرانهٔ خرید (میانگین ۱۰ روز)" v={toman(f.avg10_per_capita_buy)} />
+            <Row k="سرانهٔ فروش (امروز)" v={toman(f.per_capita_sell)} />
+            <Row k="سرانهٔ فروش (میانگین ۱۰ روز)" v={toman(f.avg10_per_capita_sell)} />
+            <Row
+              k="قدرت خریدار (امروز)"
+              v={f.power == null ? "—" : faNumber(f.power, 2)}
+              tone={f.power != null ? (f.power >= 1 ? "text-good" : "text-bad") : ""}
+            />
+            <Row
+              k="قدرت خریدار (میانگین ۱۰ روز)"
+              v={f.avg10_power == null ? "—" : faNumber(f.avg10_power, 2)}
+            />
+          </Card>
+        )}
+
+        <Card title="اطلاعات نماد">
+          {d.sector_name && <Row k="گروه صنعت" v={d.sector_name} />}
+          {d.board && <Row k="بازار" v={d.board} />}
+          {d.isin && <Row k="شناسهٔ ISIN" v={<bdi dir="ltr">{d.isin}</bdi>} />}
+          {d.shares != null && <Row k="تعداد سهام" v={qty(d.shares)} />}
+          {d.market_cap != null && <Row k="ارزش بازار" v={toman(d.market_cap)} />}
+          {d.fund && (
+            <>
+              <Row k="ارزش ابطال (NAV)" v={faNumber(d.fund.nav)} />
+              <Row
+                k="حباب صندوق"
+                v={d.fund.bubble == null ? "—" : faPercent(d.fund.bubble, 2, true)}
+                tone={d.fund.bubble != null && Math.abs(d.fund.bubble) > 0.03 ? "text-bad" : ""}
+              />
+              <Row k="تاریخ NAV" v={jalali(d.fund.nav_date)} />
+            </>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
