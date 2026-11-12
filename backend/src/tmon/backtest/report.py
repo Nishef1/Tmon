@@ -176,8 +176,8 @@ def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[st
         if exp is not None and be is not None:
             better = exp > be and (tr is None or btr is None or tr > btr)
             out.append(
-                f"نسبت به {baseline}: امید ریاضی {_fmt(exp, 'pct')} در برابر {_fmt(be, 'pct')}"
-                + ("؛ مدل بهتر بود." if better else "؛ مدل از baseline بهتر نبود.")
+                f"نسبت به روش پایهٔ ساده ({baseline}): امید ریاضی {_fmt(exp, 'pct')} در برابر {_fmt(be, 'pct')}"
+                + ("؛ مدل بهتر بود." if better else "؛ مدل از روش پایهٔ ساده بهتر نبود.")
             )
     return out
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type LiveAccuracy } from "@/lib/api";
-import { jalali } from "@/lib/format";
+import { faNumber, jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
@@ -29,8 +29,8 @@ export default async function AccuracyPage({
       <div>
         <h1 className="text-2xl font-extrabold">دقت زنده</h1>
         <p className="mt-1 text-sm text-muted">
-          نتیجهٔ سیگنال‌هایی که واقعاً منتشر شده‌اند، به تفکیک روز سیگنال. اگر Brier بیست روز اخیر
-          بیش از ۲۰٪ از Brier آزمون گذشته‌نگر بدتر شود، انتشار توصیه متوقف می‌شود.
+          نتیجهٔ سیگنال‌هایی که واقعاً منتشر شده‌اند، به تفکیک روز سیگنال. اگر امتیاز بریر بیست روز اخیر
+          بیش از ۲۰٪ از بریر آزمون گذشته‌نگر بدتر شود، انتشار توصیه متوقف می‌شود.
         </p>
       </div>
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="افق">
@@ -93,7 +93,7 @@ export default async function AccuracyPage({
               </div>
               <div>
                 <dt className="text-xs text-muted">
-                  Brier {res.data.recent_days} روز اخیر ({res.data.recent_n} سیگنال) / آزمون
+                  امتیاز بریر {faNumber(res.data.recent_days)} روز اخیر ({faNumber(res.data.recent_n)} سیگنال) / آزمون
                 </dt>
                 <dd>
                   {res.data.recent_brier != null ? (
@@ -121,7 +121,7 @@ export default async function AccuracyPage({
                 <caption className="sr-only">دقت سیگنال‌ها به تفکیک روز</caption>
                 <thead className="text-xs text-muted">
                   <tr className="border-b border-line">
-                    {["روز سیگنال", "تعداد", "موفق", "میانگین احتمال", "Brier"].map((h) => (
+                    {["روز سیگنال", "تعداد", "موفق", "میانگین احتمال", "بریر"].map((h) => (
                       <th key={h} scope="col" className="px-2 py-1.5 text-start font-medium">
                         {h}
                       </th>

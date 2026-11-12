@@ -144,7 +144,7 @@ export default async function InstrumentPage({
           {d.features_date && (
             <span className="text-sm font-normal text-muted">
               {" "}
-              · {jalali(d.features_date, "short")}
+              · تا {jalali(d.features_date, "long")}
             </span>
           )}
         </h2>

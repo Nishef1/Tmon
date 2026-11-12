@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Compare, type Funds } from "@/lib/api";
-import { jalali } from "@/lib/format";
+import { faNumber, jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
@@ -32,7 +32,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             aria-current={m === months ? "page" : undefined}
             className="rounded-lg border border-line px-3 py-1 aria-[current=page]:bg-surface aria-[current=page]:font-bold"
           >
-            {m} ماه
+            {faNumber(m)} ماه
           </Link>
         ))}
         {(["sci", "cbi"] as const).map((s) => (

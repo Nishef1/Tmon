@@ -87,9 +87,9 @@ def main(argv: list[str] | None = None) -> int:
         rf=rf,
     )
     title = args.title or (
-        f"بک‌تست مدل در برابر baseline ({args.timeframe})"
+        f"بک‌تست مدل در برابر روش پایهٔ ساده ({args.timeframe})"
         if args.model
-        else f"بک‌تست baseline ({args.timeframe})"
+        else f"بک‌تست روش پایهٔ ساده ({args.timeframe})"
     )
     gate = None
     notes: list[str] = []

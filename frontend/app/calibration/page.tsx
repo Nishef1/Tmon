@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Calibration, type CalibrationBlock } from "@/lib/api";
-import { jalali } from "@/lib/format";
+import { faDigits, jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
@@ -39,7 +39,7 @@ function Reliability({ block }: { block: CalibrationBlock }) {
           {rows.map((b) => (
             <tr key={b.bucket} className="border-b border-line last:border-0">
               <td className="px-2 py-1.5">
-                <bdi dir="ltr">{b.bucket}</bdi>
+                <bdi dir="ltr">{faDigits(b.bucket)}</bdi>
               </td>
               <td className="px-2 py-1.5">
                 <Num term="sample_size" value={b.n} kind="count" />
@@ -138,7 +138,7 @@ export default async function CalibrationPage() {
                 {res.data.gate.reasons.length > 0 && (
                   <ul className="mt-1 list-inside list-disc text-muted">
                     {res.data.gate.reasons.map((r) => (
-                      <li key={r}>{r}</li>
+                      <li key={r}>{faDigits(r)}</li>
                     ))}
                   </ul>
                 )}
@@ -151,7 +151,7 @@ export default async function CalibrationPage() {
               <p className="font-semibold">هشدارها</p>
               <ul className="mt-1 list-inside list-disc">
                 {res.data.warnings.map((w) => (
-                  <li key={w}>{w}</li>
+                  <li key={w}>{faDigits(w)}</li>
                 ))}
               </ul>
             </aside>

@@ -288,7 +288,7 @@ def test_halt_regime_has_no_trades_and_split_is_reported(random_walk_run):
 def test_report_contains_caveats_and_benchmarks(random_walk_run):
     md = render_markdown(random_walk_run, "t", synthetic=True)
     assert "داده مصنوعی" in md
-    assert "تأییدنشده" in md  # unverified commission/tax rules are flagged
+    assert "تطبیق داده نشده‌اند" in md  # unverified commission/tax rules are flagged
     assert "هم‌وزن" in md
     d = to_dict(random_walk_run)
     assert "equal_weight_all" in d["benchmarks"]

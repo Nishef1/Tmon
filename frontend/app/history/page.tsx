@@ -101,7 +101,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
               data-testid="history-empty"
               className="rounded-2xl border border-line bg-surface p-6 text-sm text-muted"
             >
-              سیگنالی برای نمایش وجود ندارد.
+              هنوز سیگنالی منتشر نشده است. تا وقتی نمادی شرایط توصیه را نداشته باشد (دلیل دقیق در
+              صفحهٔ رتبه‌بندی آمده)، چیزی در این فهرست ثبت نمی‌شود.
             </p>
           ) : (
             <SignalTable items={res.data.items} />

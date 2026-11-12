@@ -261,8 +261,18 @@ def data_warnings(
         for r in rules.unverified()
         if r.rule in {"commission_buy", "commission_sell", "sell_tax", "price_limit"}
     ]
-    for r in used:
-        w.append(f"قانون «{r.rule}» تأییدنشده است (verified=false)؛ هزینه‌ها و حدود قیمت تقریبی‌اند.")
+    if used:
+        names = {
+            "commission_buy": "کارمزد خرید",
+            "commission_sell": "کارمزد فروش",
+            "sell_tax": "مالیات فروش",
+            "price_limit": "حد نوسان قیمت",
+        }
+        listed = "، ".join(names[r.rule] for r in used)
+        w.append(
+            f"این قوانین هنوز با منبع رسمی تطبیق داده نشده‌اند: {listed}. "
+            "هزینه‌ها و حدود قیمت در محاسبه تقریبی‌اند."
+        )
     if rf_annual is None:
         w.append(
             "نرخ اخزا در دسترس نیست؛ مقایسه با درآمد ثابت انجام نشد و نسبت شارپ با نرخ بدون ریسک صفر محاسبه شده است."
