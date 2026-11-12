@@ -798,6 +798,64 @@ export interface components {
       text: string;
     };
     /**
+     * DashTurning
+     * @description Where the symbol stands in its fall or run-up and what history says about that place.
+     */
+    DashTurning: {
+      /** Above Sma20 */
+      above_sma20: boolean | null;
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      base: components["schemas"]["TurningState"];
+      /** Dd */
+      dd: number | null;
+      /**
+       * History First
+       * Format: date
+       */
+      history_first: string;
+      /**
+       * History Last
+       * Format: date
+       */
+      history_last: string;
+      /**
+       * Liquid
+       * @default false
+       */
+      liquid: boolean;
+      /** Market Bull */
+      market_bull: boolean | null;
+      /** Market Drawdown */
+      market_drawdown: number | null;
+      /** Net5 */
+      net5: number | null;
+      /** Power5 */
+      power5: number | null;
+      /** Ret20 */
+      ret20: number | null;
+      /** Ret60 */
+      ret60: number | null;
+      /** Round Trip Cost */
+      round_trip_cost: number;
+      /** Rsi */
+      rsi: number | null;
+      /**
+       * Split Date
+       * Format: date
+       */
+      split_date: string;
+      state: components["schemas"]["TurningState"];
+      /**
+       * Triggers
+       * @default []
+       */
+      triggers: components["schemas"]["TurningTrigger"][];
+    };
+    /**
      * DiagnosisOut
      * @description Exact numbers behind a day with few or no recommendations.
      */
@@ -1021,6 +1079,7 @@ export interface components {
       share_changes: components["schemas"]["DashShareChange"][];
       /** Shares */
       shares: number | null;
+      turning: components["schemas"]["DashTurning"] | null;
     };
     /** InstrumentDetail */
     InstrumentDetail: {
@@ -1792,6 +1851,73 @@ export interface components {
       timeframe: string;
       /** Top Reasons */
       top_reasons: components["schemas"]["Reason"][];
+    };
+    /** TurningHorizon */
+    TurningHorizon: {
+      /** Beat */
+      beat: number;
+      /** Excess Mean */
+      excess_mean: number;
+      /** Excess Median */
+      excess_median: number;
+      /** Horizon Days */
+      horizon_days: number;
+      /** N */
+      n: number;
+      /** P Dn20 */
+      p_dn20: number;
+      /** P Up50 */
+      p_up50: number;
+      /** Raw Median */
+      raw_median: number;
+    };
+    /**
+     * TurningState
+     * @description One state of the turning-point history (tmon.backtest.turning).
+     */
+    TurningState: {
+      /** Episodes */
+      episodes: number | null;
+      /**
+       * Halves Excess 120
+       * @default []
+       */
+      halves_excess_120: (number | null)[];
+      /**
+       * Horizons
+       * @default []
+       */
+      horizons: components["schemas"]["TurningHorizon"][];
+      /** Key */
+      key: string;
+      /** Mae60 Median */
+      mae60_median: number | null;
+      /** Mae60 P10 */
+      mae60_p10: number | null;
+      /** Meaning */
+      meaning: string;
+      /** N */
+      n: number;
+      /**
+       * Skewed
+       * @default false
+       */
+      skewed: boolean;
+      /** Symbols */
+      symbols: number | null;
+      /** Title */
+      title: string;
+      /**
+       * Tone
+       * @enum {string}
+       */
+      tone: "up" | "down" | "none";
+    };
+    /** TurningTrigger */
+    TurningTrigger: {
+      state: components["schemas"]["TurningState"];
+      /** When */
+      when: string;
     };
     /** ValidationError */
     ValidationError: {

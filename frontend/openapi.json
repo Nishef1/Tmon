@@ -1752,6 +1752,175 @@
         "title": "DashSignal",
         "type": "object"
       },
+      "DashTurning": {
+        "description": "Where the symbol stands in its fall or run-up and what history says about that place.",
+        "properties": {
+          "above_sma20": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Above Sma20"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "base": {
+            "$ref": "#/components/schemas/TurningState"
+          },
+          "dd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dd"
+          },
+          "history_first": {
+            "format": "date",
+            "title": "History First",
+            "type": "string"
+          },
+          "history_last": {
+            "format": "date",
+            "title": "History Last",
+            "type": "string"
+          },
+          "liquid": {
+            "default": false,
+            "title": "Liquid",
+            "type": "boolean"
+          },
+          "market_bull": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Bull"
+          },
+          "market_drawdown": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Drawdown"
+          },
+          "net5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net5"
+          },
+          "power5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power5"
+          },
+          "ret20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret20"
+          },
+          "ret60": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret60"
+          },
+          "round_trip_cost": {
+            "title": "Round Trip Cost",
+            "type": "number"
+          },
+          "rsi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi"
+          },
+          "split_date": {
+            "format": "date",
+            "title": "Split Date",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TurningState"
+          },
+          "triggers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TurningTrigger"
+            },
+            "title": "Triggers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "state",
+          "base",
+          "triggers",
+          "dd",
+          "ret20",
+          "ret60",
+          "rsi",
+          "net5",
+          "power5",
+          "above_sma20",
+          "liquid",
+          "market_bull",
+          "market_drawdown",
+          "round_trip_cost",
+          "history_first",
+          "history_last",
+          "split_date"
+        ],
+        "title": "DashTurning",
+        "type": "object"
+      },
       "DiagnosisOut": {
         "description": "Exact numbers behind a day with few or no recommendations.",
         "properties": {
@@ -2502,6 +2671,16 @@
               }
             ],
             "title": "Shares"
+          },
+          "turning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashTurning"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2520,7 +2699,8 @@
           "meeting",
           "events",
           "share_changes",
-          "decision"
+          "decision",
+          "turning"
         ],
         "title": "InstrumentDashboard",
         "type": "object"
@@ -5194,6 +5374,189 @@
           "outcome_date"
         ],
         "title": "SignalOut",
+        "type": "object"
+      },
+      "TurningHorizon": {
+        "properties": {
+          "beat": {
+            "title": "Beat",
+            "type": "number"
+          },
+          "excess_mean": {
+            "title": "Excess Mean",
+            "type": "number"
+          },
+          "excess_median": {
+            "title": "Excess Median",
+            "type": "number"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "p_dn20": {
+            "title": "P Dn20",
+            "type": "number"
+          },
+          "p_up50": {
+            "title": "P Up50",
+            "type": "number"
+          },
+          "raw_median": {
+            "title": "Raw Median",
+            "type": "number"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "n",
+          "excess_mean",
+          "excess_median",
+          "beat",
+          "raw_median",
+          "p_up50",
+          "p_dn20"
+        ],
+        "title": "TurningHorizon",
+        "type": "object"
+      },
+      "TurningState": {
+        "description": "One state of the turning-point history (tmon.backtest.turning).",
+        "properties": {
+          "episodes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episodes"
+          },
+          "halves_excess_120": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Halves Excess 120",
+            "type": "array"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TurningHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "mae60_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mae60 Median"
+          },
+          "mae60_p10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mae60 P10"
+          },
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "skewed": {
+            "default": false,
+            "title": "Skewed",
+            "type": "boolean"
+          },
+          "symbols": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbols"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "up",
+              "down",
+              "none"
+            ],
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "meaning",
+          "tone",
+          "skewed",
+          "n",
+          "symbols",
+          "episodes",
+          "horizons",
+          "mae60_median",
+          "mae60_p10",
+          "halves_excess_120"
+        ],
+        "title": "TurningState",
+        "type": "object"
+      },
+      "TurningTrigger": {
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/TurningState"
+          },
+          "when": {
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "when",
+          "state"
+        ],
+        "title": "TurningTrigger",
         "type": "object"
       },
       "ValidationError": {

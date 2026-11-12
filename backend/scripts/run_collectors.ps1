@@ -14,6 +14,8 @@ if ($Eod) {
 with session_scope() as s:
     refresh_features(s,'D1'); s.commit(); train_and_publish(s,get_object_store()); s.commit()"
   & $py -m tmon.tools.v2_ranking
+  # where each symbol stands in its fall or run-up, with that state's history
+  & $py -m tmon.tools.turning_points
   # new assembly/capital letters from Codal, then the day each invitation names
   & $py -m tmon.ingest.codal.cli events
   & $py -m tmon.ingest.codal.cli meetings

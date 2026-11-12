@@ -29,7 +29,11 @@ from tmon.api.schemas import (
     DashRanges,
     DashShareChange,
     DashSignal,
+    DashTurning,
     InstrumentDashboard,
+    TurningHorizon,
+    TurningState,
+    TurningTrigger,
 )
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
@@ -46,6 +50,7 @@ from tmon.storage.models import (
     ShareChange,
 )
 from tmon.storage.objectstore import get_object_store
+from tmon.tools.turning_points import KEY as TURNING_KEY
 from tmon.tools.v2_ranking import KEY
 
 log = logging.getLogger(__name__)
@@ -687,4 +692,82 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
             for c in changes
         ],
         decision=decide(inst, _ranking_doc(), statistics.median(vals) if vals else None),
+        turning=turning_out(_turning_doc(), inst.id),
+    )
+
+
+def _turning_doc() -> dict[str, Any] | None:
+    try:
+        raw = get_object_store().get(get_settings().minio_artifact_bucket, TURNING_KEY)
+    except (FileNotFoundError, KeyError):
+        return None
+    except Exception:  # store unreachable: leave the card out instead of failing the page
+        log.warning("turning document unreadable", exc_info=True)
+        return None
+    doc: dict[str, Any] = json.loads(raw)
+    return doc
+
+
+def _turning_state(key: str, meta: dict[str, Any], h: dict[str, Any]) -> TurningState:
+    return TurningState(
+        key=key,
+        title=meta.get("title", key),
+        meaning=meta.get("meaning", ""),
+        tone=h.get("tone", "none"),
+        skewed=bool(h.get("skewed")),
+        n=int(h.get("n") or 0),
+        symbols=h.get("symbols"),
+        episodes=h.get("episodes"),
+        horizons=[
+            TurningHorizon(horizon_days=d, **h[f"h{d}"]) for d in (20, 60, 120) if h.get(f"h{d}")
+        ],
+        mae60_median=h.get("mae60_median"),
+        mae60_p10=h.get("mae60_p10"),
+        halves_excess_120=[(b.get("h120") or {}).get("excess_mean") for b in h.get("halves", [])],
+    )
+
+
+def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning | None:
+    """The symbol's part of the turning-point document; None when it has no state (under a year
+    of history) or the document was never written."""
+    if not doc:
+        return None
+    cur = (doc.get("symbols") or {}).get(str(instrument_id))
+    if not cur or not cur.get("state"):
+        return None
+    meta = {m["key"]: m for m in doc.get("states", [])}
+    hist = doc["history"]
+    key = cur["state"]
+    base = _turning_state(
+        "all",
+        {"title": "همهٔ نمادهای نقدشونده", "meaning": "میانگین بازار در همان روزها"},
+        {**hist["base"], "tone": "none"},
+    )
+    return DashTurning(
+        as_of=dt.date.fromisoformat(cur["date"]),
+        state=_turning_state(key, meta.get(key, {}), hist["states"].get(key, {})),
+        base=base,
+        triggers=[
+            TurningTrigger(
+                when=t["when"],
+                state=_turning_state(
+                    t["to"], meta.get(t["to"], {}), hist["states"].get(t["to"], {})
+                ),
+            )
+            for t in meta.get(key, {}).get("triggers", [])
+        ],
+        dd=cur.get("dd"),
+        ret20=cur.get("ret20"),
+        ret60=cur.get("ret60"),
+        rsi=cur.get("rsi"),
+        net5=cur.get("net5"),
+        power5=cur.get("power5"),
+        above_sma20=cur.get("above_sma20"),
+        liquid=bool(cur.get("liquid")),
+        market_bull=(doc.get("market") or {}).get("bull"),
+        market_drawdown=(doc.get("market") or {}).get("drawdown"),
+        round_trip_cost=float(doc["round_trip_cost"]),
+        history_first=dt.date.fromisoformat(hist["first"]),
+        history_last=dt.date.fromisoformat(hist["last"]),
+        split_date=dt.date.fromisoformat(hist["split_date"]),
     )

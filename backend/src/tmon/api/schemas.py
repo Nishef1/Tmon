@@ -721,6 +721,62 @@ class DashDecision(ApiModel):
     horizons: list[DashHorizon] = []  # one decision per holding period
 
 
+class TurningHorizon(ApiModel):
+    horizon_days: int
+    n: int
+    excess_mean: float  # forward return minus the same-day mean of the liquid universe
+    excess_median: float
+    beat: float  # share of cases that beat that mean
+    raw_median: float
+    p_up50: float  # share with a +50% return over the horizon
+    p_dn20: float  # share with a -20% return over the horizon
+
+
+class TurningState(ApiModel):
+    """One state of the turning-point history (tmon.backtest.turning)."""
+
+    key: str
+    title: str
+    meaning: str
+    tone: Literal["up", "down", "none"]  # an edge both halves of the history agree on, or none
+    skewed: bool = False  # positive mean carried by a few large winners
+    n: int
+    symbols: int | None = None
+    episodes: int | None = None
+    horizons: list[TurningHorizon] = []
+    mae60_median: float | None = None  # worst close in the 60 days after entry
+    mae60_p10: float | None = None
+    halves_excess_120: list[float | None] = []
+
+
+class TurningTrigger(ApiModel):
+    when: str
+    state: TurningState
+
+
+class DashTurning(ApiModel):
+    """Where the symbol stands in its fall or run-up and what history says about that place."""
+
+    as_of: dt.date
+    state: TurningState
+    base: TurningState  # all liquid symbols, for comparison
+    triggers: list[TurningTrigger] = []
+    dd: float | None = None  # below the 52-week high
+    ret20: float | None = None
+    ret60: float | None = None
+    rsi: float | None = None
+    net5: float | None = None
+    power5: float | None = None
+    above_sma20: bool | None = None
+    liquid: bool = False
+    market_bull: bool | None = None
+    market_drawdown: float | None = None
+    round_trip_cost: float
+    history_first: dt.date
+    history_last: dt.date
+    split_date: dt.date
+
+
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
     isin: str | None = None
@@ -738,6 +794,7 @@ class InstrumentDashboard(ApiModel):
     events: list[DashEvent] = []
     share_changes: list[DashShareChange] = []
     decision: DashDecision
+    turning: DashTurning | None = None
 
 
 class SearchHit(ApiModel):
