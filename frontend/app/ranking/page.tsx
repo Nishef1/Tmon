@@ -128,14 +128,12 @@ function Body({ d }: { d: Ranking }) {
         <Zone key={z} zone={z} title={title} rule={rule} rows={by(z)} />
       ))}
       {other.length > 0 && (
-        <section className="space-y-2 text-sm" data-testid="zone-other">
-          <h2 className="text-lg font-bold">بدون امتیاز ({faNumber(other.length)} نماد)</h2>
-          <p className="text-muted">
-            این نمادها در سبد پرنقدشوندگی‌اند ولی امروز یکی از سیگنال‌هایشان محاسبه‌پذیر نیست
-            (سابقهٔ کم) یا در صف فروش‌اند؛ پس نه خرید و نه پرهیز برایشان گفته نمی‌شود:{" "}
-            {other.map((r) => r.symbol).join("، ")}.
-          </p>
-        </section>
+        <Zone
+          zone="other"
+          title="بدون امتیاز"
+          rule="امتیاز کل برای این نمادها محاسبه نشد چون دست‌کم یکی از چهار سیگنال (خانهٔ «—») سابقهٔ کافی ندارد یا نماد در صف فروش است؛ پس نه خرید و نه پرهیز برایشان گفته نمی‌شود"
+          rows={other}
+        />
       )}
 
       <section className="space-y-2" data-testid="ranking-evidence">
