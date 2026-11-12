@@ -61,6 +61,15 @@ class Instrument(Base):
     fetched_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class SectorName(Base, Provenance):
+    """Exchange industry-group code -> Persian name (TSETMC static data)."""
+
+    __tablename__ = "sector_names"
+
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    name: Mapped[str] = mapped_column(String(128))
+
+
 class MarketRule(Base):
     __tablename__ = "market_rules"
     __table_args__ = (Index("ix_market_rules_lookup", "market", "rule", "valid_from"),)

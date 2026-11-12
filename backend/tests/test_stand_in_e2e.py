@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from itertools import pairwise
 
 import httpx
 import pytest
@@ -19,14 +18,11 @@ from tmon.devtools.fake_tsetmc import serve
 from tmon.ingest.http import DomainRateLimiter, PoliteClient, RetryPolicy
 from tmon.ingest.tsetmc import endpoints
 from tmon.ingest.tsetmc.classify import load_classifier
-from tmon.ingest.tsetmc.intraday import IntradayState, snapshot_once
 from tmon.ingest.tsetmc.pipeline import Ctx, backfill
 from tmon.ingest.tsetmc.probe import run_probe
 from tmon.storage.models import (
     ClientTypeDaily,
     Instrument,
-    IntradaySnapshot,
-    OrderBookSnapshot,
     PriceDaily,
 )
 from tmon.storage.objectstore import MemoryStore
@@ -126,33 +122,3 @@ def test_limited_backfill_takes_the_most_liquid_instruments(session, closed_mark
     }
     top3 = sorted(liquidity, key=liquidity.__getitem__, reverse=True)[:3]
     assert done == set(top3)
-
-
-def test_intraday_poller_over_http_detects_changes(session, live_market):
-    store = MemoryStore()
-    state = IntradayState()
-
-    async def go():
-        client = _client()
-        try:
-            ctx = Ctx(session, client, store, load_classifier())
-            await backfill(ctx, limit=12)
-            totals = []
-            for _ in range(4):
-                totals.append(await snapshot_once(ctx, state, book_top_n=3))
-            return totals
-        finally:
-            await client.aclose()
-
-    totals = asyncio.run(go())
-    assert sum(t["snapshots"] for t in totals) > 0
-    assert sum(t["books"] for t in totals) > 0
-    snaps = session.scalars(select(IntradaySnapshot)).all()
-    assert snaps and all(s.cum_volume > 0 and s.source_url for s in snaps)
-    # change detection: never two consecutive snapshots with the same cumulative volume
-    per: dict[int, list[float]] = {}
-    for s in sorted(snaps, key=lambda s: s.ts):
-        per.setdefault(s.instrument_id, []).append(float(s.cum_volume))
-    assert all(a != b for v in per.values() for a, b in pairwise(v))
-    book = session.scalars(select(OrderBookSnapshot)).first()
-    assert book is not None and len(book.levels) == 5

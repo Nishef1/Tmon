@@ -12,14 +12,26 @@ import pytest
 import respx
 from sqlalchemy import select
 
+from tmon.core.timeutil import TEHRAN
 from tmon.domain.rules import RuleBook
 from tmon.ingest.http import DomainRateLimiter, PoliteClient, RetryPolicy
 from tmon.ingest.tsetmc import endpoints, parsers
-from tmon.ingest.tsetmc.classify import load_classifier
-from tmon.ingest.tsetmc.intraday import IntradayState, in_trading_hours, snapshot_once
-from tmon.ingest.tsetmc.pipeline import Ctx
+from tmon.ingest.tsetmc.intraday import (
+    FeedError,
+    IntradayState,
+    in_trading_hours,
+    store_quotes,
+    sync_sector_names,
+)
 from tmon.ingest.tsetmc.probe import format_report, run_probe
-from tmon.storage.models import Instrument, IntradaySnapshot, OrderBookSnapshot, RawPayload
+from tmon.storage.models import (
+    Instrument,
+    IntradaySnapshot,
+    OrderBookSnapshot,
+    PriceDaily,
+    RawPayload,
+    SectorName,
+)
 from tmon.storage.objectstore import FileStore, MemoryStore
 from tmon.storage.seed import seed_market_rules, seed_rulebook
 
@@ -78,54 +90,97 @@ def _client() -> PoliteClient:
     )
 
 
-def test_snapshot_stores_changed_quotes_books_for_most_active_and_samples_raw(session):
+def mw(code: str, *, volume: float, value: float, pmax: float = 1050, pmin: float = 950) -> dict:
+    return {
+        "insCode": code,
+        "pDrCotVal": 1010,
+        "qTotTran5J": volume,
+        "qTotCap": value,
+        "pMax": pmax,
+        "pMin": pmin,
+        "blDs": [
+            {
+                "n": i,
+                "qmd": 100 * i,
+                "zmd": i,
+                "pmd": 1000 - i,
+                "pmo": 1000 + i,
+                "qmo": 90 * i,
+                "zmo": i,
+            }
+            for i in range(1, 6)
+        ],
+    }
+
+
+def test_snapshot_stores_changed_quotes_books_limits_and_samples_raw(session):
     seed_market_rules(session)
     for code, sym in (("111", "الف"), ("112", "ب"), ("113", "ج")):
         session.add(Instrument(ins_code=code, symbol_fa=sym, instrument_type="stock"))
     session.flush()
+    now = datetime(2026, 11, 10, 7, 0, tzinfo=UTC)
+    day = now.astimezone(TEHRAN).date()
+    for iid in session.scalars(select(Instrument.id)):
+        session.add(PriceDaily(instrument_id=iid, date=day, close=1000))
+    session.flush()
     store = MemoryStore()
     state = IntradayState()
-    payload1 = watch(
-        row("111", "الف", volume=500, value=9_000_000),
-        row("112", "ب", volume=300, value=1_000_000),
-        row("113", "ج", volume=0, value=0),  # nothing traded: no snapshot
-        row("999", "ناشناخته", volume=10, value=10),  # not in our instrument table
-    )
-    payload2 = payload1.replace(
-        "111,IRO1111,الف,شرکت الف,10:15:30,1000,1010,1005,30,500,9000000",
-        "111,IRO1111,الف,شرکت الف,10:16:00,1000,1015,1005,31,650,9500000",
-    )
+    poll1 = [
+        mw("111", volume=500, value=9_000_000),
+        mw("112", volume=300, value=1_000_000),
+        mw("113", volume=0, value=0),  # nothing traded: no snapshot
+        mw("999", volume=10, value=10),  # not in our instrument table
+    ]
+    poll2 = [mw("111", volume=650, value=9_500_000), *poll1[1:]]
 
-    async def go(text: str) -> dict[str, int]:
-        client = _client()
-        try:
-            with respx.mock:
-                respx.get(endpoints.MARKET_WATCH_INIT).mock(
-                    return_value=httpx.Response(200, text=text)
-                )
-                respx.get(endpoints.best_limits_live_url("111")).mock(
-                    return_value=httpx.Response(200, json=BOOK)
-                )
-                respx.get(endpoints.best_limits_live_url("112")).mock(
-                    return_value=httpx.Response(200, json=BOOK)
-                )
-                ctx = Ctx(session, client, store, load_classifier())
-                return await snapshot_once(ctx, state, book_top_n=1)
-        finally:
-            await client.aclose()
-
-    r1 = asyncio.run(go(payload1))
-    assert r1 == {"quotes": 4, "snapshots": 2, "books": 1}
-    r2 = asyncio.run(go(payload2))  # only 111 traded further
-    assert r2["snapshots"] == 1
+    r1 = store_quotes(session, store, poll1, state, book_top_n=1, fetched_at=now)
+    assert r1 == {"quotes": 4, "snapshots": 2, "books": 1, "limits": 2}
+    r2 = store_quotes(session, store, poll2, state, book_top_n=1, fetched_at=now.replace(minute=1))
+    assert r2["snapshots"] == 1 and r2["limits"] == 0  # limits are written once per day
 
     snaps = session.scalars(select(IntradaySnapshot)).all()
     assert len(snaps) == 3 and all(s.source_url and s.fetched_at for s in snaps)
     assert {s.cum_volume for s in snaps} == {500, 300, 650}
     book = session.scalars(select(OrderBookSnapshot)).first()
     assert book is not None and len(book.levels) == 5 and book.levels[0]["bid_price"] == 999
-    # the most active instrument (by value) got the book; raw kept for poll #0 only
-    assert len(session.scalars(select(RawPayload)).all()) == 1
+    px = session.scalars(select(PriceDaily).where(PriceDaily.limit_up.is_not(None))).all()
+    assert len(px) == 2 and all(p.limit_up == 1050 and p.limit_down == 950 for p in px)
+    assert len(session.scalars(select(RawPayload)).all()) == 1  # raw kept for poll #0 only
+
+
+def test_feed_with_unknown_layout_is_refused(session):
+    with pytest.raises(FeedError):
+        store_quotes(
+            session,
+            MemoryStore(),
+            [{"x": 1}],
+            IntradayState(),
+            book_top_n=1,
+            fetched_at=datetime(2026, 11, 10, tzinfo=UTC),
+        )
+    with pytest.raises(FeedError):
+        store_quotes(
+            session,
+            MemoryStore(),
+            [],
+            IntradayState(),
+            book_top_n=1,
+            fetched_at=datetime(2026, 11, 10, tzinfo=UTC),
+        )
+
+
+def test_sector_names_come_from_static_data(session):
+    class Api:
+        async def static_data(self):
+            return [
+                {"type": "IndustrialGroup", "code": "1", "name": " زراعت "},
+                {"type": "IndustrialGroup", "code": "27", "name": "فلزات اساسی"},
+                {"type": "Other", "code": "5", "name": "x"},
+            ]
+
+    assert asyncio.run(sync_sector_names(session, Api())) == 2
+    got = {s.code: s.name for s in session.scalars(select(SectorName))}
+    assert got == {"01": "زراعت", "27": "فلزات اساسی"}
 
 
 def test_trading_hours_follow_the_rule_not_a_constant(session):

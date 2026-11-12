@@ -479,6 +479,7 @@ class MarketMover(ApiModel):
 
 class MarketSector(ApiModel):
     sector_code: str
+    name: str | None = None
     n: int
     avg_change: float | None = None
     value: float

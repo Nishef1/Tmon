@@ -936,6 +936,8 @@ export interface components {
       avg_change: number | null;
       /** N */
       n: number;
+      /** Name */
+      name: string | null;
       /** Net Real Flow */
       net_real_flow: number | null;
       /** Sector Code */

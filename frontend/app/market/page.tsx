@@ -141,14 +141,14 @@ function Body({ d }: { d: MarketOverview }) {
       <section className="space-y-2" data-testid="market-sectors">
         <h2 className="text-lg font-bold">گروه‌های پرمعامله</h2>
         <p className="text-xs text-muted">
-          نام گروه‌ها در دادهٔ ما نیست؛ فقط کد گروه بورس آمده است. «تغییر میانگین» میانگین ساده
-          تغییر سهم‌های گروه است، نه وزن‌دار با ارزش بازار.
+          «تغییر میانگین» میانگین ساده تغییر سهم‌های گروه است، نه وزن‌دار با ارزش بازار. اگر نام
+          گروهی هنوز در جدول نام‌ها نیامده باشد، فقط کد گروه بورس نشان داده می‌شود.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[30rem] text-sm">
             <thead className="text-xs text-muted">
               <tr className="text-right">
-                <th className="py-1">کد گروه</th>
+                <th className="py-1">گروه</th>
                 <th>سهام</th>
                 <th>ارزش معاملات</th>
                 <th>تغییر میانگین</th>
@@ -158,7 +158,7 @@ function Body({ d }: { d: MarketOverview }) {
             <tbody>
               {d.sectors.map((s) => (
                 <tr key={s.sector_code} className="border-t border-line">
-                  <td className="py-1">{faNumber(Number(s.sector_code))}</td>
+                  <td className="py-1">{s.name ?? `کد ${faNumber(Number(s.sector_code))}`}</td>
                   <td>{faNumber(s.n)}</td>
                   <td>{bt(s.value)}</td>
                   <td>{s.avg_change == null ? "—" : faPercent(s.avg_change, 2, true)}</td>

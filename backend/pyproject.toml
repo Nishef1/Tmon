@@ -27,6 +27,7 @@ dependencies = [
     "tenacity>=9.1",
     "hazm>=0.12.1",
     "anthropic>=2.8.0",
+    "iran-bourse-mcp>=0.5.0",
 ]
 
 [dependency-groups]

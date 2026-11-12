@@ -25,7 +25,13 @@ from tmon.api.schemas import (
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
-from tmon.storage.models import ClientTypeDaily, Instrument, MarketIndexDaily, PriceDaily
+from tmon.storage.models import (
+    ClientTypeDaily,
+    Instrument,
+    MarketIndexDaily,
+    PriceDaily,
+    SectorName,
+)
 
 router = APIRouter(tags=["market"])
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -162,6 +168,7 @@ def overview(session: SessionDep) -> MarketOverviewOut:
     for k, i in ins.items():
         if i.sector_code:
             grp.setdefault(i.sector_code, []).append(k)
+    names = {s.code: s.name for s in session.scalars(select(SectorName))}
     sectors = []
     for code, ks in grp.items():
         cs = [chg[k] for k in ks if k in chg]
@@ -169,6 +176,7 @@ def overview(session: SessionDep) -> MarketOverviewOut:
         sectors.append(
             MarketSector(
                 sector_code=code,
+                name=names.get(code.zfill(2)),
                 n=len(ks),
                 avg_change=sum(cs) / len(cs) if cs else None,
                 value=sum(val[k] for k in ks),
