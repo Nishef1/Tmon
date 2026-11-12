@@ -43,7 +43,7 @@ function toman(rial: number | null | undefined): string {
 
 function Row({ k, v, tone }: { k: string; v: ReactNode; tone?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-sm last:border-0">
+    <div className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 last:border-0">
       <dt className="text-muted">{k}</dt>
       <dd className={`font-semibold ${tone ?? ""}`}>{v}</dd>
     </div>
@@ -105,7 +105,53 @@ function RangeBar({
   );
 }
 
+const barTone = (pct: number) => (pct >= 66 ? "bg-up" : pct >= 33 ? "bg-hold" : "bg-down");
+
+function SignalBars({ signals }: { signals: D["decision"]["signals"] }) {
+  if (!signals.length) return null;
+  return (
+    <div className="mt-4" data-testid="signal-bars">
+      <h3 className="mb-1 font-bold">چرا این امتیاز را گرفته؟</h3>
+      <p className="mb-2 text-sm text-muted">
+        مدل چهار چیز را می‌سنجد و هر کدام را با همهٔ سهم‌های بازار مقایسه می‌کند. نوار پرتر یعنی
+        بهتر از سهم‌های بیشتری است.
+      </p>
+      <ul className="space-y-3">
+        {signals.map((g) => (
+          <li key={g.key}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-semibold">{g.name}</span>
+              <span className="text-sm">{faNumber(g.pct, 0)} از ۱۰۰</span>
+            </div>
+            <div className="mt-1 h-2.5 rounded-full bg-line" aria-hidden>
+              <div
+                className={`h-full rounded-full ${barTone(g.pct)}`}
+                style={{ width: `${Math.max(3, g.pct)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-sm text-muted">{faDigits(g.text)}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-surface p-3" data-testid="holding">
+      <h3 className="mb-1 font-bold">تا کی نگه دارم؟ کی بفروشم؟</h3>
+      <ul className="list-inside list-disc space-y-1.5">
+        {h.lines.map((l) => (
+          <li key={l}>{faDigits(l)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Decision({ d }: { d: D["decision"] }) {
+  const [first, ...rest] = d.reasons;
   return (
     <section
       className={`rounded-2xl border p-4 ${TONE[d.verdict]}`}
@@ -113,33 +159,141 @@ function Decision({ d }: { d: D["decision"] }) {
       data-verdict={d.verdict}
     >
       <div className="flex flex-wrap items-center gap-4">
-        <div className="w-52 shrink-0">
+        <div className="w-56 shrink-0">
           <Gauge value={d.gauge} label="امتیاز ترکیبی مدل" />
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-sm text-muted">
             {d.gauge == null ? "امتیازی محاسبه نشده" : "امتیاز ترکیبی (۱۰۰ = بهترین)"}
           </p>
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <span
-            className={`inline-block rounded-full px-4 py-1 text-lg font-extrabold ${BADGE[d.verdict]}`}
+            className={`inline-block rounded-full px-5 py-1 text-xl font-extrabold ${BADGE[d.verdict]}`}
           >
             {d.label}
           </span>
-          <p className="font-semibold">{faDigits(d.headline)}</p>
+          <p className="text-lg font-semibold">{faDigits(d.summary || d.headline)}</p>
+          {d.summary && <p className="text-muted">{faDigits(d.headline)}</p>}
+          {first && <p>{faDigits(first)}</p>}
         </div>
       </div>
-      {d.reasons.length > 0 && (
-        <ul className="mt-3 list-inside list-disc space-y-1 text-sm">
-          {d.reasons.map((r) => (
-            <li key={r}>{faDigits(r)}</li>
-          ))}
-        </ul>
+      <SignalBars signals={d.signals} />
+      {d.holding && <Holding h={d.holding} />}
+      {rest.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer font-semibold">جزئیات بیشتر و محدودیت‌ها</summary>
+          <ul className="mt-2 list-inside list-disc space-y-1.5">
+            {rest.map((r) => (
+              <li key={r}>{faDigits(r)}</li>
+            ))}
+          </ul>
+        </details>
       )}
-      <p className="mt-3 text-xs text-muted">
+      <p className="mt-3 text-sm text-muted">
         {d.advice_allowed
           ? "همهٔ آزمون‌های اعتبار مدل گذشته‌اند."
           : "خروجی مدل، تصمیم قطعی نیست و توصیهٔ سرمایه‌گذاری محسوب نمی‌شود."}
         {d.as_of && ` · بر پایهٔ دادهٔ ${jalali(d.as_of)}`}
+      </p>
+    </section>
+  );
+}
+
+const FA_VERDICT: Record<string, { label: string; cls: string }> = {
+  cheap: { label: "ارزان‌تر از گروه", cls: "bg-good text-white" },
+  fair: { label: "نزدیک به گروه", cls: "bg-neutral text-white" },
+  expensive: { label: "گران‌تر از گروه", cls: "bg-bad text-white" },
+  loss: { label: "زیان‌ده", cls: "bg-bad text-white" },
+  unknown: { label: "نامشخص", cls: "bg-line text-muted" },
+};
+
+function Fundamental({ f, sector }: { f: NonNullable<D["fundamental"]>; sector?: string | null }) {
+  const v = FA_VERDICT[f.verdict] ?? FA_VERDICT.unknown;
+  return (
+    <section
+      className="rounded-2xl border border-line bg-surface p-4"
+      data-testid="fundamental"
+      data-verdict={f.verdict}
+    >
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <h2 className="font-bold">سود و ارزش‌گذاری (EPS و P/E)</h2>
+        <span className={`rounded-full px-3 text-sm font-bold ${v.cls}`}>{v.label}</span>
+      </div>
+      <dl>
+        <Row
+          k="سود هر سهم (EPS)"
+          v={f.eps == null ? "—" : `${faNumber(f.eps)} ریال`}
+          tone={sign(f.eps)}
+        />
+        <Row k="P/E این سهم" v={f.pe == null ? "—" : faNumber(f.pe, 1)} />
+        <Row
+          k={`P/E گروه${sector ? ` «${sector}»` : ""}`}
+          v={f.sector_pe == null ? "—" : faNumber(f.sector_pe, 1)}
+        />
+        {f.vs_sector != null && (
+          <Row
+            k="نسبت به گروه"
+            v={faPercent(f.vs_sector, 0, true)}
+            tone={f.vs_sector < 0 ? "text-up" : "text-down"}
+          />
+        )}
+      </dl>
+      <p className="mt-2 text-muted">{faDigits(f.text)}</p>
+      <p className="mt-1 text-sm text-muted">منبع: بورس تهران (سود پیش‌بینی‌شدهٔ ناشر).</p>
+    </section>
+  );
+}
+
+function Company({ d }: { d: D }) {
+  const r = d.ranges;
+  const m = d.meeting;
+  const baseVol = d.base_volume != null && d.base_volume > 1 ? d.base_volume : null;
+  const empty = !m && !r && !baseVol && d.events.length === 0 && d.share_changes.length === 0;
+  if (empty) return null;
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-4" data-testid="company">
+      <h2 className="mb-1 font-bold">مجمع، رویدادها و اطلاعات شرکت</h2>
+      <dl>
+        <Row
+          k="مجمع بعدی"
+          v={
+            m
+              ? `${jalali(m.date)}${m.clock ? ` ساعت ${faDigits(m.clock)}` : ""} (${m.days_left === 0 ? "امروز" : `${faNumber(m.days_left)} روز دیگر`})`
+              : "مجمع اعلام‌شده‌ای ثبت نشده"
+          }
+        />
+        {m && <Row k="نوع مجمع" v={m.kind} />}
+        <Row k="حجم مبنا" v={baseVol ? faNumber(baseVol) : "ثبت نشده (۱ یا خالی)"} />
+        {r?.week_min != null && r.week_max != null && (
+          <Row k="بازهٔ یک هفته" v={`${faNumber(r.week_min)} تا ${faNumber(r.week_max)}`} />
+        )}
+        {r?.year_min != null && r.year_max != null && (
+          <Row k="بازهٔ یک سال" v={`${faNumber(r.year_min)} تا ${faNumber(r.year_max)}`} />
+        )}
+        {d.share_changes.map((c) => (
+          <Row
+            key={c.date}
+            k={`تغییر سرمایه ${jalali(c.date, "short")}`}
+            v={`${faNumber(c.shares_old)} ← ${faNumber(c.shares_new)} سهم${c.change_pct != null ? ` (${faPercent(c.change_pct, 0, true)})` : ""}`}
+          />
+        ))}
+      </dl>
+      {d.events.length > 0 && (
+        <>
+          <h3 className="mt-3 text-sm font-bold">آخرین رویدادهای کدال</h3>
+          <ul className="mt-1 space-y-1 text-sm" data-testid="company-events">
+            {d.events.map((e, i) => (
+              <li key={i} className="text-muted">
+                {e.date ? `${jalali(e.date, "short")} · ` : ""}
+                {e.label}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p className="mt-2 text-sm text-muted">
+        منبع: بورس تهران و کدال. روز مجمع از متن آگهی دعوت خوانده می‌شود؛ اگر آگهی روز را ننوشته
+        باشد یا هنوز خوانده نشده باشد، نمایش داده نمی‌شود. حجم مبنا همان عددی است که بورس ثبت کرده و
+        برای بیشتر سهم‌ها ۱ است.
       </p>
     </section>
   );
@@ -161,6 +315,9 @@ export function SymbolDashboard({ d }: { d: D }) {
   return (
     <div className="space-y-4" data-testid="symbol-dashboard">
       <Decision d={d.decision} />
+
+      {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
+      <Company d={d} />
 
       <div className="grid gap-4 md:grid-cols-2">
         {p && (

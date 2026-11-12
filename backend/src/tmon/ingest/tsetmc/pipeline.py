@@ -143,6 +143,12 @@ async def enrich_instrument(ctx: Ctx, instrument: Instrument) -> None:
             "shares": info.shares,
             "type_code": info.type_code,
             "fund_desc": info.fund_desc,
+            "eps": info.eps,
+            "sector_pe": info.sector_pe,
+            "week_min": info.week_min,
+            "week_max": info.week_max,
+            "year_min": info.year_min,
+            "year_max": info.year_max,
         }
     )
     if matched:
@@ -319,6 +325,39 @@ def refresh_trading_calendar(session: Session) -> int:
 # --------------------------------------------------------------------------- #
 
 
+async def refresh_info(ctx: Ctx) -> dict[str, int]:
+    """Re-read GetInstrumentInfo for every stock that traded in the last 30 days, so EPS and the
+    group P/E follow new financial statements. Instruments that fail are skipped, not fatal."""
+    last = ctx.session.scalar(select(func.max(PriceDaily.date)))
+    if last is None:
+        return {"refreshed": 0, "failed": 0}
+    ids = set(
+        ctx.session.scalars(
+            select(PriceDaily.instrument_id)
+            .where(PriceDaily.date >= last - timedelta(days=30))
+            .distinct()
+        )
+    )
+    stocks = [
+        i
+        for i in ctx.session.scalars(select(Instrument).where(Instrument.delisted_at.is_(None)))
+        if i.id in ids and i.instrument_type == "stock"
+    ]
+    done = failed = 0
+    for ins in stocks:
+        try:
+            await enrich_instrument(ctx, ins)
+            done += 1
+            if done % 25 == 0:
+                ctx.session.commit()
+        except (FetchError, parsers.ParseError, OperationalError) as exc:
+            ctx.session.rollback()
+            failed += 1
+            log.error("info refresh failed for %s: %s", ins.symbol_fa, exc)
+    ctx.session.commit()
+    return {"refreshed": done, "failed": failed}
+
+
 def _tradable_instruments(session: Session, classifier: Classifier) -> list[Instrument]:
     rows = session.scalars(select(Instrument).where(Instrument.delisted_at.is_(None))).all()
     return [i for i in rows if classifier.is_tradable(i.instrument_type)]
@@ -425,6 +464,8 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
             ctx = Ctx(session, client, get_object_store(), get_classifier())
             if fn_name == "backfill":
                 return await backfill(ctx, **kwargs)  # type: ignore[arg-type]
+            if fn_name == "info":
+                return await refresh_info(ctx)
             if fn_name == "eod":
                 return await end_of_day(ctx)
             if fn_name == "risk_free":
@@ -454,6 +495,10 @@ def refresh_instrument_list() -> int:
 
 def ingest_end_of_day() -> dict[str, int]:
     return asyncio.run(_run("eod"))
+
+
+def run_info_refresh() -> dict[str, int]:
+    return asyncio.run(_run("info"))
 
 
 def run_adjustment_check(out: str) -> dict[str, int]:
@@ -489,7 +534,18 @@ def backfill_info_tags(session: Session, store: ObjectStore) -> int:
             log.warning("info payload unreadable for %s: %s", ins.ins_code, exc)
             continue
         tags = dict(ins.tags or {})
-        new = {"type_code": info.type_code, "fund_desc": info.fund_desc}
+        new = {
+            "type_code": info.type_code,
+            "fund_desc": info.fund_desc,
+            "eps": info.eps,
+            "sector_pe": info.sector_pe,
+            "base_volume": info.base_volume,
+            "shares": info.shares,
+            "week_min": info.week_min,
+            "week_max": info.week_max,
+            "year_min": info.year_min,
+            "year_max": info.year_max,
+        }
         if any(tags.get(k) != v for k, v in new.items()):
             tags.update(new)
             ins.tags = tags

@@ -8,14 +8,22 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from tmon.api.routers.dashboard import _ranking_doc, decide
+from tmon.api.routers.dashboard import _ranking_doc, decide, fundamental_out
 from tmon.api.routers.market import _latest_full
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import Reason, ScreenerOut, ScreenerRow, Timeframe
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.features.builder import get_feature_set
-from tmon.storage.models import ClientTypeDaily, FeatureRow, Instrument, ModelRun, PriceDaily
+from tmon.ingest.tsetmc.parsers import normalize_fa
+from tmon.storage.models import (
+    ClientTypeDaily,
+    FeatureRow,
+    Instrument,
+    ModelRun,
+    PriceDaily,
+    SectorName,
+)
 from tmon.storage.objectstore import get_object_store
 
 router = APIRouter(tags=["screener"])
@@ -33,6 +41,8 @@ SortKey = Literal[
     "power",
     "net_real_value",
     "volume_ratio_30",
+    "pe",
+    "eps",
 ]
 FEATURES = ("rsi_14", "rel_volume", "atr_14_pct", "ind_buy_power", "ind_net_flow_ratio")
 
@@ -105,13 +115,20 @@ def screener(
         }
     ranking = _ranking_doc()
 
-    needle = (q or "").strip()
+    sectors = {
+        c.strip().zfill(2): normalize_fa(n)
+        for c, n in session.execute(select(SectorName.code, SectorName.name))
+    }
+    needle = normalize_fa((q or "").strip())
     rows: list[ScreenerRow] = []
     counts: dict[str, int] = {}
     for p, inst in prices:  # one row per symbol on one day
         if stocks_only and inst.instrument_type != "stock":
             continue
-        if needle and needle not in (inst.symbol_fa or "") and needle not in (inst.name_fa or ""):
+        sec = sectors.get((inst.sector_code or "").strip().zfill(2))
+        if needle and not any(
+            needle in normalize_fa(t or "") for t in (inst.symbol_fa, inst.name_fa, sec)
+        ):
             continue
         f = feats.get(inst.id, {})
         sc = scores.get(inst.id, {})
@@ -122,6 +139,7 @@ def screener(
         pcs = c.sell_value_i / c.sell_count_i if c and c.sell_value_i and c.sell_count_i else None
         pv = prior.get(inst.id)
         d = decide(inst, ranking, None)
+        fa = fundamental_out(inst, close, sec) if inst.instrument_type == "stock" else None
         counts[d.verdict] = counts.get(d.verdict, 0) + 1
         if verdict and d.verdict != verdict:
             continue
@@ -145,6 +163,10 @@ def screener(
                 verdict_label=d.label,
                 rank=d.rank,
                 gauge=d.gauge,
+                sector_name=sec,
+                eps=fa.eps if fa else None,
+                pe=fa.pe if fa else None,
+                sector_pe=fa.sector_pe if fa else None,
                 **{k: _num(f.get(k)) for k in FEATURES},
                 p_win=_num(sc.get("p_win")),
                 ev=_num(sc.get("ev")),
@@ -153,7 +175,7 @@ def screener(
                 reasons=[Reason(**r) for r in sc["reasons"]] if sc.get("reasons") else None,
             )
         )
-    sign = 1.0 if sort == "rank" else -1.0  # rank 1 is best, so ascending
+    sign = 1.0 if sort in ("rank", "pe") else -1.0  # rank 1 and the cheapest P/E come first
     rows.sort(key=lambda r: (getattr(r, sort) is None, sign * (getattr(r, sort) or 0.0)))
     return ScreenerOut(
         timeframe=timeframe,

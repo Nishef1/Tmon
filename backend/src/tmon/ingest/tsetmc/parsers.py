@@ -167,6 +167,14 @@ class InstrumentInfo:
     # TSETMC's own instrument-type code and, for funds, the fund-type text
     type_code: str | None = None
     fund_desc: str | None = None
+    # the exchange's own EPS (rial per share) and the industry group's P/E, when it publishes them
+    eps: float | None = None
+    sector_pe: float | None = None
+    # the exchange's own one-week and one-year price ranges (rial)
+    week_min: float | None = None
+    week_max: float | None = None
+    year_min: float | None = None
+    year_max: float | None = None
 
 
 def parse_instrument_info(payload: str | dict[str, Any]) -> InstrumentInfo:
@@ -187,7 +195,24 @@ def parse_instrument_info(payload: str | dict[str, Any]) -> InstrumentInfo:
         v = info.get(key)
         return normalize_fa(str(v)) if v else None
 
+    def _pos(key: str) -> float | None:
+        try:
+            v = float(info.get(key) or 0)
+        except (TypeError, ValueError):
+            return None
+        return v if v > 0 else None
+
     sector = info.get("sector") or {}
+    raw_eps = info.get("eps")
+    eps_block: dict[str, Any] = raw_eps if isinstance(raw_eps, dict) else {}
+
+    def _eps(key: str) -> float | None:
+        try:
+            v = float(eps_block.get(key) or 0)
+        except (TypeError, ValueError):
+            return None
+        return v if v == v and v != 0 else None  # NaN and the exchange's 0 mean "none"
+
     return InstrumentInfo(
         ins_code=str(info.get("insCode", "")),
         isin=_s("cIsin"),
@@ -203,6 +228,12 @@ def parse_instrument_info(payload: str | dict[str, Any]) -> InstrumentInfo:
         shares=_f("zTitad"),
         type_code=_s("yVal"),
         fund_desc=_fa("faraDesc"),
+        eps=_eps("estimatedEPS"),
+        sector_pe=_eps("sectorPE"),
+        week_min=_pos("minWeek"),
+        week_max=_pos("maxWeek"),
+        year_min=_pos("minYear"),
+        year_max=_pos("maxYear"),
     )
 
 

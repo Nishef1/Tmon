@@ -246,6 +246,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Search */
+    get: operations["search_search_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/signals/history": {
     parameters: {
       query?: never;
@@ -495,6 +512,7 @@ export interface components {
       gauge: number | null;
       /** Headline */
       headline: string;
+      holding: components["schemas"]["DashHolding"] | null;
       /**
        * In Basket
        * @default false
@@ -512,10 +530,29 @@ export interface components {
       /** Score */
       score: number | null;
       /**
+       * Signals
+       * @default []
+       */
+      signals: components["schemas"]["DashSignal"][];
+      /**
+       * Summary
+       * @default
+       */
+      summary: string;
+      /**
        * Verdict
        * @enum {string}
        */
       verdict: "buy" | "hold" | "sell" | "none";
+    };
+    /** DashEvent */
+    DashEvent: {
+      /** Date */
+      date: string | null;
+      /** Label */
+      label: string;
+      /** Title */
+      title: string | null;
     };
     /** DashFlow */
     DashFlow: {
@@ -563,6 +600,62 @@ export interface components {
       /** Nav Date */
       nav_date: string;
     };
+    /** DashFundamental */
+    DashFundamental: {
+      /** Eps */
+      eps: number | null;
+      /** Pe */
+      pe: number | null;
+      /** Sector Pe */
+      sector_pe: number | null;
+      /**
+       * Text
+       * @default
+       */
+      text: string;
+      /**
+       * Verdict
+       * @default unknown
+       * @enum {string}
+       */
+      verdict: "cheap" | "fair" | "expensive" | "loss" | "unknown";
+      /** Vs Sector */
+      vs_sector: number | null;
+    };
+    /**
+     * DashHolding
+     * @description How long the model's call is meant to be held, in plain words, with the measured edge.
+     */
+    DashHolding: {
+      /** Expected Excess */
+      expected_excess: number | null;
+      /** Horizon Days */
+      horizon_days: number;
+      /**
+       * Lines
+       * @default []
+       */
+      lines: string[];
+    };
+    /**
+     * DashMeeting
+     * @description The next general assembly announced on Codal, with the day read from the invitation.
+     */
+    DashMeeting: {
+      /** Clock */
+      clock: string | null;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Days Left */
+      days_left: number;
+      /** Kind */
+      kind: string;
+      /** Title */
+      title: string;
+    };
     /** DashPrice */
     DashPrice: {
       /** Avg Volume 10 */
@@ -601,6 +694,46 @@ export interface components {
       volume: number | null;
       /** Volume Ratio 30 */
       volume_ratio_30: number | null;
+    };
+    /** DashRanges */
+    DashRanges: {
+      /** Week Max */
+      week_max: number | null;
+      /** Week Min */
+      week_min: number | null;
+      /** Year Max */
+      year_max: number | null;
+      /** Year Min */
+      year_min: number | null;
+    };
+    /** DashShareChange */
+    DashShareChange: {
+      /** Change Pct */
+      change_pct: number | null;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Shares New */
+      shares_new: number;
+      /** Shares Old */
+      shares_old: number;
+    };
+    /**
+     * DashSignal
+     * @description One of the model's four signals in plain words: where the symbol stands among all scored
+     *     stocks (``pct`` 0-100, higher is better for every signal).
+     */
+    DashSignal: {
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
+      /** Pct */
+      pct: number;
+      /** Text */
+      text: string;
     };
     /**
      * DiagnosisOut
@@ -796,19 +929,34 @@ export interface components {
     };
     /** InstrumentDashboard */
     InstrumentDashboard: {
+      /** Base Volume */
+      base_volume: number | null;
       /** Board */
       board: string | null;
       decision: components["schemas"]["DashDecision"];
+      /**
+       * Events
+       * @default []
+       */
+      events: components["schemas"]["DashEvent"][];
       flow: components["schemas"]["DashFlow"] | null;
       fund: components["schemas"]["DashFund"] | null;
+      fundamental: components["schemas"]["DashFundamental"] | null;
       instrument: components["schemas"]["InstrumentOut"];
       /** Isin */
       isin: string | null;
       /** Market Cap */
       market_cap: number | null;
+      meeting: components["schemas"]["DashMeeting"] | null;
       price: components["schemas"]["DashPrice"] | null;
+      ranges: components["schemas"]["DashRanges"] | null;
       /** Sector Name */
       sector_name: string | null;
+      /**
+       * Share Changes
+       * @default []
+       */
+      share_changes: components["schemas"]["DashShareChange"][];
       /** Shares */
       shares: number | null;
     };
@@ -1375,6 +1523,8 @@ export interface components {
       change_pct: number | null;
       /** Close */
       close: number | null;
+      /** Eps */
+      eps: number | null;
       /** Ev */
       ev: number | null;
       /** Gauge */
@@ -1390,6 +1540,8 @@ export interface components {
       p_min: number | null;
       /** P Win */
       p_win: number | null;
+      /** Pe */
+      pe: number | null;
       /** Per Capita Buy */
       per_capita_buy: number | null;
       /** Per Capita Sell */
@@ -1404,6 +1556,10 @@ export interface components {
       rel_volume: number | null;
       /** Rsi 14 */
       rsi_14: number | null;
+      /** Sector Name */
+      sector_name: string | null;
+      /** Sector Pe */
+      sector_pe: number | null;
       /** Signal */
       signal: boolean | null;
       /** Trades */
@@ -1423,6 +1579,46 @@ export interface components {
       verdict_label: string;
       /** Volume Ratio 30 */
       volume_ratio_30: number | null;
+    };
+    /** SearchHit */
+    SearchHit: {
+      /** Change Pct */
+      change_pct: number | null;
+      /** Close */
+      close: number | null;
+      /** Eps */
+      eps: number | null;
+      /** Gauge */
+      gauge: number | null;
+      instrument: components["schemas"]["InstrumentOut"];
+      /** Kind */
+      kind: string;
+      /** Pe */
+      pe: number | null;
+      /** Sector Name */
+      sector_name: string | null;
+      /** Sector Pe */
+      sector_pe: number | null;
+      /**
+       * Verdict
+       * @default none
+       * @enum {string}
+       */
+      verdict: "buy" | "hold" | "sell" | "none";
+      /**
+       * Verdict Label
+       * @default
+       */
+      verdict_label: string;
+    };
+    /** SearchOut */
+    SearchOut: {
+      /** Hits */
+      hits: components["schemas"]["SearchHit"][];
+      /** Query */
+      query: string;
+      /** Total */
+      total: number;
     };
     /** SignalOut */
     SignalOut: {
@@ -1851,7 +2047,9 @@ export interface operations {
           | "gauge"
           | "power"
           | "net_real_value"
-          | "volume_ratio_30";
+          | "volume_ratio_30"
+          | "pe"
+          | "eps";
         q?: string | null;
         verdict?: ("buy" | "hold" | "sell" | "none") | null;
         stocks_only?: boolean;
@@ -1870,6 +2068,38 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ScreenerOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_search_get: {
+    parameters: {
+      query: {
+        q: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SearchOut"];
         };
       };
       /** @description Validation Error */

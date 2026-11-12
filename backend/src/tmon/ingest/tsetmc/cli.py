@@ -18,6 +18,7 @@ from tmon.ingest.tsetmc.pipeline import (
     run_adjustment_check,
     run_backfill,
     run_indices,
+    run_info_refresh,
     run_reclassify,
     run_risk_free,
 )
@@ -37,6 +38,7 @@ def main() -> None:
     sub.add_parser("eod", help="incremental end-of-day refresh")
     adj = sub.add_parser("adjustment-check", help="compare our price adjustment with TSETMC's")
     adj.add_argument("--out", default="docs/reports/adjustment-check.md")
+    sub.add_parser("info", help="refresh EPS and group P/E of stocks that traded lately")
     sub.add_parser("risk-free", help="treasury bill history and the one-year yield series")
     sub.add_parser("indices", help="TEDPIX and equal-weight index daily history")
     sub.add_parser("reclassify", help="re-run the type classifier over stored instruments")
@@ -62,6 +64,9 @@ def main() -> None:
         return
     if args.cmd == "adjustment-check":
         print(run_adjustment_check(args.out))
+        return
+    if args.cmd == "info":
+        print(run_info_refresh())
         return
     if args.cmd == "risk-free":
         print(run_risk_free())

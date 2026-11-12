@@ -712,6 +712,16 @@
             "title": "Headline",
             "type": "string"
           },
+          "holding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashHolding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "in_basket": {
             "default": false,
             "title": "In Basket",
@@ -751,6 +761,19 @@
             ],
             "title": "Score"
           },
+          "signals": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashSignal"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
           "verdict": {
             "enum": [
               "buy",
@@ -773,9 +796,50 @@
           "basket_size",
           "score",
           "gauge",
-          "in_basket"
+          "in_basket",
+          "summary",
+          "signals",
+          "holding"
         ],
         "title": "DashDecision",
+        "type": "object"
+      },
+      "DashEvent": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "date",
+          "label",
+          "title"
+        ],
+        "title": "DashEvent",
         "type": "object"
       },
       "DashFlow": {
@@ -1013,6 +1077,158 @@
         "title": "DashFund",
         "type": "object"
       },
+      "DashFundamental": {
+        "properties": {
+          "eps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eps"
+          },
+          "pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pe"
+          },
+          "sector_pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Pe"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          },
+          "verdict": {
+            "default": "unknown",
+            "enum": [
+              "cheap",
+              "fair",
+              "expensive",
+              "loss",
+              "unknown"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "vs_sector": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Sector"
+          }
+        },
+        "required": [
+          "eps",
+          "pe",
+          "sector_pe",
+          "vs_sector",
+          "verdict",
+          "text"
+        ],
+        "title": "DashFundamental",
+        "type": "object"
+      },
+      "DashHolding": {
+        "description": "How long the model's call is meant to be held, in plain words, with the measured edge.",
+        "properties": {
+          "expected_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Excess"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "expected_excess",
+          "lines"
+        ],
+        "title": "DashHolding",
+        "type": "object"
+      },
+      "DashMeeting": {
+        "description": "The next general assembly announced on Codal, with the day read from the invitation.",
+        "properties": {
+          "clock": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clock"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "days_left": {
+            "title": "Days Left",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "clock",
+          "kind",
+          "days_left",
+          "title"
+        ],
+        "title": "DashMeeting",
+        "type": "object"
+      },
       "DashPrice": {
         "properties": {
           "avg_volume_10": {
@@ -1228,6 +1444,127 @@
           "volume_ratio_30"
         ],
         "title": "DashPrice",
+        "type": "object"
+      },
+      "DashRanges": {
+        "properties": {
+          "week_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week Max"
+          },
+          "week_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week Min"
+          },
+          "year_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Max"
+          },
+          "year_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Min"
+          }
+        },
+        "required": [
+          "week_min",
+          "week_max",
+          "year_min",
+          "year_max"
+        ],
+        "title": "DashRanges",
+        "type": "object"
+      },
+      "DashShareChange": {
+        "properties": {
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "shares_new": {
+            "title": "Shares New",
+            "type": "integer"
+          },
+          "shares_old": {
+            "title": "Shares Old",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "shares_old",
+          "shares_new",
+          "change_pct"
+        ],
+        "title": "DashShareChange",
+        "type": "object"
+      },
+      "DashSignal": {
+        "description": "One of the model's four signals in plain words: where the symbol stands among all scored\nstocks (``pct`` 0-100, higher is better for every signal).",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pct": {
+            "title": "Pct",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "pct",
+          "text"
+        ],
+        "title": "DashSignal",
         "type": "object"
       },
       "DiagnosisOut": {
@@ -1833,6 +2170,17 @@
       },
       "InstrumentDashboard": {
         "properties": {
+          "base_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Volume"
+          },
           "board": {
             "anyOf": [
               {
@@ -1846,6 +2194,14 @@
           },
           "decision": {
             "$ref": "#/components/schemas/DashDecision"
+          },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashEvent"
+            },
+            "title": "Events",
+            "type": "array"
           },
           "flow": {
             "anyOf": [
@@ -1861,6 +2217,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/DashFund"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fundamental": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashFundamental"
               },
               {
                 "type": "null"
@@ -1892,10 +2258,30 @@
             ],
             "title": "Market Cap"
           },
+          "meeting": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashMeeting"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "price": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/DashPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ranges": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashRanges"
               },
               {
                 "type": "null"
@@ -1912,6 +2298,14 @@
               }
             ],
             "title": "Sector Name"
+          },
+          "share_changes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashShareChange"
+            },
+            "title": "Share Changes",
+            "type": "array"
           },
           "shares": {
             "anyOf": [
@@ -1935,6 +2329,12 @@
           "price",
           "flow",
           "fund",
+          "fundamental",
+          "base_volume",
+          "ranges",
+          "meeting",
+          "events",
+          "share_changes",
           "decision"
         ],
         "title": "InstrumentDashboard",
@@ -3731,6 +4131,17 @@
             ],
             "title": "Close"
           },
+          "eps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eps"
+          },
           "ev": {
             "anyOf": [
               {
@@ -3810,6 +4221,17 @@
               }
             ],
             "title": "P Win"
+          },
+          "pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pe"
           },
           "per_capita_buy": {
             "anyOf": [
@@ -3891,6 +4313,28 @@
             ],
             "title": "Rsi 14"
           },
+          "sector_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Name"
+          },
+          "sector_pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Pe"
+          },
           "signal": {
             "anyOf": [
               {
@@ -3967,6 +4411,10 @@
           "verdict_label",
           "rank",
           "gauge",
+          "sector_name",
+          "eps",
+          "pe",
+          "sector_pe",
           "rsi_14",
           "rel_volume",
           "atr_14_pct",
@@ -3979,6 +4427,151 @@
           "reasons"
         ],
         "title": "ScreenerRow",
+        "type": "object"
+      },
+      "SearchHit": {
+        "properties": {
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "eps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eps"
+          },
+          "gauge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gauge"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentOut"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pe"
+          },
+          "sector_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Name"
+          },
+          "sector_pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Pe"
+          },
+          "verdict": {
+            "default": "none",
+            "enum": [
+              "buy",
+              "hold",
+              "sell",
+              "none"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "verdict_label": {
+            "default": "",
+            "title": "Verdict Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "sector_name",
+          "kind",
+          "close",
+          "change_pct",
+          "verdict",
+          "verdict_label",
+          "gauge",
+          "eps",
+          "pe",
+          "sector_pe"
+        ],
+        "title": "SearchHit",
+        "type": "object"
+      },
+      "SearchOut": {
+        "properties": {
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "title": "Hits",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query",
+          "total",
+          "hits"
+        ],
+        "title": "SearchOut",
         "type": "object"
       },
       "SignalOut": {
@@ -4803,7 +5396,9 @@
                 "gauge",
                 "power",
                 "net_real_value",
-                "volume_ratio_30"
+                "volume_ratio_30",
+                "pe",
+                "eps"
               ],
               "title": "Sort",
               "type": "string"
@@ -4896,6 +5491,62 @@
         "summary": "Screener",
         "tags": [
           "screener"
+        ]
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "search_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search",
+        "tags": [
+          "search"
         ]
       }
     },

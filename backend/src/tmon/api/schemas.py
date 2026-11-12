@@ -368,6 +368,10 @@ class ScreenerRow(ApiModel):
     verdict_label: str = ""
     rank: int | None = None
     gauge: float | None = None
+    sector_name: str | None = None
+    eps: float | None = None
+    pe: float | None = None
+    sector_pe: float | None = None
     rsi_14: float | None = None
     rel_volume: float | None = None
     atr_14_pct: float | None = None
@@ -584,6 +588,63 @@ class DashFund(ApiModel):
     bubble: float | None = None
 
 
+class DashSignal(ApiModel):
+    """One of the model's four signals in plain words: where the symbol stands among all scored
+    stocks (``pct`` 0-100, higher is better for every signal)."""
+
+    key: str
+    name: str
+    pct: float
+    text: str
+
+
+class DashHolding(ApiModel):
+    """How long the model's call is meant to be held, in plain words, with the measured edge."""
+
+    horizon_days: int
+    expected_excess: float | None = None  # mean excess return of the top group over the market
+    lines: list[str] = []
+
+
+class DashMeeting(ApiModel):
+    """The next general assembly announced on Codal, with the day read from the invitation."""
+
+    date: dt.date
+    clock: str | None = None
+    kind: str
+    days_left: int
+    title: str
+
+
+class DashEvent(ApiModel):
+    date: dt.date | None = None
+    label: str
+    title: str | None = None
+
+
+class DashShareChange(ApiModel):
+    date: dt.date
+    shares_old: int
+    shares_new: int
+    change_pct: float | None = None
+
+
+class DashRanges(ApiModel):
+    week_min: float | None = None
+    week_max: float | None = None
+    year_min: float | None = None
+    year_max: float | None = None
+
+
+class DashFundamental(ApiModel):
+    eps: float | None = None
+    pe: float | None = None
+    sector_pe: float | None = None
+    vs_sector: float | None = None
+    verdict: Literal["cheap", "fair", "expensive", "loss", "unknown"] = "unknown"
+    text: str = ""
+
+
 class DashDecision(ApiModel):
     """The single final answer per symbol: buy, hold, sell or none, with the reasons."""
 
@@ -598,6 +659,9 @@ class DashDecision(ApiModel):
     score: float | None = None
     gauge: float | None = None  # score on 0-100 for the semicircle gauge; None = not scored
     in_basket: bool = False  # inside the validated liquid basket; False = unvalidated score
+    summary: str = ""  # one plain sentence on what the verdict means for the reader
+    signals: list[DashSignal] = []
+    holding: DashHolding | None = None
 
 
 class InstrumentDashboard(ApiModel):
@@ -610,4 +674,30 @@ class InstrumentDashboard(ApiModel):
     price: DashPrice | None = None
     flow: DashFlow | None = None
     fund: DashFund | None = None
+    fundamental: DashFundamental | None = None
+    base_volume: float | None = None
+    ranges: DashRanges | None = None
+    meeting: DashMeeting | None = None
+    events: list[DashEvent] = []
+    share_changes: list[DashShareChange] = []
     decision: DashDecision
+
+
+class SearchHit(ApiModel):
+    instrument: InstrumentOut
+    sector_name: str | None = None
+    kind: str
+    close: float | None = None
+    change_pct: float | None = None
+    verdict: Literal["buy", "hold", "sell", "none"] = "none"
+    verdict_label: str = ""
+    gauge: float | None = None
+    eps: float | None = None
+    pe: float | None = None
+    sector_pe: float | None = None
+
+
+class SearchOut(ApiModel):
+    query: str
+    total: int
+    hits: list[SearchHit]

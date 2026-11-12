@@ -250,6 +250,33 @@ function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
   if (path === "/v2/ranking") return [200, RANKING];
+  if (path === "/search") {
+    const q = url.searchParams.get("q") ?? "";
+    const all = [
+      { id: 1, symbol: "فولاد", name: "فولاد مبارکه" },
+      { id: 2, symbol: "فملی", name: "ملی صنایع مس" },
+    ].filter((h) => h.symbol.includes(q) || h.name.includes(q) || "فلزات".includes(q));
+    return [
+      200,
+      {
+        query: q,
+        total: all.length,
+        hits: all.map((h) => ({
+          instrument: { ...inst, id: h.id, symbol: h.symbol, name: h.name },
+          sector_name: "فلزات اساسی",
+          kind: "سهام",
+          close: 1005,
+          change_pct: 0.01,
+          verdict: "hold",
+          verdict_label: "نگهداری",
+          gauge: 81,
+          eps: 500,
+          pe: 5,
+          sector_pe: 8,
+        })),
+      },
+    ];
+  }
   if (path === "/screener") {
     const row = (id, symbol, verdict, label, rank) => ({
       instrument: { ...inst, id, symbol },
@@ -266,6 +293,10 @@ function route(url) {
       verdict_label: label,
       rank,
       gauge: rank == null ? null : 100 - rank * 5,
+      sector_name: "فلزات اساسی",
+      eps: 500,
+      pe: 5,
+      sector_pe: 8,
       rsi_14: 55,
     });
     const only = url.searchParams.get("verdict");
@@ -400,6 +431,25 @@ function route(url) {
           avg10_power: 1.06,
         },
         fund: null,
+        fundamental: {
+          eps: 500,
+          pe: 5,
+          sector_pe: 8,
+          vs_sector: -0.375,
+          verdict: "cheap",
+          text: "هر سهم سالانه 500 ریال سود می‌سازد و قیمتش 5 برابر آن است.",
+        },
+        base_volume: 1,
+        ranges: { week_min: 90, week_max: 110, year_min: 60, year_max: 130 },
+        meeting: {
+          date: "2026-11-23",
+          clock: "10:00",
+          kind: "دعوت به مجمع عادی سالیانه",
+          days_left: 11,
+          title: "آگهی دعوت به مجمع عمومی عادی سالیانه",
+        },
+        events: [{ date: "2026-11-10", label: "دعوت به مجمع عادی سالیانه", title: null }],
+        share_changes: [],
         decision: {
           verdict: "hold",
           label: "نگهداری",
@@ -412,6 +462,29 @@ function route(url) {
           score: 0.8,
           gauge: 81,
           in_basket: true,
+          summary: "وضعش متوسط‌رو‌به‌بالاست: اگر دارید نگه دارید.",
+          signals: [
+            {
+              key: "ind_buy_power",
+              name: "قدرت خریدار حقیقی",
+              pct: 95,
+              text: "خریداران حقیقی چقدر بیشتر از فروشندگان پول وارد کرده‌اند؛ از 95٪ سهم‌ها بهتر است.",
+            },
+            {
+              key: "mom_12_1",
+              name: "روند ۱۲ ماههٔ قیمت",
+              pct: 17,
+              text: "رشد یک‌ساله؛ از 17٪ سهم‌ها بهتر است.",
+            },
+          ],
+          holding: {
+            horizon_days: 20,
+            expected_excess: 0.04,
+            lines: [
+              "مدل برای نگهداری حدود 20 روز معاملاتی ساخته شده است، نه برای خرید و فروش در همان روز.",
+              "اگر سهم را دارید نگه دارید و هر ماه امتیاز را ببینید.",
+            ],
+          },
         },
       },
     ];

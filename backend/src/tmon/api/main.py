@@ -12,6 +12,7 @@ from tmon.api.routers import (
     ranking,
     recommendations,
     screener,
+    search,
     signals,
 )
 from tmon.core.config import get_settings
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
         metrics.router,
         macro.router,
         screener.router,
+        search.router,
         market.router,
         ranking.router,
     ):

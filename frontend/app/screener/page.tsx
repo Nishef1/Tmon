@@ -17,6 +17,7 @@ const SORTS = [
   ["power", "قدرت خریدار"],
   ["net_real_value", "خالص ورود پول حقیقی"],
   ["volume_ratio_30", "نسبت حجم به ۳۰ روز"],
+  ["pe", "P/E (ارزان‌ترین اول)"],
   ["rsi_14", "RSI"],
 ] as const;
 
@@ -117,7 +118,7 @@ export default async function ScreenerPage({ searchParams }: { searchParams: Pro
             <form className="flex flex-wrap items-end gap-2 text-sm" action="/screener">
               <input type="hidden" name="v" value={verdict} />
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted">جست‌وجوی نماد یا نام</span>
+                <span className="text-xs text-muted">جست‌وجوی نماد، نام یا صنعت</span>
                 <input
                   name="q"
                   defaultValue={q}
@@ -180,11 +181,14 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
     "سرانهٔ فروش",
     "قدرت خریدار",
     "خالص ورود حقیقی",
+    "EPS",
+    "P/E",
+    "P/E گروه",
     "RSI",
   ];
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface p-2">
-      <table className="w-full min-w-[64rem] text-sm" data-testid="screener-table">
+      <table className="w-full min-w-[76rem] text-sm" data-testid="screener-table">
         <caption className="sr-only">همهٔ نمادها</caption>
         <thead className="text-xs text-muted">
           <tr className="border-b border-line">
@@ -206,6 +210,7 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
                 >
                   {r.instrument.symbol}
                 </Link>
+                {r.sector_name && <div className="text-xs text-muted">{r.sector_name}</div>}
               </td>
               <td className="px-2 py-1.5">
                 <span
@@ -238,6 +243,11 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
                 {r.power == null ? "—" : faNumber(r.power, 2)}
               </td>
               <td className={`px-2 py-1.5 ${tone(r.net_real_value)}`}>{toman(r.net_real_value)}</td>
+              <td className="px-2 py-1.5">{r.eps == null ? "—" : faNumber(r.eps)}</td>
+              <td className="px-2 py-1.5">{r.pe == null ? "—" : faNumber(r.pe, 1)}</td>
+              <td className="px-2 py-1.5">
+                {r.sector_pe == null ? "—" : faNumber(r.sector_pe, 1)}
+              </td>
               <td className="px-2 py-1.5">{r.rsi_14 == null ? "—" : faNumber(r.rsi_14, 0)}</td>
             </tr>
           ))}

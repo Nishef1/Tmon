@@ -4,6 +4,7 @@ daily tables and the latest ranking document; nothing is estimated here."""
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
 import statistics
@@ -16,16 +17,26 @@ from sqlalchemy.orm import Session
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import (
     DashDecision,
+    DashEvent,
     DashFlow,
     DashFund,
+    DashFundamental,
+    DashHolding,
+    DashMeeting,
     DashPrice,
+    DashRanges,
+    DashShareChange,
+    DashSignal,
     InstrumentDashboard,
 )
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
+from tmon.core.timeutil import to_tehran, utcnow
+from tmon.domain.fundamentals import Fundamental, fundamental
 from tmon.storage.models import (
     ClientTypeDaily,
+    CorporateEvent,
     FundNav,
     Instrument,
     PriceDaily,
@@ -41,10 +52,17 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 SIGNAL_FA = {
     "ind_buy_power": "قدرت خریدار حقیقی",
-    "rv_20": "آرام‌بودن نوسان ۲۰ روزه",
+    "rv_20": "آرام‌بودن قیمت",
     "dist_high_52w": "نزدیکی به سقف یک‌ساله",
     "mom_12_1": "روند ۱۲ ماههٔ قیمت",
 }
+SIGNAL_WHAT = {
+    "ind_buy_power": "خریداران حقیقی چقدر بیشتر از فروشندگان حقیقی پول وارد سهم کرده‌اند",
+    "rv_20": "قیمت در ۲۰ روز اخیر چقدر کم‌نوسان بوده است (آرام‌تر یعنی ریسک کمتر)",
+    "dist_high_52w": "قیمت امروز چقدر به بالاترین قیمت یک سال اخیر نزدیک است",
+    "mom_12_1": "قیمت در یک سال گذشته (به‌جز ماه آخر) چقدر رشد کرده است",
+}
+HOLD_DAYS = 20  # the horizon the evidence table is read at, in trading days
 LABEL = {"buy": "خرید", "hold": "نگهداری", "sell": "فروش", "none": "تصمیمی نیست"}
 TYPE_FA = {
     "bond": "اوراق بدهی",
@@ -164,6 +182,80 @@ def _ranking_doc() -> dict[str, Any] | None:
     return doc
 
 
+STAGE_FA = {
+    "invitation": "دعوت به مجمع عادی سالیانه",
+    "egm_invitation": "دعوت به مجمع فوق‌العاده",
+    "ordinary_extraordinary_invitation": "دعوت به مجمع عادی به‌طور فوق‌العاده",
+    "decisions": "تصمیمات مجمع",
+    "decisions_summary": "خلاصه تصمیمات مجمع",
+    "dividend_schedule": "زمان‌بندی پرداخت سود",
+    "board_proposal": "پیشنهاد هیئت‌مدیره برای افزایش سرمایه",
+    "board_decision": "تصمیم هیئت‌مدیره دربارهٔ افزایش سرمایه",
+    "auditor_opinion": "گزارش بازرس دربارهٔ افزایش سرمایه",
+    "registered": "ثبت افزایش سرمایه",
+    "meeting_cancelled": "لغو مجمع",
+    "public_subscription_extended": "تمدید مهلت پذیره‌نویسی",
+    "rights_deadline_extended": "تمدید مهلت حق تقدم",
+}
+INVITATION_STAGES = ("invitation", "egm_invitation", "ordinary_extraordinary_invitation")
+# letters that only repeat an earlier one add nothing to the list
+_SKIP_STAGES = ("decisions_registered", "dividend_schedule_prior_years", "documents")
+
+
+def _meeting(events: list[CorporateEvent], today: dt.date) -> DashMeeting | None:
+    """The nearest assembly that has not met yet and was not cancelled after its invitation."""
+    best: DashMeeting | None = None
+    for e in events:
+        if e.stage not in INVITATION_STAGES or e.event_date is None or e.event_date < today:
+            continue
+        cancelled = any(
+            c.stage == "meeting_cancelled"
+            and c.announced_at is not None
+            and e.announced_at is not None
+            and c.announced_at >= e.announced_at
+            for c in events
+        )
+        if cancelled:
+            continue
+        cand = DashMeeting(
+            date=e.event_date,
+            kind=STAGE_FA.get(e.stage or "", "مجمع"),
+            days_left=(e.event_date - today).days,
+            title=e.title or "",
+        )
+        if best is None or cand.date < best.date:
+            best = cand
+    return best
+
+
+def _events_out(events: list[CorporateEvent]) -> list[DashEvent]:
+    out: list[DashEvent] = []
+    for e in events:
+        if e.stage in _SKIP_STAGES:
+            continue
+        out.append(
+            DashEvent(
+                date=e.event_date or e.announced_at,
+                label=STAGE_FA.get(e.stage or "", e.title or "رویداد شرکتی"),
+                title=e.title,
+            )
+        )
+    return out[:8]
+
+
+def fundamental_out(inst: Instrument, close: float | None, group: str | None) -> DashFundamental:
+    tags = inst.tags or {}
+    f: Fundamental = fundamental(_f(tags.get("eps")), _f(tags.get("sector_pe")), close, group)
+    return DashFundamental(
+        eps=f.eps,
+        pe=f.pe,
+        sector_pe=f.sector_pe,
+        vs_sector=f.vs_sector,
+        verdict=f.verdict,
+        text=f.text,
+    )
+
+
 def _none(headline: str, reasons: list[str] | None = None, **extra: Any) -> DashDecision:
     return DashDecision(
         verdict="none", label=LABEL["none"], headline=headline, reasons=reasons or [], **extra
@@ -178,15 +270,70 @@ MISSING_FA = {
 }
 
 
+def _signals(sig: dict[str, float]) -> list[DashSignal]:
+    """All four signals, best first; ``pct`` is the share of scored stocks this one beats."""
+    out = []
+    for k, v in sorted(((k, v) for k, v in sig.items() if v is not None), key=lambda kv: -kv[1]):
+        pct = v * 100
+        out.append(
+            DashSignal(
+                key=k,
+                name=SIGNAL_FA.get(k, k),
+                pct=pct,
+                text=f"{SIGNAL_WHAT.get(k, '')}؛ از {pct:.0f}٪ سهم‌ها بهتر است.",
+            )
+        )
+    return out
+
+
 def _signal_lines(sig: dict[str, float]) -> list[str]:
-    best = sorted(((k, v) for k, v in sig.items() if v is not None), key=lambda kv: -kv[1])
+    best = _signals(sig)
     if not best:
         return []
     top, low = best[0], best[-1]
-    out = [f"قوی‌ترین نشانه: {SIGNAL_FA.get(top[0], top[0])} ({top[1] * 100:.0f} از ۱۰۰)."]
-    if low[0] != top[0]:
-        out.append(f"ضعیف‌ترین نشانه: {SIGNAL_FA.get(low[0], low[0])} ({low[1] * 100:.0f} از ۱۰۰).")
+    out = [f"نقطهٔ قوت: {top.name}؛ بهتر از {top.pct:.0f}٪ سهم‌های دیگر."]
+    if low.key != top.key:
+        out.append(f"نقطهٔ ضعف: {low.name}؛ فقط از {low.pct:.0f}٪ سهم‌ها بهتر است.")
     return out
+
+
+SUMMARY = {
+    "buy": "در میان سهم‌های بازار جزو ۱۰٪ برتر امتیاز است؛ یعنی چند نشانهٔ خوب را با هم دارد.",
+    "hold": "وضعش نسبتاً خوب است: اگر دارید نگه دارید؛ برای خرید تازه صبر کنید تا به ناحیهٔ "
+    "خرید برسد.",
+    "sell": "امتیازش در میان ضعیف‌ترین‌هاست: خرید نکنید و اگر دارید فروش را بسنجید.",
+}
+
+
+def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
+    ev = next((e for e in doc.get("evidence", []) if e.get("horizon_days") == HOLD_DAYS), None)
+    edge = ev.get("top_excess") if ev else None
+    lines = [
+        f"مدل برای نگهداری حدود {HOLD_DAYS} روز معاملاتی (حدود یک ماه) ساخته شده است، نه برای "
+        "خرید و فروش در همان روز؛ آزمونی روی نگهداری یک‌روزه انجام نشده و نتیجه‌اش معلوم نیست."
+    ]
+    if verdict == "buy":
+        if edge is not None:
+            lines.append(
+                f"در گذشته سهم‌های گروه برتر در {HOLD_DAYS} روز بعد به‌طور میانگین حدود "
+                f"{edge * 100:.1f}٪ بیشتر از میانگین بازار بازده داشته‌اند. این میانگین است؛ برای "
+                "یک سهم تضمینی ندارد و بعضی سهم‌های همین گروه ضرر می‌کنند."
+            )
+        lines.append(
+            "کی بفروشم: هر ماه یک‌بار امتیاز را دوباره ببینید. تا وقتی نماد در ناحیهٔ خرید یا "
+            "نگهداری است نگه دارید؛ اگر به ناحیهٔ فروش رفت بفروشید."
+        )
+        lines.append("اگر نماد در صف خرید باشد خرید ممکن نیست؛ با چشم بسته و درشت وارد نشوید.")
+    elif verdict == "hold":
+        lines.append(
+            "اگر سهم را دارید همان‌طور نگه دارید و هر ماه امتیاز را ببینید؛ خرید تازه وقتی "
+            "منطقی است که نماد به ناحیهٔ خرید برسد."
+        )
+    else:
+        lines.append("خرید تازه نکنید. اگر دارید، هر ماه امتیاز را ببینید و فروش را بسنجید.")
+    if not advice:
+        lines.append("این‌ها آمار گذشته‌اند و هنوز توصیهٔ مطمئن نیستند (آزمون‌های اعتبار کامل نشده).")
+    return DashHolding(horizon_days=HOLD_DAYS, expected_excess=edge, lines=lines)
 
 
 def decide(
@@ -289,7 +436,8 @@ def decide(
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
         reasons.append(
-            f"قاعده: {_pct(bt)} برترِ رتبه‌بندی خرید، تا {_pct(ht)} برتر نگهداری و بقیه فروش/پرهیز."
+            f"قاعدهٔ مدل: {_pct(bt)} بالای جدول «خرید»، تا {_pct(ht)} «نگهداری» و بقیه "
+            "«فروش/پرهیز» است."
         )
     if not in_basket:
         floor = get_engine_config().universe.min_median_value_20d
@@ -307,7 +455,8 @@ def decide(
         reasons.append(line)
     elif not allowed:
         reasons.append(
-            "هنوز آزمون‌های اعتبار مدل کامل نگذشته‌اند؛ این جایگاه یک رتبه‌بندی است، نه توصیهٔ مطمئن."
+            "آزمون‌های اعتبار مدل هنوز کامل نگذشته‌اند؛ این جایگاه یک رتبه‌بندی آماری است، "
+            "نه توصیهٔ مطمئن."
         )
     head = {
         "buy": "در ناحیهٔ خرید مدل است.",
@@ -316,12 +465,16 @@ def decide(
     }[verdict]
     if not in_basket:
         head += " (کم‌اعتبار: خارج از سبد پرمعامله)"
+    advice = allowed and in_basket
     return DashDecision(
         verdict=verdict,
         label=LABEL[verdict],
-        advice_allowed=allowed and in_basket,
+        advice_allowed=advice,
         headline=head,
         reasons=reasons,
+        summary=SUMMARY[verdict],
+        signals=_signals(src.get("signals") or {}),
+        holding=_holding(verdict, doc, advice),
         **base,
     )
 
@@ -370,6 +523,33 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
             bubble=(close / float(nav.cancel_nav) - 1) if close else None,
         )
     vals = [float(r.value) for r in prices[:20] if r.value]
+    events = list(
+        session.scalars(
+            select(CorporateEvent)
+            .where(CorporateEvent.instrument_id == instrument_id)
+            .order_by(CorporateEvent.announced_at.desc(), CorporateEvent.id.desc())
+            .limit(40)
+        )
+    )
+    changes = list(
+        session.scalars(
+            select(ShareChange)
+            .where(ShareChange.instrument_id == instrument_id)
+            .order_by(ShareChange.date.desc())
+            .limit(4)
+        )
+    )
+    tags = inst.tags or {}
+    base_vol = _f(tags.get("base_volume"))
+    ranges = DashRanges(
+        week_min=_f(tags.get("week_min")),
+        week_max=_f(tags.get("week_max")),
+        year_min=_f(tags.get("year_min")),
+        year_max=_f(tags.get("year_max")),
+    )
+    fa = None
+    if inst.instrument_type == "stock":
+        fa = fundamental_out(inst, close, sector.name if sector else None)
     return InstrumentDashboard(
         instrument=instrument_out(inst),
         isin=inst.isin,
@@ -380,5 +560,19 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         price=price,
         flow=_flow(flows),
         fund=fund,
+        fundamental=fa,
+        base_volume=base_vol,
+        ranges=ranges if ranges.year_max else None,
+        meeting=_meeting(events, to_tehran(utcnow()).date()),
+        events=_events_out(events),
+        share_changes=[
+            DashShareChange(
+                date=c.date,
+                shares_old=int(c.shares_old),
+                shares_new=int(c.shares_new),
+                change_pct=(c.shares_new / c.shares_old - 1) if c.shares_old else None,
+            )
+            for c in changes
+        ],
         decision=decide(inst, _ranking_doc(), statistics.median(vals) if vals else None),
     )

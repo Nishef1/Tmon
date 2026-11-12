@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Time } from "lightweight-charts";
 import type { Candle } from "@/lib/api";
 import { faPrice, jalali } from "@/lib/format";
+import { heikinAshi, sma, type Bar } from "@/lib/indicators";
 
 export type Level = { price: number; title: string; color: string };
 
@@ -25,6 +26,24 @@ export function CandleChart({
   levels?: Level[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [ha, setHa] = useState(true);
+  const [ma20, setMa20] = useState(true);
+  const [ma50, setMa50] = useState(false);
+  const [hover, setHover] = useState<Bar | null>(null);
+
+  const real = useMemo<Bar[]>(
+    () =>
+      candles
+        .filter((c) => c.open !== null && c.high !== null && c.low !== null && c.close !== null)
+        .map((c) => ({
+          time: c.date,
+          open: c.open as number,
+          high: c.high as number,
+          low: c.low as number,
+          close: c.close as number,
+        })),
+    [candles],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +64,7 @@ export function CandleChart({
           background: { type: lc.ColorType.Solid, color: "transparent" },
           textColor: muted,
           fontFamily: "Vazirmatn, sans-serif",
+          attributionLogo: false,
         },
         grid: { vertLines: { color: line }, horzLines: { color: line } },
         rightPriceScale: { borderColor: line },
@@ -64,17 +84,26 @@ export function CandleChart({
         wickDownColor: down,
         borderVisible: false,
       });
-      series.setData(
-        candles
-          .filter((c) => c.open !== null && c.high !== null && c.low !== null && c.close !== null)
-          .map((c) => ({
-            time: c.date as Time,
-            open: c.open as number,
-            high: c.high as number,
-            low: c.low as number,
-            close: c.close as number,
-          })),
-      );
+      const shown = ha ? heikinAshi(real) : real;
+      series.setData(shown.map((b) => ({ ...b, time: b.time as Time })));
+      for (const [on, n, color] of [
+        [ma20, 20, "#c98a12"],
+        [ma50, 50, "#3f6fb5"],
+      ] as const) {
+        if (!on) continue;
+        const ls = chart.addSeries(lc.LineSeries, {
+          color,
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+        ls.setData(sma(real, n).map((p) => ({ ...p, time: p.time as Time })));
+      }
+      const byTime = new Map(real.map((b) => [b.time, b]));
+      chart.subscribeCrosshairMove((p) => {
+        setHover(p.time ? (byTime.get(iso(p.time)) ?? null) : null);
+      });
       for (const l of levels) {
         series.createPriceLine({
           price: l.price,
@@ -92,15 +121,55 @@ export function CandleChart({
       cancelled = true;
       dispose();
     };
-  }, [candles, levels]);
+  }, [real, levels, ha, ma20, ma50]);
+
+  const last = real[real.length - 1];
+  const bar = hover ?? last;
+  const btn = (on: boolean) =>
+    `rounded-full border px-3 py-1 text-sm ${on ? "border-accent bg-accent-soft font-semibold" : "border-line text-muted"}`;
 
   return (
-    <div
-      ref={ref}
-      dir="ltr"
-      role="img"
-      aria-label="نمودار شمعی قیمت تعدیل‌شده"
-      className="h-72 w-full sm:h-96"
-    />
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="تنظیم نمودار">
+        <button type="button" aria-pressed={ha} onClick={() => setHa(!ha)} className={btn(ha)}>
+          شمع هایکن‌آشی
+        </button>
+        <button
+          type="button"
+          aria-pressed={ma20}
+          onClick={() => setMa20(!ma20)}
+          className={btn(ma20)}
+        >
+          میانگین ۲۰ روزه
+        </button>
+        <button
+          type="button"
+          aria-pressed={ma50}
+          onClick={() => setMa50(!ma50)}
+          className={btn(ma50)}
+        >
+          میانگین ۵۰ روزه
+        </button>
+      </div>
+      {bar && (
+        <p className="text-sm text-muted" data-testid="chart-legend">
+          قیمت واقعی {jalali(bar.time, "short")}: باز {faPrice(bar.open)} · بالا {faPrice(bar.high)}{" "}
+          · پایین {faPrice(bar.low)} · بسته {faPrice(bar.close)}
+        </p>
+      )}
+      <div
+        ref={ref}
+        dir="ltr"
+        role="img"
+        aria-label={ha ? "نمودار شمعی هایکن‌آشی قیمت تعدیل‌شده" : "نمودار شمعی قیمت تعدیل‌شده"}
+        className="h-72 w-full sm:h-96"
+      />
+      <p className="text-xs text-muted">
+        {ha
+          ? "هایکن‌آشی هر شمع را با شمع قبلی نرم می‌کند تا روند روشن‌تر دیده شود؛ قیمت‌های بالا همان قیمت واقعی همان روزند، نه مقدار شمع نرم‌شده. "
+          : ""}
+        نمودار: TradingView Lightweight Charts.
+      </p>
+    </div>
   );
 }

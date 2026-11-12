@@ -308,6 +308,7 @@ def codal_client() -> PoliteClient:
         {
             endpoints.SEARCH_HOST: s.codal_min_interval_seconds,
             endpoints.EXCEL_HOST: s.codal_min_interval_seconds,
+            "www.codal.ir": s.codal_min_interval_seconds,
         },
     )
     return PoliteClient(limiter=limiter)
@@ -322,6 +323,10 @@ async def _run(kind: str, **kwargs: Any) -> dict[str, int]:
                 return await sync_event_letters(ctx, **kwargs)
             if kind == "reports":
                 return await sync_reports(ctx, **kwargs)
+            if kind == "meetings":
+                from tmon.ingest.codal.meetings import sync_meetings
+
+                return await sync_meetings(ctx)
             return await sync_letters(ctx, **kwargs)
     finally:
         await client.aclose()
@@ -333,6 +338,10 @@ def run_letters(**kwargs: Any) -> dict[str, int]:
 
 def run_reports(**kwargs: Any) -> dict[str, int]:
     return asyncio.run(_run("reports", **kwargs))
+
+
+def run_meetings() -> dict[str, int]:
+    return asyncio.run(_run("meetings"))
 
 
 def run_events(max_pages: int = 1) -> dict[str, int]:

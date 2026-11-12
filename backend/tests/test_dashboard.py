@@ -193,3 +193,54 @@ def test_unscored_and_queued_stocks_say_exactly_why() -> None:
 def test_stock_not_traded_on_the_last_day_gets_no_score() -> None:
     d = dash.decide(_with_id(99, "غایب"), _uni_doc(), None)
     assert d.verdict == "none" and d.gauge is None and "معامله نشده" in d.headline
+
+
+def test_decision_explains_in_plain_words_and_says_how_long_to_hold() -> None:
+    doc = _doc()
+    doc["evidence"] = [{"horizon_days": 20, "top_excess": 0.04}, {"horizon_days": 5}]
+    d = dash.decide(_inst("الف"), doc, None)
+    assert "۱۰٪ برتر" in d.summary
+    assert d.signals[0].key == "ind_buy_power"
+    assert d.signals[0].pct == pytest.approx(90)
+    assert "بهتر از 90٪" in " ".join(d.reasons)
+    assert d.holding is not None and d.holding.horizon_days == 20
+    assert d.holding.expected_excess == pytest.approx(0.04)
+    text = " ".join(d.holding.lines)
+    assert "همان روز" in text and "4.0٪" in text and "هر ماه" in text
+    assert "توصیهٔ مطمئن نیست" in text  # the gates have not passed in this document
+    hold = dash.decide(_inst("ب"), doc, None)
+    assert hold.holding is not None and "خرید تازه" in " ".join(hold.holding.lines)
+    assert dash.decide(_inst("د"), doc, None).holding is None
+
+
+def test_dashboard_shows_the_next_meeting_and_skips_cancelled_or_past_ones(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tmon.storage.models import CorporateEvent
+
+    today = dt.datetime.now(dt.UTC).date()
+    session.add(_inst("الف"))
+    base = {"instrument_id": 1, "type": "agm_dividend", "title": "آگهی"}
+    session.add_all(
+        [
+            CorporateEvent(**base, stage="invitation", announced_at=today,
+                           event_date=today + dt.timedelta(days=9)),
+            CorporateEvent(**base, stage="egm_invitation", announced_at=today,
+                           event_date=today + dt.timedelta(days=3)),
+            CorporateEvent(**base, stage="meeting_cancelled", announced_at=today),
+            CorporateEvent(**base, stage="invitation", announced_at=today - dt.timedelta(days=60),
+                           event_date=today - dt.timedelta(days=30)),
+        ]
+    )  # fmt: skip
+    session.commit()
+    monkeypatch.setattr(dash, "_ranking_doc", lambda: _doc())
+    j = client.get("/instruments/1/dashboard").json()
+    # the cancellation (same day as both invitations) removes both; the past one is not "next"
+    assert j["meeting"] is None
+    assert any(e["label"] == "لغو مجمع" for e in j["events"])
+    session.add(
+        CorporateEvent(**base, stage="invitation", announced_at=today + dt.timedelta(days=1),
+                       event_date=today + dt.timedelta(days=20))
+    )  # fmt: skip
+    session.commit()
+    assert client.get("/instruments/1/dashboard").json()["meeting"]["days_left"] == 20

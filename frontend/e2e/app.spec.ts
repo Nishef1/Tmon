@@ -82,9 +82,25 @@ test.describe("instrument page", () => {
     await expect(decision).toContainText("نگهداری");
     await expect(decision).toContainText("رتبهٔ ۲۰ از ۱۰۰");
     await expect(decision.getByTestId("gauge")).toHaveAttribute("data-value", "81.0");
+    await expect(decision.getByTestId("signal-bars")).toContainText("قدرت خریدار حقیقی");
+    await expect(decision.getByTestId("holding")).toContainText("نه برای خرید و فروش در همان روز");
+    const fa = page.getByTestId("fundamental");
+    await expect(fa).toHaveAttribute("data-verdict", "cheap");
+    await expect(fa).toContainText("سود هر سهم (EPS)");
+    await expect(fa).toContainText("P/E گروه");
+    const co = page.getByTestId("company");
+    await expect(co).toContainText("مجمع بعدی");
+    await expect(co).toContainText("۱۱ روز دیگر");
+    await expect(co).toContainText("حجم مبنا");
+    // candles are Heikin-Ashi by default, with a switch back to the real ones
+    const ha = page.getByRole("button", { name: "شمع هایکن‌آشی" });
+    await expect(ha).toHaveAttribute("aria-pressed", "true");
+    await ha.click();
+    await expect(ha).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByTestId("chart-legend")).toContainText("قیمت واقعی");
     const dash = page.getByTestId("symbol-dashboard");
     await expect(dash.getByText("قدرت خریدار (امروز)")).toBeVisible();
-    await expect(dash.getByText("فلزات اساسی")).toBeVisible();
+    await expect(dash.getByText("گروه صنعت")).toBeVisible();
   });
 
   test("shows the live price, five order-book levels and the data age", async ({ page }) => {
@@ -166,6 +182,28 @@ test("screener shows flow columns, one decision per symbol and filters by decisi
   await expect(page.getByTestId("verdict-counts")).toContainText("فروش");
   await page.goto("/screener?v=sell");
   await expect(page.getByTestId("screener-table").getByRole("row")).toHaveCount(2);
+});
+
+test("header search finds a symbol by name or industry and opens its page", async ({ page }) => {
+  await page.goto("/screener");
+  const box = page.getByTestId("symbol-search");
+  await box.fill("فلزات");
+  const hits = page.getByTestId("search-hit");
+  await expect(hits).toHaveCount(2);
+  await expect(hits.first()).toContainText("فلزات اساسی");
+  await expect(hits.first()).toContainText("P/E");
+  await expect(hits.first()).toContainText("نگهداری");
+  await box.fill("فولاد");
+  await expect(hits).toHaveCount(1);
+  await box.press("Enter");
+  await expect(page).toHaveURL(/\/instruments\/1$/);
+});
+
+test("screener shows industry, EPS and P/E per symbol", async ({ page }) => {
+  await page.goto("/screener");
+  const table = page.getByTestId("screener-table");
+  await expect(table).toContainText("P/E گروه");
+  await expect(table).toContainText("فلزات اساسی");
 });
 
 test("market page shows breadth, flow and movers, and says what it cannot show", async ({

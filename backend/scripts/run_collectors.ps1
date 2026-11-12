@@ -14,6 +14,11 @@ if ($Eod) {
 with session_scope() as s:
     refresh_features(s,'D1'); s.commit(); train_and_publish(s,get_object_store()); s.commit()"
   & $py -m tmon.tools.v2_ranking
+  # new assembly/capital letters from Codal, then the day each invitation names
+  & $py -m tmon.ingest.codal.cli events
+  & $py -m tmon.ingest.codal.cli meetings
+  # EPS and group P/E change only with a new financial statement: refresh them once a week
+  if ((Get-Date).DayOfWeek -eq 'Thursday') { & $py -m tmon.ingest.tsetmc.cli info }
 } else {
   & $py -m tmon.ingest.tsetmc.cli intraday --follow
 }

@@ -39,6 +39,11 @@
   }
 }
 
+@theme {
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+}
+
 @theme inline {
   --font-sans: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
   --color-bg: var(--bg);
@@ -59,6 +64,7 @@
 }
 
 html {
+  font-size: 112.5%; /* 18px root: every rem-based size scales together */
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);
