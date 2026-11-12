@@ -147,6 +147,20 @@ class BenchmarksCfg(_Frozen):
     rf_min_days_to_maturity: int = 30
 
 
+class ExposureCfg(_Frozen):
+    trend_window_days: int = Field(ge=2)
+    abs_mom_days: int = Field(ge=2)
+    vol_window_days: int = Field(ge=2)
+    target_vol_annual: float | None = Field(default=None, gt=0)
+    stress_window_days: int = Field(ge=1)
+    max_exposure: float = Field(gt=0, le=1)
+    sensitivity_target_vols: list[float] = []
+
+
+class V2Cfg(_Frozen):
+    exposure: ExposureCfg
+
+
 class EngineConfig(_Frozen):
     universe: UniverseCfg
     labeling: LabelingCfg
@@ -161,6 +175,7 @@ class EngineConfig(_Frozen):
     backtest: BacktestCfg
     model: ModelCfg
     benchmarks: BenchmarksCfg
+    v2: V2Cfg
     # Timeframes trained and published by the daily cycle, in order (D1 first: it is required).
     publish_timeframes: tuple[str, ...] = ("D1",)
 

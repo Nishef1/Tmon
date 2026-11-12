@@ -133,3 +133,18 @@ model:
   min_recent_samples: 30        # fewer recent samples in the bucket => tier A impossible
   tier_a_min_trades: 100        # out-of-sample trades needed before a backtest can unlock tier A
   grid_min_signals: 30          # provisional: smaller samples give a barrier pair no score
+
+# Engine v2 (ADR 0003). Every number comes from the literature, not from our five years of
+# data (OPEN_QUESTIONS 85); the only check on them is the robustness gate G5.
+v2:
+  exposure:
+    trend_window_days: 200        # equal-weight index above its simple moving average
+    abs_mom_days: 126             # index return over this window must beat the treasury-bill return
+    vol_window_days: 20           # realised volatility window of the equal-weight index
+    # Annual volatility the equity sleeve is scaled to. null = the vol cap is switched off
+    # (factor 1): the owner has not chosen a number (OPEN_QUESTIONS 85). The R2 report prints
+    # a sensitivity table instead of picking one.
+    target_vol_annual: null
+    stress_window_days: 5         # mean share of the universe in a sell queue
+    max_exposure: 1.0             # no leverage
+    sensitivity_target_vols: [0.15, 0.20, 0.25, 0.30, 0.40]
