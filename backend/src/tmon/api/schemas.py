@@ -380,3 +380,78 @@ class ScreenerOut(ApiModel):
     gate_reasons: list[str] = []
     total: int
     rows: list[ScreenerRow]
+
+
+class RankingRow(ApiModel):
+    rank: int
+    symbol: str
+    name: str | None = None
+    sector_code: str | None = None
+    score: float | None = None
+    zone: Literal["buy", "hold", "avoid", "excluded", "no_data"]
+    queue_state: str | None = None
+    median_value: float | None = None
+    signals: dict[str, float | None]
+
+
+class RankingEvidence(ApiModel):
+    horizon_days: int
+    ic: float | None = None
+    ic_t: float | None = None
+    top_excess: float | None = None
+    bottom_excess: float | None = None
+    excess_t: float | None = None
+    n_days: int
+
+
+class RankingGate(ApiModel):
+    key: str
+    passed: bool | None = None
+    text: str
+
+
+class RankingCandidate(ApiModel):
+    candidate: str
+    first: str
+    last: str
+    days: int
+    annual: float | None = None
+    annual_bench: float | None = None
+    max_drawdown: float | None = None
+    max_drawdown_bench: float | None = None
+    verdict: str
+    gates: list[RankingGate]
+
+
+class RankingExposure(ApiModel):
+    trend: float | None = None
+    abs_mom: float | None = None
+    vol_cap: float | None = None
+    stress: float | None = None
+    exposure: float | None = None
+
+
+class RankingBook(ApiModel):
+    n_buys: int
+    cancelled_buys: int
+    postponed_sells: int
+    avg_held: float
+
+
+class RankingOut(ApiModel):
+    """The v2 model ranking of the liquid basket. ``recommendation_allowed`` is true only when
+    every gate of ADR 0003 section 7 passed; until then the list is a ranking, not advice."""
+
+    available: bool
+    disclaimer: str = DISCLAIMER
+    as_of: str | None = None
+    basket_size: int | None = None
+    recommendation_allowed: bool = False
+    buy_top_frac: float | None = None
+    hold_top_frac: float | None = None
+    exposure: RankingExposure | None = None
+    exposure_date: str | None = None
+    rows: list[RankingRow] = []
+    evidence: list[RankingEvidence] = []
+    gates: list[RankingCandidate] = []
+    book: RankingBook | None = None

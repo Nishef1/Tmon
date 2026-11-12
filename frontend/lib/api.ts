@@ -29,6 +29,8 @@ export type Funds = S["FundsOut"];
 export type LiveAccuracy = S["LiveAccuracyOut"];
 export type Screener = S["ScreenerOut"];
 export type ScreenerRow = S["ScreenerRow"];
+export type Ranking = S["RankingOut"];
+export type RankingRow = S["RankingRow"];
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 

@@ -233,6 +233,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v2/ranking": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ranking
+     * @description Latest ranking of the liquid basket written by ``python -m tmon.tools.v2_ranking``,
+     *     with the evidence per horizon and the gate verdicts. Not a recommendation unless
+     *     ``recommendation_allowed`` is true.
+     */
+    get: operations["ranking_v2_ranking_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -759,6 +781,151 @@ export interface components {
       p_win: number;
       /** Shortfall */
       shortfall: number | null;
+    };
+    /** RankingBook */
+    RankingBook: {
+      /** Avg Held */
+      avg_held: number;
+      /** Cancelled Buys */
+      cancelled_buys: number;
+      /** N Buys */
+      n_buys: number;
+      /** Postponed Sells */
+      postponed_sells: number;
+    };
+    /** RankingCandidate */
+    RankingCandidate: {
+      /** Annual */
+      annual: number | null;
+      /** Annual Bench */
+      annual_bench: number | null;
+      /** Candidate */
+      candidate: string;
+      /** Days */
+      days: number;
+      /** First */
+      first: string;
+      /** Gates */
+      gates: components["schemas"]["RankingGate"][];
+      /** Last */
+      last: string;
+      /** Max Drawdown */
+      max_drawdown: number | null;
+      /** Max Drawdown Bench */
+      max_drawdown_bench: number | null;
+      /** Verdict */
+      verdict: string;
+    };
+    /** RankingEvidence */
+    RankingEvidence: {
+      /** Bottom Excess */
+      bottom_excess: number | null;
+      /** Excess T */
+      excess_t: number | null;
+      /** Horizon Days */
+      horizon_days: number;
+      /** Ic */
+      ic: number | null;
+      /** Ic T */
+      ic_t: number | null;
+      /** N Days */
+      n_days: number;
+      /** Top Excess */
+      top_excess: number | null;
+    };
+    /** RankingExposure */
+    RankingExposure: {
+      /** Abs Mom */
+      abs_mom: number | null;
+      /** Exposure */
+      exposure: number | null;
+      /** Stress */
+      stress: number | null;
+      /** Trend */
+      trend: number | null;
+      /** Vol Cap */
+      vol_cap: number | null;
+    };
+    /** RankingGate */
+    RankingGate: {
+      /** Key */
+      key: string;
+      /** Passed */
+      passed: boolean | null;
+      /** Text */
+      text: string;
+    };
+    /**
+     * RankingOut
+     * @description The v2 model ranking of the liquid basket. ``recommendation_allowed`` is true only when
+     *     every gate of ADR 0003 section 7 passed; until then the list is a ranking, not advice.
+     */
+    RankingOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /** Basket Size */
+      basket_size: number | null;
+      book: components["schemas"]["RankingBook"] | null;
+      /** Buy Top Frac */
+      buy_top_frac: number | null;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /**
+       * Evidence
+       * @default []
+       */
+      evidence: components["schemas"]["RankingEvidence"][];
+      exposure: components["schemas"]["RankingExposure"] | null;
+      /** Exposure Date */
+      exposure_date: string | null;
+      /**
+       * Gates
+       * @default []
+       */
+      gates: components["schemas"]["RankingCandidate"][];
+      /** Hold Top Frac */
+      hold_top_frac: number | null;
+      /**
+       * Recommendation Allowed
+       * @default false
+       */
+      recommendation_allowed: boolean;
+      /**
+       * Rows
+       * @default []
+       */
+      rows: components["schemas"]["RankingRow"][];
+    };
+    /** RankingRow */
+    RankingRow: {
+      /** Median Value */
+      median_value: number | null;
+      /** Name */
+      name: string | null;
+      /** Queue State */
+      queue_state: string | null;
+      /** Rank */
+      rank: number;
+      /** Score */
+      score: number | null;
+      /** Sector Code */
+      sector_code: string | null;
+      /** Signals */
+      signals: {
+        [key: string]: number | null;
+      };
+      /** Symbol */
+      symbol: string;
+      /**
+       * Zone
+       * @enum {string}
+       */
+      zone: "buy" | "hold" | "avoid" | "excluded" | "no_data";
     };
     /** Reason */
     Reason: {
@@ -1303,6 +1470,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  ranking_v2_ranking_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RankingOut"];
         };
       };
     };

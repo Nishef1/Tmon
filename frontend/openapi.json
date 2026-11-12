@@ -1759,6 +1759,539 @@
         "title": "NearMiss",
         "type": "object"
       },
+      "RankingBook": {
+        "properties": {
+          "avg_held": {
+            "title": "Avg Held",
+            "type": "number"
+          },
+          "cancelled_buys": {
+            "title": "Cancelled Buys",
+            "type": "integer"
+          },
+          "n_buys": {
+            "title": "N Buys",
+            "type": "integer"
+          },
+          "postponed_sells": {
+            "title": "Postponed Sells",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "n_buys",
+          "cancelled_buys",
+          "postponed_sells",
+          "avg_held"
+        ],
+        "title": "RankingBook",
+        "type": "object"
+      },
+      "RankingCandidate": {
+        "properties": {
+          "annual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual"
+          },
+          "annual_bench": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Bench"
+          },
+          "candidate": {
+            "title": "Candidate",
+            "type": "string"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "first": {
+            "title": "First",
+            "type": "string"
+          },
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/RankingGate"
+            },
+            "title": "Gates",
+            "type": "array"
+          },
+          "last": {
+            "title": "Last",
+            "type": "string"
+          },
+          "max_drawdown": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Drawdown"
+          },
+          "max_drawdown_bench": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Drawdown Bench"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate",
+          "first",
+          "last",
+          "days",
+          "annual",
+          "annual_bench",
+          "max_drawdown",
+          "max_drawdown_bench",
+          "verdict",
+          "gates"
+        ],
+        "title": "RankingCandidate",
+        "type": "object"
+      },
+      "RankingEvidence": {
+        "properties": {
+          "bottom_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bottom Excess"
+          },
+          "excess_t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excess T"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "ic": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ic"
+          },
+          "ic_t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ic T"
+          },
+          "n_days": {
+            "title": "N Days",
+            "type": "integer"
+          },
+          "top_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Excess"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "ic",
+          "ic_t",
+          "top_excess",
+          "bottom_excess",
+          "excess_t",
+          "n_days"
+        ],
+        "title": "RankingEvidence",
+        "type": "object"
+      },
+      "RankingExposure": {
+        "properties": {
+          "abs_mom": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abs Mom"
+          },
+          "exposure": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure"
+          },
+          "stress": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stress"
+          },
+          "trend": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend"
+          },
+          "vol_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vol Cap"
+          }
+        },
+        "required": [
+          "trend",
+          "abs_mom",
+          "vol_cap",
+          "stress",
+          "exposure"
+        ],
+        "title": "RankingExposure",
+        "type": "object"
+      },
+      "RankingGate": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "passed",
+          "text"
+        ],
+        "title": "RankingGate",
+        "type": "object"
+      },
+      "RankingOut": {
+        "description": "The v2 model ranking of the liquid basket. ``recommendation_allowed`` is true only when\nevery gate of ADR 0003 section 7 passed; until then the list is a ranking, not advice.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "basket_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basket Size"
+          },
+          "book": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankingBook"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "buy_top_frac": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Top Frac"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RankingEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "exposure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankingExposure"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exposure_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Date"
+          },
+          "gates": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RankingCandidate"
+            },
+            "title": "Gates",
+            "type": "array"
+          },
+          "hold_top_frac": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hold Top Frac"
+          },
+          "recommendation_allowed": {
+            "default": false,
+            "title": "Recommendation Allowed",
+            "type": "boolean"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RankingRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "available",
+          "disclaimer",
+          "as_of",
+          "basket_size",
+          "recommendation_allowed",
+          "buy_top_frac",
+          "hold_top_frac",
+          "exposure",
+          "exposure_date",
+          "rows",
+          "evidence",
+          "gates",
+          "book"
+        ],
+        "title": "RankingOut",
+        "type": "object"
+      },
+      "RankingRow": {
+        "properties": {
+          "median_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Value"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "queue_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue State"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "sector_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Code"
+          },
+          "signals": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Signals",
+            "type": "object"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "zone": {
+            "enum": [
+              "buy",
+              "hold",
+              "avoid",
+              "excluded",
+              "no_data"
+            ],
+            "title": "Zone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "symbol",
+          "name",
+          "sector_code",
+          "score",
+          "zone",
+          "queue_state",
+          "median_value",
+          "signals"
+        ],
+        "title": "RankingRow",
+        "type": "object"
+      },
       "Reason": {
         "properties": {
           "contribution": {
@@ -3132,6 +3665,28 @@
         "summary": "Signal History",
         "tags": [
           "signals"
+        ]
+      }
+    },
+    "/v2/ranking": {
+      "get": {
+        "description": "Latest ranking of the liquid basket written by ``python -m tmon.tools.v2_ranking``,\nwith the evidence per horizon and the gate verdicts. Not a recommendation unless\n``recommendation_allowed`` is true.",
+        "operationId": "ranking_v2_ranking_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ranking",
+        "tags": [
+          "ranking"
         ]
       }
     }

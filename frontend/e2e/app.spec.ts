@@ -42,7 +42,9 @@ test.describe("recommendations", () => {
       await page.getByRole("link", { name: label }).click();
       await expect(page).toHaveURL(new RegExp(`tf=${tf}`));
       await expect(page.getByRole("link", { name: label })).toHaveAttribute("aria-current", "page");
-      await expect(page.getByTestId("no-recommendation")).toContainText("امروز توصیه‌ای وجود ندارد");
+      await expect(page.getByTestId("no-recommendation")).toContainText(
+        "امروز توصیه‌ای وجود ندارد",
+      );
       await expect(page.getByTestId("signal-card")).toHaveCount(0);
       await expect(page.getByTestId("unsupported")).toHaveCount(0);
     }
@@ -113,4 +115,16 @@ test("glossary index lists terms and each entry opens", async ({ page }) => {
   await expect(page.getByRole("link", { name: /سود مورد انتظار/ })).toBeVisible();
   await page.getByRole("link", { name: /امتیاز بریر/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("امتیاز بریر");
+});
+
+test("ranking page is labelled a model ranking and shows the failed gates", async ({ page }) => {
+  await page.goto("/ranking");
+  await expect(page.getByTestId("disclaimer").first()).toHaveText(DISCLAIMER);
+  await expect(page.getByTestId("ranking-status")).toContainText("توصیهٔ خرید نیست");
+  await expect(page.getByTestId("ranking-status")).toContainText("معناداری آماری");
+  await expect(page.getByTestId("zone-buy")).toContainText("شکام");
+  await expect(page.getByTestId("zone-buy")).toContainText("صف خرید");
+  await expect(page.getByTestId("zone-avoid")).toContainText("خودرو");
+  await expect(page.getByTestId("zone-other")).toContainText("اروند");
+  await expect(page.getByTestId("ranking-evidence")).toContainText("سنجیده نشده‌اند");
 });

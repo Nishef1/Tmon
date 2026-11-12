@@ -3,7 +3,15 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from tmon.api.routers import instruments, macro, metrics, recommendations, screener, signals
+from tmon.api.routers import (
+    instruments,
+    macro,
+    metrics,
+    ranking,
+    recommendations,
+    screener,
+    signals,
+)
 from tmon.core.config import get_settings
 
 
@@ -28,6 +36,7 @@ def create_app() -> FastAPI:
         metrics.router,
         macro.router,
         screener.router,
+        ranking.router,
     ):
         app.include_router(r)
     return app

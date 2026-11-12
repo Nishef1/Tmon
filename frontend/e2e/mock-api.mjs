@@ -123,9 +123,97 @@ const block = {
   ],
 };
 
+const RANKING = {
+  available: true,
+  disclaimer: DISCLAIMER,
+  as_of: "2026-11-10",
+  basket_size: 100,
+  recommendation_allowed: false,
+  buy_top_frac: 0.1,
+  hold_top_frac: 0.3,
+  exposure: { trend: 1, abs_mom: 1, vol_cap: 1, stress: 0.99, exposure: 0.99 },
+  exposure_date: "2026-11-10",
+  rows: [
+    {
+      rank: 1,
+      symbol: "شکام",
+      name: "کیمیاگران",
+      sector_code: null,
+      score: 0.99,
+      zone: "buy",
+      queue_state: "buy_queue",
+      median_value: 1e11,
+      signals: { ind_buy_power: 0.9, rv_20: 0.9, dist_high_52w: 0.9, mom_12_1: 0.9 },
+    },
+    {
+      rank: 2,
+      symbol: "وبانک",
+      name: "توسعه ملی",
+      sector_code: null,
+      score: 0.8,
+      zone: "hold",
+      queue_state: "none",
+      median_value: 1e11,
+      signals: { ind_buy_power: 0.5, rv_20: 0.5, dist_high_52w: 0.5, mom_12_1: 0.5 },
+    },
+    {
+      rank: 3,
+      symbol: "خودرو",
+      name: "ایران خودرو",
+      sector_code: null,
+      score: 0.3,
+      zone: "avoid",
+      queue_state: "none",
+      median_value: 1e11,
+      signals: { ind_buy_power: 0.1, rv_20: 0.1, dist_high_52w: 0.1, mom_12_1: 0.1 },
+    },
+    {
+      rank: 4,
+      symbol: "اروند",
+      name: "اروند",
+      sector_code: null,
+      score: null,
+      zone: "no_data",
+      queue_state: "none",
+      median_value: 1e11,
+      signals: { ind_buy_power: null, rv_20: null, dist_high_52w: null, mom_12_1: null },
+    },
+  ],
+  evidence: [
+    {
+      horizon_days: 20,
+      ic: 0.097,
+      ic_t: 3.8,
+      top_excess: 0.04,
+      bottom_excess: 0.003,
+      excess_t: 4.4,
+      n_days: 1378,
+    },
+  ],
+  gates: [
+    {
+      candidate: "v2",
+      first: "2024-06-23",
+      last: "2026-11-10",
+      days: 495,
+      annual: 0.64,
+      annual_bench: 0.5,
+      max_drawdown: -0.157,
+      max_drawdown_bench: -0.239,
+      verdict: "رد شد: G4، G6",
+      gates: [
+        { key: "G1", passed: true, text: "ok" },
+        { key: "G4", passed: false, text: "t مازاد ماهانه = 0.47 روی 22 ماه (نیاز ≥ 3.0)" },
+      ],
+    },
+  ],
+  book: { n_buys: 571, cancelled_buys: 110, postponed_sells: 32, avg_held: 14.2 },
+};
+
 function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
+  if (path === "/v2/ranking") return [200, RANKING];
   if (path === "/recommendations") {
     const date = url.searchParams.get("date");
     if (date === "2000-01-01") return [500, { detail: "boom" }];
