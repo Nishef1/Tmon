@@ -123,7 +123,7 @@ def resolve_outcomes(
             "barrier": pl.List(pl.Float64),
         },
     )
-    cols = ("instrument_id", "date", "exit_reason", "realized_return", "exit_date")
+    cols = ("instrument_id", "date", "exit_reason", "realized_return", "exit_date", "y")
     parts: list[pl.DataFrame] = []
     for key in p["barrier"].unique().to_list():
         sub = p.filter(
@@ -138,9 +138,15 @@ def resolve_outcomes(
         )
     done = pl.concat(parts) if parts else pl.DataFrame()
     rows = [
-        {"id": i, "outcome": OUTCOMES.get(r, r), "realized_return": g, "outcome_date": d}
-        for i, r, g, d in done.select(
-            "id", "exit_reason", "realized_return", "exit_date"
+        {
+            "id": i,
+            "outcome": OUTCOMES.get(r, r),
+            "realized_return": g,
+            "outcome_date": d,
+            "hit": None if y is None else bool(y),
+        }
+        for i, r, g, d, y in done.select(
+            "id", "exit_reason", "realized_return", "exit_date", "y"
         ).iter_rows()
     ]
     if rows:
@@ -148,6 +154,14 @@ def resolve_outcomes(
         # NOT NULL constraints on signals before ON CONFLICT is ever considered.
         session.execute(update(Signal), rows)
     return len(rows)
+
+
+def signal_hit(outcome: str, hit: bool | None) -> float:
+    """1.0 when a resolved signal met its model's target: the stored label ``y`` when present,
+    else ``outcome == "tp"`` (signals resolved before ``hit`` existed had the barrier target)."""
+    if hit is not None:
+        return 1.0 if hit else 0.0
+    return 1.0 if outcome == "tp" else 0.0
 
 
 def recent_resolved(session: Session, timeframe: str) -> tuple[np.ndarray, np.ndarray]:
@@ -164,10 +178,10 @@ def recent_resolved(session: Session, timeframe: str) -> tuple[np.ndarray, np.nd
     if not days:
         return np.array([]), np.array([])
     rows = session.execute(
-        select(Signal.p_win, Signal.outcome).where(*done, Signal.date >= min(days))
+        select(Signal.p_win, Signal.outcome, Signal.hit).where(*done, Signal.date >= min(days))
     ).all()
     p = np.array([r.p_win for r in rows], dtype=float)
-    y = np.array([1.0 if r.outcome == "tp" else 0.0 for r in rows])
+    y = np.array([signal_hit(r.outcome, r.hit) for r in rows])
     return p, y
 
 

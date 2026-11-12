@@ -17,6 +17,7 @@ from tmon.domain.rules import RuleBook
 from tmon.engine.defensive import add_defensive_flag
 from tmon.features.builder import build_features
 from tmon.labeling.grid import Combo, grid_combos
+from tmon.labeling.relative import apply_target
 from tmon.labeling.triple_barrier import triple_barrier_labels
 
 StrategyFactory = Callable[[], Strategy]
@@ -56,7 +57,7 @@ def prepare_dataset(
 ) -> pl.DataFrame:
     c = cfg or get_engine_config()
     feats = build_features(prices, client_types, rules, sectors=sectors, config=c)
-    labels = triple_barrier_labels(prices, rules, timeframe, c)
+    labels = apply_target(triple_barrier_labels(prices, rules, timeframe, c), timeframe, c)
     ds = build_dataset(feats, labels, c)
     if sectors is not None and "sector_code" not in ds.columns:
         ds = ds.join(sectors.select("instrument_id", "sector_code"), on="instrument_id", how="left")

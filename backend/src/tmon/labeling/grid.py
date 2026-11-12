@@ -14,6 +14,7 @@ import polars as pl
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import RuleBook
 from tmon.features.builder import KEYS
+from tmon.labeling.relative import apply_target
 from tmon.labeling.triple_barrier import prepare_bars, triple_barrier_labels
 
 Combo = tuple[float, float]  # (k_tp, k_sl)
@@ -45,12 +46,17 @@ def label_sets(
     timeframe: str = "D1",
     cfg: EngineConfig | None = None,
 ) -> dict[Combo, pl.DataFrame]:
-    """One triple-barrier label frame per grid pair (bars and ATR are prepared once)."""
+    """One label frame per grid pair, with the timeframe's target applied (bars and ATR are
+    prepared once)."""
     c = cfg or get_engine_config()
     bars = prepare_bars(prices, rules, c)
     return {
-        combo: triple_barrier_labels(
-            prices, rules, timeframe, c, k_tp=combo[0], k_sl=combo[1], bars=bars
+        combo: apply_target(
+            triple_barrier_labels(
+                prices, rules, timeframe, c, k_tp=combo[0], k_sl=combo[1], bars=bars
+            ),
+            timeframe,
+            c,
         )
         for combo in grid_combos(timeframe, c)
     }

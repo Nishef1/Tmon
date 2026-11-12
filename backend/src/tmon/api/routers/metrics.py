@@ -21,7 +21,7 @@ from tmon.api.schemas import (
 from tmon.backtest.metrics import calibration_table
 from tmon.core.db import get_session
 from tmon.engine.gating import BRIER_DEGRADATION_LIMIT, BRIER_RECENT_DAYS, brier_degraded
-from tmon.engine.service import recent_resolved
+from tmon.engine.service import recent_resolved, signal_hit
 from tmon.storage.models import Signal, SignalNote
 
 router = APIRouter(tags=["metrics"])
@@ -67,14 +67,14 @@ def calibration(session: SessionDep, timeframe: Timeframe = "D1") -> Calibration
             warnings=["مدل این تایم‌فریم در فاز ۱ ساخته نشده است."],
         )
     resolved = session.execute(
-        select(Signal.p_win, Signal.outcome).where(
+        select(Signal.p_win, Signal.outcome, Signal.hit).where(
             Signal.timeframe == timeframe, Signal.outcome != "pending"
         )
     ).all()
     live = empty
     if resolved:
         p = np.array([r.p_win for r in resolved], dtype=float)
-        y = np.array([1.0 if r.outcome == "tp" else 0.0 for r in resolved])
+        y = np.array([signal_hit(r.outcome, r.hit) for r in resolved])
         live = CalibrationBlock(
             n=len(resolved),
             base_rate=float(y.mean()),
@@ -112,12 +112,14 @@ def live_accuracy(session: SessionDep, timeframe: Timeframe = "D1") -> LiveAccur
     """Live accuracy of published signals by signal date, and the state of the Brier kill
     switch (docs/10 section 9) and defensive mode (section 10)."""
     rows = session.execute(
-        select(Signal.date, Signal.p_win, Signal.outcome).where(Signal.timeframe == timeframe)
+        select(Signal.date, Signal.p_win, Signal.outcome, Signal.hit).where(
+            Signal.timeframe == timeframe
+        )
     ).all()
     done = [r for r in rows if r.outcome != "pending"]
     by_day: dict[Any, list[tuple[float, float]]] = {}
     for r in done:
-        by_day.setdefault(r.date, []).append((r.p_win, 1.0 if r.outcome == "tp" else 0.0))
+        by_day.setdefault(r.date, []).append((r.p_win, signal_hit(r.outcome, r.hit)))
     days = []
     for d in sorted(by_day, reverse=True):
         p = np.array([a for a, _ in by_day[d]])
@@ -138,7 +140,7 @@ def live_accuracy(session: SessionDep, timeframe: Timeframe = "D1") -> LiveAccur
     note = session.scalars(
         select(SignalNote).where(SignalNote.timeframe == timeframe).order_by(SignalNote.date.desc())
     ).first()
-    y_all = np.array([1.0 if r.outcome == "tp" else 0.0 for r in done])
+    y_all = np.array([signal_hit(r.outcome, r.hit) for r in done])
     return LiveAccuracyOut(
         timeframe=timeframe,
         as_of=session.scalar(select(func.max(Signal.date)).where(Signal.timeframe == timeframe)),

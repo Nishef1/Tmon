@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -41,6 +42,9 @@ class LabelingCfg(_Frozen):
     atr_period: int
     timeframes: dict[str, TimeframeCfg]
     grid: dict[str, GridCfg]
+    # per timeframe: "barrier" (TP before SL) or "relative" (beat the same-day median,
+    # OPEN_QUESTIONS 67); a timeframe left out uses "barrier"
+    target: dict[str, Literal["barrier", "relative"]] = Field(default_factory=dict)
 
 
 class CostsCfg(_Frozen):

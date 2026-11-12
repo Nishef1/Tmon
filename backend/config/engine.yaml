@@ -22,6 +22,10 @@ labeling:
     D1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }
     W1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }   # same pattern, own horizon (ADR 0002 section 4)
     M1: { k_tp: [1.0, 1.5, 2.0], k_sl: [1.0, 1.5] }
+  # Target per timeframe. relative: y = 1 when the trade's realized return beats the median of
+  # the usable trades opened the same day (OPEN_QUESTIONS 67, owner decision 22 Aban 1405); the
+  # barrier exits and realized returns stay, so EV is still an absolute expected return.
+  target: { D1: relative, W1: barrier, M1: barrier }
 
 # Timeframes the daily cycle trains and publishes. D1 is required; W1 and M1 are optional
 # steps (a failure there does not fail the cycle). v1 of W1/M1 uses price and flow features only.

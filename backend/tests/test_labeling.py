@@ -162,3 +162,51 @@ def test_label_rate_is_plausible_on_a_random_walk():
     lab = triple_barrier_labels(prices, RULES, "D1").filter(pl.col("valid"))
     rate = lab["y"].mean()
     assert 0.0 < rate < 0.5  # 2:1 barriers in 3 days: wins are the minority
+
+
+def _rel_frame() -> pl.DataFrame:
+    d1, d2 = date(2025, 1, 1), date(2025, 1, 2)
+    return pl.DataFrame(
+        {
+            "instrument_id": [1, 2, 3, 4, 1, 2],
+            "date": [d1, d1, d1, d1, d2, d2],
+            "y": [1, 0, 0, 0, None, 0],
+            "realized_return": [0.05, 0.01, -0.02, 0.20, None, 0.03],
+            "valid": [True, True, True, True, False, True],
+            # the 0.20 row could not be bought: it must not move the day's median
+            "executable": [True, True, True, False, False, True],
+        },
+        schema_overrides={"y": pl.Int8},
+    )
+
+
+def test_relative_target_beats_same_day_median_of_usable_trades() -> None:
+    from tmon.labeling.relative import relative_target
+
+    out = relative_target(_rel_frame())
+    # day 1 usable returns 0.05, 0.01, -0.02 -> median 0.01; strictly greater wins
+    assert out["y"].to_list()[:4] == [1, 0, 0, 1]
+    # day 2: the invalid row stays null; the single usable row equals its own median
+    assert out["y"].to_list()[4:] == [None, 0]
+    assert out["y"].dtype == pl.Int8
+    # returns and the rest of the label are untouched (EV stays absolute)
+    assert out["realized_return"].to_list() == _rel_frame()["realized_return"].to_list()
+
+
+def test_relative_target_ignores_market_direction() -> None:
+    from tmon.labeling.relative import relative_target
+
+    f = _rel_frame()
+    down = f.with_columns(pl.col("realized_return") - 0.10)  # same day, whole market 10% lower
+    assert relative_target(down)["y"].to_list() == relative_target(f)["y"].to_list()
+
+
+def test_apply_target_follows_config() -> None:
+    from tmon.core.engine_config import get_engine_config
+    from tmon.labeling.relative import apply_target
+
+    cfg = get_engine_config()
+    f = _rel_frame()
+    assert cfg.labeling.target.get("D1") == "relative"
+    assert apply_target(f, "D1", cfg)["y"].to_list()[:4] == [1, 0, 0, 1]
+    assert apply_target(f, "W1", cfg).equals(f)  # barrier: unchanged

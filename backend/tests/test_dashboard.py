@@ -216,9 +216,10 @@ def test_decision_explains_in_plain_words_and_says_how_long_to_hold() -> None:
 def test_dashboard_shows_the_next_meeting_and_skips_cancelled_or_past_ones(
     client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from tmon.core.timeutil import to_tehran, utcnow
     from tmon.storage.models import CorporateEvent
 
-    today = dt.datetime.now(dt.UTC).date()
+    today = to_tehran(utcnow()).date()  # the page counts days in Tehran
     session.add(_inst("الف"))
     base = {"instrument_id": 1, "type": "agm_dividend", "title": "آگهی"}
     session.add_all(

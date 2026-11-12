@@ -358,6 +358,9 @@ class Signal(Base):
     outcome: Mapped[str] = mapped_column(String(12), default="pending")
     realized_return: Mapped[float | None] = mapped_column(Float)
     outcome_date: Mapped[dt.date | None] = mapped_column(Date)
+    # the label's own y at resolution; null on signals resolved before it existed (then a hit
+    # is outcome == "tp", the barrier target those models were trained on)
+    hit: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
 
 

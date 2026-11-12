@@ -574,3 +574,19 @@ def test_instrument_detail_lists_shareholders_largest_first(
     d = client.get(f"/instruments/{a.id}").json()
     assert [h["name"] for h in d["shareholders"]] == ["بزرگ", "کوچک"]
     assert d["shareholders_at"] == "2025-03-06"
+
+
+def test_live_hit_uses_stored_label_over_exit_reason(session: Session, client: TestClient) -> None:
+    from tmon.engine.service import recent_resolved
+
+    inst = _inst(session, "78", "نسبی")
+    day = dt.date(2026, 10, 1)
+    # relative target: an expiry that beat the day's median is a hit; a TP below it is not
+    _signal(session, inst, day, outcome="expiry", hit=True)
+    _signal(session, inst, day, model_version="m2", outcome="tp", hit=False)
+    _signal(session, inst, day, model_version="m0", outcome="tp")  # resolved before `hit`
+    session.flush()
+    _, y = recent_resolved(session, "D1")
+    assert sorted(y.tolist()) == [0.0, 1.0, 1.0]
+    j = client.get("/metrics/live?timeframe=D1").json()
+    assert j["days"][0]["hits"] == 2
