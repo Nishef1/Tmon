@@ -169,3 +169,14 @@ def test_rank_peers_orders_by_score_and_keeps_the_symbol() -> None:
     assert me.is_self and out.position == n - 1 and len(out.items) == PEERS_SHOWN + 1
     assert me.verdict == "sell" and me.in_basket and me.pe == pytest.approx(5.0)
     assert me.turning_key == "deep_falling" and me.turning_tone == "up" and me.dd == -0.6
+
+
+def test_state_names_come_from_the_code_not_the_stored_document() -> None:
+    from tmon.api.routers.dashboard import turning_out
+
+    doc = _doc()
+    for m in doc["states"]:  # type: ignore[attr-defined]
+        m["title"] = "old name"
+    t = turning_out(doc, 1)
+    assert t is not None and t.state.title == tp.STATE_BY_KEY["deep_falling"].title
+    assert "داغ" not in {s.title for s in tp.STATES}

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
 import { PeersCard } from "@/components/PeersCard";
+import { PlainSummary } from "@/components/PlainSummary";
 import { TurningCard } from "@/components/TurningCard";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 import { signedPct, signTone, verdictPill, verdictTone } from "@/lib/ui";
@@ -366,6 +367,7 @@ export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?
       : null;
   return (
     <div className="space-y-4" data-testid="symbol-dashboard">
+      <PlainSummary d={d} />
       <Decision d={d.decision} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
       {d.peers && <PeersCard p={d.peers} />}
       {d.turning && <TurningCard t={d.turning} />}

@@ -37,6 +37,7 @@ from tmon.api.schemas import (
     TurningState,
     TurningTrigger,
 )
+from tmon.backtest.turning import STATE_BY_KEY
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
@@ -731,6 +732,15 @@ def _turning_state(key: str, meta: dict[str, Any], h: dict[str, Any]) -> Turning
     )
 
 
+def _state_meta(doc: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """State names and meanings: the code's wording wins over the stored document's, so a
+    renamed state reads the same everywhere before the nightly document is rewritten."""
+    meta = {m["key"]: m for m in (doc or {}).get("states", [])}
+    for k, st in STATE_BY_KEY.items():
+        meta[k] = {**meta.get(k, {"key": k}), "title": st.title, "meaning": st.meaning}
+    return meta
+
+
 def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning | None:
     """The symbol's part of the turning-point document; None when it has no state (under a year
     of history) or the document was never written."""
@@ -739,7 +749,7 @@ def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning |
     cur = (doc.get("symbols") or {}).get(str(instrument_id))
     if not cur or not cur.get("state"):
         return None
-    meta = {m["key"]: m for m in doc.get("states", [])}
+    meta = _state_meta(doc)
     hist = doc["history"]
     key = cur["state"]
     base = _turning_state(
@@ -793,7 +803,7 @@ def rank_peers(
     uni = {u["id"]: u for u in (rank_doc or {}).get("universe", [])}
     basket = {r["symbol"] for r in (rank_doc or {}).get("rows", [])}
     states = (turn_doc or {}).get("symbols") or {}
-    titles = {m["key"]: m["title"] for m in (turn_doc or {}).get("states", [])}
+    titles = {k: m["title"] for k, m in _state_meta(turn_doc).items()}
     tones = ((turn_doc or {}).get("history") or {}).get("states") or {}
     items: list[DashPeer] = []
     for p in peers:
