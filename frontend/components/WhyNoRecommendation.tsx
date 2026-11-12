@@ -43,7 +43,7 @@ export function WhyNoRecommendation({
     <div className="mt-4 space-y-4 text-sm" data-testid="why-none">
       {d && binding && (
         <p>
-          <strong>مهم‌ترین مانع:</strong> «{binding.label}» که{" "}
+          <strong>مهم‌ترین مانع:</strong> «{faDigits(binding.label)}» که{" "}
           <Num term="candidates" value={binding.lost} kind="count" /> نماد از{" "}
           <Num term="candidates" value={d.universe} kind="count" /> نماد را حذف کرد.
         </p>

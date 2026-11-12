@@ -189,7 +189,7 @@ async def sync_sector_names(session: Session, api: TseApi) -> int:
     rows = [
         {
             "code": str(r["code"]).strip().zfill(2),
-            "name": str(r["name"]).strip(),
+            "name": str(r["name"]).strip().replace("ي", "ی").replace("ك", "ک"),
             "source_url": "https://cdn.tsetmc.com/api/StaticData/GetStaticData",
             "fetched_at": fetched_at,
         }

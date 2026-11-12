@@ -56,8 +56,14 @@ BANDS: list[tuple[str, float, float]] = [
 
 
 def _latest_full(session: Session, date_col: Any) -> dt.date | None:
+    """Latest date with broad coverage among stocks (funds and bonds are far more numerous)."""
     rows = session.execute(
-        select(date_col, func.count()).group_by(date_col).order_by(date_col.desc()).limit(15)
+        select(date_col, func.count())
+        .join(Instrument, Instrument.id == date_col.class_.instrument_id)
+        .where(Instrument.instrument_type == "stock")
+        .group_by(date_col)
+        .order_by(date_col.desc())
+        .limit(15)
     ).all()
     if not rows:
         return None

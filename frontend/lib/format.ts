@@ -13,7 +13,10 @@ function group(n: number, digits: number): string {
 
 /** Latin digits inside a server-written sentence -> Persian digits. */
 export function faDigits(text: string): string {
-  return text.replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+  return text
+    .replace(/(\d)\.(\d)/g, "$1٫$2") // decimal point
+    .replace(/(^|[\s(])-(?=\d)/g, "$1−") // minus sign
+    .replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 }
 
 export function faNumber(n: number, digits = 0): string {
@@ -74,12 +77,9 @@ const jalaliShort = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
   month: "2-digit",
   day: "2-digit",
 });
-const jalaliDay = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+const jalaliWeekday = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
   timeZone: TZ,
   weekday: "long",
-  year: "numeric",
-  month: "long",
-  day: "numeric",
 });
 const jalaliMonthDay = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
   timeZone: TZ,
@@ -102,7 +102,7 @@ export function jalali(iso: string | null | undefined, style: DateStyle = "long"
     case "short":
       return jalaliShort.format(d);
     case "weekday":
-      return jalaliDay.format(d);
+      return `${jalaliWeekday.format(d)}، ${jalaliLong.format(d)}`;
     case "monthDay":
       return jalaliMonthDay.format(d);
     case "monthYear":
