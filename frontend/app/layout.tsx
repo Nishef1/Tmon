@@ -15,6 +15,7 @@ const NAV = [
   { href: "/", label: "توصیه‌های امروز" },
   { href: "/market", label: "نمای بازار" },
   { href: "/ranking", label: "خرید / نگهداری / پرهیز" },
+  { href: "/industries", label: "صنایع و نمادها" },
   { href: "/screener", label: "همهٔ نمادها" },
   { href: "/history", label: "سابقه سیگنال‌ها" },
   { href: "/calibration", label: "کالیبراسیون" },

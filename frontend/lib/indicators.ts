@@ -30,3 +30,21 @@ export function sma(bars: Bar[], window: number): { time: string; value: number 
   }
   return out;
 }
+
+export type Point = { time: string; price: number };
+export type Measure = { pct: number; delta: number; bars: number; days: number };
+
+/** The percent ruler: change from point ``a`` to point ``b``, with the candles and calendar days
+ *  between them (``times`` = the chart's bar dates, ascending). */
+export function measure(a: Point, b: Point, times: string[]): Measure | null {
+  if (!(a.price > 0)) return null;
+  const i = times.indexOf(a.time);
+  const j = times.indexOf(b.time);
+  const days = Math.round((Date.parse(b.time) - Date.parse(a.time)) / 86_400_000);
+  return {
+    pct: b.price / a.price - 1,
+    delta: b.price - a.price,
+    bars: i >= 0 && j >= 0 ? j - i : Math.abs(days),
+    days,
+  };
+}

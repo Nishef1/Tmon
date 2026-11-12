@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.returns import MAX_DAY_MOVE
 from tmon.api.schemas import (
     MarketBand,
     MarketFlow,
@@ -42,7 +43,7 @@ INDEX_NAMES = {
     get_engine_config().benchmarks.indices["tedpix"]: "شاخص کل",
     get_engine_config().benchmarks.indices["equal_weight"]: "شاخص کل (هم‌وزن)",
 }
-MAX_CHANGE = 0.5  # larger one-day moves are stale reference prices (reopening), not returns
+MAX_CHANGE = MAX_DAY_MOVE  # larger one-day moves are stale reference prices, not returns
 NEAR_LIMIT = 0.029  # daily limits are not stored; the usual +-3% band is used instead
 BANDS: list[tuple[str, float, float]] = [
     ("کمتر از −۴٪", -9.0, -0.04),
@@ -74,8 +75,17 @@ def _latest_full(session: Session, date_col: Any) -> dt.date | None:
     return None
 
 
-def _mover(i: Instrument, **kw: float | None) -> MarketMover:
-    return MarketMover(symbol=i.symbol_fa, name=i.name_fa, **kw)
+def _mover(
+    i: Instrument, sector: str | None, close: float | None, **kw: float | None
+) -> MarketMover:
+    return MarketMover(
+        instrument_id=i.id,
+        symbol=i.symbol_fa,
+        name=i.name_fa,
+        sector_name=sector,
+        close=close,
+        **kw,
+    )
 
 
 @router.get("/market/overview", response_model=MarketOverviewOut)
@@ -139,21 +149,26 @@ def overview(session: SessionDep) -> MarketOverviewOut:
         if k in ins and c.buy_value_i is not None and c.sell_value_i is not None:
             nets[k] = float(c.buy_value_i) - float(c.sell_value_i)
 
+    names = {s.code: s.name for s in session.scalars(select(SectorName))}
+    close = {i.id: float(p.close) if p.close else None for i, p in rows}
+
+    def mv(k: int, **kw: float | None) -> MarketMover:
+        return _mover(ins[k], names.get(ins[k].sector_code or ""), close[k], **kw)
+
     traded = sorted((k for k in chg if val[k] > 0), key=lambda k: chg[k])
-    out.gainers = [_mover(ins[k], change=chg[k], value=val[k]) for k in reversed(traded[-TOP:])]
-    out.losers = [_mover(ins[k], change=chg[k], value=val[k]) for k in traded[:TOP]]
+    out.gainers = [mv(k, change=chg[k], value=val[k]) for k in reversed(traded[-TOP:])]
+    out.losers = [mv(k, change=chg[k], value=val[k]) for k in traded[:TOP]]
     out.by_value = [
-        _mover(ins[k], change=chg.get(k), value=val[k])
-        for k in sorted(val, key=lambda k: -val[k])[:TOP]
+        mv(k, change=chg.get(k), value=val[k]) for k in sorted(val, key=lambda k: -val[k])[:TOP]
     ]
     ranked = sorted(nets, key=lambda k: nets[k])
     out.inflow = [
-        _mover(ins[k], change=chg.get(k), value=val[k], net_real_flow=nets[k])
+        mv(k, change=chg.get(k), value=val[k], net_real_flow=nets[k])
         for k in reversed(ranked[-TOP:])
         if nets[k] > 0
     ]
     out.outflow = [
-        _mover(ins[k], change=chg.get(k), value=val[k], net_real_flow=nets[k])
+        mv(k, change=chg.get(k), value=val[k], net_real_flow=nets[k])
         for k in ranked[:TOP]
         if nets[k] < 0
     ]
@@ -184,7 +199,6 @@ def overview(session: SessionDep) -> MarketOverviewOut:
     for k, i in ins.items():
         if i.sector_code:
             grp.setdefault(i.sector_code, []).append(k)
-    names = {s.code: s.name for s in session.scalars(select(SectorName))}
     sectors = []
     for code, ks in grp.items():
         cs = [chg[k] for k in ks if k in chg]
@@ -199,7 +213,7 @@ def overview(session: SessionDep) -> MarketOverviewOut:
                 net_real_flow=sum(ns) if ns else None,
             )
         )
-    out.sectors = sorted(sectors, key=lambda x: -x.value)[:15]
+    out.sectors = sorted(sectors, key=lambda x: -x.value)
 
     for code in session.scalars(select(MarketIndexDaily.index_code).distinct()):
         last = session.execute(

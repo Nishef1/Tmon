@@ -56,6 +56,9 @@ export function SignalTable({
                   <Link href={`/instruments/${s.instrument.id}`} className="hover:text-accent">
                     {s.instrument.symbol}
                   </Link>
+                  {s.instrument.name && (
+                    <div className="text-xs font-normal text-muted">{s.instrument.name}</div>
+                  )}
                 </td>
               )}
               <td className="px-3 py-2">

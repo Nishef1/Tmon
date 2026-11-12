@@ -2910,6 +2910,21 @@
             ],
             "title": "Change"
           },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
           "name": {
             "anyOf": [
               {
@@ -2932,6 +2947,17 @@
             ],
             "title": "Net Real Flow"
           },
+          "sector_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Name"
+          },
           "symbol": {
             "title": "Symbol",
             "type": "string"
@@ -2949,8 +2975,11 @@
           }
         },
         "required": [
+          "instrument_id",
           "symbol",
           "name",
+          "sector_name",
+          "close",
           "change",
           "value",
           "net_real_flow"
@@ -4109,6 +4138,17 @@
             ],
             "title": "Atr 14 Pct"
           },
+          "base_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Volume"
+          },
           "change_pct": {
             "anyOf": [
               {
@@ -4153,6 +4193,28 @@
             ],
             "title": "Ev"
           },
+          "from_year_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Year High"
+          },
+          "from_year_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Year Low"
+          },
           "gauge": {
             "anyOf": [
               {
@@ -4163,6 +4225,17 @@
               }
             ],
             "title": "Gauge"
+          },
+          "gauge_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gauge Note"
           },
           "ind_buy_power": {
             "anyOf": [
@@ -4188,6 +4261,29 @@
           },
           "instrument": {
             "$ref": "#/components/schemas/InstrumentOut"
+          },
+          "market_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Cap"
+          },
+          "meeting_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Date"
           },
           "net_real_value": {
             "anyOf": [
@@ -4302,6 +4398,50 @@
             ],
             "title": "Rel Volume"
           },
+          "ret_3m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 3M"
+          },
+          "ret_month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret Month"
+          },
+          "ret_week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret Week"
+          },
+          "ret_year": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret Year"
+          },
           "rsi_14": {
             "anyOf": [
               {
@@ -4312,6 +4452,17 @@
               }
             ],
             "title": "Rsi 14"
+          },
+          "sector_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Code"
           },
           "sector_name": {
             "anyOf": [
@@ -4334,6 +4485,17 @@
               }
             ],
             "title": "Sector Pe"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
           },
           "signal": {
             "anyOf": [
@@ -4384,6 +4546,17 @@
             "title": "Verdict Label",
             "type": "string"
           },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          },
           "volume_ratio_30": {
             "anyOf": [
               {
@@ -4411,10 +4584,23 @@
           "verdict_label",
           "rank",
           "gauge",
+          "gauge_note",
           "sector_name",
+          "sector_code",
           "eps",
           "pe",
           "sector_pe",
+          "ret_week",
+          "ret_month",
+          "ret_3m",
+          "ret_year",
+          "from_year_high",
+          "from_year_low",
+          "volume",
+          "market_cap",
+          "shares",
+          "base_volume",
+          "meeting_date",
           "rsi_14",
           "rel_volume",
           "atr_14_pct",

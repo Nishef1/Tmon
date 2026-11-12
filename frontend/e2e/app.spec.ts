@@ -215,6 +215,31 @@ test("market page shows breadth, flow and movers, and says what it cannot show",
   await expect(page.getByTestId("market-flow")).toContainText("خالص ورود");
   await expect(page.getByTestId("market-gainers")).toContainText("الف");
   await expect(page.getByTestId("market-outflow")).toContainText("موردی نیست");
-  await expect(page.getByTestId("market-sectors")).toContainText("کد گروه");
+  await expect(page.getByTestId("market-gainers")).toContainText("نام الف");
+  await expect(page.getByTestId("market-sectors")).toContainText("فلزات اساسی");
   await expect(page.locator("main")).toContainText("پوشش نمی‌دهیم");
+});
+
+test("market groups open to list their stocks and sort", async ({ page }) => {
+  await page.goto("/market");
+  await page.locator("tr[data-sector]").first().click();
+  const members = page.getByTestId("sector-members");
+  await expect(members).toContainText("وبانک");
+  await expect(members).toContainText("خودرو");
+  await members.getByRole("button", { name: /^نماد/ }).click();
+  await expect(members.locator("tbody tr").first()).toContainText("خودرو");
+  await members.getByRole("button", { name: /^نماد/ }).click();
+  await expect(members.locator("tbody tr").first()).toContainText("وبانک");
+});
+
+test("industries page groups stocks, searches and opens a symbol", async ({ page }) => {
+  await page.goto("/industries");
+  const table = page.getByTestId("industry-table");
+  await expect(table).toContainText("فلزات اساسی");
+  await expect(table).toContainText("وبانک");
+  await page.getByRole("searchbox").first().fill("خودر");
+  await expect(table).not.toContainText("وبانک");
+  await expect(table).toContainText("خودرو");
+  await table.getByText("خودرو").first().click();
+  await expect(page).toHaveURL(/\/instruments\/2/);
 });

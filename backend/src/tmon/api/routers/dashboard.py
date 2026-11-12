@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from tmon.api.returns import day_change
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import (
     DashDecision,
@@ -110,7 +111,7 @@ def _price(rows: list[PriceDaily]) -> DashPrice | None:
         close=_f(p.close),
         prev_close=prev,
         last_change=(float(p.last) / prev - 1) if p.last and prev else None,
-        close_change=(float(p.close) / prev - 1) if p.close and prev else None,
+        close_change=day_change(_f(p.close), prev),
         limit_up=_f(p.limit_up),
         limit_down=_f(p.limit_down),
         trades=p.trades,

@@ -101,7 +101,7 @@ class PriceDaily(Base, Provenance):
     instrument_id: Mapped[int] = mapped_column(
         ForeignKey("instruments.id"), primary_key=True, index=True
     )
-    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True, index=True)
     open: Mapped[float | None] = mapped_column(Rial)
     high: Mapped[float | None] = mapped_column(Rial)
     low: Mapped[float | None] = mapped_column(Rial)
@@ -141,7 +141,7 @@ class ClientTypeDaily(Base, Provenance):
     instrument_id: Mapped[int] = mapped_column(
         ForeignKey("instruments.id"), primary_key=True, index=True
     )
-    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True, index=True)
     buy_count_i: Mapped[int | None] = mapped_column(Integer)
     buy_count_n: Mapped[int | None] = mapped_column(Integer)
     sell_count_i: Mapped[int | None] = mapped_column(Integer)
@@ -297,7 +297,7 @@ class FeatureRow(Base):
     instrument_id: Mapped[int] = mapped_column(
         ForeignKey("instruments.id"), primary_key=True, index=True
     )
-    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True, index=True)
     feature_set_version: Mapped[str] = mapped_column(String(32), primary_key=True)
     values: Mapped[dict[str, Any]] = mapped_column(JsonType)
 

@@ -68,8 +68,8 @@ export function Gauge({
           <line
             x1={CX}
             y1={CY}
-            x2={nx}
-            y2={ny}
+            x2={nx.toFixed(2)}
+            y2={ny.toFixed(2)}
             stroke="currentColor"
             strokeWidth={sm ? 9 : 5}
             strokeLinecap="round"

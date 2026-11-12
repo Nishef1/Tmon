@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { heikinAshi, sma, type Bar } from "@/lib/indicators";
+import { heikinAshi, measure, sma, type Bar } from "@/lib/indicators";
 
 const bars: Bar[] = [
   { time: "2026-01-01", open: 10, high: 12, low: 9, close: 11 },
@@ -31,5 +31,30 @@ describe("sma", () => {
       { time: "2026-01-03", value: 11.5 },
     ]);
     expect(sma(bars, 5)).toEqual([]);
+  });
+});
+
+describe("percent ruler", () => {
+  const times = ["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-08"];
+  it("measures change, candles and days between two points", () => {
+    const m = measure(
+      { time: "2026-11-01", price: 1000 },
+      { time: "2026-11-08", price: 1150 },
+      times,
+    );
+    expect(m?.pct).toBeCloseTo(0.15, 10);
+    expect(m).toMatchObject({ delta: 150, bars: 3, days: 7 });
+  });
+  it("goes negative backwards and refuses a zero start", () => {
+    const m = measure(
+      { time: "2026-11-08", price: 1150 },
+      { time: "2026-11-01", price: 1000 },
+      times,
+    );
+    expect(m?.pct).toBeCloseTo(-0.1304, 3);
+    expect(m?.bars).toBe(-3);
+    expect(
+      measure({ time: "2026-11-01", price: 0 }, { time: "2026-11-02", price: 1 }, times),
+    ).toBeNull();
   });
 });

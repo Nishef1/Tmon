@@ -8,7 +8,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from tmon.api.routers.dashboard import _ranking_doc, decide, fundamental_out
+from tmon.api.returns import day_change, period_table
+from tmon.api.routers.dashboard import (
+    INVITATION_STAGES,
+    _ranking_doc,
+    decide,
+    fundamental_out,
+)
 from tmon.api.routers.market import _latest_full
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import Reason, ScreenerOut, ScreenerRow, Timeframe
@@ -18,6 +24,7 @@ from tmon.features.builder import get_feature_set
 from tmon.ingest.tsetmc.parsers import normalize_fa
 from tmon.storage.models import (
     ClientTypeDaily,
+    CorporateEvent,
     FeatureRow,
     Instrument,
     ModelRun,
@@ -120,6 +127,8 @@ def screener(
         for c, n in session.execute(select(SectorName.code, SectorName.name))
     }
     needle = normalize_fa((q or "").strip())
+    periods = period_table(session, last)
+    meetings = _next_meetings(session, last)
     rows: list[ScreenerRow] = []
     counts: dict[str, int] = {}
     for p, inst in prices:  # one row per symbol on one day
@@ -140,6 +149,10 @@ def screener(
         pv = prior.get(inst.id)
         d = decide(inst, ranking, None)
         fa = fundamental_out(inst, close, sec) if inst.instrument_type == "stock" else None
+        pr = periods.get(inst.id)
+        tags = inst.tags or {}
+        shares = _num(tags.get("shares"))
+        base_vol = _num(tags.get("base_volume"))
         counts[d.verdict] = counts.get(d.verdict, 0) + 1
         if verdict and d.verdict != verdict:
             continue
@@ -147,7 +160,7 @@ def screener(
             ScreenerRow(
                 instrument=instrument_out(inst),
                 close=close,
-                change_pct=(close / prev - 1) if close and prev else None,
+                change_pct=day_change(close, prev),
                 value=None if p.value is None else float(p.value),
                 trades=p.trades,
                 volume_ratio_30=(float(p.volume) / pv) if pv and p.volume else None,
@@ -163,7 +176,22 @@ def screener(
                 verdict_label=d.label,
                 rank=d.rank,
                 gauge=d.gauge,
+                gauge_note=d.headline if d.gauge is None else None,
                 sector_name=sec,
+                sector_code=(inst.sector_code or "").strip() or None,
+                ret_week=pr.ret_week if pr else None,
+                ret_month=pr.ret_month if pr else None,
+                ret_3m=pr.ret_3m if pr else None,
+                ret_year=pr.ret_year if pr else None,
+                from_year_high=(close / pr.year_high - 1)
+                if pr and pr.year_high and close
+                else None,
+                from_year_low=(close / pr.year_low - 1) if pr and pr.year_low and close else None,
+                volume=None if p.volume is None else float(p.volume),
+                market_cap=(shares * close) if shares and close else None,
+                shares=shares,
+                base_volume=base_vol if base_vol and base_vol > 1 else None,
+                meeting_date=meetings.get(inst.id),
                 eps=fa.eps if fa else None,
                 pe=fa.pe if fa else None,
                 sector_pe=fa.sector_pe if fa else None,
@@ -190,6 +218,19 @@ def screener(
         total=len(rows),
         rows=rows[:limit],
     )
+
+
+def _next_meetings(session: Session, last: dt.date) -> dict[int, dt.date]:
+    """Day of the nearest announced assembly per instrument (Codal invitation letters)."""
+    out: dict[int, dt.date] = {}
+    for iid, day in session.execute(
+        select(CorporateEvent.instrument_id, CorporateEvent.event_date)
+        .where(CorporateEvent.stage.in_(INVITATION_STAGES), CorporateEvent.event_date >= last)
+        .order_by(CorporateEvent.event_date.desc())
+    ):
+        if day is not None:
+            out[iid] = day  # descending order: the last write is the nearest day
+    return out
 
 
 def _num(v: Any) -> float | None:

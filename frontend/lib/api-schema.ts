@@ -1136,10 +1136,16 @@ export interface components {
     MarketMover: {
       /** Change */
       change: number | null;
+      /** Close */
+      close: number | null;
+      /** Instrument Id */
+      instrument_id: number;
       /** Name */
       name: string | null;
       /** Net Real Flow */
       net_real_flow: number | null;
+      /** Sector Name */
+      sector_name: string | null;
       /** Symbol */
       symbol: string;
       /** Value */
@@ -1519,6 +1525,8 @@ export interface components {
     ScreenerRow: {
       /** Atr 14 Pct */
       atr_14_pct: number | null;
+      /** Base Volume */
+      base_volume: number | null;
       /** Change Pct */
       change_pct: number | null;
       /** Close */
@@ -1527,13 +1535,23 @@ export interface components {
       eps: number | null;
       /** Ev */
       ev: number | null;
+      /** From Year High */
+      from_year_high: number | null;
+      /** From Year Low */
+      from_year_low: number | null;
       /** Gauge */
       gauge: number | null;
+      /** Gauge Note */
+      gauge_note: string | null;
       /** Ind Buy Power */
       ind_buy_power: number | null;
       /** Ind Net Flow Ratio */
       ind_net_flow_ratio: number | null;
       instrument: components["schemas"]["InstrumentOut"];
+      /** Market Cap */
+      market_cap: number | null;
+      /** Meeting Date */
+      meeting_date: string | null;
       /** Net Real Value */
       net_real_value: number | null;
       /** P Min */
@@ -1554,12 +1572,24 @@ export interface components {
       reasons: components["schemas"]["Reason"][] | null;
       /** Rel Volume */
       rel_volume: number | null;
+      /** Ret 3M */
+      ret_3m: number | null;
+      /** Ret Month */
+      ret_month: number | null;
+      /** Ret Week */
+      ret_week: number | null;
+      /** Ret Year */
+      ret_year: number | null;
       /** Rsi 14 */
       rsi_14: number | null;
+      /** Sector Code */
+      sector_code: string | null;
       /** Sector Name */
       sector_name: string | null;
       /** Sector Pe */
       sector_pe: number | null;
+      /** Shares */
+      shares: number | null;
       /** Signal */
       signal: boolean | null;
       /** Trades */
@@ -1577,6 +1607,8 @@ export interface components {
        * @default
        */
       verdict_label: string;
+      /** Volume */
+      volume: number | null;
       /** Volume Ratio 30 */
       volume_ratio_30: number | null;
     };

@@ -111,3 +111,24 @@ export function jalali(iso: string | null | undefined, style: DateStyle = "long"
       return jalaliLong.format(d);
   }
 }
+
+/** Rial amount in short toman units: ``۱٫۲ همت``, ``۴۵٫۰ میلیارد``. */
+export function faToman(rial: number | null | undefined): string {
+  if (rial == null) return "—";
+  const t = rial / 10;
+  const a = Math.abs(t);
+  if (a >= 1e12) return `${group(t / 1e12, 2)} همت`;
+  if (a >= 1e9) return `${group(t / 1e9, 1)} میلیارد`;
+  if (a >= 1e6) return `${group(t / 1e6, 1)} میلیون`;
+  return group(t, 0);
+}
+
+/** A share count in short form: ``۲٫۵ میلیارد``, ``۳۴۰ هزار``. */
+export function faCount(n: number | null | undefined): string {
+  if (n == null) return "—";
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${group(n / 1e9, 1)} میلیارد`;
+  if (a >= 1e6) return `${group(n / 1e6, 1)} میلیون`;
+  if (a >= 1e3) return `${group(n / 1e3, 0)} هزار`;
+  return group(n, 0);
+}

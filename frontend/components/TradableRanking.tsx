@@ -117,7 +117,9 @@ function Column({ c, rows }: { c: Col; rows: RankingRow[] }) {
 function Chip({ r }: { r: RankingRow }) {
   return (
     <li className="rounded-lg border border-line bg-surface px-2 py-0.5">
-      {r.symbol} <Num value={r.score} term="rank_score" digits={2} />
+      <span className="font-semibold">{r.symbol}</span>{" "}
+      <Num value={r.score} term="rank_score" digits={2} />
+      {r.name && <div className="max-w-48 truncate text-xs text-muted">{r.name}</div>}
     </li>
   );
 }

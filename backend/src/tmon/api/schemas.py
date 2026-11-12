@@ -368,10 +368,24 @@ class ScreenerRow(ApiModel):
     verdict_label: str = ""
     rank: int | None = None
     gauge: float | None = None
+    gauge_note: str | None = None  # exact reason when there is no gauge
     sector_name: str | None = None
+    sector_code: str | None = None
     eps: float | None = None
     pe: float | None = None
     sector_pe: float | None = None
+    # returns on adjusted closes: week, month, three months, year; None = no honest value
+    ret_week: float | None = None
+    ret_month: float | None = None
+    ret_3m: float | None = None
+    ret_year: float | None = None
+    from_year_high: float | None = None  # close / year high - 1 (<= 0)
+    from_year_low: float | None = None  # close / year low - 1 (>= 0)
+    volume: float | None = None
+    market_cap: float | None = None
+    shares: float | None = None
+    base_volume: float | None = None
+    meeting_date: dt.date | None = None
     rsi_14: float | None = None
     rel_volume: float | None = None
     atr_14_pct: float | None = None
@@ -486,8 +500,11 @@ class MarketBand(ApiModel):
 
 
 class MarketMover(ApiModel):
+    instrument_id: int
     symbol: str
     name: str | None = None
+    sector_name: str | None = None
+    close: float | None = None
     change: float | None = None
     value: float | None = None
     net_real_flow: float | None = None

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.returns import day_change
 from tmon.api.routers.dashboard import _kind, _ranking_doc, decide, fundamental_out
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import SearchHit, SearchOut
@@ -90,7 +91,7 @@ def search(
                 sector_name=sec,
                 kind="سهام" if inst.instrument_type == "stock" else _kind(inst.instrument_type),
                 close=close,
-                change_pct=(close / prev - 1) if close and prev else None,
+                change_pct=day_change(close, prev),
                 verdict=d.verdict,
                 verdict_label=d.label,
                 gauge=d.gauge,

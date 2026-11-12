@@ -153,9 +153,14 @@ export function WhyNoRecommendation({
                 <tr key={m.instrument?.id ?? i} className="border-b border-line/60">
                   <td className="py-1">
                     {m.instrument ? (
-                      <Link href={`/instruments/${m.instrument.id}`} className="text-accent">
-                        {m.instrument.symbol}
-                      </Link>
+                      <>
+                        <Link href={`/instruments/${m.instrument.id}`} className="text-accent">
+                          {m.instrument.symbol}
+                        </Link>
+                        {m.instrument.name && (
+                          <div className="text-xs text-muted">{m.instrument.name}</div>
+                        )}
+                      </>
                     ) : (
                       "—"
                     )}

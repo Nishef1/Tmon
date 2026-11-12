@@ -210,7 +210,10 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
                 >
                   {r.instrument.symbol}
                 </Link>
-                {r.sector_name && <div className="text-xs text-muted">{r.sector_name}</div>}
+                <div className="max-w-52 text-xs leading-snug text-muted">
+                  {r.instrument.name}
+                  {r.sector_name && <span> · {r.sector_name}</span>}
+                </div>
               </td>
               <td className="px-2 py-1.5">
                 <span

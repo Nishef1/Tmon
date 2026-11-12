@@ -1,8 +1,11 @@
+import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, type MarketOverview, type MarketMover } from "@/lib/api";
+import { apiGet, type MarketOverview, type MarketMover, type Screener } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
+import { SectorTable, type SectorSummary } from "@/components/SectorTable";
+import { toRow, type Row } from "@/lib/industry";
 
 export const metadata: Metadata = { title: "نمای بازار" };
 export const dynamic = "force-dynamic";
@@ -16,15 +19,25 @@ function bt(rial: number, digits = 0): string {
 }
 
 export default async function MarketPage() {
-  const res = await apiGet<MarketOverview>("/market/overview");
+  const [res, stocks] = await Promise.all([
+    apiGet<MarketOverview>("/market/overview"),
+    apiGet<Screener>("/screener", { sort: "value", stocks_only: "true", limit: 3000 }),
+  ]);
+  const members: Record<string, Row[]> = {};
+  if (stocks.ok) {
+    for (const r of stocks.data.rows) {
+      const code = (r.sector_code ?? "").padStart(2, "0");
+      (members[code] ??= []).push(toRow(r));
+    }
+  }
   return (
     <main className="space-y-5">
       <div>
         <h1 className="text-2xl font-extrabold">نمای بازار</h1>
         <p className="mt-1 text-sm text-muted">
           خلاصهٔ پایان روز از دادهٔ روزانه: دامنهٔ بازار، پول حقیقی و حقوقی، برترین‌ها. دادهٔ
-          لحظه‌ای (پول هوشمند آنی، سفارش‌های درشت) تازه از امروز جمع‌آوری می‌شود و تا پر شدن
-          تاریخچه نمایش داده نمی‌شود؛ اختیار معامله را هم پوشش نمی‌دهیم.
+          لحظه‌ای (پول هوشمند آنی، سفارش‌های درشت) تازه از امروز جمع‌آوری می‌شود و تا پر شدن تاریخچه
+          نمایش داده نمی‌شود؛ اختیار معامله را هم پوشش نمی‌دهیم.
         </p>
       </div>
       <Disclaimer />
@@ -35,7 +48,7 @@ export default async function MarketPage() {
           داده‌ای برای نمای بازار نیست.
         </p>
       ) : (
-        <Body d={res.data} />
+        <Body d={res.data} members={members} />
       )}
     </main>
   );
@@ -50,7 +63,15 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: str
   );
 }
 
-function Body({ d }: { d: MarketOverview }) {
+function Body({ d, members }: { d: MarketOverview; members: Record<string, Row[]> }) {
+  const sectors: SectorSummary[] = d.sectors.map((s) => ({
+    code: s.sector_code.padStart(2, "0"),
+    name: s.name ?? `گروه ${faNumber(Number(s.sector_code))}`,
+    n: s.n,
+    value: s.value,
+    avgChange: s.avg_change ?? null,
+    netReal: s.net_real_flow ?? null,
+  }));
   const maxBand = Math.max(1, ...d.bands.map((b) => b.count));
   const f = d.flow;
   return (
@@ -145,35 +166,13 @@ function Body({ d }: { d: MarketOverview }) {
       </div>
 
       <section className="space-y-2" data-testid="market-sectors">
-        <h2 className="text-lg font-bold">گروه‌های پرمعامله</h2>
+        <h2 className="text-lg font-bold">گروه‌های بورسی</h2>
         <p className="text-xs text-muted">
-          «تغییر میانگین» میانگین ساده تغییر سهم‌های گروه است، نه وزن‌دار با ارزش بازار. اگر نام
-          گروهی هنوز در جدول نام‌ها نیامده باشد، فقط کد گروه بورس نشان داده می‌شود.
+          روی هر گروه بزنید تا همهٔ سهم‌هایش با بازده و تصمیم مدل باز شود؛ سرستون‌ها برای
+          مرتب‌سازی قابل‌کلیک‌اند. «تغییر میانگین» میانگین ساده تغییر امروز سهم‌های گروه است، نه
+          وزن‌دار با ارزش بازار.
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[30rem] text-sm">
-            <thead className="text-xs text-muted">
-              <tr className="text-right">
-                <th className="py-1">گروه</th>
-                <th>سهام</th>
-                <th>ارزش معاملات</th>
-                <th>تغییر میانگین</th>
-                <th>خالص پول حقیقی</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.sectors.map((s) => (
-                <tr key={s.sector_code} className="border-t border-line">
-                  <td className="py-1">{s.name ?? `کد ${faNumber(Number(s.sector_code))}`}</td>
-                  <td>{faNumber(s.n)}</td>
-                  <td>{bt(s.value)}</td>
-                  <td>{s.avg_change == null ? "—" : faPercent(s.avg_change, 2, true)}</td>
-                  <td>{s.net_real_flow == null ? "—" : bt(s.net_real_flow)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SectorTable sectors={sectors} members={members} />
       </section>
     </>
   );
@@ -199,16 +198,31 @@ function Movers({
         <table className="w-full text-sm">
           <thead className="text-xs text-muted">
             <tr className="text-right">
-              <th className="py-1">نماد</th>
-              <th>تغییر</th>
+              <th className="py-1">نماد و نام شرکت</th>
+              <th title="قیمت پایانی آخرین روز نسبت به پایانی روز کاری قبل">تغییر امروز</th>
+              <th>پایانی</th>
               <th>{flow ? "خالص پول حقیقی" : "ارزش"}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.symbol} className="border-t border-line">
-                <td className="py-1 font-semibold">{r.symbol}</td>
-                <td>{r.change == null ? "—" : faPercent(r.change, 2, true)}</td>
+              <tr key={r.instrument_id} className="border-t border-line">
+                <td className="py-1.5">
+                  <Link
+                    href={`/instruments/${r.instrument_id}`}
+                    className="font-semibold hover:text-accent"
+                  >
+                    {r.symbol}
+                  </Link>
+                  <div className="text-xs leading-snug text-muted">
+                    {r.name}
+                    {r.sector_name && <span> · {r.sector_name}</span>}
+                  </div>
+                </td>
+                <td className={r.change == null ? "" : r.change >= 0 ? "text-up" : "text-down"}>
+                  {r.change == null ? "—" : faPercent(r.change, 2, true)}
+                </td>
+                <td>{r.close == null ? "—" : faNumber(r.close)}</td>
                 <td>
                   {flow
                     ? r.net_real_flow == null
