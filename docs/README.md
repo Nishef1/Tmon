@@ -22,10 +22,12 @@
 | [glossary.md](glossary.md) | واژه‌نامه آکادمی سایت |
 | [adr/0001-tech-stack.md](adr/0001-tech-stack.md) | **تصمیم تثبیت‌شده:** زبان‌ها و ابزارها |
 | [adr/0002-engine-and-data-decisions.md](adr/0002-engine-and-data-decisions.md) | **تصمیم تثبیت‌شده:** جهان توصیه، هزینه، آستانه‌ها، تعریف پایان |
+| [adr/0003-engine-v2-relative-rank-and-exposure.md](adr/0003-engine-v2-relative-rank-and-exposure.md) | **جهت تثبیت‌شده:** موتور v2 با رتبهٔ نسبی، لایهٔ مواجهه و سبد کم‌گردش؛ انتشار مشروط به دروازه |
+| [reports/research-engine-v2.md](reports/research-engine-v2.md) | پژوهش پشتیبان ADR 0003: چرا v1 شکست خورد، ادبیات، طراحی و دروازهٔ پذیرش |
 | [prompts/build-phase1.md](prompts/build-phase1.md) | پرامپت ساخت M0–M5 (اجرا شده) |
 | [prompts/finish-phase1.md](prompts/finish-phase1.md) | پرامپت تکمیل فاز ۱ تا ۱۰۰٪ |
 | [prompts/continue-phase1.md](prompts/continue-phase1.md) | پرامپت ادامه پس از بازبینی (C1 تا C6) |
 
-تاریخ آخرین بازبینی: ۲۰ آبان ۱۴۰۵ (۱۱ نوامبر ۲۰۲۶).
+تاریخ آخرین بازبینی: ۲۱ آبان ۱۴۰۵ (۱۲ نوامبر ۲۰۲۶).
 
 > این مستندات تحلیل فنی و آموزشی است، نه توصیه سرمایه‌گذاری.
