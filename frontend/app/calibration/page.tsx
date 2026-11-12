@@ -14,20 +14,20 @@ function Reliability({ block }: { block: CalibrationBlock }) {
   if (rows.length === 0) return <p className="text-sm text-muted">دادهٔ کافی وجود ندارد.</p>;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[32rem] text-sm">
+      <table className="tbl min-w-[32rem]">
         <caption className="sr-only">احتمال پیش‌بینی‌شده در برابر نرخ موفقیت واقعی</caption>
-        <thead className="text-xs text-muted">
+        <thead>
           <tr className="border-b border-line">
-            <th scope="col" className="px-2 py-1.5 text-start font-medium">
+            <th scope="col">
               بازهٔ احتمال
             </th>
-            <th scope="col" className="px-2 py-1.5 text-start font-medium">
+            <th scope="col">
               نمونه
             </th>
-            <th scope="col" className="px-2 py-1.5 text-start font-medium">
+            <th scope="col">
               پیش‌بینی
             </th>
-            <th scope="col" className="px-2 py-1.5 text-start font-medium">
+            <th scope="col">
               واقعی
             </th>
             <th scope="col" className="w-1/3 px-2 py-1.5 text-start font-medium">
@@ -117,7 +117,7 @@ export default async function CalibrationPage() {
         <ErrorState message={res.error} />
       ) : (
         <>
-          <section className="rounded-2xl border border-line bg-surface p-4 text-sm">
+          <section className="card text-sm">
             {res.data.model_version ? (
               <p>
                 نسخهٔ مدل: <bdi dir="ltr">{res.data.model_version}</bdi>

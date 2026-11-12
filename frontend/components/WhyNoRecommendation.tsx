@@ -57,10 +57,10 @@ export function WhyNoRecommendation({
             </caption>
             <thead>
               <tr className="border-b border-line text-muted">
-                <th className="py-1 font-normal">مرحله</th>
-                <th className="py-1 font-normal">باقی‌مانده</th>
-                <th className="py-1 font-normal">حذف‌شده</th>
-                <th className="py-1 font-normal">فقط با همین شرط</th>
+                <th>مرحله</th>
+                <th>باقی‌مانده</th>
+                <th>حذف‌شده</th>
+                <th>فقط با همین شرط</th>
               </tr>
             </thead>
             <tbody>
@@ -140,12 +140,12 @@ export function WhyNoRecommendation({
             </caption>
             <thead>
               <tr className="border-b border-line text-muted">
-                <th className="py-1 font-normal">نماد</th>
-                <th className="py-1 font-normal">احتمال برد</th>
-                <th className="py-1 font-normal">حداقل لازم</th>
-                <th className="py-1 font-normal">کمبود</th>
-                <th className="py-1 font-normal">سود خالص</th>
-                <th className="py-1 font-normal">دلیل رد</th>
+                <th>نماد</th>
+                <th>احتمال برد</th>
+                <th>حداقل لازم</th>
+                <th>کمبود</th>
+                <th>سود خالص</th>
+                <th>دلیل رد</th>
               </tr>
             </thead>
             <tbody>

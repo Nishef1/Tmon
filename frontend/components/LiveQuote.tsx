@@ -57,7 +57,7 @@ export function LiveQuote({
   }, [instrumentId, pollMs]);
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4" data-testid="live-quote">
+    <section className="card" data-testid="live-quote">
       <h2 className="mb-2 font-bold">قیمت لحظه‌ای</h2>
       <Body state={state} />
     </section>
@@ -111,7 +111,7 @@ function Body({ state }: { state: State }) {
               صف‌های خرید و فروش
             </Link>
           </caption>
-          <thead className="text-xs text-muted">
+          <thead>
             <tr>
               <th>تعداد</th>
               <th>حجم</th>

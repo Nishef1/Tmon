@@ -21,28 +21,28 @@ export function SignalTable({
 }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-      <table className="w-full min-w-[34rem] text-sm">
+      <table className="tbl min-w-[34rem]">
         <caption className="sr-only">سابقهٔ سیگنال‌ها و نتیجهٔ هرکدام</caption>
         <thead className="text-start text-xs text-muted">
           <tr className="border-b border-line">
-            <th scope="col" className="px-3 py-2 text-start font-medium">
+            <th scope="col">
               تاریخ
             </th>
             {showSymbol && (
-              <th scope="col" className="px-3 py-2 text-start font-medium">
+              <th scope="col">
                 نماد
               </th>
             )}
-            <th scope="col" className="px-3 py-2 text-start font-medium">
+            <th scope="col">
               رده
             </th>
-            <th scope="col" className="px-3 py-2 text-start font-medium">
+            <th scope="col">
               احتمال
             </th>
-            <th scope="col" className="px-3 py-2 text-start font-medium">
+            <th scope="col">
               نتیجه
             </th>
-            <th scope="col" className="px-3 py-2 text-start font-medium">
+            <th scope="col">
               بازده ناخالص
             </th>
           </tr>

@@ -56,7 +56,7 @@ export default async function MarketPage() {
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-3">
+    <div className="tile">
       <div className="text-xs text-muted">{label}</div>
       <div className={`mt-1 text-lg font-bold ${tone ?? ""}`}>{value}</div>
     </div>
@@ -195,10 +195,10 @@ function Movers({
       {rows.length === 0 ? (
         <p className="text-sm text-muted">موردی نیست.</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead className="text-xs text-muted">
+        <table className="tbl">
+          <thead>
             <tr className="text-right">
-              <th className="py-1">نماد و نام شرکت</th>
+              <th>نماد و نام شرکت</th>
               <th title="قیمت پایانی آخرین روز نسبت به پایانی روز کاری قبل">تغییر امروز</th>
               <th>پایانی</th>
               <th>{flow ? "خالص پول حقیقی" : "ارزش"}</th>

@@ -52,7 +52,7 @@ function Row({ k, v, tone }: { k: string; v: ReactNode; tone?: string }) {
 
 function Card({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
+    <section className="card">
       <h2 className="mb-1 font-bold">{title}</h2>
       {note && <p className="mb-2 text-xs text-muted">{note}</p>}
       <dl>{children}</dl>
@@ -210,7 +210,7 @@ function Fundamental({ f, sector }: { f: NonNullable<D["fundamental"]>; sector?:
   const v = FA_VERDICT[f.verdict] ?? FA_VERDICT.unknown;
   return (
     <section
-      className="rounded-2xl border border-line bg-surface p-4"
+      className="card"
       data-testid="fundamental"
       data-verdict={f.verdict}
     >
@@ -250,7 +250,7 @@ function Company({ d }: { d: D }) {
   const empty = !m && !r && !baseVol && d.events.length === 0 && d.share_changes.length === 0;
   if (empty) return null;
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4" data-testid="company">
+    <section className="card" data-testid="company">
       <h2 className="mb-1 font-bold">مجمع، رویدادها و اطلاعات شرکت</h2>
       <dl>
         <Row

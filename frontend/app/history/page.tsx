@@ -58,7 +58,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 ["هنوز باز", "pending_count", res.data.summary.pending],
               ] as [string, GlossaryKey, number][]
             ).map(([label, term, value]) => (
-              <div key={term} className="rounded-xl border border-line bg-surface p-3">
+              <div key={term} className="tile">
                 <p className="text-xs text-muted">{label}</p>
                 <p className="text-xl font-bold">
                   <Num term={term} value={value} kind="count" />
@@ -99,7 +99,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           {res.data.items.length === 0 ? (
             <p
               data-testid="history-empty"
-              className="rounded-2xl border border-line bg-surface p-6 text-sm text-muted"
+              className="card card-pad-lg text-sm text-muted"
             >
               هنوز سیگنالی منتشر نشده است. تا وقتی نمادی شرایط توصیه را نداشته باشد (دلیل دقیق در
               صفحهٔ رتبه‌بندی آمده)، چیزی در این فهرست ثبت نمی‌شود.

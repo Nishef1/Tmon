@@ -37,7 +37,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             key={m}
             href={`/compare?months=${m}&source=${source}`}
             aria-current={m === months ? "page" : undefined}
-            className="rounded-lg border border-line px-3 py-1 aria-[current=page]:bg-surface aria-[current=page]:font-bold"
+            className="tab"
           >
             {faNumber(m)} ماه
           </Link>
@@ -47,7 +47,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             key={s}
             href={`/compare?months=${months}&source=${s}`}
             aria-current={s === source ? "page" : undefined}
-            className="rounded-lg border border-line px-3 py-1 aria-[current=page]:bg-surface aria-[current=page]:font-bold"
+            className="tab"
           >
             {s === "sci" ? "مرکز آمار" : "بانک مرکزی"}
           </Link>
@@ -81,23 +81,23 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             )}
           </p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-sm">
+            <table className="tbl min-w-[32rem]">
               <caption className="sr-only">بازده اسمی و واقعی دارایی‌ها</caption>
-              <thead className="text-xs text-muted">
+              <thead>
                 <tr className="border-b border-line">
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     دارایی
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     از
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     بازده اسمی
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     بازده واقعی
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     از تورم جلو؟
                   </th>
                 </tr>
@@ -169,20 +169,20 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           <p className="text-sm text-muted">هنوز NAV صندوقی ثبت نشده است.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-sm">
+            <table className="tbl min-w-[32rem]">
               <caption className="sr-only">ارزش ابطال و حباب صندوق‌ها</caption>
-              <thead className="text-xs text-muted">
+              <thead>
                 <tr className="border-b border-line">
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     نماد
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     NAV ابطال
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     قیمت پایانی
                   </th>
-                  <th scope="col" className="px-2 py-1.5 text-start font-medium">
+                  <th scope="col">
                     حباب
                   </th>
                 </tr>

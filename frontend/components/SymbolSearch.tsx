@@ -98,12 +98,12 @@ export function SymbolSearch() {
         onKeyDown={key}
         type="search"
         autoComplete="off"
-        placeholder="جست‌وجوی نماد، شرکت یا صنعت…"
+        placeholder="جست‌وجوی نماد یا شرکت…"
         aria-label="جست‌وجوی نماد"
         role="combobox"
         aria-expanded={open}
         aria-controls="symbol-search-list"
-        className="w-full rounded-xl border border-line bg-bg px-4 py-2.5 text-base"
+        className="w-full bg-surface-2 px-3 py-2 text-sm"
         data-testid="symbol-search"
       />
       {open && (
@@ -111,7 +111,7 @@ export function SymbolSearch() {
           id="symbol-search-list"
           role="listbox"
           data-testid="search-results"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-[70vh] overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-lg"
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-[70vh] overflow-y-auto popover"
         >
           {busy && hits.length === 0 && (
             <p className="px-3 py-2 text-sm text-muted">در حال جست‌وجو…</p>

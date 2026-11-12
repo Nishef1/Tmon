@@ -66,7 +66,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
 function Body({ data, tf }: { data: Recommendations; tf: string }) {
   if (!data.supported) {
     return (
-      <section className="rounded-2xl border border-line bg-surface p-6" data-testid="unsupported">
+      <section className="card card-pad-lg" data-testid="unsupported">
         <p className="font-semibold">این تایم‌فریم هنوز فعال نیست</p>
         <p className="mt-1 text-sm text-muted">{data.message}</p>
       </section>
@@ -115,7 +115,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
       {data.no_recommendation ? (
         <section
           data-testid="no-recommendation"
-          className="rounded-2xl border border-line bg-surface p-6 sm:p-8"
+          className="card card-pad-lg sm:p-8"
         >
           <h2 className="text-xl font-bold">امروز توصیه‌ای وجود ندارد</h2>
           <p className="mt-2 text-muted">{data.message}</p>
@@ -151,7 +151,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
       {gate && !gate.tier_a_allowed && !data.no_recommendation && (
         <section
           data-testid="tier-a-gate"
-          className="rounded-2xl border border-line bg-surface p-5 text-sm"
+          className="card p-5 text-sm"
         >
           <h2 className="font-bold">چرا سیگنال رده A منتشر نمی‌شود؟</h2>
           <p className="mt-1 text-muted">

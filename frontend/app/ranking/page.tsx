@@ -110,7 +110,7 @@ function Body({ d }: { d: Ranking }) {
       </section>
 
       {d.exposure && (
-        <section className="rounded-2xl border border-line bg-surface p-4 text-sm">
+        <section className="card text-sm">
           <h2 className="font-bold">چند درصد سرمایه در سهام باشد؟</h2>
           <p className="mt-1">
             سطح مواجههٔ مدل در {jalali(d.exposure_date)}:{" "}
@@ -139,10 +139,10 @@ function Body({ d }: { d: Ranking }) {
       <section className="space-y-2" data-testid="ranking-evidence">
         <h2 className="text-lg font-bold">این رتبه‌بندی در گذشته چقدر کار کرده؟</h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[34rem] text-sm">
-            <thead className="text-xs text-muted">
+          <table className="tbl min-w-[34rem]">
+            <thead>
               <tr className="text-right">
-                <th className="py-1">افق</th>
+                <th>افق</th>
                 <th>
                   <Link href="/glossary/ic">IC</Link>
                 </th>
@@ -216,10 +216,10 @@ function Zone({
         <p className="text-sm text-muted">امروز نمادی در این ناحیه نیست.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[38rem] text-sm">
-            <thead className="text-xs text-muted">
+          <table className="tbl min-w-[38rem]">
+            <thead>
               <tr className="text-right">
-                <th className="py-1">#</th>
+                <th>#</th>
                 <th>نماد</th>
                 <th>پایانی</th>
                 <th>امروز</th>

@@ -39,7 +39,7 @@ export default async function AccuracyPage({
             key={t}
             href={`/accuracy?timeframe=${t}`}
             aria-current={t === tf ? "page" : undefined}
-            className="rounded-lg border border-line px-3 py-1 aria-[current=page]:bg-surface aria-[current=page]:font-bold"
+            className="tab"
           >
             {label}
           </Link>
@@ -53,7 +53,7 @@ export default async function AccuracyPage({
           <section className="space-y-2 rounded-2xl border border-line bg-surface p-4 text-sm">
             <p data-testid="kill-switch">
               {res.data.kill_switch_active ? (
-                <strong className="text-red-600">
+                <strong className="text-down">
                   توقف انتشار فعال است: کیفیت احتمال‌ها در روزهای اخیر افت کرده است.
                 </strong>
               ) : (
@@ -117,12 +117,12 @@ export default async function AccuracyPage({
             </p>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-line bg-surface p-4">
-              <table className="w-full min-w-[28rem] text-sm">
+              <table className="tbl min-w-[28rem]">
                 <caption className="sr-only">دقت سیگنال‌ها به تفکیک روز</caption>
-                <thead className="text-xs text-muted">
+                <thead>
                   <tr className="border-b border-line">
                     {["روز سیگنال", "تعداد", "موفق", "میانگین احتمال", "بریر"].map((h) => (
-                      <th key={h} scope="col" className="px-2 py-1.5 text-start font-medium">
+                      <th key={h} scope="col">
                         {h}
                       </th>
                     ))}

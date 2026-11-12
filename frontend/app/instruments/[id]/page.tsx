@@ -108,9 +108,9 @@ export default async function InstrumentPage({
   const open = d.signals.find((s) => s.outcome === "pending");
   const levels: Level[] = open
     ? [
-        { price: open.take_profit, title: "حد سود", color: "#1d6a43" },
-        { price: open.entry_price, title: "مرجع", color: "#6b675f" },
-        { price: open.stop_loss, title: "حد ضرر", color: "#a32d2d" },
+        { price: open.take_profit, title: "حد سود", color: "var(--up)" },
+        { price: open.entry_price, title: "مرجع", color: "var(--ref)" },
+        { price: open.stop_loss, title: "حد ضرر", color: "var(--down)" },
       ]
     : [];
 
@@ -130,7 +130,7 @@ export default async function InstrumentPage({
 
       <LiveQuote instrumentId={d.instrument.id} />
 
-      <section className="rounded-2xl border border-line bg-surface p-4">
+      <section className="card">
         <h2 className="mb-2 font-bold">نمودار قیمت تعدیل‌شده</h2>
         {d.candles.length === 0 ? (
           <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
@@ -149,7 +149,7 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-4">
+      <section className="card">
         <h2 className="mb-2 font-bold">
           شاخص‌ها
           {d.features_date && (
@@ -191,7 +191,7 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-4">
+      <section className="card">
         <h2 className="mb-2 font-bold">
           <Link href="/glossary/codal_event" className="hover:text-accent">
             رویدادهای کدال
@@ -230,7 +230,7 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-4" id="agm">
+      <section className="card" id="agm">
         <h2 className="mb-1 font-bold">
           <Link href="/glossary/agm_decision" className="hover:text-accent">
             مجمع: نگه‌داشتن یا فروش
@@ -295,12 +295,12 @@ export default async function InstrumentPage({
                 </dd>
               </div>
             </dl>
-            <table className="w-full text-sm">
+            <table className="tbl">
               <thead>
                 <tr className="text-muted">
-                  <th className="py-1 text-start font-normal">ورودی</th>
-                  <th className="py-1 text-start font-normal">مقدار</th>
-                  <th className="py-1 text-start font-normal">منبع</th>
+                  <th>ورودی</th>
+                  <th>مقدار</th>
+                  <th>منبع</th>
                 </tr>
               </thead>
               <tbody>

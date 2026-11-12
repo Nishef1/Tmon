@@ -99,10 +99,15 @@ export function CandleChart({
       const el = ref.current;
       if (cancelled || !el) return;
       const css = getComputedStyle(document.documentElement);
-      const muted = css.getPropertyValue("--muted").trim() || "#625e55";
-      const line = css.getPropertyValue("--line").trim() || "#e3ded1";
-      const up = css.getPropertyValue("--up").trim() || "#1d6a43";
-      const down = css.getPropertyValue("--down").trim() || "#a32d2d";
+      // every colour comes from the CSS tokens; "var(--x)" strings are resolved here
+      const tok = (c: string) => {
+        const m = /^var\((--[\w-]+)\)$/.exec(c);
+        return m ? css.getPropertyValue(m[1]).trim() : c;
+      };
+      const muted = tok("var(--muted)");
+      const line = tok("var(--line)");
+      const up = tok("var(--up)");
+      const down = tok("var(--down)");
 
       const chart = lc.createChart(el, {
         autoSize: true,
@@ -151,8 +156,8 @@ export function CandleChart({
       const shown = ha ? heikinAshi(real) : real;
       series.setData(shown.map((b) => ({ ...b, time: b.time as Time })));
       for (const [on, n, color] of [
-        [ma20, 20, "#c98a12"],
-        [ma50, 50, "#3f6fb5"],
+        [ma20, 20, tok("var(--series-1)")],
+        [ma50, 50, tok("var(--series-2)")],
       ] as const) {
         if (!on) continue;
         const ls = chart.addSeries(lc.LineSeries, {
@@ -190,7 +195,7 @@ export function CandleChart({
       for (const l of levels) {
         series.createPriceLine({
           price: l.price,
-          color: l.color,
+          color: tok(l.color),
           lineWidth: 1,
           lineStyle: lc.LineStyle.Dashed,
           axisLabelVisible: true,

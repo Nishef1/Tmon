@@ -188,12 +188,12 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
   ];
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface p-2">
-      <table className="w-full min-w-[76rem] text-sm" data-testid="screener-table">
+      <table className="tbl min-w-[76rem]" data-testid="screener-table">
         <caption className="sr-only">همهٔ نمادها</caption>
-        <thead className="text-xs text-muted">
+        <thead>
           <tr className="border-b border-line">
             {heads.map((h) => (
-              <th key={h} scope="col" className="px-2 py-1.5 text-start font-medium">
+              <th key={h} scope="col">
                 {h}
               </th>
             ))}

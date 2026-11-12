@@ -95,12 +95,12 @@ export function SectorTable({
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-      <table className="w-full min-w-[40rem] text-sm" data-testid="sector-table">
+      <table className="tbl min-w-[40rem]" data-testid="sector-table">
         <thead className="bg-accent-soft text-xs text-muted">
           <tr className="text-right">
             <th className="w-8" />
             {GROUP_COLS.map(([k, label]) => (
-              <th key={k} className="px-3 py-2 font-semibold">
+              <th key={k}>
                 <button
                   type="button"
                   onClick={() => sortGroups(k)}
@@ -152,11 +152,11 @@ export function SectorTable({
                         <p className="p-4 text-muted">نمادی از این گروه در جدول سهام نیست.</p>
                       ) : (
                         <div className="max-h-[32rem] overflow-auto">
-                          <table className="w-full min-w-[56rem] text-sm">
+                          <table className="tbl min-w-[56rem]">
                             <thead className="sticky top-0 z-10 bg-surface text-xs text-muted">
                               <tr className="text-right">
                                 {MEMBER_COLS.map(([k, label]) => (
-                                  <th key={k} className="px-3 py-2 font-semibold">
+                                  <th key={k}>
                                     <button
                                       type="button"
                                       onClick={() => sortMembers(k)}

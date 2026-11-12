@@ -1,66 +1,141 @@
 @import "tailwindcss";
 @import "vazirmatn/Vazirmatn-font-face.css";
 
+/*
+ * Design SSOT. Every colour, shadow, radius, type size and component look lives here.
+ * Pages use the tokens (text-up, bg-surface-2, shadow-card, rounded-card) and the
+ * component classes (.card, .chip, .btn, .tab, .tbl, .alert-warn ...), never raw values.
+ */
+
 :root {
+  /* surfaces: page < raised card < inset well */
   --bg: #f6f4ee;
   --surface: #ffffff;
+  --surface-2: #faf8f3;
   --ink: #1d1c1a;
   --muted: #625e55;
+  --faint: #8d887b;
+  /* borders: hairline between rows, normal for cards, strong for inputs and emphasis */
+  --line-soft: #eee9dd;
   --line: #e3ded1;
+  --line-strong: #cbc4b3;
+  /* brand */
   --accent: #0e5a5e;
+  --accent-hover: #0a4548;
   --accent-soft: #e2efee;
+  --on-accent: #ffffff;
+  /* meaning */
   --warn: #7a4e00;
   --warn-soft: #fbf0d9;
+  --warn-line: #ecd9a8;
   --up: #1d6a43;
+  --up-soft: #e3f1e8;
   --down: #a32d2d;
+  --down-soft: #f7e4e4;
   --good: #1d6a43;
   --bad: #a32d2d;
   --hold: #8a5a00;
   --neutral: #625e55;
+  /* chart series that are not up/down */
+  --series-1: #c98a12;
+  --series-2: #3f6fb5;
+  --ref: #6b675f;
+  /* elevation */
+  --shadow-color: 40 35 20;
+  --elev-1: 0 1px 2px rgb(var(--shadow-color) / 0.06), 0 0 0 1px rgb(var(--shadow-color) / 0.02);
+  --elev-2: 0 4px 12px rgb(var(--shadow-color) / 0.08), 0 1px 3px rgb(var(--shadow-color) / 0.06);
+  --elev-3: 0 12px 32px rgb(var(--shadow-color) / 0.14), 0 2px 6px rgb(var(--shadow-color) / 0.08);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  /* radii */
+  --r-sm: 0.5rem;
+  --r-md: 0.75rem;
+  --r-lg: 1rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14150f;
     --surface: #1c1d17;
+    --surface-2: #23241d;
     --ink: #ece9df;
     --muted: #a7a395;
+    --faint: #7f7b6e;
+    --line-soft: #2a2b22;
     --line: #34352b;
+    --line-strong: #4a4b3e;
     --accent: #6fc3c6;
+    --accent-hover: #8ad3d6;
     --accent-soft: #1b3030;
+    --on-accent: #0b1f20;
     --warn: #e7bd6a;
     --warn-soft: #2e2512;
+    --warn-line: #4d3c18;
     --up: #6fcf9a;
+    --up-soft: #17301f;
     --down: #ee8a8a;
+    --down-soft: #3a1c1c;
     --good: #2a8a57;
     --bad: #c24444;
     --hold: #a87614;
     --neutral: #6b6859;
+    --series-1: #e0a93a;
+    --series-2: #6f9be0;
+    --ref: #9a968a;
+    --shadow-color: 0 0 0;
+    --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --elev-2: 0 4px 14px rgb(0 0 0 / 0.45);
+    --elev-3: 0 14px 36px rgb(0 0 0 / 0.6);
   }
 }
 
 @theme {
+  /* type scale (size / line-height) */
   --text-xs: 0.78rem;
+  --text-xs--line-height: 1.5;
   --text-sm: 0.9rem;
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem;
+  --text-base--line-height: 1.75;
+  --text-lg: 1.15rem;
+  --text-lg--line-height: 1.6;
+  --text-xl: 1.35rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.7rem;
+  --text-2xl--line-height: 1.3;
 }
 
 @theme inline {
   --font-sans: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
   --color-up: var(--up);
+  --color-up-soft: var(--up-soft);
   --color-down: var(--down);
+  --color-down-soft: var(--down-soft);
   --color-good: var(--good);
   --color-bad: var(--bad);
   --color-hold: var(--hold);
   --color-neutral: var(--neutral);
+  --shadow-card: var(--elev-1);
+  --shadow-raised: var(--elev-2);
+  --shadow-pop: var(--elev-3);
+  --radius-card: var(--r-lg);
+  --radius-ctl: var(--r-sm);
+  --radius-pop: var(--r-md);
 }
 
 html {
@@ -69,19 +144,83 @@ html {
   background: var(--bg);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background: var(--bg);
-  line-height: 1.8;
+  line-height: 1.75;
+}
+
+/* headings: a clear ladder, tight line-height, balanced wrapping */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-size: var(--text-2xl);
+  line-height: 1.3;
+  font-weight: 800;
+}
+h2 {
+  font-size: var(--text-xl);
+  line-height: 1.4;
+  font-weight: 700;
+}
+h3 {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  font-weight: 700;
+}
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 a:focus-visible,
 button:focus-visible,
-summary:focus-visible {
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+input,
+select,
+textarea {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+input:hover,
+select:hover {
+  border-color: var(--faint);
+}
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+  outline: none;
+}
+input::placeholder {
+  color: var(--faint);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
 }
 
 /* A number that links to its glossary entry: readable as a value first, a link second. */
@@ -95,6 +234,200 @@ summary:focus-visible {
 .num:hover {
   color: var(--accent);
   text-decoration-style: solid;
+}
+
+@layer components {
+  /* ── titles ───────────────────────────────────────────── */
+  .page-title {
+    font-size: var(--text-2xl);
+    line-height: 1.3;
+    font-weight: 800;
+  }
+  .lead {
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-size: var(--text-sm);
+    max-width: 68ch;
+  }
+  .eyebrow {
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  /* ── surfaces ─────────────────────────────────────────── */
+  .card {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    box-shadow: var(--elev-1);
+    padding: 1rem;
+  }
+  .card-flush {
+    padding: 0;
+    overflow: hidden;
+  }
+  .card-pad-lg {
+    padding: 1.5rem;
+  }
+  .well {
+    border: 1px solid var(--line-soft);
+    background: var(--surface-2);
+    border-radius: var(--r-md);
+    padding: 0.75rem;
+  }
+  .tile {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--r-md);
+    box-shadow: var(--elev-1);
+    padding: 0.75rem;
+  }
+  .popover {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--r-md);
+    box-shadow: var(--elev-3);
+    padding: 0.25rem;
+  }
+  .alert-warn {
+    border: 1px solid var(--warn-line);
+    background: var(--warn-soft);
+    color: var(--warn);
+    border-radius: var(--r-md);
+    padding: 0.4rem 0.9rem;
+    font-size: var(--text-xs);
+    line-height: 1.6;
+  }
+
+  /* ── controls ─────────────────────────────────────────── */
+  .btn,
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: var(--r-sm);
+    padding: 0.25rem 0.75rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.6;
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s,
+      box-shadow 0.15s,
+      transform 0.05s;
+  }
+  .btn:hover,
+  .tab:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .btn:active,
+  .tab:active {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-primary,
+  .tab[aria-pressed="true"],
+  .tab[aria-current="page"],
+  .tab[aria-selected="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .btn-primary:hover,
+  .tab[aria-pressed="true"]:hover,
+  .tab[aria-current="page"]:hover,
+  .tab[aria-selected="true"]:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--r-sm);
+    padding: 0.2rem 0.6rem;
+    box-shadow: var(--elev-1);
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+  }
+  a.chip:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.05rem 0.6rem;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--line-soft);
+  }
+  .badge-up {
+    background: var(--up-soft);
+    color: var(--up);
+    border-color: transparent;
+  }
+  .badge-down {
+    background: var(--down-soft);
+    color: var(--down);
+    border-color: transparent;
+  }
+  .badge-warn {
+    background: var(--warn-soft);
+    color: var(--warn);
+    border-color: transparent;
+  }
+
+  /* ── tables ───────────────────────────────────────────── */
+  .tbl {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+  .tbl th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-align: start;
+    white-space: nowrap;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .tbl td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--line-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .tbl tbody tr {
+    transition: background-color 0.12s;
+  }
+  .tbl tbody tr:hover {
+    background: var(--accent-soft);
+  }
+  .tbl tbody tr:last-child td {
+    border-bottom: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

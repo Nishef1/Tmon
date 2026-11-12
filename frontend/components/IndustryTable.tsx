@@ -617,7 +617,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
               <summary className="cursor-pointer rounded-lg border border-line px-3 py-1.5">
                 ستون‌ها ({faNumber(shown.size)})
               </summary>
-              <ul className="absolute end-0 z-30 mt-1 max-h-80 w-56 space-y-1 overflow-auto rounded-xl border border-line bg-surface p-3 shadow-lg">
+              <ul className="absolute end-0 z-30 mt-1 max-h-80 w-56 space-y-1 overflow-auto popover p-3">
                 {COLS.map((c) => (
                   <li key={c.key}>
                     <label className="flex cursor-pointer items-center gap-2">
@@ -644,7 +644,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
         </div>
 
         {filtered.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-surface p-6 text-center" role="status">
+          <p className="card card-pad-lg text-center" role="status">
             هیچ نمادی با این فیلترها پیدا نشد. فیلترها را کم کنید یا همه را حذف کنید.
           </p>
         ) : (
@@ -654,7 +654,7 @@ export function IndustryTable({ rows }: { rows: Row[] }) {
               data-testid="industry-table"
             >
               <caption className="sr-only">نمادها به تفکیک صنعت</caption>
-              <thead className="text-xs text-muted">
+              <thead>
                 <tr>
                   <th
                     scope="col"

@@ -28,7 +28,7 @@ export function SignalCard({ s }: { s: Signal }) {
   return (
     <article
       data-testid="signal-card"
-      className="rounded-2xl border border-line bg-surface p-4 sm:p-5"
+      className="card sm:p-5"
     >
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>

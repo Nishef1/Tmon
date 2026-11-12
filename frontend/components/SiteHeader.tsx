@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SymbolSearch } from "@/components/SymbolSearch";
 
 const MAIN = [
@@ -32,13 +32,39 @@ export function SiteHeader() {
     setMenu(false);
     setMore(false);
   };
+  const root = useRef<HTMLElement>(null);
+  const anyOpen = menu || more;
+  // a menu closes on a click anywhere else, on Escape, and when focus leaves the header
+  useEffect(() => {
+    if (!anyOpen) return;
+    const away = (e: Event) => {
+      if (root.current && !root.current.contains(e.target as Node)) {
+        setMenu(false);
+        setMore(false);
+      }
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenu(false);
+        setMore(false);
+      }
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("focusin", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("focusin", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [anyOpen]);
   const link = (active: boolean) =>
     `block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
       active ? "bg-accent text-surface" : "text-ink hover:bg-accent-soft"
     }`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur">
+    <header ref={root} className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
         <Link
           href="/"
@@ -78,7 +104,7 @@ export function SiteHeader() {
               </span>
             </button>
             {more && (
-              <ul className="absolute end-0 top-full z-40 mt-2 min-w-44 rounded-xl border border-line bg-surface p-1 shadow-lg">
+              <ul className="absolute end-0 top-full z-40 mt-2 min-w-44 popover">
                 {MORE.map((n) => (
                   <li key={n.href}>
                     <Link
