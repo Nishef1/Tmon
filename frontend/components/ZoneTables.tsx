@@ -64,11 +64,12 @@ function Zone({
         <p className="text-sm text-muted">امروز نمادی در این ناحیه نیست.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="tbl min-w-[38rem]">
+          <table className="tbl min-w-[44rem]">
             <thead>
               <tr className="text-right">
                 <th>#</th>
                 <th>نماد</th>
+                <th>نام</th>
                 <th>پایانی</th>
                 <th>امروز</th>
                 <th>امتیاز</th>
@@ -82,7 +83,7 @@ function Zone({
               {rows.map((r) => (
                 <tr key={r.symbol} className="border-t border-line">
                   <td className="py-1">{faNumber(r.rank)}</td>
-                  <td>
+                  <td className="whitespace-nowrap">
                     {r.instrument_id == null ? (
                       <span className="font-semibold">{r.symbol}</span>
                     ) : (
@@ -93,10 +94,10 @@ function Zone({
                         {r.symbol}
                       </Link>
                     )}
-                    <span className="mr-1 text-xs text-muted">{r.name}</span>
-                    {r.name?.startsWith("صندوق") && (
-                      <span className="mr-1 rounded border border-line px-1 text-xs">صندوق</span>
-                    )}
+                  </td>
+                  <td className="text-xs text-muted">
+                    {r.name}
+                    {r.name?.startsWith("صندوق") && <span className="chip mr-1">صندوق</span>}
                   </td>
                   <td>{r.close == null ? "—" : faPrice(r.close)}</td>
                   <td className={`font-semibold ${signTone(r.change_pct)}`}>
