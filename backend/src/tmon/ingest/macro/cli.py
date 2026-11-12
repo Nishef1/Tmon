@@ -14,7 +14,9 @@ def main() -> None:
     configure_logging()
     ap = argparse.ArgumentParser(prog="tmon-macro")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("sync", help="tgju USD/gold/coin history and fipiran fund NAV")
+    sub.add_parser(
+        "sync", help="tgju USD/gold/coin, Yahoo copper/oil/gold/DXY history and fipiran fund NAV"
+    )
     inf = sub.add_parser("inflation", help="import an inflation CSV (see ingest/macro/inflation)")
     inf.add_argument("path", type=Path)
     args = ap.parse_args()

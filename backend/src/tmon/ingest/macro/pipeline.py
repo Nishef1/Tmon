@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
 from tmon.ingest.http import PoliteClient
-from tmon.ingest.macro import fipiran, inflation, tgju
+from tmon.ingest.macro import fipiran, inflation, tgju, yahoo
 from tmon.storage.models import FundNav, Instrument, MacroSeries
 from tmon.storage.objectstore import ObjectStore, get_object_store, store_raw_payload
 from tmon.storage.repositories import upsert
@@ -54,6 +54,42 @@ async def sync_tgju(session: Session, client: PoliteClient, store: ObjectStore) 
                     "fetched_at": fetched_at,
                 }
                 for b in bars
+            ],
+        )
+    return out
+
+
+async def sync_yahoo(session: Session, client: PoliteClient, store: ObjectStore) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for series, ticker in yahoo.SERIES.items():
+        url = yahoo.url(ticker)
+        fetched_at = utcnow()
+        resp = await client.get(url)
+        store_raw_payload(
+            session,
+            store,
+            source=yahoo.SOURCE,
+            source_url=url,
+            payload=resp.content,
+            fetched_at=fetched_at,
+            ext="json",
+            content_type="application/json",
+        )
+        out[series] = upsert(
+            session,
+            MacroSeries,
+            [
+                {
+                    "series": series,
+                    "source": yahoo.SOURCE,
+                    "ref_period": b.date,
+                    "value": b.close,
+                    "release_date": yahoo.release(b.date),
+                    "meta": {"ticker": ticker},
+                    "source_url": url,
+                    "fetched_at": fetched_at,
+                }
+                for b in yahoo.parse_chart(resp.content)
             ],
         )
     return out
@@ -129,7 +165,7 @@ async def _run() -> dict[str, Any]:
         with session_scope() as session:
             store = get_object_store()
             # each source on its own: one being down must not stop the other
-            for name, fn in (("tgju", sync_tgju), ("funds", sync_funds)):
+            for name, fn in (("tgju", sync_tgju), ("yahoo", sync_yahoo), ("funds", sync_funds)):
                 try:
                     out[name] = await fn(session, client, store)
                     session.commit()

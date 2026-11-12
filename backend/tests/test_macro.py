@@ -125,3 +125,23 @@ def test_inflation_csv(session, tmp_path):
 def test_inflation_csv_rejects(bad):
     with pytest.raises(ParseError):
         inflation.parse_csv(bad)
+
+
+def test_yahoo_chart_parses_daily_closes() -> None:
+    from tmon.ingest.macro import yahoo
+
+    bars = yahoo.parse_chart((FIX / "yahoo_hg.json").read_bytes())
+    assert [b.date for b in bars][:2] == [date(2025, 11, 5), date(2025, 11, 6)]
+    assert bars[0].close == pytest.approx(4.963, abs=1e-3)
+    assert yahoo.release(bars[0].date) == date(2025, 11, 6)
+
+
+def test_yahoo_evening_session_start_belongs_to_the_next_day() -> None:
+    import json
+
+    from tmon.ingest.macro import yahoo
+
+    sunday_6pm_ny = 1262646000  # 2010-01-04 23:00 UTC = 18:00 New York, Monday's session
+    doc = {"chart": {"result": [{"meta": {"gmtoffset": -18000}, "timestamp": [sunday_6pm_ny - 86400],
+           "indicators": {"quote": [{"close": [3.3]}]}}]}}  # fmt: skip
+    assert yahoo.parse_chart(json.dumps(doc).encode())[0].date == date(2010, 1, 4)
