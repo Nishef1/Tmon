@@ -1414,6 +1414,204 @@
         "title": "DashMeeting",
         "type": "object"
       },
+      "DashPeer": {
+        "description": "One stock of the same industry group, for picking the best of the group.",
+        "properties": {
+          "dd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dd"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "in_basket": {
+            "default": false,
+            "title": "In Basket",
+            "type": "boolean"
+          },
+          "is_self": {
+            "default": false,
+            "title": "Is Self",
+            "type": "boolean"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "pe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pe"
+          },
+          "ret60": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret60"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "turning_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turning Key"
+          },
+          "turning_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turning Title"
+          },
+          "turning_tone": {
+            "anyOf": [
+              {
+                "enum": [
+                  "up",
+                  "down",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turning Tone"
+          },
+          "verdict": {
+            "default": "none",
+            "enum": [
+              "buy",
+              "hold",
+              "sell",
+              "none"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "symbol",
+          "name",
+          "score",
+          "verdict",
+          "in_basket",
+          "pe",
+          "ret60",
+          "dd",
+          "turning_key",
+          "turning_title",
+          "turning_tone",
+          "is_self"
+        ],
+        "title": "DashPeer",
+        "type": "object"
+      },
+      "DashPeers": {
+        "description": "The symbol among the stocks of its industry group, best composite score first.",
+        "properties": {
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashPeer"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "scored": {
+            "default": 0,
+            "title": "Scored",
+            "type": "integer"
+          },
+          "sector_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Name"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sector_name",
+          "position",
+          "scored",
+          "total",
+          "items"
+        ],
+        "title": "DashPeers",
+        "type": "object"
+      },
       "DashPrice": {
         "properties": {
           "avg_volume_10": {
@@ -2622,6 +2820,16 @@
               }
             ]
           },
+          "peers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashPeers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "price": {
             "anyOf": [
               {
@@ -2700,7 +2908,8 @@
           "events",
           "share_changes",
           "decision",
-          "turning"
+          "turning",
+          "peers"
         ],
         "title": "InstrumentDashboard",
         "type": "object"

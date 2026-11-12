@@ -777,6 +777,34 @@ class DashTurning(ApiModel):
     split_date: dt.date
 
 
+class DashPeer(ApiModel):
+    """One stock of the same industry group, for picking the best of the group."""
+
+    id: int
+    symbol: str
+    name: str | None = None
+    score: float | None = None  # composite score 0-100 (v2 ranking), None when not scored
+    verdict: Literal["buy", "hold", "sell", "none"] = "none"
+    in_basket: bool = False  # inside the validated liquid basket
+    pe: float | None = None
+    ret60: float | None = None
+    dd: float | None = None  # below the 52-week high
+    turning_key: str | None = None
+    turning_title: str | None = None
+    turning_tone: Literal["up", "down", "none"] | None = None
+    is_self: bool = False
+
+
+class DashPeers(ApiModel):
+    """The symbol among the stocks of its industry group, best composite score first."""
+
+    sector_name: str | None = None
+    position: int | None = None  # the symbol's place among the scored stocks of the group
+    scored: int = 0
+    total: int = 0
+    items: list[DashPeer] = []
+
+
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
     isin: str | None = None
@@ -795,6 +823,7 @@ class InstrumentDashboard(ApiModel):
     share_changes: list[DashShareChange] = []
     decision: DashDecision
     turning: DashTurning | None = None
+    peers: DashPeers | None = None
 
 
 class SearchHit(ApiModel):

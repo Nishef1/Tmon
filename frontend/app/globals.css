@@ -139,7 +139,7 @@
 }
 
 html {
-  font-size: 106.25%; /* 17px root: every rem-based size scales together */
+  font-size: 100%; /* 16px root: every rem-based size scales together */
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);

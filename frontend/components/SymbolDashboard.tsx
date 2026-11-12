@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
+import { PeersCard } from "@/components/PeersCard";
 import { TurningCard } from "@/components/TurningCard";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 import { signedPct, signTone, verdictPill, verdictTone } from "@/lib/ui";
@@ -366,6 +367,7 @@ export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?
   return (
     <div className="space-y-4" data-testid="symbol-dashboard">
       <Decision d={d.decision} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
+      {d.peers && <PeersCard p={d.peers} />}
       {d.turning && <TurningCard t={d.turning} />}
 
       {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}

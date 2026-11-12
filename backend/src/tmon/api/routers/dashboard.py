@@ -25,6 +25,8 @@ from tmon.api.schemas import (
     DashHolding,
     DashHorizon,
     DashMeeting,
+    DashPeer,
+    DashPeers,
     DashPrice,
     DashRanges,
     DashShareChange,
@@ -664,6 +666,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         year_min=_f(tags.get("year_min")),
         year_max=_f(tags.get("year_max")),
     )
+    rank_doc, turn_doc = _ranking_doc(), _turning_doc()
     fa = None
     if inst.instrument_type == "stock":
         fa = fundamental_out(inst, close, sector.name if sector else None)
@@ -691,8 +694,9 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
             )
             for c in changes
         ],
-        decision=decide(inst, _ranking_doc(), statistics.median(vals) if vals else None),
-        turning=turning_out(_turning_doc(), inst.id),
+        decision=decide(inst, rank_doc, statistics.median(vals) if vals else None),
+        turning=turning_out(turn_doc, inst.id),
+        peers=peers_out(session, inst, sector.name if sector else None, rank_doc, turn_doc),
     )
 
 
@@ -771,3 +775,102 @@ def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning |
         history_last=dt.date.fromisoformat(hist["last"]),
         split_date=dt.date.fromisoformat(hist["split_date"]),
     )
+
+
+PEERS_SHOWN = 6
+ZONE_VERDICT = {"buy": "buy", "hold": "hold", "avoid": "sell"}
+
+
+def rank_peers(
+    peers: list[Instrument],
+    self_id: int,
+    rank_doc: dict[str, Any] | None,
+    turn_doc: dict[str, Any] | None,
+    closes: dict[int, float],
+) -> DashPeers:
+    """Order the stocks of one group by composite score (unscored last) and keep the best few,
+    always including the symbol itself."""
+    uni = {u["id"]: u for u in (rank_doc or {}).get("universe", [])}
+    basket = {r["symbol"] for r in (rank_doc or {}).get("rows", [])}
+    states = (turn_doc or {}).get("symbols") or {}
+    titles = {m["key"]: m["title"] for m in (turn_doc or {}).get("states", [])}
+    tones = ((turn_doc or {}).get("history") or {}).get("states") or {}
+    items: list[DashPeer] = []
+    for p in peers:
+        if p.id != self_id and p.id not in uni and str(p.id) not in states:
+            continue  # not traded lately: neither ranked nor given a state
+        u = uni.get(p.id) or {}
+        score = u.get("score")
+        st = states.get(str(p.id)) or {}
+        key = st.get("state")
+        eps = _f((p.tags or {}).get("eps"))
+        close = closes.get(p.id)
+        items.append(
+            DashPeer(
+                id=p.id,
+                symbol=p.symbol_fa,
+                name=p.name_fa,
+                score=None if score is None else score * 100,
+                verdict=ZONE_VERDICT.get(u.get("zone") or "", "none")
+                if score is not None
+                else "none",
+                in_basket=p.symbol_fa in basket,
+                pe=close / eps if eps and eps > 0 and close else None,
+                ret60=st.get("ret60"),
+                dd=st.get("dd"),
+                turning_key=key,
+                turning_title=titles.get(key) if key else None,
+                turning_tone=(tones.get(key) or {}).get("tone") if key else None,
+                is_self=p.id == self_id,
+            )
+        )
+    items.sort(key=lambda x: (x.score is None, -(x.score or 0), x.symbol))
+    scored = [x for x in items if x.score is not None]
+    me = next((x for x in items if x.is_self), None)
+    shown = items[:PEERS_SHOWN]
+    if me is not None and me not in shown:
+        shown.append(me)
+    return DashPeers(
+        position=scored.index(me) + 1 if me is not None and me.score is not None else None,
+        scored=len(scored),
+        total=len(items),
+        items=shown,
+    )
+
+
+def peers_out(
+    session: Session,
+    inst: Instrument,
+    sector_name: str | None,
+    rank_doc: dict[str, Any] | None,
+    turn_doc: dict[str, Any] | None,
+) -> DashPeers | None:
+    """The symbol among the stocks of its industry group; None for non-stocks or a lone stock."""
+    if inst.instrument_type != "stock" or not inst.sector_code:
+        return None
+    peers = list(
+        session.scalars(
+            select(Instrument).where(
+                Instrument.sector_code == inst.sector_code,
+                Instrument.instrument_type == "stock",
+                Instrument.delisted_at.is_(None),
+            )
+        )
+    )
+    if len(peers) < 2:
+        return None
+    closes: dict[int, float] = {}
+    as_of = (rank_doc or {}).get("as_of")
+    if as_of:
+        rows = session.execute(
+            select(PriceDaily.instrument_id, PriceDaily.close).where(
+                PriceDaily.date == dt.date.fromisoformat(as_of),
+                PriceDaily.instrument_id.in_([p.id for p in peers]),
+            )
+        )
+        closes = {i: float(c) for i, c in rows if c}
+    out = rank_peers(peers, inst.id, rank_doc, turn_doc, closes)
+    if out.total < 2:
+        return None
+    out.sector_name = sector_name
+    return out

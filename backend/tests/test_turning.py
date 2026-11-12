@@ -149,3 +149,23 @@ def test_turning_out_gives_the_state_and_its_triggers() -> None:
     assert t.state.horizons[0].horizon_days == 120 and t.state.halves_excess_120 == [0.08, 0.04]
     assert t.base.tone == "none" and t.market_bull is True
     assert turning_out(_doc(), 2) is None and turning_out(None, 1) is None
+
+
+def test_rank_peers_orders_by_score_and_keeps_the_symbol() -> None:
+    from tmon.api.routers.dashboard import PEERS_SHOWN, rank_peers
+    from tmon.storage.models import Instrument
+
+    n = PEERS_SHOWN + 3
+    peers = [Instrument(id=i, symbol_fa=f"s{i}", tags={"eps": 10.0}) for i in range(1, n + 1)]
+    rank = {
+        "rows": [{"symbol": "s1"}],
+        "universe": [{"id": i, "score": i / 100, "zone": "buy" if i > 5 else "avoid"}
+                     for i in range(1, n)],  # the last one is not scored
+    }  # fmt: skip
+    out = rank_peers(peers, 1, rank, _doc(), {1: 50.0})
+    assert out.scored == out.total == n - 1  # the unscored, stateless one is dropped
+    assert [x.id for x in out.items][:2] == [n - 1, n - 2]
+    me = out.items[-1]
+    assert me.is_self and out.position == n - 1 and len(out.items) == PEERS_SHOWN + 1
+    assert me.verdict == "sell" and me.in_basket and me.pe == pytest.approx(5.0)
+    assert me.turning_key == "deep_falling" and me.turning_tone == "up" and me.dd == -0.6

@@ -718,6 +718,73 @@ export interface components {
       /** Title */
       title: string;
     };
+    /**
+     * DashPeer
+     * @description One stock of the same industry group, for picking the best of the group.
+     */
+    DashPeer: {
+      /** Dd */
+      dd: number | null;
+      /** Id */
+      id: number;
+      /**
+       * In Basket
+       * @default false
+       */
+      in_basket: boolean;
+      /**
+       * Is Self
+       * @default false
+       */
+      is_self: boolean;
+      /** Name */
+      name: string | null;
+      /** Pe */
+      pe: number | null;
+      /** Ret60 */
+      ret60: number | null;
+      /** Score */
+      score: number | null;
+      /** Symbol */
+      symbol: string;
+      /** Turning Key */
+      turning_key: string | null;
+      /** Turning Title */
+      turning_title: string | null;
+      /** Turning Tone */
+      turning_tone: ("up" | "down" | "none") | null;
+      /**
+       * Verdict
+       * @default none
+       * @enum {string}
+       */
+      verdict: "buy" | "hold" | "sell" | "none";
+    };
+    /**
+     * DashPeers
+     * @description The symbol among the stocks of its industry group, best composite score first.
+     */
+    DashPeers: {
+      /**
+       * Items
+       * @default []
+       */
+      items: components["schemas"]["DashPeer"][];
+      /** Position */
+      position: number | null;
+      /**
+       * Scored
+       * @default 0
+       */
+      scored: number;
+      /** Sector Name */
+      sector_name: string | null;
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+    };
     /** DashPrice */
     DashPrice: {
       /** Avg Volume 10 */
@@ -1068,6 +1135,7 @@ export interface components {
       /** Market Cap */
       market_cap: number | null;
       meeting: components["schemas"]["DashMeeting"] | null;
+      peers: components["schemas"]["DashPeers"] | null;
       price: components["schemas"]["DashPrice"] | null;
       ranges: components["schemas"]["DashRanges"] | null;
       /** Sector Name */
