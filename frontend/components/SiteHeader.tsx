@@ -5,48 +5,35 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SymbolSearch } from "@/components/SymbolSearch";
 
-const MAIN = [
+const NAV = [
   { href: "/", label: "امروز" },
   { href: "/market", label: "نمای بازار" },
   { href: "/industries", label: "صنایع و نمادها" },
-  { href: "/screener", label: "همهٔ نمادها" },
-  { href: "/ranking", label: "خرید / نگهداری / پرهیز" },
-];
-
-const MORE = [
-  { href: "/history", label: "سابقهٔ سیگنال‌ها" },
-  { href: "/calibration", label: "کالیبراسیون" },
-  { href: "/accuracy", label: "دقت زنده" },
+  { href: "/model", label: "اعتبار مدل" },
   { href: "/compare", label: "مقایسه با تورم" },
   { href: "/glossary", label: "واژه‌نامه" },
 ];
 
-/** Sticky top bar: logo, main sections with the current one marked, the rest under «بیشتر», search. */
+/** Sticky top bar: logo, main sections with the current one marked, search. */
 export function SiteHeader() {
   const path = usePathname();
   const [menu, setMenu] = useState(false); // phone menu
-  const [more, setMore] = useState(false);
   const here = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
-  const inMore = MORE.some((n) => here(n.href));
   const close = () => {
     setMenu(false);
-    setMore(false);
   };
   const root = useRef<HTMLElement>(null);
-  const anyOpen = menu || more;
-  // a menu closes on a click anywhere else, on Escape, and when focus leaves the header
+  // the phone menu closes on a click anywhere else, on Escape, and when focus leaves the header
   useEffect(() => {
-    if (!anyOpen) return;
+    if (!menu) return;
     const away = (e: Event) => {
       if (root.current && !root.current.contains(e.target as Node)) {
         setMenu(false);
-        setMore(false);
       }
     };
     const esc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setMenu(false);
-        setMore(false);
       }
     };
     document.addEventListener("pointerdown", away);
@@ -57,7 +44,7 @@ export function SiteHeader() {
       document.removeEventListener("focusin", away);
       document.removeEventListener("keydown", esc);
     };
-  }, [anyOpen]);
+  }, [menu]);
   const link = (active: boolean) =>
     `block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
       active ? "bg-accent text-surface" : "text-ink hover:bg-accent-soft"
@@ -84,7 +71,7 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="منوی اصلی" className="hidden items-center gap-0.5 lg:flex">
-          {MAIN.map((n) => (
+          {NAV.map((n) => (
             <Link
               key={n.href}
               href={n.href}
@@ -94,35 +81,6 @@ export function SiteHeader() {
               {n.label}
             </Link>
           ))}
-          <div className="relative">
-            <button
-              type="button"
-              aria-expanded={more}
-              onClick={() => setMore(!more)}
-              className={`${link(inMore)} flex items-center gap-1`}
-            >
-              بیشتر{" "}
-              <span aria-hidden className="text-xs">
-                ▾
-              </span>
-            </button>
-            {more && (
-              <ul className="absolute end-0 top-full z-40 mt-2 min-w-44 popover">
-                {MORE.map((n) => (
-                  <li key={n.href}>
-                    <Link
-                      href={n.href}
-                      onClick={close}
-                      aria-current={here(n.href) ? "page" : undefined}
-                      className={link(here(n.href))}
-                    >
-                      {n.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </nav>
 
         <div className="ms-auto min-w-0 flex-1 lg:max-w-xs lg:flex-none">
@@ -143,7 +101,7 @@ export function SiteHeader() {
       {menu && (
         <nav aria-label="منوی موبایل" className="border-t border-line bg-surface lg:hidden">
           <ul className="mx-auto grid max-w-6xl gap-1 px-4 py-3 sm:grid-cols-2">
-            {[...MAIN, ...MORE].map((n) => (
+            {NAV.map((n) => (
               <li key={n.href}>
                 <Link
                   href={n.href}

@@ -225,6 +225,27 @@ const COLS: Col[] = [
     cell: (r) => (r.rsi == null ? "—" : faNumber(r.rsi, 0)),
   },
   {
+    key: "rank",
+    label: "رتبهٔ سبد پرمعامله",
+    title: "رتبهٔ نماد میان ۱۰۰ نمادِ پرنقدشوندهٔ مدل رتبه‌بندی؛ ۱ بهترین است",
+    on: false,
+    cell: (r) => (r.rank == null ? "—" : faNumber(r.rank)),
+  },
+  {
+    key: "perBuy",
+    label: "سرانهٔ خرید",
+    title: "میانگین ارزش خرید هر خریدار حقیقی (تومان)",
+    on: false,
+    cell: (r) => faToman(r.perBuy),
+  },
+  {
+    key: "perSell",
+    label: "سرانهٔ فروش",
+    title: "میانگین ارزش فروش هر فروشندهٔ حقیقی (تومان)",
+    on: false,
+    cell: (r) => faToman(r.perSell),
+  },
+  {
     key: "meeting",
     label: "مجمع بعدی",
     title: "تاریخ برگزاری مجمع بعدی بر پایهٔ آگهی دعوت در کدال",
@@ -348,9 +369,9 @@ function Check({
 
 // ------------------------------------------------------------------------------------ page
 
-export function IndustryTable({ rows }: { rows: Row[] }) {
+export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initialQuery?: string }) {
   const router = useRouter();
-  const [f, setF] = useState<Filters>(EMPTY);
+  const [f, setF] = useState<Filters>({ ...EMPTY, q: initialQuery });
   const [reset, setReset] = useState(0);
   const [grouped, setGrouped] = useState(true);
   const [order, setOrder] = useState<IndustrySort>("value");

@@ -4,6 +4,8 @@ import { jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { TradableRanking } from "@/components/TradableRanking";
+import { ZoneTables } from "@/components/ZoneTables";
+import { ExposureCard } from "@/components/ExposureCard";
 import { SignalCard } from "@/components/SignalCard";
 import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
 
@@ -27,8 +29,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
   return (
     <main className="space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl font-extrabold">توصیه‌های بازار سهام</h1>
-        <p className="text-sm text-muted">
+        <h1 className="page-title">توصیه‌های امروز بازار سهام</h1>
+        <p className="lead">
           برای هر سهم فقط سه تصمیم ممکن است: خرید، نگهداری یا فروش، همراه دلیل. اغلب روزها دلیلِ
           نبودِ توصیه با عدد گفته می‌شود.
         </p>
@@ -47,7 +49,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
         ))}
       </nav>
 
-      {rank.ok && rank.data.available && <TradableRanking d={rank.data} />}
+      {rank.ok && rank.data.available && (
+        <>
+          <TradableRanking d={rank.data} />
+          <ExposureCard d={rank.data} />
+          <details className="card" data-testid="zone-details">
+            <summary className="cursor-pointer font-semibold">
+              جدول کامل هر ناحیه با امتیاز هر سیگنال
+            </summary>
+            <div className="mt-4 space-y-5">
+              <ZoneTables d={rank.data} />
+            </div>
+          </details>
+        </>
+      )}
 
       <h2 className="pt-2 text-lg font-bold">مدل احتمال v1 (آستانه‌های سود پس از هزینه؛ مکمل)</h2>
 
@@ -145,7 +160,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
             ))}
           </ul>
           <p className="mt-3">
-            <Link href="/calibration" className="text-accent underline">
+            <Link href="/model#calibration" className="text-accent underline">
               مشاهدهٔ کالیبراسیون و نتایج آزمون
             </Link>
           </p>

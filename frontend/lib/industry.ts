@@ -34,6 +34,9 @@ export type Row = {
   volRatio: number | null;
   rsi: number | null;
   meeting: string | null;
+  rank: number | null;
+  perBuy: number | null;
+  perSell: number | null;
 };
 
 export const NO_SECTOR = "بدون گروه صنعتی";
@@ -67,6 +70,9 @@ export function toRow(r: ScreenerRow): Row {
     volRatio: r.volume_ratio_30 ?? null,
     rsi: r.rsi_14 ?? null,
     meeting: r.meeting_date ?? null,
+    rank: r.rank ?? null,
+    perBuy: r.per_capita_buy ?? null,
+    perSell: r.per_capita_sell ?? null,
   };
 }
 
@@ -311,6 +317,9 @@ export type SortKey = keyof Pick<
   | "volRatio"
   | "rsi"
   | "meeting"
+  | "rank"
+  | "perBuy"
+  | "perSell"
 >;
 
 /** ``dir`` 1 = ascending, -1 = descending; rows with no number always go last. */

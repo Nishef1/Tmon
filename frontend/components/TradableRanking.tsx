@@ -46,7 +46,7 @@ export function TradableRanking({ d }: { d: Ranking }) {
         هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها ناحیهٔ خرید تهی است یا آزمون‌های اعتبار
         مدل نگذشته‌اند و آن‌وقت این فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}، از{" "}
         {d.basket_size == null ? "نمادهای" : `${faNumber(d.basket_size)} نمادِ`} پرمعامله.{" "}
-        <Link href="/ranking" className="text-accent underline">
+        <Link href="/model#v2" className="text-accent underline">
           اعداد دروازه‌ها و همهٔ نمادها
         </Link>
       </p>
@@ -111,7 +111,7 @@ function Chip({ r }: { r: RankingRow }) {
       <Link
         href={
           r.instrument_id == null
-            ? `/screener?q=${encodeURIComponent(r.symbol)}`
+            ? `/industries?q=${encodeURIComponent(r.symbol)}`
             : `/instruments/${r.instrument_id}`
         }
         className="chip block"

@@ -77,7 +77,7 @@ export function SymbolSearch() {
 
   return (
     <form
-      action="/screener"
+      action="/industries"
       role="search"
       className="relative w-full sm:max-w-md"
       onBlur={(e) => {
@@ -161,7 +161,7 @@ export function SymbolSearch() {
           ))}
           {hits.length > 0 && (
             <a
-              href={`/screener?kind=all&q=${encodeURIComponent(q.trim())}`}
+              href={`/industries?kind=all&q=${encodeURIComponent(q.trim())}`}
               className="block rounded-lg px-3 py-2 text-sm font-semibold text-accent hover:bg-accent-soft"
             >
               نمایش همهٔ {faNumber(total)} نتیجه در فهرست نمادها

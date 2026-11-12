@@ -1,10 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, type MarketOverview, type MarketMover, type Screener } from "@/lib/api";
+import { apiGet, type MarketOverview, type MarketMover } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
-import { SectorTable, type SectorSummary } from "@/components/SectorTable";
-import { toRow, type Row } from "@/lib/industry";
 
 export const metadata: Metadata = { title: "نمای بازار" };
 export const dynamic = "force-dynamic";
@@ -18,22 +16,12 @@ function bt(rial: number, digits = 0): string {
 }
 
 export default async function MarketPage() {
-  const [res, stocks] = await Promise.all([
-    apiGet<MarketOverview>("/market/overview"),
-    apiGet<Screener>("/screener", { sort: "value", stocks_only: "true", limit: 3000 }),
-  ]);
-  const members: Record<string, Row[]> = {};
-  if (stocks.ok) {
-    for (const r of stocks.data.rows) {
-      const code = (r.sector_code ?? "").padStart(2, "0");
-      (members[code] ??= []).push(toRow(r));
-    }
-  }
+  const res = await apiGet<MarketOverview>("/market/overview");
   return (
     <main className="space-y-5">
       <div>
-        <h1 className="text-2xl font-extrabold">نمای بازار</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="page-title">نمای بازار</h1>
+        <p className="lead">
           خلاصهٔ پایان روز از دادهٔ روزانه: دامنهٔ بازار، پول حقیقی و حقوقی، برترین‌ها. دادهٔ
           لحظه‌ای (پول هوشمند آنی، سفارش‌های درشت) تازه از امروز جمع‌آوری می‌شود و تا پر شدن تاریخچه
           نمایش داده نمی‌شود؛ اختیار معامله را هم پوشش نمی‌دهیم.
@@ -46,7 +34,7 @@ export default async function MarketPage() {
           داده‌ای برای نمای بازار نیست.
         </p>
       ) : (
-        <Body d={res.data} members={members} />
+        <Body d={res.data} />
       )}
     </main>
   );
@@ -61,15 +49,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: str
   );
 }
 
-function Body({ d, members }: { d: MarketOverview; members: Record<string, Row[]> }) {
-  const sectors: SectorSummary[] = d.sectors.map((s) => ({
-    code: s.sector_code.padStart(2, "0"),
-    name: s.name ?? `گروه ${faNumber(Number(s.sector_code))}`,
-    n: s.n,
-    value: s.value,
-    avgChange: s.avg_change ?? null,
-    netReal: s.net_real_flow ?? null,
-  }));
+function Body({ d }: { d: MarketOverview }) {
   const maxBand = Math.max(1, ...d.bands.map((b) => b.count));
   const f = d.flow;
   return (
@@ -163,14 +143,14 @@ function Body({ d, members }: { d: MarketOverview; members: Record<string, Row[]
         <Movers title="بیشترین خروج پول حقیقی" rows={d.outflow} testid="market-outflow" flow />
       </div>
 
-      <section className="space-y-2" data-testid="market-sectors">
-        <h2 className="text-lg font-bold">گروه‌های بورسی</h2>
-        <p className="text-xs text-muted">
-          روی هر گروه بزنید تا همهٔ سهم‌هایش با بازده و تصمیم مدل باز شود؛ سرستون‌ها برای مرتب‌سازی
-          قابل‌کلیک‌اند. «تغییر میانگین» میانگین ساده تغییر امروز سهم‌های گروه است، نه وزن‌دار با
-          ارزش بازار.
+      <section className="card flex flex-wrap items-center justify-between gap-3" data-testid="market-sectors">
+        <p className="text-sm">
+          {faNumber(d.sectors.length)} گروه بورسی با سهم‌هایشان، بازده، تصمیم مدل و فیلترها در
+          صفحهٔ صنایع و نمادها آمده است.
         </p>
-        <SectorTable sectors={sectors} members={members} />
+        <Link href="/industries" className="btn btn-primary">
+          صنایع و نمادها
+        </Link>
       </section>
     </>
   );

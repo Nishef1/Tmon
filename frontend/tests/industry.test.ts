@@ -39,6 +39,9 @@ const base: Row = {
   volRatio: null,
   rsi: null,
   meeting: null,
+  rank: null,
+  perBuy: null,
+  perSell: null,
 };
 const row = (o: Partial<Row>): Row => ({ ...base, ...o });
 
