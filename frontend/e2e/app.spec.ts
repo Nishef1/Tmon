@@ -137,3 +137,16 @@ test("home lists only tradable v2 stocks and says what was left out", async ({ p
   await expect(t).toContainText("وبانک");
   await expect(t).toContainText("کنار گذاشته‌شده");
 });
+
+test("market page shows breadth, flow and movers, and says what it cannot show", async ({
+  page,
+}) => {
+  await page.goto("/market");
+  await expect(page.getByTestId("market-breadth")).toContainText("سهم‌های مثبت");
+  await expect(page.getByTestId("market-bands")).toContainText("نزدیک صفر");
+  await expect(page.getByTestId("market-flow")).toContainText("خالص ورود");
+  await expect(page.getByTestId("market-gainers")).toContainText("الف");
+  await expect(page.getByTestId("market-outflow")).toContainText("موردی نیست");
+  await expect(page.getByTestId("market-sectors")).toContainText("کد گروه");
+  await expect(page.locator("main")).toContainText("در دست ما نیست");
+});

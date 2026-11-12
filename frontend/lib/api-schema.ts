@@ -127,6 +127,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/market/overview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Overview */
+    get: operations["overview_market_overview_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/metrics/calibration": {
     parameters: {
       query?: never;
@@ -766,6 +783,166 @@ export interface components {
        */
       stale: boolean;
     };
+    /** MarketBand */
+    MarketBand: {
+      /** Count */
+      count: number;
+      /** Label */
+      label: string;
+    };
+    /** MarketFlow */
+    MarketFlow: {
+      /** Date */
+      date: string;
+      /** Legal Buy Value */
+      legal_buy_value: number;
+      /** Legal Sell Value */
+      legal_sell_value: number;
+      /** N Symbols */
+      n_symbols: number;
+      /** Per Capita Buy */
+      per_capita_buy: number | null;
+      /** Per Capita Sell */
+      per_capita_sell: number | null;
+      /** Power */
+      power: number | null;
+      /** Real Buy Value */
+      real_buy_value: number;
+      /** Real Net */
+      real_net: number;
+      /** Real Sell Value */
+      real_sell_value: number;
+    };
+    /** MarketIndexPoint */
+    MarketIndexPoint: {
+      /** Change */
+      change: number | null;
+      /** Close */
+      close: number;
+      /** Code */
+      code: string;
+      /** Date */
+      date: string;
+    };
+    /** MarketMover */
+    MarketMover: {
+      /** Change */
+      change: number | null;
+      /** Name */
+      name: string | null;
+      /** Net Real Flow */
+      net_real_flow: number | null;
+      /** Symbol */
+      symbol: string;
+      /** Value */
+      value: number | null;
+    };
+    /**
+     * MarketOverviewOut
+     * @description End-of-day market overview from the daily tables (no intraday data).
+     */
+    MarketOverviewOut: {
+      /**
+       * At Limit Down
+       * @default 0
+       */
+      at_limit_down: number;
+      /**
+       * At Limit Up
+       * @default 0
+       */
+      at_limit_up: number;
+      /** Available */
+      available: boolean;
+      /**
+       * Bands
+       * @default []
+       */
+      bands: components["schemas"]["MarketBand"][];
+      /**
+       * By Value
+       * @default []
+       */
+      by_value: components["schemas"]["MarketMover"][];
+      /**
+       * Down
+       * @default 0
+       */
+      down: number;
+      /**
+       * Flat
+       * @default 0
+       */
+      flat: number;
+      flow: components["schemas"]["MarketFlow"] | null;
+      /**
+       * Gainers
+       * @default []
+       */
+      gainers: components["schemas"]["MarketMover"][];
+      /**
+       * Indices
+       * @default []
+       */
+      indices: components["schemas"]["MarketIndexPoint"][];
+      /**
+       * Inflow
+       * @default []
+       */
+      inflow: components["schemas"]["MarketMover"][];
+      /**
+       * Losers
+       * @default []
+       */
+      losers: components["schemas"]["MarketMover"][];
+      /** Median Change */
+      median_change: number | null;
+      /**
+       * N Outliers
+       * @default 0
+       */
+      n_outliers: number;
+      /**
+       * N Stocks
+       * @default 0
+       */
+      n_stocks: number;
+      /**
+       * Outflow
+       * @default []
+       */
+      outflow: components["schemas"]["MarketMover"][];
+      /** Price Date */
+      price_date: string | null;
+      /**
+       * Sectors
+       * @default []
+       */
+      sectors: components["schemas"]["MarketSector"][];
+      /**
+       * Total Value
+       * @default 0
+       */
+      total_value: number;
+      /**
+       * Up
+       * @default 0
+       */
+      up: number;
+    };
+    /** MarketSector */
+    MarketSector: {
+      /** Avg Change */
+      avg_change: number | null;
+      /** N */
+      n: number;
+      /** Net Real Flow */
+      net_real_flow: number | null;
+      /** Sector Code */
+      sector_code: string;
+      /** Value */
+      value: number;
+    };
     /** NearMiss */
     NearMiss: {
       /** Bucket N */
@@ -1307,6 +1484,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  overview_market_overview_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MarketOverviewOut"];
         };
       };
     };

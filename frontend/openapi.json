@@ -1693,6 +1693,415 @@
         "title": "LiveOut",
         "type": "object"
       },
+      "MarketBand": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "MarketBand",
+        "type": "object"
+      },
+      "MarketFlow": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "legal_buy_value": {
+            "title": "Legal Buy Value",
+            "type": "number"
+          },
+          "legal_sell_value": {
+            "title": "Legal Sell Value",
+            "type": "number"
+          },
+          "n_symbols": {
+            "title": "N Symbols",
+            "type": "integer"
+          },
+          "per_capita_buy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Capita Buy"
+          },
+          "per_capita_sell": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Capita Sell"
+          },
+          "power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power"
+          },
+          "real_buy_value": {
+            "title": "Real Buy Value",
+            "type": "number"
+          },
+          "real_net": {
+            "title": "Real Net",
+            "type": "number"
+          },
+          "real_sell_value": {
+            "title": "Real Sell Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "n_symbols",
+          "real_buy_value",
+          "real_sell_value",
+          "legal_buy_value",
+          "legal_sell_value",
+          "real_net",
+          "per_capita_buy",
+          "per_capita_sell",
+          "power"
+        ],
+        "title": "MarketFlow",
+        "type": "object"
+      },
+      "MarketIndexPoint": {
+        "properties": {
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "close",
+          "change",
+          "date"
+        ],
+        "title": "MarketIndexPoint",
+        "type": "object"
+      },
+      "MarketMover": {
+        "properties": {
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "net_real_flow": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Flow"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "change",
+          "value",
+          "net_real_flow"
+        ],
+        "title": "MarketMover",
+        "type": "object"
+      },
+      "MarketOverviewOut": {
+        "description": "End-of-day market overview from the daily tables (no intraday data).",
+        "properties": {
+          "at_limit_down": {
+            "default": 0,
+            "title": "At Limit Down",
+            "type": "integer"
+          },
+          "at_limit_up": {
+            "default": 0,
+            "title": "At Limit Up",
+            "type": "integer"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "bands": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketBand"
+            },
+            "title": "Bands",
+            "type": "array"
+          },
+          "by_value": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketMover"
+            },
+            "title": "By Value",
+            "type": "array"
+          },
+          "down": {
+            "default": 0,
+            "title": "Down",
+            "type": "integer"
+          },
+          "flat": {
+            "default": 0,
+            "title": "Flat",
+            "type": "integer"
+          },
+          "flow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketFlow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gainers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketMover"
+            },
+            "title": "Gainers",
+            "type": "array"
+          },
+          "indices": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketIndexPoint"
+            },
+            "title": "Indices",
+            "type": "array"
+          },
+          "inflow": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketMover"
+            },
+            "title": "Inflow",
+            "type": "array"
+          },
+          "losers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketMover"
+            },
+            "title": "Losers",
+            "type": "array"
+          },
+          "median_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Change"
+          },
+          "n_outliers": {
+            "default": 0,
+            "title": "N Outliers",
+            "type": "integer"
+          },
+          "n_stocks": {
+            "default": 0,
+            "title": "N Stocks",
+            "type": "integer"
+          },
+          "outflow": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketMover"
+            },
+            "title": "Outflow",
+            "type": "array"
+          },
+          "price_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Date"
+          },
+          "sectors": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketSector"
+            },
+            "title": "Sectors",
+            "type": "array"
+          },
+          "total_value": {
+            "default": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          },
+          "up": {
+            "default": 0,
+            "title": "Up",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "price_date",
+          "n_stocks",
+          "up",
+          "down",
+          "flat",
+          "at_limit_up",
+          "at_limit_down",
+          "n_outliers",
+          "total_value",
+          "median_change",
+          "indices",
+          "bands",
+          "flow",
+          "gainers",
+          "losers",
+          "by_value",
+          "inflow",
+          "outflow",
+          "sectors"
+        ],
+        "title": "MarketOverviewOut",
+        "type": "object"
+      },
+      "MarketSector": {
+        "properties": {
+          "avg_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Change"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "net_real_flow": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Flow"
+          },
+          "sector_code": {
+            "title": "Sector Code",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "sector_code",
+          "n",
+          "avg_change",
+          "value",
+          "net_real_flow"
+        ],
+        "title": "MarketSector",
+        "type": "object"
+      },
       "NearMiss": {
         "properties": {
           "bucket_n": {
@@ -3300,6 +3709,27 @@
         "summary": "Instrument Live",
         "tags": [
           "instruments"
+        ]
+      }
+    },
+    "/market/overview": {
+      "get": {
+        "operationId": "overview_market_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketOverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "market"
         ]
       }
     },

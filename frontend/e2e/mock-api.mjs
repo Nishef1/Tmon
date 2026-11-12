@@ -210,10 +210,47 @@ const RANKING = {
   book: { n_buys: 571, cancelled_buys: 110, postponed_sells: 32, avg_held: 14.2 },
 };
 
+const MARKET = {
+  available: true,
+  price_date: "2026-11-10",
+  n_stocks: 3,
+  up: 1,
+  down: 1,
+  flat: 1,
+  at_limit_up: 1,
+  at_limit_down: 0,
+  total_value: 6e10,
+  median_change: 0,
+  indices: [{ code: "شاخص کل (هم‌وزن)", close: 1000, change: 0.004, date: "2026-11-10" }],
+  bands: [
+    { label: "نزدیک صفر", count: 1 },
+    { label: "بیش از ۴٪", count: 1 },
+  ],
+  flow: {
+    date: "2026-11-10",
+    n_symbols: 2,
+    real_buy_value: 3e10,
+    real_sell_value: 2e10,
+    legal_buy_value: 1e10,
+    legal_sell_value: 2e10,
+    real_net: 1e10,
+    per_capita_buy: 3e9,
+    per_capita_sell: 4e9,
+    power: 0.75,
+  },
+  gainers: [{ symbol: "الف", name: null, change: 0.1, value: 1e10, net_real_flow: null }],
+  losers: [{ symbol: "ب", name: null, change: -0.05, value: 2e10, net_real_flow: null }],
+  by_value: [{ symbol: "ج", name: null, change: 0, value: 3e10, net_real_flow: null }],
+  inflow: [{ symbol: "الف", name: null, change: 0.1, value: 1e10, net_real_flow: 1e10 }],
+  outflow: [],
+  sectors: [{ sector_code: "27", n: 3, avg_change: 0.01, value: 6e10, net_real_flow: 1e10 }],
+};
+
 function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
   if (path === "/v2/ranking") return [200, RANKING];
+  if (path === "/market/overview") return [200, MARKET];
   if (path === "/recommendations") {
     const date = url.searchParams.get("date");
     if (date === "2000-01-01") return [500, { detail: "boom" }];

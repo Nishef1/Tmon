@@ -455,3 +455,69 @@ class RankingOut(ApiModel):
     evidence: list[RankingEvidence] = []
     gates: list[RankingCandidate] = []
     book: RankingBook | None = None
+
+
+class MarketIndexPoint(ApiModel):
+    code: str
+    close: float
+    change: float | None = None
+    date: str
+
+
+class MarketBand(ApiModel):
+    label: str
+    count: int
+
+
+class MarketMover(ApiModel):
+    symbol: str
+    name: str | None = None
+    change: float | None = None
+    value: float | None = None
+    net_real_flow: float | None = None
+
+
+class MarketSector(ApiModel):
+    sector_code: str
+    n: int
+    avg_change: float | None = None
+    value: float
+    net_real_flow: float | None = None
+
+
+class MarketFlow(ApiModel):
+    date: str
+    n_symbols: int
+    real_buy_value: float
+    real_sell_value: float
+    legal_buy_value: float
+    legal_sell_value: float
+    real_net: float
+    per_capita_buy: float | None = None
+    per_capita_sell: float | None = None
+    power: float | None = None
+
+
+class MarketOverviewOut(ApiModel):
+    """End-of-day market overview from the daily tables (no intraday data)."""
+
+    available: bool
+    price_date: str | None = None
+    n_stocks: int = 0
+    up: int = 0
+    down: int = 0
+    flat: int = 0
+    at_limit_up: int = 0
+    at_limit_down: int = 0
+    n_outliers: int = 0
+    total_value: float = 0.0
+    median_change: float | None = None
+    indices: list[MarketIndexPoint] = []
+    bands: list[MarketBand] = []
+    flow: MarketFlow | None = None
+    gainers: list[MarketMover] = []
+    losers: list[MarketMover] = []
+    by_value: list[MarketMover] = []
+    inflow: list[MarketMover] = []
+    outflow: list[MarketMover] = []
+    sectors: list[MarketSector] = []
