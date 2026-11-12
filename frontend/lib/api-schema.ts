@@ -1325,6 +1325,8 @@ export interface components {
     };
     /** ScreenerOut */
     ScreenerOut: {
+      /** Flow Date */
+      flow_date: string | null;
       /**
        * Gate Reasons
        * @default []
@@ -1334,6 +1336,8 @@ export interface components {
       model_version: string | null;
       /** Prices Date */
       prices_date: string | null;
+      /** Ranking Date */
+      ranking_date: string | null;
       /** Rows */
       rows: components["schemas"]["ScreenerRow"][];
       /** Scores Date */
@@ -1344,6 +1348,13 @@ export interface components {
       timeframe: string;
       /** Total */
       total: number;
+      /**
+       * Verdict Counts
+       * @default {}
+       */
+      verdict_counts: {
+        [key: string]: number;
+      };
     };
     /**
      * ScreenerRow
@@ -1364,10 +1375,20 @@ export interface components {
       /** Ind Net Flow Ratio */
       ind_net_flow_ratio: number | null;
       instrument: components["schemas"]["InstrumentOut"];
+      /** Net Real Value */
+      net_real_value: number | null;
       /** P Min */
       p_min: number | null;
       /** P Win */
       p_win: number | null;
+      /** Per Capita Buy */
+      per_capita_buy: number | null;
+      /** Per Capita Sell */
+      per_capita_sell: number | null;
+      /** Power */
+      power: number | null;
+      /** Rank */
+      rank: number | null;
       /** Reasons */
       reasons: components["schemas"]["Reason"][] | null;
       /** Rel Volume */
@@ -1380,6 +1401,19 @@ export interface components {
       trades: number | null;
       /** Value */
       value: number | null;
+      /**
+       * Verdict
+       * @default none
+       * @enum {string}
+       */
+      verdict: "buy" | "hold" | "sell" | "none";
+      /**
+       * Verdict Label
+       * @default
+       */
+      verdict_label: string;
+      /** Volume Ratio 30 */
+      volume_ratio_30: number | null;
     };
     /** SignalOut */
     SignalOut: {
@@ -1797,8 +1831,20 @@ export interface operations {
     parameters: {
       query?: {
         timeframe?: "D1" | "W1" | "M1";
-        sort?: "ev" | "p_win" | "value" | "change_pct" | "ind_buy_power" | "rsi_14";
+        sort?:
+          | "ev"
+          | "p_win"
+          | "value"
+          | "change_pct"
+          | "ind_buy_power"
+          | "rsi_14"
+          | "rank"
+          | "power"
+          | "net_real_value"
+          | "volume_ratio_30";
         q?: string | null;
+        verdict?: ("buy" | "hold" | "sell" | "none") | null;
+        stocks_only?: boolean;
         limit?: number;
       };
       header?: never;

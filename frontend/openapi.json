@@ -3559,6 +3559,18 @@
       },
       "ScreenerOut": {
         "properties": {
+          "flow_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Date"
+          },
           "gate_reasons": {
             "default": [],
             "items": {
@@ -3589,6 +3601,18 @@
               }
             ],
             "title": "Prices Date"
+          },
+          "ranking_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ranking Date"
           },
           "rows": {
             "items": {
@@ -3627,6 +3651,14 @@
           "total": {
             "title": "Total",
             "type": "integer"
+          },
+          "verdict_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Verdict Counts",
+            "type": "object"
           }
         },
         "required": [
@@ -3636,6 +3668,9 @@
           "model_version",
           "tier_a_allowed",
           "gate_reasons",
+          "verdict_counts",
+          "flow_date",
+          "ranking_date",
           "total",
           "rows"
         ],
@@ -3714,6 +3749,17 @@
           "instrument": {
             "$ref": "#/components/schemas/InstrumentOut"
           },
+          "net_real_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Value"
+          },
           "p_min": {
             "anyOf": [
               {
@@ -3735,6 +3781,50 @@
               }
             ],
             "title": "P Win"
+          },
+          "per_capita_buy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Capita Buy"
+          },
+          "per_capita_sell": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Capita Sell"
+          },
+          "power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
           },
           "reasons": {
             "anyOf": [
@@ -3804,6 +3894,33 @@
               }
             ],
             "title": "Value"
+          },
+          "verdict": {
+            "default": "none",
+            "enum": [
+              "buy",
+              "hold",
+              "sell",
+              "none"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "verdict_label": {
+            "default": "",
+            "title": "Verdict Label",
+            "type": "string"
+          },
+          "volume_ratio_30": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Ratio 30"
           }
         },
         "required": [
@@ -3812,6 +3929,14 @@
           "change_pct",
           "value",
           "trades",
+          "volume_ratio_30",
+          "per_capita_buy",
+          "per_capita_sell",
+          "power",
+          "net_real_value",
+          "verdict",
+          "verdict_label",
+          "rank",
           "rsi_14",
           "rel_volume",
           "atr_14_pct",
@@ -4643,7 +4768,11 @@
                 "value",
                 "change_pct",
                 "ind_buy_power",
-                "rsi_14"
+                "rsi_14",
+                "rank",
+                "power",
+                "net_real_value",
+                "volume_ratio_30"
               ],
               "title": "Sort",
               "type": "string"
@@ -4664,6 +4793,38 @@
                 }
               ],
               "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "verdict",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "buy",
+                    "hold",
+                    "sell",
+                    "none"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Verdict"
+            }
+          },
+          {
+            "in": "query",
+            "name": "stocks_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Stocks Only",
+              "type": "boolean"
             }
           },
           {

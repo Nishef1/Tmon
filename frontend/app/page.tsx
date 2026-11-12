@@ -30,8 +30,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       <div className="space-y-1">
         <h1 className="text-2xl font-extrabold">توصیه‌های بازار سهام</h1>
         <p className="text-sm text-muted">
-          فهرست رتبه‌بندی‌شدهٔ خرید با احتمال کالیبره‌شده و سود مورد انتظار، یا اعلام صریح اینکه
-          امروز توصیه‌ای وجود ندارد.
+          برای هر سهم فقط سه تصمیم ممکن است: خرید، نگهداری یا فروش، همراه دلیل. اغلب روزها دلیلِ
+          نبودِ توصیه با عدد گفته می‌شود.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
 
       {rank.ok && rank.data.available && <TradableRanking d={rank.data} />}
 
-      <h2 className="pt-2 text-lg font-bold">مدل احتمال v1 (آستانه‌های سود پس از هزینه)</h2>
+      <h2 className="pt-2 text-lg font-bold">مدل احتمال v1 (آستانه‌های سود پس از هزینه؛ مکمل)</h2>
 
       {!res.ok ? <ErrorState message={res.error} /> : <Body data={res.data} tf={tf} />}
     </main>

@@ -359,6 +359,14 @@ class ScreenerRow(ApiModel):
     change_pct: float | None = None
     value: float | None = None
     trades: int | None = None
+    volume_ratio_30: float | None = None
+    per_capita_buy: float | None = None
+    per_capita_sell: float | None = None
+    power: float | None = None
+    net_real_value: float | None = None
+    verdict: Literal["buy", "hold", "sell", "none"] = "none"
+    verdict_label: str = ""
+    rank: int | None = None
     rsi_14: float | None = None
     rel_volume: float | None = None
     atr_14_pct: float | None = None
@@ -378,6 +386,9 @@ class ScreenerOut(ApiModel):
     model_version: str | None = None
     tier_a_allowed: bool | None = None
     gate_reasons: list[str] = []
+    verdict_counts: dict[str, int] = {}
+    flow_date: dt.date | None = None
+    ranking_date: dt.date | None = None
     total: int
     rows: list[ScreenerRow]
 

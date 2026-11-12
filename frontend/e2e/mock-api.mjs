@@ -250,6 +250,42 @@ function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
   if (path === "/v2/ranking") return [200, RANKING];
+  if (path === "/screener") {
+    const row = (id, symbol, verdict, label, rank) => ({
+      instrument: { ...inst, id, symbol },
+      close: 1005,
+      change_pct: 0.01,
+      value: 5e9,
+      trades: 100,
+      volume_ratio_30: 1.4,
+      per_capita_buy: 1e8,
+      per_capita_sell: 8e7,
+      power: 1.25,
+      net_real_value: 2e9,
+      verdict,
+      verdict_label: label,
+      rank,
+      rsi_14: 55,
+    });
+    const only = url.searchParams.get("verdict");
+    const rows = [row(1, "وبانک", "hold", "نگهداری", 2), row(2, "خودرو", "sell", "فروش", 3)].filter(
+      (r) => !only || r.verdict === only,
+    );
+    return [
+      200,
+      {
+        timeframe: "D1",
+        prices_date: "2025-03-01",
+        flow_date: "2025-03-01",
+        ranking_date: "2025-03-01",
+        scores_date: null,
+        gate_reasons: [],
+        verdict_counts: { hold: 1, sell: 1 },
+        total: rows.length,
+        rows,
+      },
+    ];
+  }
   if (path === "/market/overview") return [200, MARKET];
   if (path === "/recommendations") {
     const date = url.searchParams.get("date");

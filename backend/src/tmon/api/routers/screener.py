@@ -8,18 +8,31 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.routers.dashboard import _ranking_doc, decide
+from tmon.api.routers.market import _latest_full
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import Reason, ScreenerOut, ScreenerRow, Timeframe
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.features.builder import get_feature_set
-from tmon.storage.models import FeatureRow, Instrument, ModelRun, PriceDaily
+from tmon.storage.models import ClientTypeDaily, FeatureRow, Instrument, ModelRun, PriceDaily
 from tmon.storage.objectstore import get_object_store
 
 router = APIRouter(tags=["screener"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
-SortKey = Literal["ev", "p_win", "value", "change_pct", "ind_buy_power", "rsi_14"]
+SortKey = Literal[
+    "ev",
+    "p_win",
+    "value",
+    "change_pct",
+    "ind_buy_power",
+    "rsi_14",
+    "rank",
+    "power",
+    "net_real_value",
+    "volume_ratio_30",
+]
 FEATURES = ("rsi_14", "rel_volume", "atr_14_pct", "ind_buy_power", "ind_net_flow_ratio")
 
 
@@ -48,6 +61,8 @@ def screener(
     timeframe: Timeframe = "D1",
     sort: SortKey = "ev",
     q: Annotated[str | None, Query(max_length=64)] = None,
+    verdict: Literal["buy", "hold", "sell", "none"] | None = None,
+    stocks_only: bool = False,
     limit: Annotated[int, Query(ge=1, le=3000)] = 200,
 ) -> ScreenerOut:
     """Every symbol that traded on the latest stored day, with its market data, a few features
@@ -79,15 +94,36 @@ def screener(
     scores = {int(r["instrument_id"]): r for r in (doc or {}).get("rows", [])}
     gate = ((run.metrics or {}).get("gate") or {}) if run else {}
 
+    prior = _prior_volumes(session, last)
+    fd = _latest_full(session, ClientTypeDaily.date)
+    flows: dict[int, ClientTypeDaily] = {}
+    if fd is not None:
+        flows = {
+            c.instrument_id: c
+            for c in session.scalars(select(ClientTypeDaily).where(ClientTypeDaily.date == fd))
+        }
+    ranking = _ranking_doc()
+
     needle = (q or "").strip()
     rows: list[ScreenerRow] = []
+    counts: dict[str, int] = {}
     for p, inst in prices:  # one row per symbol on one day
+        if stocks_only and inst.instrument_type != "stock":
+            continue
         if needle and needle not in (inst.symbol_fa or "") and needle not in (inst.name_fa or ""):
             continue
         f = feats.get(inst.id, {})
         sc = scores.get(inst.id, {})
         close = None if p.close is None else float(p.close)
         prev = None if p.prev_close is None else float(p.prev_close)
+        c = flows.get(inst.id)
+        pcb = c.buy_value_i / c.buy_count_i if c and c.buy_value_i and c.buy_count_i else None
+        pcs = c.sell_value_i / c.sell_count_i if c and c.sell_value_i and c.sell_count_i else None
+        pv = prior.get(inst.id)
+        d = decide(inst, ranking, None)
+        counts[d.verdict] = counts.get(d.verdict, 0) + 1
+        if verdict and d.verdict != verdict:
+            continue
         rows.append(
             ScreenerRow(
                 instrument=instrument_out(inst),
@@ -95,6 +131,18 @@ def screener(
                 change_pct=(close / prev - 1) if close and prev else None,
                 value=None if p.value is None else float(p.value),
                 trades=p.trades,
+                volume_ratio_30=(float(p.volume) / pv) if pv and p.volume else None,
+                per_capita_buy=None if pcb is None else float(pcb),
+                per_capita_sell=None if pcs is None else float(pcs),
+                power=float(pcb / pcs) if pcb and pcs else None,
+                net_real_value=(
+                    float(c.buy_value_i - c.sell_value_i)
+                    if c and c.buy_value_i is not None and c.sell_value_i is not None
+                    else None
+                ),
+                verdict=d.verdict,
+                verdict_label=d.label,
+                rank=d.rank,
                 **{k: _num(f.get(k)) for k in FEATURES},
                 p_win=_num(sc.get("p_win")),
                 ev=_num(sc.get("ev")),
@@ -103,7 +151,8 @@ def screener(
                 reasons=[Reason(**r) for r in sc["reasons"]] if sc.get("reasons") else None,
             )
         )
-    rows.sort(key=lambda r: (getattr(r, sort) is None, -(getattr(r, sort) or 0.0)))
+    sign = 1.0 if sort == "rank" else -1.0  # rank 1 is best, so ascending
+    rows.sort(key=lambda r: (getattr(r, sort) is None, sign * (getattr(r, sort) or 0.0)))
     return ScreenerOut(
         timeframe=timeframe,
         prices_date=last,
@@ -111,6 +160,9 @@ def screener(
         model_version=doc.get("model_version") if doc else None,
         tier_a_allowed=gate.get("tier_a_allowed"),
         gate_reasons=list(gate.get("reasons") or []),
+        verdict_counts=counts,
+        flow_date=fd,
+        ranking_date=dt.date.fromisoformat(ranking["as_of"]) if ranking else None,
         total=len(rows),
         rows=rows[:limit],
     )
@@ -118,3 +170,24 @@ def screener(
 
 def _num(v: Any) -> float | None:
     return None if v is None or isinstance(v, bool) else float(v)
+
+
+def _prior_volumes(session: Session, last: dt.date) -> dict[int, float]:
+    """Mean volume of up to 30 trading days before ``last``, per instrument (zero days skipped)."""
+    days = list(
+        session.scalars(
+            select(PriceDaily.date)
+            .where(PriceDaily.date < last)
+            .group_by(PriceDaily.date)
+            .order_by(PriceDaily.date.desc())
+            .limit(30)
+        )
+    )
+    if not days:
+        return {}
+    rows = session.execute(
+        select(PriceDaily.instrument_id, func.avg(PriceDaily.volume))
+        .where(PriceDaily.date.in_(days), PriceDaily.volume > 0)
+        .group_by(PriceDaily.instrument_id)
+    ).all()
+    return {i: float(v) for i, v in rows if v}

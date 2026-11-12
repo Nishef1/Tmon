@@ -67,6 +67,14 @@ def test_outside_basket_states_the_value_floor() -> None:
     assert any("حداقل لازم" in r for r in d.reasons)
 
 
+def test_symbol_in_a_limit_queue_gets_no_decision() -> None:
+    doc = _doc()
+    doc["rows"][0]["queue_state"] = "buy_queue"
+    d = dash.decide(_inst("الف"), doc, None)
+    assert d.verdict == "none" and "صف خرید" in d.headline
+    assert d.rank == 1
+
+
 def test_non_stock_and_missing_ranking() -> None:
     assert "صندوق" in dash.decide(_inst("ف", "etf_equity"), _doc(), None).headline
     assert "اختیار" in dash.decide(_inst("ف", "option_call"), _doc(), None).headline

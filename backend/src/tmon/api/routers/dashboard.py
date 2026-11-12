@@ -5,6 +5,7 @@ daily tables and the latest ranking document; nothing is estimated here."""
 from __future__ import annotations
 
 import json
+import logging
 import statistics
 from typing import Annotated, Any
 
@@ -33,6 +34,7 @@ from tmon.storage.models import (
 from tmon.storage.objectstore import get_object_store
 from tmon.tools.v2_ranking import KEY
 
+log = logging.getLogger(__name__)
 router = APIRouter(tags=["instruments"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -152,7 +154,10 @@ def _flow(rows: list[ClientTypeDaily]) -> DashFlow | None:
 def _ranking_doc() -> dict[str, Any] | None:
     try:
         raw = get_object_store().get(get_settings().minio_artifact_bucket, KEY)
-    except (FileNotFoundError, KeyError, OSError):
+    except (FileNotFoundError, KeyError):
+        return None
+    except Exception:  # store unreachable: say "not computed" instead of failing the page
+        log.warning("ranking document unreadable", exc_info=True)
         return None
     doc: dict[str, Any] = json.loads(raw)
     return doc
@@ -213,6 +218,14 @@ def decide(
             else "دادهٔ کافی برای محاسبهٔ امتیاز ندارد."
         )
         return _none(f"امروز تصمیمی نیست: {why}", **base)
+    queue = row.get("queue_state")
+    if queue in ("buy_queue", "sell_queue"):
+        side = "خرید" if queue == "buy_queue" else "فروش"
+        return _none(
+            f"امروز تصمیمی نیست: نماد در صف {side} است و عملاً قابل معامله نیست.",
+            [f"رتبهٔ {row['rank']} از {size}؛ جایگاه مدل فقط پس از خروج از صف معنا دارد."],
+            **base,
+        )
     verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
     sig = {k: v for k, v in (row.get("signals") or {}).items() if v is not None}
     best = sorted(sig.items(), key=lambda kv: -kv[1])

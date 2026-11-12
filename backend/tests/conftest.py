@@ -19,3 +19,12 @@ def session() -> Iterator[Session]:
     with Session(engine) as s:
         yield s
     engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _no_real_object_store(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The dashboard and screener read the ranking document; tests must not wait on a MinIO."""
+    from tmon.api.routers import dashboard
+    from tmon.storage.objectstore import MemoryStore
+
+    monkeypatch.setattr(dashboard, "get_object_store", lambda: MemoryStore())

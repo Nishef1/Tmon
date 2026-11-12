@@ -147,6 +147,23 @@ test("home lists only tradable v2 stocks and says what was left out", async ({ p
   await expect(t).not.toContainText("شکام ۰"); // in a buy queue: counted as left out, not listed
   await expect(t).toContainText("وبانک");
   await expect(t).toContainText("کنار گذاشته‌شده");
+  await expect(page.getByTestId("gate-note")).toContainText("توصیهٔ مطمئن نیست");
+  await expect(page.getByTestId("decision-hold")).toContainText("وبانک");
+  await expect(page.getByTestId("decision-avoid")).toContainText("خودرو");
+  await expect(page.getByTestId("decision-buy")).toContainText("امروز سهم عادیِ بدون صف");
+});
+
+test("screener shows flow columns, one decision per symbol and filters by decision", async ({
+  page,
+}) => {
+  await page.goto("/screener");
+  const table = page.getByTestId("screener-table");
+  await expect(table).toContainText("سرانهٔ خرید");
+  await expect(table).toContainText("قدرت خریدار");
+  await expect(table.locator('[data-verdict="hold"]')).toContainText("نگهداری");
+  await expect(page.getByTestId("verdict-counts")).toContainText("فروش");
+  await page.goto("/screener?v=sell");
+  await expect(page.getByTestId("screener-table").getByRole("row")).toHaveCount(2);
 });
 
 test("market page shows breadth, flow and movers, and says what it cannot show", async ({

@@ -493,3 +493,49 @@ def test_screener_without_scores(client: TestClient, session: Session) -> None:
     body = client.get("/screener").json()
     assert body["total"] == 1 and body["scores_date"] is None
     assert body["rows"][0]["p_win"] is None
+
+
+def test_screener_carries_flow_columns_and_decision(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tmon.api.routers import screener as scr
+    from tmon.storage.models import ClientTypeDaily
+
+    a = _inst(session, "s1", "الف")
+    b = _inst(session, "s2", "ب")
+    for i, inst in enumerate((a, b)):
+        for k in range(3):
+            session.add(
+                PriceDaily(instrument_id=inst.id, date=DAY - dt.timedelta(days=k), close=1100,
+                           prev_close=1000, volume=3000 if k == 0 else 1000, value=5e9,
+                           trades=10, market_halt=False)
+            )  # fmt: skip
+        session.add(
+            ClientTypeDaily(instrument_id=inst.id, date=DAY, buy_count_i=10, sell_count_i=20,
+                            buy_value_i=4e9 * (i + 1), sell_value_i=1e9)
+        )  # fmt: skip
+    session.flush()
+    doc = {"recommendation_allowed": False, "basket_size": 2, "as_of": DAY.isoformat(),
+           "buy_top_frac": 0.1, "hold_top_frac": 0.3,
+           "rows": [{"rank": 1, "symbol": "ب", "zone": "buy", "score": 0.9, "signals": {},
+                     "median_value": 5e9},
+                    {"rank": 2, "symbol": "الف", "zone": "avoid", "score": 0.1, "signals": {},
+                     "median_value": 5e9}]}  # fmt: skip
+    monkeypatch.setattr(scr, "_ranking_doc", lambda: doc)
+    body = client.get("/screener", params={"sort": "rank"}).json()
+    assert [r["instrument"]["symbol"] for r in body["rows"]] == ["ب", "الف"]
+    top = body["rows"][0]
+    assert top["verdict"] == "buy" and top["rank"] == 1
+    assert top["volume_ratio_30"] == pytest.approx(3.0)
+    assert top["per_capita_buy"] == pytest.approx(8e8) and top["per_capita_sell"] == pytest.approx(
+        5e7
+    )
+    assert top["power"] == pytest.approx(16.0) and top["net_real_value"] == pytest.approx(7e9)
+    assert body["rows"][1]["verdict"] == "sell"
+    assert body["verdict_counts"] == {"buy": 1, "sell": 1}
+    only = client.get("/screener", params={"verdict": "sell"}).json()
+    assert [r["instrument"]["symbol"] for r in only["rows"]] == ["الف"]
+    assert only["verdict_counts"] == {"buy": 1, "sell": 1}  # counts ignore the filter
+    by_power = client.get("/screener", params={"sort": "power"}).json()
+    assert by_power["rows"][0]["instrument"]["symbol"] == "ب"
+    assert body["flow_date"] == DAY.isoformat() and body["ranking_date"] == DAY.isoformat()
