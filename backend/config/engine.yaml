@@ -148,3 +148,26 @@ v2:
     stress_window_days: 5         # mean share of the universe in a sell queue
     max_exposure: 1.0             # no leverage
     sensitivity_target_vols: [0.15, 0.20, 0.25, 0.30, 0.40]
+
+  # Baseline portfolio (ADR 0003 section 6). Sector, name and liquidity caps are `sizing.*`.
+  portfolio:
+    n_names: 20                   # ADR: 15 to 20 names, equal weight
+    n_tranches: 4                 # weekly review of one tranche = a full review every 4 weeks
+    review_every_days: 5
+    buy_top_frac: 0.10            # buy from the top decile ...
+    hold_top_frac: 0.30           # ... hold until the name leaves the top 30% (the buffer)
+    entry_delay_days: 1           # decided at close t, executed at close t+1
+    warmup_days: 20               # book still being built: excluded from every statistic
+    min_cross_section: 30         # first day with at least this many ranked symbols starts the book
+
+  # Publication gate G1-G6 (ADR 0003 section 7)
+  gates:
+    min_year_win_share: 0.6       # G1: share of calendar years beating the index
+    min_days_per_year: 100        # a calendar year with fewer days is shown but not counted
+    max_monthly_one_way_turnover: 0.5
+    min_monthly_excess_t: 3.0
+    robust_names_delta: 5         # G5: +-5 names
+    robust_entry_delay_days: 2    # G5: one day later
+    robust_cost_multiplier: 1.5   # G5
+    pbo_splits: 8
+    survivorship_resolved: false  # G6: OQ 65 is open; flip only with an official source

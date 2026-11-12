@@ -157,8 +157,33 @@ class ExposureCfg(_Frozen):
     sensitivity_target_vols: list[float] = []
 
 
+class PortfolioCfg(_Frozen):
+    n_names: int = Field(ge=1)
+    n_tranches: int = Field(ge=1)
+    review_every_days: int = Field(ge=1)
+    buy_top_frac: float = Field(gt=0, le=1)
+    hold_top_frac: float = Field(gt=0, le=1)
+    entry_delay_days: int = Field(ge=1)
+    warmup_days: int = Field(ge=0)
+    min_cross_section: int = Field(ge=1)
+
+
+class GatesCfg(_Frozen):
+    min_year_win_share: float
+    min_days_per_year: int
+    max_monthly_one_way_turnover: float
+    min_monthly_excess_t: float
+    robust_names_delta: int
+    robust_entry_delay_days: int
+    robust_cost_multiplier: float
+    pbo_splits: int
+    survivorship_resolved: bool
+
+
 class V2Cfg(_Frozen):
     exposure: ExposureCfg
+    portfolio: PortfolioCfg
+    gates: GatesCfg
 
 
 class EngineConfig(_Frozen):
