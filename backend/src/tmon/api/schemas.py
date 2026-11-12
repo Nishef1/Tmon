@@ -367,6 +367,7 @@ class ScreenerRow(ApiModel):
     verdict: Literal["buy", "hold", "sell", "none"] = "none"
     verdict_label: str = ""
     rank: int | None = None
+    gauge: float | None = None
     rsi_14: float | None = None
     rel_volume: float | None = None
     atr_14_pct: float | None = None
@@ -595,6 +596,8 @@ class DashDecision(ApiModel):
     rank: int | None = None
     basket_size: int | None = None
     score: float | None = None
+    gauge: float | None = None  # score on 0-100 for the semicircle gauge; None = not scored
+    in_basket: bool = False  # inside the validated liquid basket; False = unvalidated score
 
 
 class InstrumentDashboard(ApiModel):

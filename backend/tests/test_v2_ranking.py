@@ -98,3 +98,53 @@ def test_endpoint_serves_the_stored_document_and_keeps_the_disclaimer(
     assert body["rows"][0]["zone"] == "buy"
     assert body["evidence"][0]["horizon_days"] == 20
     assert "توصیه سرمایه‌گذاری نیست" in body["disclaimer"]
+
+
+def test_universe_scores_match_the_engine_for_members_and_extend_to_the_rest() -> None:
+    import datetime as dt
+
+    import numpy as np
+    import polars as pl
+
+    from tmon.backtest.signal_decay import build_panel
+    from tmon.core.engine_config import get_engine_config
+    from tmon.tools.v2_ranking import universe_scores
+
+    cfg = get_engine_config()
+    rng = np.random.default_rng(7)
+    days = [dt.date(2025, 1, 1) + dt.timedelta(days=i) for i in range(300)]
+    n = 40
+    adj_rows, feat_rows = [], []
+    for i in range(n):
+        px = 1000 * np.exp(np.cumsum(rng.normal(0.001 * (i - 20) / 20, 0.02, len(days))))
+        for d, p in zip(days, px, strict=True):
+            adj_rows.append({"instrument_id": i, "date": d, "adj_close": float(p)})
+            feat_rows.append(
+                {
+                    "instrument_id": i,
+                    "date": d,
+                    "eligible": i < 30,  # the last ten are "thin": outside the engine universe
+                    "market_halt": False,
+                    "queue_state": "none",
+                    "median_value_20": 1e11 if i < 30 else 1e9,
+                    "ind_buy_power": float(rng.uniform(0.2, 3)),
+                    "rv_20": float(rng.uniform(0.1, 0.8)),
+                    "dist_high_52w": float(rng.uniform(0.5, 1.0)),
+                }
+            )
+    feats = pl.DataFrame(feat_rows).with_columns(
+        pl.when(pl.col("instrument_id") == 39).then(None).otherwise(pl.col("rv_20")).alias("rv_20")
+    )
+    adj = pl.DataFrame(adj_rows)
+    last = days[-1]
+    got = {r["id"]: r for r in universe_scores(feats, adj, cfg, last)}
+    assert len(got) == n
+    panel = build_panel(feats, adj, cfg, horizons=(5,)).filter(pl.col("date") == last)
+    for r in panel.iter_rows(named=True):
+        # equal composites are one tie here and may be split by float noise in the engine: a
+        # difference of at most half a rank of the 30 members
+        assert abs(got[r["instrument_id"]]["score"] - r["r_composite"]) <= 0.5 / 30 + 1e-9
+    thin = got[35]
+    assert thin["eligible"] is False and thin["score"] is not None and 0 <= thin["score"] <= 1
+    assert thin["zone"] in ("buy", "hold", "avoid")
+    assert got[39]["score"] is None and got[39]["missing"] == ["rv_20"]

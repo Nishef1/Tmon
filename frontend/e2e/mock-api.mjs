@@ -265,6 +265,7 @@ function route(url) {
       verdict,
       verdict_label: label,
       rank,
+      gauge: rank == null ? null : 100 - rank * 5,
       rsi_14: 55,
     });
     const only = url.searchParams.get("verdict");
@@ -409,6 +410,8 @@ function route(url) {
           rank: 20,
           basket_size: 100,
           score: 0.8,
+          gauge: 81,
+          in_basket: true,
         },
       },
     ];

@@ -14,6 +14,7 @@ import json
 from datetime import date
 from typing import Any
 
+import numpy as np
 import polars as pl
 from sqlalchemy import select
 
@@ -24,6 +25,7 @@ from tmon.backtest.signal_decay import (
     adjusted_close,
     build_panel,
     daily_ic,
+    forward_returns,
     summarize_ic,
     top_decile_spread,
 )
@@ -39,7 +41,7 @@ from tmon.core.db import session_scope
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import RuleBook
 from tmon.engine.exposure import compute_exposure
-from tmon.features.builder import build_features
+from tmon.features.builder import KEYS, build_features
 from tmon.features.store import load_benchmark_inputs, load_inputs
 from tmon.storage.models import Instrument
 from tmon.storage.objectstore import get_object_store
@@ -104,6 +106,79 @@ def rows_for(
     for i, r in enumerate(out, 1):
         r["rank"] = i
     return last, out
+
+
+def _mid_rank(ref: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """Percentile of ``x`` inside the sorted reference sample, mid-rank for ties. For members of
+    the sample this equals the engine's ``(average rank - 0.5) / n``."""
+    left = np.searchsorted(ref, x, side="left")
+    right = np.searchsorted(ref, x, side="right")
+    return (left + right) / 2.0 / len(ref)
+
+
+def universe_scores(
+    feats: pl.DataFrame, adj: pl.DataFrame, cfg: EngineConfig, last: date
+) -> list[dict[str, Any]]:
+    """The composite score of every instrument traded on ``last``, not only the liquid basket.
+
+    The reference cross-section is the engine's own universe (eligible, not in a sell queue).
+    Instruments outside it (thin trading, short history) are placed inside that reference
+    distribution signal by signal, so their score is on the same 0-1 scale but is *not* validated
+    by the gates. Rows lacking a signal keep ``score`` None and name the missing signals."""
+    mom = forward_returns(adj, (5,)).select(*KEYS, "mom_12_1")
+    cols = list(SIGNALS)
+    d = (
+        feats.filter(pl.col("date") == last)
+        .select(*KEYS, "eligible", "market_halt", "queue_state", "median_value_20", *cols[:3])
+        .join(mom, on=list(KEYS), how="left")
+    )
+    ok = pl.all_horizontal([pl.col(c).is_not_null() & pl.col(c).is_finite() for c in cols])
+    member = d.filter(
+        ok
+        & pl.col("eligible")
+        & ~pl.col("market_halt")
+        & ~pl.col("queue_state").is_in(cfg.universe.exclude_queue_states)
+    )
+    refs = {c: np.sort(member[c].to_numpy().astype(float)) for c in cols}
+
+    def signal_rank(c: str, x: np.ndarray) -> np.ndarray:
+        p = _mid_rank(refs[c], x)
+        return p if SIGNALS[c] > 0 else 1.0 - p
+
+    done = d.filter(ok)
+    ranks = {c: signal_rank(c, done[c].to_numpy().astype(float)) for c in cols}
+    # rounded so that exactly tied sums stay tied (float noise must not split them)
+    comp = np.round(np.mean([ranks[c] for c in cols], axis=0), 12)
+    is_member = (
+        done["eligible"].to_numpy()
+        & ~done["market_halt"].to_numpy()
+        & ~done["queue_state"].is_in(cfg.universe.exclude_queue_states).to_numpy()
+    )
+    comp_ref = np.sort(comp[is_member])
+    score = _mid_rank(comp_ref, comp)
+    scored = {
+        int(i): (float(score[k]), {c: float(ranks[c][k]) for c in cols})
+        for k, i in enumerate(done["instrument_id"].to_list())
+    }
+    pc = cfg.v2.portfolio
+    out: list[dict[str, Any]] = []
+    for r in d.iter_rows(named=True):
+        missing = [c for c in cols if r[c] is None or not np.isfinite(r[c])]
+        sc = scored.get(r["instrument_id"])
+        out.append(
+            {
+                "id": r["instrument_id"],
+                "eligible": bool(r["eligible"]),
+                "halted": bool(r["market_halt"]),
+                "queue_state": r["queue_state"],
+                "median_value": _f(r["median_value_20"]),
+                "missing": missing,
+                "score": sc[0] if sc else None,
+                "zone": _zone(sc[0], pc.buy_top_frac, pc.hold_top_frac) if sc else None,
+                "signals": sc[1] if sc else {},
+            }
+        )
+    return out
 
 
 def build_document() -> dict[str, Any]:
@@ -177,6 +252,7 @@ def build_document() -> dict[str, Any]:
         },
         "exposure_date": str(exp["date"]),
         "rows": rows,
+        "universe": universe_scores(feats, adj, cfg, as_of),
         "evidence": evidence,
         "gates": gates,
         "book": {

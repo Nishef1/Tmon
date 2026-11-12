@@ -697,9 +697,25 @@
             ],
             "title": "Basket Size"
           },
+          "gauge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gauge"
+          },
           "headline": {
             "title": "Headline",
             "type": "string"
+          },
+          "in_basket": {
+            "default": false,
+            "title": "In Basket",
+            "type": "boolean"
           },
           "label": {
             "title": "Label",
@@ -755,7 +771,9 @@
           "as_of",
           "rank",
           "basket_size",
-          "score"
+          "score",
+          "gauge",
+          "in_basket"
         ],
         "title": "DashDecision",
         "type": "object"
@@ -3724,6 +3742,17 @@
             ],
             "title": "Ev"
           },
+          "gauge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gauge"
+          },
           "ind_buy_power": {
             "anyOf": [
               {
@@ -3937,6 +3966,7 @@
           "verdict",
           "verdict_label",
           "rank",
+          "gauge",
           "rsi_14",
           "rel_volume",
           "atr_14_pct",
@@ -4770,6 +4800,7 @@
                 "ind_buy_power",
                 "rsi_14",
                 "rank",
+                "gauge",
                 "power",
                 "net_real_value",
                 "volume_ratio_30"

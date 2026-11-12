@@ -144,3 +144,52 @@ def test_endpoint_numbers(
     assert f["net_real_value"] == pytest.approx(3e9)
     assert j["decision"]["verdict"] == "buy"
     assert client.get("/instruments/999/dashboard").status_code == 404
+
+
+def _uni_doc() -> dict[str, Any]:
+    doc = _doc()
+    sig = {"ind_buy_power": 0.9, "rv_20": 0.3, "dist_high_52w": 0.7, "mom_12_1": 0.6}
+    doc["universe"] = [
+        {"id": 1, "eligible": True, "halted": False, "queue_state": "none", "median_value": 9e11,
+         "missing": [], "score": 0.95, "zone": "buy", "signals": sig},
+        {"id": 7, "eligible": False, "halted": False, "queue_state": "none", "median_value": 3e9,
+         "missing": [], "score": 0.97, "zone": "buy", "signals": sig},
+        {"id": 8, "eligible": False, "halted": False, "queue_state": "none", "median_value": 3e9,
+         "missing": [], "score": 0.1, "zone": "avoid", "signals": sig},
+        {"id": 9, "eligible": False, "halted": False, "queue_state": "none", "median_value": 3e9,
+         "missing": ["mom_12_1"], "score": None, "zone": None, "signals": {}},
+        {"id": 10, "eligible": False, "halted": False, "queue_state": "buy_queue",
+         "median_value": 3e9, "missing": [], "score": 0.8, "zone": "hold", "signals": sig},
+    ]  # fmt: skip
+    return doc
+
+
+def _with_id(i: int, sym: str) -> Instrument:
+    return Instrument(id=i, ins_code=f"c{i}", symbol_fa=sym, instrument_type="stock")
+
+
+def test_every_scored_stock_gets_a_gauge_but_only_basket_names_are_advice() -> None:
+    doc = _uni_doc()
+    doc["recommendation_allowed"] = True
+    inside = dash.decide(_with_id(1, "الف"), doc, None)
+    assert inside.gauge == pytest.approx(95) and inside.in_basket and inside.advice_allowed
+    out = dash.decide(_with_id(7, "ثالث"), doc, 3e9)
+    assert out.verdict == "buy" and out.gauge == pytest.approx(97)
+    assert not out.in_basket and not out.advice_allowed
+    assert "کم‌اعتبار" in out.headline
+    assert any("اثبات نشده" in r for r in out.reasons)
+    assert any("رتبهٔ" in r and "نماد دارای امتیاز" in r for r in out.reasons)
+    assert dash.decide(_with_id(8, "رابع"), doc, 3e9).verdict == "sell"
+
+
+def test_unscored_and_queued_stocks_say_exactly_why() -> None:
+    doc = _uni_doc()
+    d = dash.decide(_with_id(9, "خامس"), doc, 3e9)
+    assert d.verdict == "none" and d.gauge is None and "روند ۱۲ ماهه" in d.headline
+    q = dash.decide(_with_id(10, "سادس"), doc, 3e9)
+    assert q.verdict == "none" and "صف خرید" in q.headline and q.gauge == pytest.approx(80)
+
+
+def test_stock_not_traded_on_the_last_day_gets_no_score() -> None:
+    d = dash.decide(_with_id(99, "غایب"), _uni_doc(), None)
+    assert d.verdict == "none" and d.gauge is None and "معامله نشده" in d.headline

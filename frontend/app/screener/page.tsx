@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Screener, type ScreenerRow } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
+import { Gauge } from "@/components/Gauge";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -9,7 +10,8 @@ export const metadata: Metadata = { title: "همهٔ نمادها" };
 export const dynamic = "force-dynamic";
 
 const SORTS = [
-  ["rank", "رتبهٔ مدل"],
+  ["gauge", "امتیاز مدل"],
+  ["rank", "رتبهٔ سبد پرمعامله"],
   ["value", "ارزش معاملات"],
   ["change_pct", "تغییر قیمت"],
   ["power", "قدرت خریدار"],
@@ -28,7 +30,7 @@ const VERDICTS = [
 
 const BADGE: Record<string, string> = {
   buy: "bg-good text-white",
-  hold: "bg-warn text-white",
+  hold: "bg-hold text-white",
   sell: "bg-bad text-white",
   none: "bg-line text-muted",
 };
@@ -54,11 +56,11 @@ function toman(rial: number | null | undefined): string {
   return faNumber(t);
 }
 
-const tone = (n: number | null | undefined) => (n == null ? "" : n >= 0 ? "text-good" : "text-bad");
+const tone = (n: number | null | undefined) => (n == null ? "" : n >= 0 ? "text-up" : "text-down");
 
 export default async function ScreenerPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const sort = SORTS.find(([s]) => s === sp.sort)?.[0] ?? "rank";
+  const sort = SORTS.find(([s]) => s === sp.sort)?.[0] ?? "gauge";
   const verdict = VERDICTS.find(([v]) => v === sp.v)?.[0] ?? "";
   const stocksOnly = sp.kind !== "all";
   const limit = sp.limit === "all" ? 3000 : PAGE;
@@ -168,6 +170,7 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
   const heads = [
     "نماد",
     "تصمیم",
+    "امتیاز",
     "رتبه",
     "پایانی",
     "تغییر",
@@ -212,6 +215,12 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
                   {r.verdict_label}
                 </span>
               </td>
+              <td className="px-2 py-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Gauge value={r.gauge} size="sm" label="امتیاز ترکیبی مدل" />
+                  <span className="text-xs">{r.gauge == null ? "—" : faNumber(r.gauge, 0)}</span>
+                </div>
+              </td>
               <td className="px-2 py-1.5">{r.rank == null ? "—" : faNumber(r.rank)}</td>
               <td className="px-2 py-1.5">{r.close == null ? "—" : faNumber(r.close)}</td>
               <td className={`px-2 py-1.5 ${tone(r.change_pct)}`}>
@@ -224,7 +233,7 @@ function Table({ rows }: { rows: ScreenerRow[] }) {
               <td className="px-2 py-1.5">{toman(r.per_capita_buy)}</td>
               <td className="px-2 py-1.5">{toman(r.per_capita_sell)}</td>
               <td
-                className={`px-2 py-1.5 ${r.power == null ? "" : r.power >= 1 ? "text-good" : "text-bad"}`}
+                className={`px-2 py-1.5 ${r.power == null ? "" : r.power >= 1 ? "text-up" : "text-down"}`}
               >
                 {r.power == null ? "—" : faNumber(r.power, 2)}
               </td>

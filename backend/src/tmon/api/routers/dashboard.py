@@ -23,6 +23,7 @@ from tmon.api.schemas import (
 )
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
+from tmon.core.engine_config import get_engine_config
 from tmon.storage.models import (
     ClientTypeDaily,
     FundNav,
@@ -169,10 +170,33 @@ def _none(headline: str, reasons: list[str] | None = None, **extra: Any) -> Dash
     )
 
 
+MISSING_FA = {
+    "ind_buy_power": "قدرت خریدار حقیقی",
+    "rv_20": "نوسان ۲۰ روزه",
+    "dist_high_52w": "فاصله از سقف یک‌ساله",
+    "mom_12_1": "روند ۱۲ ماهه (به حدود یک سال سابقهٔ معامله نیاز دارد)",
+}
+
+
+def _signal_lines(sig: dict[str, float]) -> list[str]:
+    best = sorted(((k, v) for k, v in sig.items() if v is not None), key=lambda kv: -kv[1])
+    if not best:
+        return []
+    top, low = best[0], best[-1]
+    out = [f"قوی‌ترین نشانه: {SIGNAL_FA.get(top[0], top[0])} ({top[1] * 100:.0f} از ۱۰۰)."]
+    if low[0] != top[0]:
+        out.append(f"ضعیف‌ترین نشانه: {SIGNAL_FA.get(low[0], low[0])} ({low[1] * 100:.0f} از ۱۰۰).")
+    return out
+
+
 def decide(
     inst: Instrument, doc: dict[str, Any] | None, median_value: float | None
 ) -> DashDecision:
-    """Map the symbol to buy / hold / sell / none with plain-language reasons."""
+    """Map the symbol to buy / hold / sell / none with plain-language reasons.
+
+    Every stock that has the four signals gets a score and a gauge. Inside the validated liquid
+    basket the verdict is the model's; outside it the same formula is applied but the verdict is
+    marked unvalidated and never counts as advice."""
     if inst.instrument_type != "stock":
         kind = _kind(inst.instrument_type)
         return _none(
@@ -186,7 +210,16 @@ def decide(
     size = int(doc.get("basket_size") or len(rows))
     as_of = doc.get("as_of")
     row = next((r for r in rows if r["symbol"] == inst.symbol_fa), None)
-    if row is None:
+    uni = next((u for u in doc.get("universe", []) if u["id"] == inst.id), None)
+    scored = [u for u in doc.get("universe", []) if u.get("score") is not None]
+    if row is None and uni is None and "universe" in doc:
+        return _none(
+            f"امتیازی برای این نماد محاسبه نشد: در آخرین روز ثبت‌شده ({as_of}) معامله نشده است.",
+            ["مدل فقط برای نمادهایی امتیاز می‌دهد که در آخرین روز معامله شده‌اند."],
+            as_of=as_of,
+            basket_size=size,
+        )
+    if row is None and uni is None:
         floor = min((r["median_value"] for r in rows if r.get("median_value")), default=None)
         reasons = [
             f"مدل فقط {size} نماد پرمعامله را بررسی می‌کند؛ برای نمادهای کم‌معامله‌تر دقت "
@@ -203,51 +236,76 @@ def decide(
             as_of=as_of,
             basket_size=size,
         )
-    zone = row["zone"]
-    score = row.get("score")
+    if row is None and uni is not None and uni.get("score") is None:
+        if uni.get("halted"):
+            why = "امروز متوقف بوده است."
+        else:
+            miss = "، ".join(MISSING_FA.get(m, m) for m in uni.get("missing", []))
+            why = f"دادهٔ لازم برای محاسبهٔ امتیاز کامل نیست (کم: {miss})."
+        return _none(f"امتیازی برای این نماد محاسبه نشد: {why}", as_of=as_of, basket_size=size)
+    src = row if row is not None else uni
+    assert src is not None
+    in_basket = row is not None
+    zone = src["zone"]
+    score = src.get("score")
     base: dict[str, Any] = {
         "as_of": as_of,
-        "rank": row["rank"],
+        "rank": row["rank"] if row else None,
         "basket_size": size,
         "score": score,
+        "gauge": None if score is None else score * 100,
+        "in_basket": in_basket,
     }
-    if zone in ("excluded", "no_data"):
+    queue = src.get("queue_state")
+    if queue in ("buy_queue", "sell_queue"):
+        side = "خرید" if queue == "buy_queue" else "فروش"
+        return _none(
+            f"امروز تصمیمی نیست: نماد در صف {side} است و عملاً قابل معامله نیست.",
+            [f"امتیاز {(score or 0) * 100:.0f} از ۱۰۰؛ جایگاه مدل فقط پس از خروج از صف معنا دارد."]
+            if score is not None
+            else [],
+            **base,
+        )
+    if zone in ("excluded", "no_data") or zone is None:
         why = (
             "در صف فروش است و فروشنده بر خریدار غلبه دارد."
             if zone == "excluded"
             else "دادهٔ کافی برای محاسبهٔ امتیاز ندارد."
         )
         return _none(f"امروز تصمیمی نیست: {why}", **base)
-    queue = row.get("queue_state")
-    if queue in ("buy_queue", "sell_queue"):
-        side = "خرید" if queue == "buy_queue" else "فروش"
-        return _none(
-            f"امروز تصمیمی نیست: نماد در صف {side} است و عملاً قابل معامله نیست.",
-            [f"رتبهٔ {row['rank']} از {size}؛ جایگاه مدل فقط پس از خروج از صف معنا دارد."],
-            **base,
-        )
     verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
-    sig = {k: v for k, v in (row.get("signals") or {}).items() if v is not None}
-    best = sorted(sig.items(), key=lambda kv: -kv[1])
-    reasons = [
-        f"رتبهٔ {row['rank']} از {size} نماد پرمعامله؛ امتیاز ترکیبی "
-        f"{(score or 0) * 100:.0f} از ۱۰۰ (۱۰۰ = بهترین)."
-    ]
-    if best:
-        top, low = best[0], best[-1]
-        reasons.append(
-            f"قوی‌ترین نشانه: {SIGNAL_FA.get(top[0], top[0])} ({top[1] * 100:.0f} از ۱۰۰)."
-        )
-        if low[0] != top[0]:
-            reasons.append(
-                f"ضعیف‌ترین نشانه: {SIGNAL_FA.get(low[0], low[0])} ({low[1] * 100:.0f} از ۱۰۰)."
-            )
+    if row is not None:
+        reasons = [
+            f"رتبهٔ {row['rank']} از {size} نماد پرمعامله؛ امتیاز ترکیبی "
+            f"{(score or 0) * 100:.0f} از ۱۰۰ (۱۰۰ = بهترین)."
+        ]
+    else:
+        pos = sum(1 for u in scored if u["score"] > (score or 0)) + 1
+        reasons = [
+            f"امتیاز ترکیبی {(score or 0) * 100:.0f} از ۱۰۰ (۱۰۰ = بهترین)؛ رتبهٔ {pos} "
+            f"از {len(scored)} نماد دارای امتیاز."
+        ]
+    reasons += _signal_lines(src.get("signals") or {})
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
         reasons.append(
             f"قاعده: {_pct(bt)} برترِ رتبه‌بندی خرید، تا {_pct(ht)} برتر نگهداری و بقیه فروش/پرهیز."
         )
-    if not allowed:
+    if not in_basket:
+        floor = get_engine_config().universe.min_median_value_20d
+        mv = src.get("median_value")
+        line = (
+            "این نماد از ۱۰۰ سهم پرمعامله‌ای که آزمون‌های اعتبار روی آن‌ها انجام شده بیرون است؛ "
+            "امتیازش با همان فرمول و نسبت به همان سهم‌ها محاسبه شده، اما دقت آن برای نماد "
+            "کم‌معامله اثبات نشده است."
+        )
+        if mv:
+            line += (
+                f" میانهٔ ارزش معاملهٔ ۲۰ روزهٔ آن {mv / 1e10:.1f} میلیارد تومان است"
+                f" (حداقل لازم برای ورود به آزمون‌ها {floor / 1e10:.1f} میلیارد تومان)."
+            )
+        reasons.append(line)
+    elif not allowed:
         reasons.append(
             "هنوز آزمون‌های اعتبار مدل کامل نگذشته‌اند؛ این جایگاه یک رتبه‌بندی است، نه توصیهٔ مطمئن."
         )
@@ -256,10 +314,12 @@ def decide(
         "hold": "در ناحیهٔ نگهداری مدل است؛ خرید تازه توصیه نمی‌شود.",
         "sell": "در ناحیهٔ ضعیف مدل است؛ خرید نکنید و اگر دارید فروش را بسنجید.",
     }[verdict]
+    if not in_basket:
+        head += " (کم‌اعتبار: خارج از سبد پرمعامله)"
     return DashDecision(
         verdict=verdict,
         label=LABEL[verdict],
-        advice_allowed=allowed,
+        advice_allowed=allowed and in_basket,
         headline=head,
         reasons=reasons,
         **base,

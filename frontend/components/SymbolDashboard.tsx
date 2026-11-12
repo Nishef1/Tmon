@@ -1,21 +1,22 @@
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
+import { Gauge } from "@/components/Gauge";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 
 type D = InstrumentDashboard;
 type Verdict = D["decision"]["verdict"];
 
 const TONE: Record<Verdict, string> = {
-  buy: "border-good/40 bg-good/10",
+  buy: "border-up/40 bg-up/10",
   hold: "border-warn/40 bg-warn-soft",
-  sell: "border-bad/40 bg-bad/10",
+  sell: "border-down/40 bg-down/10",
   none: "border-line bg-surface",
 };
 const BADGE: Record<Verdict, string> = {
   buy: "bg-good text-white",
-  hold: "bg-warn text-white",
+  hold: "bg-hold text-white",
   sell: "bg-bad text-white",
-  none: "bg-muted text-white",
+  none: "bg-neutral text-white",
 };
 
 /** Share counts and volumes in short Persian units. */
@@ -59,7 +60,7 @@ function Card({ title, note, children }: { title: string; note?: string; childre
   );
 }
 
-const sign = (n: number | null | undefined) => (n == null ? "" : n >= 0 ? "text-good" : "text-bad");
+const sign = (n: number | null | undefined) => (n == null ? "" : n >= 0 ? "text-up" : "text-down");
 
 /** Where `v` sits between `lo` and `hi` (0-100), for the range bars. */
 function pos(v: number | null, lo: number | null, hi: number | null): number | null {
@@ -111,11 +112,21 @@ function Decision({ d }: { d: D["decision"] }) {
       data-testid="symbol-decision"
       data-verdict={d.verdict}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <span className={`rounded-full px-4 py-1 text-lg font-extrabold ${BADGE[d.verdict]}`}>
-          {d.label}
-        </span>
-        <p className="font-semibold">{faDigits(d.headline)}</p>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="w-52 shrink-0">
+          <Gauge value={d.gauge} label="امتیاز ترکیبی مدل" />
+          <p className="text-center text-xs text-muted">
+            {d.gauge == null ? "امتیازی محاسبه نشده" : "امتیاز ترکیبی (۱۰۰ = بهترین)"}
+          </p>
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <span
+            className={`inline-block rounded-full px-4 py-1 text-lg font-extrabold ${BADGE[d.verdict]}`}
+          >
+            {d.label}
+          </span>
+          <p className="font-semibold">{faDigits(d.headline)}</p>
+        </div>
       </div>
       {d.reasons.length > 0 && (
         <ul className="mt-3 list-inside list-disc space-y-1 text-sm">
@@ -192,7 +203,7 @@ export function SymbolDashboard({ d }: { d: D }) {
             <Row
               k="نسبت حجم امروز به ۳۰ روز"
               v={p.volume_ratio_30 == null ? "—" : faNumber(p.volume_ratio_30, 2)}
-              tone={p.volume_ratio_30 != null && p.volume_ratio_30 >= 1.5 ? "text-good" : ""}
+              tone={p.volume_ratio_30 != null && p.volume_ratio_30 >= 1.5 ? "text-up" : ""}
             />
             {p.base_volume != null && <Row k="حجم مبنا" v={qty(p.base_volume)} />}
           </Card>
@@ -244,7 +255,7 @@ export function SymbolDashboard({ d }: { d: D }) {
             <Row
               k="قدرت خریدار (امروز)"
               v={f.power == null ? "—" : faNumber(f.power, 2)}
-              tone={f.power != null ? (f.power >= 1 ? "text-good" : "text-bad") : ""}
+              tone={f.power != null ? (f.power >= 1 ? "text-up" : "text-down") : ""}
             />
             <Row
               k="قدرت خریدار (میانگین ۱۰ روز)"
@@ -265,7 +276,7 @@ export function SymbolDashboard({ d }: { d: D }) {
               <Row
                 k="حباب صندوق"
                 v={d.fund.bubble == null ? "—" : faPercent(d.fund.bubble, 2, true)}
-                tone={d.fund.bubble != null && Math.abs(d.fund.bubble) > 0.03 ? "text-bad" : ""}
+                tone={d.fund.bubble != null && Math.abs(d.fund.bubble) > 0.03 ? "text-down" : ""}
               />
               <Row k="تاریخ NAV" v={jalali(d.fund.nav_date)} />
             </>

@@ -13,6 +13,10 @@
   --warn-soft: #fbf0d9;
   --up: #1d6a43;
   --down: #a32d2d;
+  --good: #1d6a43;
+  --bad: #a32d2d;
+  --hold: #8a5a00;
+  --neutral: #625e55;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +32,10 @@
     --warn-soft: #2e2512;
     --up: #6fcf9a;
     --down: #ee8a8a;
+    --good: #2a8a57;
+    --bad: #c24444;
+    --hold: #a87614;
+    --neutral: #6b6859;
   }
 }
 
@@ -44,6 +52,10 @@
   --color-warn-soft: var(--warn-soft);
   --color-up: var(--up);
   --color-down: var(--down);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-hold: var(--hold);
+  --color-neutral: var(--neutral);
 }
 
 html {

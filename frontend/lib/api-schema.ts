@@ -491,8 +491,15 @@ export interface components {
       as_of: string | null;
       /** Basket Size */
       basket_size: number | null;
+      /** Gauge */
+      gauge: number | null;
       /** Headline */
       headline: string;
+      /**
+       * In Basket
+       * @default false
+       */
+      in_basket: boolean;
       /** Label */
       label: string;
       /** Rank */
@@ -1370,6 +1377,8 @@ export interface components {
       close: number | null;
       /** Ev */
       ev: number | null;
+      /** Gauge */
+      gauge: number | null;
       /** Ind Buy Power */
       ind_buy_power: number | null;
       /** Ind Net Flow Ratio */
@@ -1839,6 +1848,7 @@ export interface operations {
           | "ind_buy_power"
           | "rsi_14"
           | "rank"
+          | "gauge"
           | "power"
           | "net_real_value"
           | "volume_ratio_30";

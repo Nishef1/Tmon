@@ -81,6 +81,7 @@ test.describe("instrument page", () => {
     await expect(decision).toHaveAttribute("data-verdict", "hold");
     await expect(decision).toContainText("نگهداری");
     await expect(decision).toContainText("رتبهٔ ۲۰ از ۱۰۰");
+    await expect(decision.getByTestId("gauge")).toHaveAttribute("data-value", "81.0");
     const dash = page.getByTestId("symbol-dashboard");
     await expect(dash.getByText("قدرت خریدار (امروز)")).toBeVisible();
     await expect(dash.getByText("فلزات اساسی")).toBeVisible();
@@ -160,6 +161,7 @@ test("screener shows flow columns, one decision per symbol and filters by decisi
   const table = page.getByTestId("screener-table");
   await expect(table).toContainText("سرانهٔ خرید");
   await expect(table).toContainText("قدرت خریدار");
+  await expect(table.getByTestId("gauge")).toHaveCount(2);
   await expect(table.locator('[data-verdict="hold"]')).toContainText("نگهداری");
   await expect(page.getByTestId("verdict-counts")).toContainText("فروش");
   await page.goto("/screener?v=sell");
