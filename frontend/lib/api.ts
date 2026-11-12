@@ -12,6 +12,7 @@ export type Reason = S["Reason"];
 export type Signal = S["SignalOut"];
 export type Run = S["RunOut"];
 export type Gate = S["GateOut"];
+export type Diagnosis = S["DiagnosisOut"];
 export type Recommendations = S["RecommendationsOut"];
 export type Candle = S["Candle"];
 export type InstrumentDetail = S["InstrumentDetail"];

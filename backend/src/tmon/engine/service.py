@@ -31,6 +31,7 @@ from tmon.backtest.runner import BacktestRun, prepare_dataset, prepare_label_set
 from tmon.core.config import get_settings
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import RuleBook
+from tmon.engine.diagnosis import build_diagnosis
 from tmon.engine.gating import BRIER_RECENT_DAYS, GateResult, brier_degraded, evaluate_gate
 from tmon.engine.portfolio import select_portfolio
 from tmon.features.builder import get_feature_set
@@ -63,6 +64,7 @@ class PublishResult:
     gate: GateResult | None = None
     tier_a_disabled_by_monitor: bool = False
     signals: pl.DataFrame = field(default_factory=pl.DataFrame)
+    diagnosis: dict[str, Any] | None = None
 
 
 def _sha(data: bytes) -> str:
@@ -316,6 +318,7 @@ def train_and_publish(
     )
 
     sel = pl.DataFrame()
+    dropped = pl.DataFrame()
     if cand.height:
         extra = today.select(
             "instrument_id", "sector_code", "median_value_20", "atr_14", "atr_14_pct"
@@ -324,10 +327,12 @@ def train_and_publish(
         cand = cand.join(extra, on="instrument_id", how="left").join(
             close, on="instrument_id", how="left"
         )
-        sel, _dropped = select_portfolio(
+        sel, dropped = select_portfolio(
             cand, ds.select("instrument_id", "date", "ret_1"), capital=capital, cfg=c
         )
     res.n_recommended = sel.height
+    by_reason = dict(dropped.group_by("reason").len().iter_rows()) if dropped.height else {}
+    res.diagnosis = build_diagnosis(pred, c.thresholds, selected=sel.height, dropped_by=by_reason)
     if not sel.height:
         res.message = NO_CANDIDATE if not cand.height else NO_PORTFOLIO
         _record_run(session, r=res)
@@ -449,6 +454,7 @@ def _write_model_run(
         "benchmarks": run.benchmarks,
         "warnings": run.warnings,
         "scores_uri": res.scores_uri,
+        "diagnosis": res.diagnosis,
     }
     window = {
         "start": str(train["date"].min()),

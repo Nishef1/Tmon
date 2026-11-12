@@ -4,7 +4,10 @@
       "AgmDecisionOut": {
         "properties": {
           "decision": {
-            "enum": ["hold", "sell"],
+            "enum": [
+              "hold",
+              "sell"
+            ],
             "title": "Decision",
             "type": "string"
           },
@@ -64,7 +67,11 @@
             "type": "number"
           }
         },
-        "required": ["name", "value", "source"],
+        "required": [
+          "name",
+          "value",
+          "source"
+        ],
         "title": "AgmInputOut",
         "type": "object"
       },
@@ -181,7 +188,15 @@
             "type": "integer"
           }
         },
-        "required": ["n", "base_rate", "auc", "brier", "brier_base_rate", "brier_skill", "buckets"],
+        "required": [
+          "n",
+          "base_rate",
+          "auc",
+          "brier",
+          "brier_base_rate",
+          "brier_skill",
+          "buckets"
+        ],
         "title": "CalibrationBlock",
         "type": "object"
       },
@@ -218,7 +233,12 @@
             "type": "integer"
           }
         },
-        "required": ["bucket", "n", "mean_p", "hit_rate"],
+        "required": [
+          "bucket",
+          "n",
+          "mean_p",
+          "hit_rate"
+        ],
         "title": "CalibrationBucket",
         "type": "object"
       },
@@ -374,7 +394,14 @@
             "title": "Volume"
           }
         },
-        "required": ["date", "open", "high", "low", "close", "volume"],
+        "required": [
+          "date",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume"
+        ],
         "title": "Candle",
         "type": "object"
       },
@@ -630,8 +657,179 @@
             "title": "Url"
           }
         },
-        "required": ["type", "stage", "title", "announced_at", "url"],
+        "required": [
+          "type",
+          "stage",
+          "title",
+          "announced_at",
+          "url"
+        ],
         "title": "CorporateEventOut",
+        "type": "object"
+      },
+      "DiagnosisOut": {
+        "description": "Exact numbers behind a day with few or no recommendations.",
+        "properties": {
+          "binding": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding"
+          },
+          "dropped_by_portfolio": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Dropped By Portfolio",
+            "type": "object"
+          },
+          "ev_min_abs": {
+            "title": "Ev Min Abs",
+            "type": "number"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "number"
+          },
+          "min_bucket_samples": {
+            "title": "Min Bucket Samples",
+            "type": "integer"
+          },
+          "nearest": {
+            "items": {
+              "$ref": "#/components/schemas/NearMiss"
+            },
+            "title": "Nearest",
+            "type": "array"
+          },
+          "p_floor": {
+            "title": "P Floor",
+            "type": "number"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/FunnelStage"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/DiagnosisStats"
+          },
+          "universe": {
+            "title": "Universe",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "universe",
+          "stages",
+          "binding",
+          "nearest",
+          "dropped_by_portfolio",
+          "stats",
+          "ev_min_abs",
+          "min_bucket_samples",
+          "margin",
+          "p_floor"
+        ],
+        "title": "DiagnosisOut",
+        "type": "object"
+      },
+      "DiagnosisStats": {
+        "properties": {
+          "ev_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ev Max"
+          },
+          "ev_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ev Median"
+          },
+          "n_distinct_p_win": {
+            "default": 0,
+            "title": "N Distinct P Win",
+            "type": "integer"
+          },
+          "n_ev_positive": {
+            "title": "N Ev Positive",
+            "type": "integer"
+          },
+          "p_breakeven_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Breakeven Median"
+          },
+          "p_min_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Min Median"
+          },
+          "p_win_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Win Max"
+          },
+          "p_win_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Win Median"
+          }
+        },
+        "required": [
+          "p_win_max",
+          "p_win_median",
+          "p_min_median",
+          "p_breakeven_median",
+          "ev_max",
+          "ev_median",
+          "n_ev_positive",
+          "n_distinct_p_win"
+        ],
+        "title": "DiagnosisStats",
         "type": "object"
       },
       "FeatureValue": {
@@ -652,7 +850,10 @@
             "title": "Value"
           }
         },
-        "required": ["feature", "value"],
+        "required": [
+          "feature",
+          "value"
+        ],
         "title": "FeatureValue",
         "type": "object"
       },
@@ -827,8 +1028,46 @@
             "title": "Nav Date"
           }
         },
-        "required": ["nav_date", "funds", "disclaimer"],
+        "required": [
+          "nav_date",
+          "funds",
+          "disclaimer"
+        ],
         "title": "FundsOut",
+        "type": "object"
+      },
+      "FunnelStage": {
+        "properties": {
+          "alone": {
+            "default": 0,
+            "title": "Alone",
+            "type": "integer"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lost": {
+            "title": "Lost",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count",
+          "lost",
+          "alone"
+        ],
+        "title": "FunnelStage",
         "type": "object"
       },
       "GateOut": {
@@ -845,7 +1084,10 @@
             "type": "boolean"
           }
         },
-        "required": ["tier_a_allowed", "reasons"],
+        "required": [
+          "tier_a_allowed",
+          "reasons"
+        ],
         "title": "GateOut",
         "type": "object"
       },
@@ -896,7 +1138,15 @@
             "type": "integer"
           }
         },
-        "required": ["timeframe", "items", "total", "limit", "offset", "summary", "disclaimer"],
+        "required": [
+          "timeframe",
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "summary",
+          "disclaimer"
+        ],
         "title": "HistoryOut",
         "type": "object"
       },
@@ -972,7 +1222,12 @@
             "type": "number"
           }
         },
-        "required": ["source", "value", "method", "releases"],
+        "required": [
+          "source",
+          "value",
+          "method",
+          "releases"
+        ],
         "title": "InflationOut",
         "type": "object"
       },
@@ -1004,7 +1259,12 @@
             "type": "number"
           }
         },
-        "required": ["ref_period", "release_date", "value", "source_url"],
+        "required": [
+          "ref_period",
+          "release_date",
+          "value",
+          "source_url"
+        ],
         "title": "InflationReleaseOut",
         "type": "object"
       },
@@ -1121,7 +1381,13 @@
             "type": "string"
           }
         },
-        "required": ["id", "symbol", "name", "sector_code", "instrument_type"],
+        "required": [
+          "id",
+          "symbol",
+          "name",
+          "sector_code",
+          "instrument_type"
+        ],
         "title": "InstrumentOut",
         "type": "object"
       },
@@ -1279,7 +1545,13 @@
             "type": "integer"
           }
         },
-        "required": ["date", "n", "hits", "mean_p", "brier"],
+        "required": [
+          "date",
+          "n",
+          "hits",
+          "mean_p",
+          "brier"
+        ],
         "title": "LiveDayOut",
         "type": "object"
       },
@@ -1421,6 +1693,72 @@
         "title": "LiveOut",
         "type": "object"
       },
+      "NearMiss": {
+        "properties": {
+          "bucket_n": {
+            "title": "Bucket N",
+            "type": "integer"
+          },
+          "ev": {
+            "title": "Ev",
+            "type": "number"
+          },
+          "failed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "instrument": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstrumentOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "p_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Min"
+          },
+          "p_win": {
+            "title": "P Win",
+            "type": "number"
+          },
+          "shortfall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shortfall"
+          }
+        },
+        "required": [
+          "instrument",
+          "p_win",
+          "p_min",
+          "shortfall",
+          "ev",
+          "bucket_n",
+          "failed"
+        ],
+        "title": "NearMiss",
+        "type": "object"
+      },
       "Reason": {
         "properties": {
           "contribution": {
@@ -1443,7 +1781,11 @@
             "title": "Value"
           }
         },
-        "required": ["feature", "value", "contribution"],
+        "required": [
+          "feature",
+          "value",
+          "contribution"
+        ],
         "title": "Reason",
         "type": "object"
       },
@@ -1468,6 +1810,16 @@
               }
             ],
             "title": "Date"
+          },
+          "diagnosis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosisOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "disclaimer": {
             "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
@@ -1528,6 +1880,7 @@
           "disclaimer",
           "run",
           "gate",
+          "diagnosis",
           "signals"
         ],
         "title": "RecommendationsOut",
@@ -2026,7 +2379,11 @@
             "type": "string"
           }
         },
-        "required": ["loc", "msg", "type"],
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
         "title": "ValidationError",
         "type": "object"
       }
@@ -2090,7 +2447,9 @@
           }
         },
         "summary": "Compare",
-        "tags": ["macro"]
+        "tags": [
+          "macro"
+        ]
       }
     },
     "/funds": {
@@ -2132,7 +2491,9 @@
           }
         },
         "summary": "Funds",
-        "tags": ["macro"]
+        "tags": [
+          "macro"
+        ]
       }
     },
     "/health": {
@@ -2155,7 +2516,9 @@
           }
         },
         "summary": "Health",
-        "tags": ["meta"]
+        "tags": [
+          "meta"
+        ]
       }
     },
     "/instruments/{instrument_id}": {
@@ -2208,7 +2571,9 @@
           }
         },
         "summary": "Instrument Detail",
-        "tags": ["instruments"]
+        "tags": [
+          "instruments"
+        ]
       }
     },
     "/instruments/{instrument_id}/agm": {
@@ -2357,7 +2722,9 @@
           }
         },
         "summary": "Agm Decision",
-        "tags": ["instruments"]
+        "tags": [
+          "instruments"
+        ]
       }
     },
     "/instruments/{instrument_id}/live": {
@@ -2398,7 +2765,9 @@
           }
         },
         "summary": "Instrument Live",
-        "tags": ["instruments"]
+        "tags": [
+          "instruments"
+        ]
       }
     },
     "/metrics/calibration": {
@@ -2412,7 +2781,11 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": ["D1", "W1", "M1"],
+              "enum": [
+                "D1",
+                "W1",
+                "M1"
+              ],
               "title": "Timeframe",
               "type": "string"
             }
@@ -2441,7 +2814,9 @@
           }
         },
         "summary": "Calibration",
-        "tags": ["metrics"]
+        "tags": [
+          "metrics"
+        ]
       }
     },
     "/metrics/live": {
@@ -2455,7 +2830,11 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": ["D1", "W1", "M1"],
+              "enum": [
+                "D1",
+                "W1",
+                "M1"
+              ],
               "title": "Timeframe",
               "type": "string"
             }
@@ -2484,7 +2863,9 @@
           }
         },
         "summary": "Live Accuracy",
-        "tags": ["metrics"]
+        "tags": [
+          "metrics"
+        ]
       }
     },
     "/recommendations": {
@@ -2498,7 +2879,11 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": ["D1", "W1", "M1"],
+              "enum": [
+                "D1",
+                "W1",
+                "M1"
+              ],
               "title": "Timeframe",
               "type": "string"
             }
@@ -2544,7 +2929,9 @@
           }
         },
         "summary": "Recommendations",
-        "tags": ["recommendations"]
+        "tags": [
+          "recommendations"
+        ]
       }
     },
     "/screener": {
@@ -2558,7 +2945,11 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": ["D1", "W1", "M1"],
+              "enum": [
+                "D1",
+                "W1",
+                "M1"
+              ],
               "title": "Timeframe",
               "type": "string"
             }
@@ -2569,7 +2960,14 @@
             "required": false,
             "schema": {
               "default": "ev",
-              "enum": ["ev", "p_win", "value", "change_pct", "ind_buy_power", "rsi_14"],
+              "enum": [
+                "ev",
+                "p_win",
+                "value",
+                "change_pct",
+                "ind_buy_power",
+                "rsi_14"
+              ],
               "title": "Sort",
               "type": "string"
             }
@@ -2627,7 +3025,9 @@
           }
         },
         "summary": "Screener",
-        "tags": ["screener"]
+        "tags": [
+          "screener"
+        ]
       }
     },
     "/signals/history": {
@@ -2641,7 +3041,11 @@
             "required": false,
             "schema": {
               "default": "D1",
-              "enum": ["D1", "W1", "M1"],
+              "enum": [
+                "D1",
+                "W1",
+                "M1"
+              ],
               "title": "Timeframe",
               "type": "string"
             }
@@ -2726,7 +3130,9 @@
           }
         },
         "summary": "Signal History",
-        "tags": ["signals"]
+        "tags": [
+          "signals"
+        ]
       }
     }
   }

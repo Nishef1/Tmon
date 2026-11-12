@@ -77,6 +77,50 @@ class GateOut(ApiModel):
     reasons: list[str]
 
 
+class FunnelStage(ApiModel):
+    key: str
+    label: str
+    count: int
+    lost: int
+    alone: int = 0
+
+
+class NearMiss(ApiModel):
+    instrument: InstrumentOut | None
+    p_win: float
+    p_min: float | None
+    shortfall: float | None
+    ev: float
+    bucket_n: int
+    failed: list[str]
+
+
+class DiagnosisStats(ApiModel):
+    p_win_max: float | None
+    p_win_median: float | None
+    p_min_median: float | None
+    p_breakeven_median: float | None
+    ev_max: float | None
+    ev_median: float | None
+    n_ev_positive: int
+    n_distinct_p_win: int = 0
+
+
+class DiagnosisOut(ApiModel):
+    """Exact numbers behind a day with few or no recommendations."""
+
+    universe: int
+    stages: list[FunnelStage]
+    binding: str | None
+    nearest: list[NearMiss]
+    dropped_by_portfolio: dict[str, int]
+    stats: DiagnosisStats
+    ev_min_abs: float
+    min_bucket_samples: int
+    margin: float
+    p_floor: float
+
+
 class RecommendationsOut(ApiModel):
     timeframe: str
     supported: bool
@@ -87,6 +131,7 @@ class RecommendationsOut(ApiModel):
     disclaimer: str = DISCLAIMER
     run: RunOut | None = None
     gate: GateOut | None = None
+    diagnosis: DiagnosisOut | None = None
     signals: list[SignalOut]
 
 

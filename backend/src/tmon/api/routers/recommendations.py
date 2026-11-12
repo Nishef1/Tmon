@@ -9,8 +9,12 @@ from sqlalchemy.orm import Session
 
 from tmon.api.schemas import (
     SUPPORTED_TIMEFRAMES,
+    DiagnosisOut,
+    DiagnosisStats,
+    FunnelStage,
     GateOut,
     InstrumentOut,
+    NearMiss,
     Reason,
     RecommendationsOut,
     RunOut,
@@ -74,6 +78,47 @@ def gate_of(session: Session, timeframe: str, version: str | None = None) -> Gat
     run = latest_run(session, timeframe, version) or latest_run(session, timeframe)
     g: dict[str, Any] | None = (run.metrics or {}).get("gate") if run else None
     return GateOut(**g) if g else None
+
+
+def diagnosis_of(
+    session: Session, timeframe: str, version: str | None = None
+) -> DiagnosisOut | None:
+    run = latest_run(session, timeframe, version) or latest_run(session, timeframe)
+    d: dict[str, Any] | None = (run.metrics or {}).get("diagnosis") if run else None
+    if not d or not d.get("stages"):
+        return None
+    ids = [int(m["instrument_id"]) for m in d.get("nearest", [])]
+    insts = (
+        {i.id: i for i in session.scalars(select(Instrument).where(Instrument.id.in_(ids)))}
+        if ids
+        else {}
+    )
+    th = d.get("thresholds", {})
+    return DiagnosisOut(
+        universe=d["universe"],
+        stages=[FunnelStage(**s) for s in d["stages"]],
+        binding=d.get("binding"),
+        nearest=[
+            NearMiss(
+                instrument=instrument_out(insts[m["instrument_id"]])
+                if m["instrument_id"] in insts
+                else None,
+                p_win=m["p_win"],
+                p_min=m["p_min"],
+                shortfall=m["shortfall"],
+                ev=m["ev"],
+                bucket_n=m["bucket_n"],
+                failed=m["failed"],
+            )
+            for m in d.get("nearest", [])
+        ],
+        dropped_by_portfolio=d.get("dropped_by_portfolio", {}),
+        stats=DiagnosisStats(**d["stats"]),
+        ev_min_abs=th["ev_min_abs"],
+        min_bucket_samples=th["min_bucket_samples"],
+        margin=th["margin"],
+        p_floor=th["p_floor"],
+    )
 
 
 @router.get("/recommendations", response_model=RecommendationsOut)
@@ -152,5 +197,6 @@ def recommendations(
         message=message or NO_RUN,
         run=run,
         gate=gate_of(session, timeframe, note.model_version if note else None),
+        diagnosis=diagnosis_of(session, timeframe, note.model_version if note else None),
         signals=signals,
     )

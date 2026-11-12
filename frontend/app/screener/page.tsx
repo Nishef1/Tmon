@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, type Screener, type ScreenerRow } from "@/lib/api";
+import { apiGet, type Recommendations, type Screener, type ScreenerRow } from "@/lib/api";
 import { jalali } from "@/lib/format";
 import { featureInfo } from "@/lib/glossary";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
+import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
 
 export const metadata: Metadata = { title: "همهٔ نمادها" };
 export const dynamic = "force-dynamic";
@@ -41,9 +42,10 @@ export default async function ScreenerPage({ searchParams }: { searchParams: Pro
   const sort = SORTS.find(([s]) => s === sp.sort)?.[0] ?? "ev";
   const limit = sp.limit === "all" ? 3000 : 200;
   const q = (sp.q ?? "").slice(0, 64);
-  const [res, best] = await Promise.all([
+  const [res, best, rec] = await Promise.all([
     apiGet<Screener>("/screener", { timeframe: tf, sort, q: q || undefined, limit }),
     apiGet<Screener>("/screener", { timeframe: tf, sort: "ev", limit: TOP }),
+    apiGet<Recommendations>("/recommendations", { timeframe: tf }),
   ]);
   const cur: SP = { timeframe: tf, sort, q, limit: sp.limit };
 
@@ -75,6 +77,15 @@ export default async function ScreenerPage({ searchParams }: { searchParams: Pro
       ) : (
         <>
           <ModelStatus data={res.data} />
+          {rec.ok && rec.data.no_recommendation && (
+            <section
+              className="rounded-2xl border border-line bg-surface p-5"
+              data-testid="screener-why"
+            >
+              <h2 className="text-lg font-bold">چرا هیچ‌کدام از این نمادها توصیه نشده‌اند؟</h2>
+              <WhyNoRecommendation diagnosis={rec.data.diagnosis} gate={rec.data.gate} />
+            </section>
+          )}
           {best.ok && <Best rows={best.data.rows} hasScores={best.data.scores_date != null} />}
           <section className="space-y-3">
             <h2 className="text-lg font-bold">

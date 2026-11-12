@@ -5,6 +5,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { SignalCard } from "@/components/SignalCard";
+import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
       </section>
     );
   }
-  const { run, gate, signals } = data;
+  const { run, gate, signals, diagnosis } = data;
   return (
     <>
       <section aria-label="تاریخ" className="flex flex-wrap items-center justify-between gap-3">
@@ -120,6 +121,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
               <Num term="candidates" value={run.n_candidates} kind="count" />
             </p>
           )}
+          <WhyNoRecommendation diagnosis={diagnosis} gate={gate} />
         </section>
       ) : (
         <section aria-label="فهرست توصیه‌ها" className="space-y-4">
@@ -138,7 +140,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
         </section>
       )}
 
-      {gate && !gate.tier_a_allowed && (
+      {gate && !gate.tier_a_allowed && !data.no_recommendation && (
         <section
           data-testid="tier-a-gate"
           className="rounded-2xl border border-line bg-surface p-5 text-sm"

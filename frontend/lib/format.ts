@@ -11,6 +11,11 @@ function group(n: number, digits: number): string {
   }).format(n);
 }
 
+/** Latin digits inside a server-written sentence -> Persian digits. */
+export function faDigits(text: string): string {
+  return text.replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+}
+
 export function faNumber(n: number, digits = 0): string {
   return group(n, digits);
 }

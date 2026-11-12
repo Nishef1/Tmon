@@ -28,6 +28,14 @@ BRIER_DEGRADATION_LIMIT = 0.20  # docs/10 section 10: 20% worse than in the back
 BRIER_RECENT_DAYS = 20
 
 
+def _pct(x: float | None) -> str:
+    return "نامشخص" if x is None else f"{x * 100:+.2f}٪"
+
+
+def _num(x: float | None) -> str:
+    return "نامشخص" if x is None else f"{x:+.3f}"
+
+
 @dataclass(frozen=True)
 class GateResult:
     tier_a_allowed: bool
@@ -54,20 +62,27 @@ def evaluate_gate(
         )
     exp = t.get("expectancy_net")
     if exp is None or exp <= 0:
-        reasons.append("امید ریاضی خالص هر معامله پس از هزینه مثبت نیست.")
+        reasons.append(f"امید ریاضی خالص هر معامله پس از هزینه {_pct(exp)} است؛ باید مثبت باشد.")
     if baseline is not None and baseline.get("trades", {}).get("n_trades", 0) > 0:
         be = baseline["trades"].get("expectancy_net")
         btr = baseline["portfolio"].get("total_return")
         if exp is None or be is None or exp <= be:
-            reasons.append("امید ریاضی مدل از baseline بیشتر نیست.")
+            reasons.append(
+                f"امید ریاضی خالص مدل ({_pct(exp)}) از baseline ({_pct(be)}) بیشتر نیست."
+            )
         tr = p.get("total_return")
         if tr is None or btr is None or tr <= btr:
-            reasons.append("بازده کل مدل پس از هزینه از baseline بیشتر نیست.")
+            reasons.append(
+                f"بازده کل مدل پس از هزینه ({_pct(tr)}) از baseline ({_pct(btr)}) بیشتر نیست."
+            )
     prob = challenger.get("probabilistic")
     if prob is not None:
         skill = prob.get("brier_skill")
         if skill is None or skill <= 0:
-            reasons.append("کالیبراسیون از پیش‌بینی ثابت نرخ پایه بهتر نیست.")
+            reasons.append(
+                f"مهارت Brier مدل {_num(skill)} است؛ برای بهتر بودن از پیش‌بینی ثابت نرخ پایه "
+                "باید مثبت باشد."
+            )
     return GateResult(not reasons, reasons)
 
 

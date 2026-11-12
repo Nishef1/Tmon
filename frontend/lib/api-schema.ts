@@ -421,6 +421,55 @@ export interface components {
       /** Url */
       url: string | null;
     };
+    /**
+     * DiagnosisOut
+     * @description Exact numbers behind a day with few or no recommendations.
+     */
+    DiagnosisOut: {
+      /** Binding */
+      binding: string | null;
+      /** Dropped By Portfolio */
+      dropped_by_portfolio: {
+        [key: string]: number;
+      };
+      /** Ev Min Abs */
+      ev_min_abs: number;
+      /** Margin */
+      margin: number;
+      /** Min Bucket Samples */
+      min_bucket_samples: number;
+      /** Nearest */
+      nearest: components["schemas"]["NearMiss"][];
+      /** P Floor */
+      p_floor: number;
+      /** Stages */
+      stages: components["schemas"]["FunnelStage"][];
+      stats: components["schemas"]["DiagnosisStats"];
+      /** Universe */
+      universe: number;
+    };
+    /** DiagnosisStats */
+    DiagnosisStats: {
+      /** Ev Max */
+      ev_max: number | null;
+      /** Ev Median */
+      ev_median: number | null;
+      /**
+       * N Distinct P Win
+       * @default 0
+       */
+      n_distinct_p_win: number;
+      /** N Ev Positive */
+      n_ev_positive: number;
+      /** P Breakeven Median */
+      p_breakeven_median: number | null;
+      /** P Min Median */
+      p_min_median: number | null;
+      /** P Win Max */
+      p_win_max: number | null;
+      /** P Win Median */
+      p_win_median: number | null;
+    };
     /** FeatureValue */
     FeatureValue: {
       /** Feature */
@@ -471,6 +520,22 @@ export interface components {
       funds: components["schemas"]["FundOut"][];
       /** Nav Date */
       nav_date: string | null;
+    };
+    /** FunnelStage */
+    FunnelStage: {
+      /**
+       * Alone
+       * @default 0
+       */
+      alone: number;
+      /** Count */
+      count: number;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Lost */
+      lost: number;
     };
     /** GateOut */
     GateOut: {
@@ -679,6 +744,22 @@ export interface components {
        */
       stale: boolean;
     };
+    /** NearMiss */
+    NearMiss: {
+      /** Bucket N */
+      bucket_n: number;
+      /** Ev */
+      ev: number;
+      /** Failed */
+      failed: string[];
+      instrument: components["schemas"]["InstrumentOut"] | null;
+      /** P Min */
+      p_min: number | null;
+      /** P Win */
+      p_win: number;
+      /** Shortfall */
+      shortfall: number | null;
+    };
     /** Reason */
     Reason: {
       /** Contribution */
@@ -694,6 +775,7 @@ export interface components {
       available_dates: string[];
       /** Date */
       date: string | null;
+      diagnosis: components["schemas"]["DiagnosisOut"] | null;
       /**
        * Disclaimer
        * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
