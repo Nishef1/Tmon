@@ -192,6 +192,20 @@ class CorporateEvent(Base, Provenance):
     title: Mapped[str | None] = mapped_column(Text)
 
 
+class ShareChange(Base, Provenance):
+    """A change in the number of shares (capital increase, split, merger), TSETMC
+    ``InstrumentAndShare``: ``shares_old`` before and ``shares_new`` after ``date``."""
+
+    __tablename__ = "share_changes"
+
+    idn: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    ins_code: Mapped[str] = mapped_column(String(32), index=True)
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"), index=True)
+    date: Mapped[dt.date] = mapped_column(Date, index=True)
+    shares_new: Mapped[int] = mapped_column(BigInteger)
+    shares_old: Mapped[int] = mapped_column(BigInteger)
+
+
 class CodalLetter(Base, Provenance):
     """One row of the Codal letter index (search.codal.ir), as published."""
 

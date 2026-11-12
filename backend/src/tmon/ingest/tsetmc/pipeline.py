@@ -20,6 +20,7 @@ from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
 from tmon.domain.calendar import build_calendar, halt_windows
+from tmon.domain.enums import InstrumentType
 from tmon.domain.rules import RuleBook
 from tmon.features.adjustment import detect_adjustments
 from tmon.ingest.http import FetchError, PoliteClient
@@ -370,10 +371,12 @@ def reclassify_instruments(session: Session, classifier: Classifier) -> dict[str
             group_title=t.get("group_title"),
             name_fa=ins.name_fa,
             board=ins.board,
-            type_code=t.get("type_code"),
+            type_code=t.get("type_code") or t.get("list_type_code"),
             fund_desc=t.get("fund_desc"),
         )
         tags = dict(ins.tags or {})
+        if tags.get("nav_line") or tags.get("alt_line"):  # pseudo / alternate lines (bulk.flag_*)
+            itype, matched = InstrumentType.OTHER, True
         if matched:
             tags.pop("unclassified", None)
         else:

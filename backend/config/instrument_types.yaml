@@ -34,6 +34,24 @@ type_codes:
   "802": other
   "803": other
   "804": other
+  # Codes first seen in the complete instrument list (t=Instrument), checked against names:
+  "310": stock            # shares of unlisted-from-trading / suspended issuers (no bars)
+  "319": stock            # Fara Bourse shares (e.g. سخت آژند, صنایع کاشی اصفهان)
+  "329": right            # subscription rights ("ح." prefix)
+  "401": right
+  "322": option_call
+  "323": option_put       # "اختیار ف" = put leg
+  "601": option_put
+  "333": bond             # murabaha papers
+  "706": bond             # government murabaha (مرابحه عام دولت)
+  "402": other            # subscription-price quotes (مظنه), no trading
+  "903": other            # commodity-exchange product names
+  # Market and sector INDICES (ID market, symbol type I). They carry a price series but are not
+  # instruments: kept as `other`, never traded or ranked.
+  "67": other
+  "68": other
+  "69": other
+  "70": other
 
 # Fund subtype. Matched with spaces and ZWNJ removed, first on `faraDesc`, then on the name;
 # first match wins. Then the name suffixes TSETMC uses for fund units. A fund that matches

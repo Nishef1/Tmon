@@ -19,7 +19,7 @@ from sqlalchemy import select
 
 from tmon.ingest.http import FetchError
 from tmon.ingest.tsetmc import endpoints
-from tmon.ingest.tsetmc.parsers import ParseError
+from tmon.ingest.tsetmc.parsers import ParseError, normalize_fa
 from tmon.ingest.tsetmc.pipeline import Ctx
 from tmon.storage.models import Instrument
 from tmon.storage.repositories import upsert
@@ -138,8 +138,8 @@ def register_found(ctx: Ctx, state: CrawlState) -> int:
         rows.append(
             {
                 "ins_code": code,
-                "symbol_fa": r["symbol"],
-                "name_fa": r["name"],
+                "symbol_fa": normalize_fa(r["symbol"] or ""),
+                "name_fa": normalize_fa(r["name"] or ""),
                 "market": "IR",
                 "instrument_type": itype.value,
                 "tags": {"discovered_by": "search"} | ({} if matched else {"unclassified": True}),

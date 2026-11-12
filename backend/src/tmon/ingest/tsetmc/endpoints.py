@@ -25,6 +25,27 @@ INSTRUMENT_SEARCH = f"{CDN}/api/Instrument/GetInstrumentSearch/{{text}}"
 LAST_TRADE_DAY = "https://service.tsetmc.com/tsev2/data/TseClient2.aspx?t=LastPossibleDeven"
 
 
+SERVICE = "https://service.tsetmc.com/tsev2/data/TseClient2.aspx"
+FIRST_POSSIBLE_DEVEN = 20010321  # earliest date the service serves (open-source tse-client, MIT)
+
+
+def instrument_list_url() -> str:
+    """Every instrument ever listed (4k+ rows, one request); ``a=0`` asks for the full list."""
+    return f"{SERVICE}?t=Instrument&a=0"
+
+
+def instrument_and_share_url() -> str:
+    """``instrument rows @ share-change rows`` (capital increases etc.)."""
+    return f"{SERVICE}?t=InstrumentAndShare&a=0&a2=0"
+
+
+def closing_prices_url(items: list[tuple[str, int, bool]]) -> str:
+    """Batched daily history, up to 50 instruments per request: ``code,from_deven,not_normal``
+    items joined by ``;``; the reply holds one ``;``-separated block per item, joined by ``@``."""
+    a = ";".join(f"{c},{d},{int(n)}" for c, d, n in items)
+    return f"{SERVICE}?t=ClosingPrices&a={a}"
+
+
 def daily_history_url(ins_code: str) -> str:
     return DAILY_HISTORY.format(ins_code=ins_code)
 
