@@ -65,8 +65,14 @@ function Body({ d }: { d: MarketOverview }) {
             label="میانهٔ تغییر"
             value={d.median_change == null ? "—" : faPercent(d.median_change, 2, true)}
           />
-          <Stat label="رشد ≥ ۲٫۹٪ (نزدیک سقف ±۳٪)" value={faNumber(d.at_limit_up)} />
-          <Stat label="افت ≥ ۲٫۹٪ (نزدیک کف)" value={faNumber(d.at_limit_down)} />
+          <Stat
+            label={d.limits_exact ? "بسته‌شده در سقف مجاز" : "رشد ≥ ۲٫۹٪ (نزدیک سقف ±۳٪)"}
+            value={faNumber(d.at_limit_up)}
+          />
+          <Stat
+            label={d.limits_exact ? "بسته‌شده در کف مجاز" : "افت ≥ ۲٫۹٪ (نزدیک کف)"}
+            value={faNumber(d.at_limit_down)}
+          />
           <Stat label="ارزش معاملات سهام" value={bt(d.total_value)} />
           {d.indices.map((i) => (
             <Stat

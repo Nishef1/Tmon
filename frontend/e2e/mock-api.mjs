@@ -308,6 +308,7 @@ function route(url) {
           { feature: "breadth", value: 0.52 },
         ],
         signals: [signal(1, 1, inst)],
+        events: [],
         disclaimer: DISCLAIMER,
       },
     ];

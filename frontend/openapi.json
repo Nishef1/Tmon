@@ -1963,6 +1963,11 @@
             "title": "Inflow",
             "type": "array"
           },
+          "limits_exact": {
+            "default": false,
+            "title": "Limits Exact",
+            "type": "boolean"
+          },
           "losers": {
             "default": [],
             "items": {
@@ -2040,6 +2045,7 @@
           "at_limit_up",
           "at_limit_down",
           "n_outliers",
+          "limits_exact",
           "total_value",
           "median_change",
           "indices",

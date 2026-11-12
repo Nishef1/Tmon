@@ -56,7 +56,7 @@ test.describe("recommendations", () => {
     await page.goto("/?date=2025-02-20");
     await expect(page.getByTestId("no-recommendation")).toContainText("امروز توصیه‌ای وجود ندارد");
     await expect(page.getByTestId("signal-card")).toHaveCount(0);
-    await expect(page.getByTestId("tier-a-gate")).toContainText("کمتر از حداقل");
+    await expect(page.getByTestId("why-gate")).toContainText("کمتر از حداقل");
   });
 
   test("API failure shows a Persian error, not a crash", async ({ page }) => {

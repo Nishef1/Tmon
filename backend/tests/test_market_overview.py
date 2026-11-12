@@ -25,7 +25,7 @@ def client(session: Session) -> Iterator[TestClient]:
 
 
 def _seed(s: Session) -> None:
-    for n, (sym, close) in enumerate([("الف", 110.0), ("ب", 95.0), ("ج", 100.0)], 1):
+    for n, (sym, close) in enumerate([("الف", 110.0), ("ب", 90.0), ("ج", 100.0)], 1):
         s.add(
             Instrument(
                 id=n, ins_code=f"c{n}", symbol_fa=sym, instrument_type="stock", sector_code="1"

@@ -111,8 +111,18 @@ def overview(session: SessionDep) -> MarketOverviewOut:
         total_value=sum(float(p.value or 0) for _, p in rows),
         median_change=statistics.median(ch) if ch else None,
     )
-    out.at_limit_up = sum(c >= NEAR_LIMIT for c in ch)
-    out.at_limit_down = sum(c <= -NEAR_LIMIT for c in ch)
+    with_limits = [
+        p for i, p in rows if i.id in chg and p.limit_up and p.limit_down and p.close is not None
+    ]
+    out.limits_exact = len(with_limits) >= 0.8 * len(ch) > 0
+    if out.limits_exact:  # real daily price limits stored by the poller / threshold backfill
+        out.at_limit_up = sum(float(p.close or 0) >= float(p.limit_up or 0) for p in with_limits)
+        out.at_limit_down = sum(
+            float(p.close or 0) <= float(p.limit_down or 0) for p in with_limits
+        )
+    else:
+        out.at_limit_up = sum(c >= NEAR_LIMIT for c in ch)
+        out.at_limit_down = sum(c <= -NEAR_LIMIT for c in ch)
     out.n_outliers = outliers
     out.bands = [MarketBand(label=lb, count=sum(lo < c <= hi for c in ch)) for lb, lo, hi in BANDS]
 

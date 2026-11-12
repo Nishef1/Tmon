@@ -891,6 +891,11 @@ export interface components {
        */
       inflow: components["schemas"]["MarketMover"][];
       /**
+       * Limits Exact
+       * @default false
+       */
+      limits_exact: boolean;
+      /**
        * Losers
        * @default []
        */

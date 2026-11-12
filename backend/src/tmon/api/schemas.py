@@ -511,6 +511,7 @@ class MarketOverviewOut(ApiModel):
     at_limit_up: int = 0
     at_limit_down: int = 0
     n_outliers: int = 0
+    limits_exact: bool = False
     total_value: float = 0.0
     median_change: float | None = None
     indices: list[MarketIndexPoint] = []
