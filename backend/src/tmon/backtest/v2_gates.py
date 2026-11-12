@@ -118,6 +118,25 @@ def build_matrices(
     )
 
 
+def restrict_top_liquid(m: Matrices, n: int, min_cross_section: int) -> Matrices:
+    """Keep, on every day, only the ``n`` ranked names with the highest 20-day median traded
+    value known at that day's close (point in time: no name is kept because of what happened
+    later). Names outside the basket lose their rank, so the book cannot hold them."""
+    from dataclasses import replace
+
+    rank = m.rank.copy()
+    for d in range(rank.shape[0]):
+        cand = np.where(np.isfinite(rank[d]) & np.isfinite(m.median_value[d]))[0]
+        if cand.size > n:
+            drop = cand[np.argsort(m.median_value[d][cand])[: cand.size - n]]
+            rank[d, drop] = np.nan
+        rank[d, ~np.isfinite(m.median_value[d])] = np.nan
+    ok = np.where(np.isfinite(rank).sum(axis=1) >= min_cross_section)[0]
+    if ok.size == 0:
+        raise ValueError("no day keeps enough names in the liquid basket")
+    return replace(m, rank=rank, start=int(ok[0]))
+
+
 def run_book(
     m: Matrices,
     cfg: EngineConfig,
@@ -505,6 +524,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="drop instruments found by the R0 search crawl (reproduces the pre-R0 universe)",
     )
+    ap.add_argument(
+        "--top-liquid",
+        type=int,
+        default=None,
+        help="trade only the N names with the highest 20-day median value on each day",
+    )
     args = ap.parse_args(argv)
 
     from tmon.backtest.runner import mean_risk_free, risk_free_daily
@@ -537,10 +562,19 @@ def main(argv: list[str] | None = None) -> int:
     adj = adjusted_close(prices)
     panel = build_panel(feats, adj, cfg, horizons=(20,))
     m = build_matrices(feats, adj, panel, sectors, rules, cfg)
+    if args.top_liquid:
+        m = restrict_top_liquid(m, args.top_liquid, cfg.v2.portfolio.min_cross_section)
     rf_daily = risk_free_daily(rf, ew.filter(pl.col("date") >= rf["date"].min())["date"])
     rf_annual = mean_risk_free(rf, rf["date"].min(), rf["date"].max(), cfg)
     js, info = evaluate(m, ew, rf_daily, sell_queue_share(feats), rf_annual, cfg)
     md = render_markdown(js, info, cfg)
+    if args.top_liquid:
+        note = (
+            f"> **جهان محدود به {args.top_liquid} نماد پرنقدشونده:** هر روز فقط نمادهای با بیشترین "
+            "میانهٔ ارزش معاملهٔ ۲۰ روزه (که همان روز شناخته است) اجازهٔ ورود به سبد دارند."
+        )
+        head, _, rest = md.partition("\n\n")
+        md = f"{head}\n\n{note}\n\n{rest}"
     if args.md:
         args.md.write_text(md, encoding="utf-8")
     print(md)

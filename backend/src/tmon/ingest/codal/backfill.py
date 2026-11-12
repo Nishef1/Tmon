@@ -1,6 +1,7 @@
 """Codal coverage backfill: the full letter index of every equity issuer, resumable.
 
 ``python -m tmon.ingest.codal.backfill`` walks every distinct stock symbol (listed or delisted),
+or with ``--basket`` only the liquid basket (most liquid first),
 pages its letter index to the end and records the symbol in a state file when its last page was
 a short one. Codal answers HTTP 429 once its request quota is used up; the run then waits
 ``--cooldown`` seconds and resumes the same page, giving up after ``--max-waits`` consecutive
@@ -31,6 +32,11 @@ log = logging.getLogger(__name__)
 PAGE_CAP = 400  # 8 000 letters per issuer is far above any real issuer
 
 
+def basket_symbols(path: Path) -> list[str]:
+    """Symbols written by ``tmon.tools.liquid_basket`` (most liquid first)."""
+    return [str(x) for x in json.loads(path.read_text("utf-8"))["symbols"]]
+
+
 def stock_symbols(session: Session) -> list[str]:
     rows = session.execute(
         select(Instrument.symbol_fa)
@@ -43,7 +49,13 @@ def stock_symbols(session: Session) -> list[str]:
     return list(seen)
 
 
-async def run(state_path: Path, cooldown: int, max_waits: int, limit: int | None) -> dict[str, Any]:
+async def run(
+    state_path: Path,
+    cooldown: int,
+    max_waits: int,
+    limit: int | None,
+    basket: Path | None = None,
+) -> dict[str, Any]:
     state = json.loads(state_path.read_text("utf-8")) if state_path.exists() else {}
     done: set[str] = set(state.get("done", []))
     stats: dict[str, Any] = {"symbols": 0, "pages": 0, "letters": 0, "waits": 0, "gave_up_at": None}
@@ -51,7 +63,8 @@ async def run(state_path: Path, cooldown: int, max_waits: int, limit: int | None
     try:
         with session_scope() as s:
             ctx = CodalCtx(s, client, get_object_store())
-            todo = [x for x in stock_symbols(s) if x not in done]
+            order = basket_symbols(basket) if basket else stock_symbols(s)
+            todo = [x for x in order if x not in done]
             if limit:
                 todo = todo[:limit]
             log.info("codal backfill: %d symbols to go, %d done", len(todo), len(done))
@@ -94,8 +107,10 @@ def main() -> None:
     ap.add_argument("--cooldown", type=int, default=900)
     ap.add_argument("--max-waits", type=int, default=6)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--basket", default=None, help="liquid_basket JSON; only its symbols")
     a = ap.parse_args()
-    print(asyncio.run(run(Path(a.state), a.cooldown, a.max_waits, a.limit)))
+    basket = Path(a.basket) if a.basket else None
+    print(asyncio.run(run(Path(a.state), a.cooldown, a.max_waits, a.limit, basket)))
 
 
 if __name__ == "__main__":
