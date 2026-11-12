@@ -54,3 +54,21 @@ def test_basket_symbols_keep_file_order(tmp_path: Path) -> None:
     f = tmp_path / "b.json"
     f.write_text(json.dumps({"symbols": ["فملی", "فولاد"]}, ensure_ascii=False), "utf-8")
     assert basket_symbols(f) == ["فملی", "فولاد"]
+
+
+def test_basket_index_pays_costs_only_on_traded_amount() -> None:
+    from tmon.backtest.v2_gates import basket_index
+
+    days = 8
+    ret = np.zeros((days, 2))
+    ret[2, 0] = 1.0  # name 0 doubles on day 2
+    m = _m(np.full((days, 2), 0.5), np.ones((days, 2)))
+    m.ret, m.start = ret, 1
+    m.buy_cost, m.sell_cost = np.full(days, 0.01), np.full(days, 0.01)
+    r = dict(zip(basket_index(m, review_every=5)["date"], basket_index(m, 5)["ret"], strict=True))
+    d = m.dates
+    assert abs(r[d[1]] - (-0.01)) < 1e-12  # first purchase: the whole book is bought
+    assert abs(r[d[2]] - 0.5) < 1e-12  # equal weights, one name doubles
+    # day 6 resets 2/3-1/3 back to 1/2-1/2: one sixth bought and one sixth sold
+    assert abs(r[d[6]] - (-(1 / 6) * 0.01 * 2)) < 1e-12
+    assert r[d[3]] == 0.0

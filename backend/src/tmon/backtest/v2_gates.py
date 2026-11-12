@@ -137,6 +137,40 @@ def restrict_top_liquid(m: Matrices, n: int, min_cross_section: int) -> Matrices
     return replace(m, rank=rank, start=int(ok[0]))
 
 
+def basket_index(m: Matrices, review_every: int) -> pl.DataFrame:
+    """Costed equal-weight index of the basket itself: the benchmark a buyer limited to the same
+    liquid names could have held without any selection.
+
+    Weights are reset to equal over the names ranked at the previous close every
+    ``review_every`` days (the book's own review rhythm and one-day order lag) and drift in
+    between. Each reset pays the buy and sell cost of ``market_rules`` plus slippage on the amount
+    traded. It does not model queues or the liquidity cap, so it is an idealisation in the
+    benchmark's favour."""
+    n_days, n = m.ret.shape
+    member = np.isfinite(m.rank)
+    w = np.zeros(n)
+    rets = np.zeros(n_days)
+    for t in range(max(m.start, 1), n_days):
+        if w.any():
+            grown = w * (1.0 + m.ret[t])
+            f = float(grown.sum())
+            rets[t] = f - 1.0
+            w = grown / f
+        if (t - m.start) % review_every == 0:
+            cnt = int(member[t - 1].sum())
+            if cnt:
+                target = member[t - 1] / cnt
+                delta = target - w
+                cost = float(
+                    np.clip(delta, 0, None).sum() * m.buy_cost[t]
+                    + np.clip(-delta, 0, None).sum() * m.sell_cost[t]
+                )
+                rets[t] = (1.0 + rets[t]) * (1.0 - cost) - 1.0
+                w = target
+    lo = max(m.start, 1)
+    return pl.DataFrame({"date": m.dates[lo:], "ret": rets[lo:]})
+
+
 def run_book(
     m: Matrices,
     cfg: EngineConfig,
@@ -389,14 +423,18 @@ def evaluate(
     sell_share: pl.DataFrame,
     rf_annual: float | None,
     cfg: EngineConfig,
+    benchmark: pl.DataFrame | None = None,
 ) -> tuple[list[Judged], dict[str, Any]]:
+    """``benchmark`` (date, ret) replaces the official equal-weight index as the comparator of
+    every gate; the exposure layer still reads the official index."""
     pc, g = cfg.v2.portfolio, cfg.v2.gates
-    ew_ret = (
+    official = (
         ew_index.sort("date")
         .with_columns((pl.col("close") / pl.col("close").shift(1) - 1.0).alias("ret"))
         .filter(pl.col("ret").is_not_null())
         .select("date", "ret")
     )
+    ew_ret = official if benchmark is None else benchmark.select("date", "ret")
     warm = pc.warmup_days
     cost_side = cfg.costs.slippage_fraction / 2
     exposure = compute_exposure(ew_index, rf_daily, sell_share, cfg.v2.exposure)
@@ -439,6 +477,10 @@ def evaluate(
     for j in out:
         u = uni_ret.filter((pl.col("date") >= j.first) & (pl.col("date") <= j.last))
         j.extra["ew_universe"] = _ann(u, rf_annual)
+        if benchmark is not None:
+            o = official.filter((pl.col("date") >= j.first) & (pl.col("date") <= j.last))
+            j.extra["official"] = _ann(o, rf_annual)
+    info["benchmark_label"] = "شاخص سبد" if benchmark is not None else "شاخص هم‌وزن"
     return out, info
 
 
@@ -473,7 +515,10 @@ def render_markdown(js: list[Judged], info: dict[str, Any], cfg: EngineConfig) -
         f"خریدهای اجراشده {info['n_buys']}، خریدهای لغوشده به‌دلیل صف خرید {info['cancelled_buys']}، "
         f"فروش‌های موکول‌شده به‌دلیل صف فروش {info['postponed_sells']}؛ متوسط نمادهای نگه‌داشته {info['avg_held']:.1f}.",
         "- هزینه: کارمزد و مالیات از `market_rules` + لغزش پیکربندی، هر طرف. هیچ پارامتری روی این داده تنظیم نشد.",
-        "- معیار مقایسه: شاخص هم‌وزن رسمی (ممکن است سود نقدی را شامل نشود، OQ 89).",
+        "- معیار مقایسه: شاخص هم‌وزن رسمی (ممکن است سود نقدی را شامل نشود، OQ 89)."
+        if info.get("benchmark_label", "شاخص هم‌وزن") == "شاخص هم‌وزن"
+        else f"- معیار مقایسه: شاخص همین سبد پرنقدشونده، هم‌وزن با بازتوازن هر {pc.review_every_days} روز و هزینهٔ "
+        "کارمزد، مالیات و لغزش؛ صف و سقف نقدشوندگی را مدل نمی‌کند (به نفع معیار). شاخص رسمی فقط مرجع است.",
         "",
     ]
     for j in js:
@@ -486,7 +531,14 @@ def render_markdown(js: list[Judged], info: dict[str, Any], cfg: EngineConfig) -
             "| | بازده کل | سالانه | نوسان | حداکثر افت | شارپ |",
             "|---|---|---|---|---|---|",
             f"| سبد | {_p(c.get('total_return'))} | {_p(c.get('annualized_return'))} | {_p(c.get('annualized_volatility'))} | {_p(c.get('max_drawdown'))} | {c.get('sharpe') or float('nan'):.2f} |",
-            f"| شاخص هم‌وزن | {_p(e.get('total_return'))} | {_p(e.get('annualized_return'))} | {_p(e.get('annualized_volatility'))} | {_p(e.get('max_drawdown'))} | {e.get('sharpe') or float('nan'):.2f} |",
+            f"| {info.get('benchmark_label', 'شاخص هم‌وزن')} | {_p(e.get('total_return'))} | {_p(e.get('annualized_return'))} | {_p(e.get('annualized_volatility'))} | {_p(e.get('max_drawdown'))} | {e.get('sharpe') or float('nan'):.2f} |",
+            *(
+                [
+                    f"| شاخص هم‌وزن رسمی (مرجع) | {_p(j.extra['official'].get('total_return'))} | {_p(j.extra['official'].get('annualized_return'))} | {_p(j.extra['official'].get('annualized_volatility'))} | {_p(j.extra['official'].get('max_drawdown'))} | {j.extra['official'].get('sharpe') or float('nan'):.2f} |"
+                ]
+                if "official" in j.extra
+                else []
+            ),
             f"| هم‌وزن جهان خودمان (تعدیل‌شده، همان نمادها) | {_p(j.extra['ew_universe'].get('total_return'))} | {_p(j.extra['ew_universe'].get('annualized_return'))} | {_p(j.extra['ew_universe'].get('annualized_volatility'))} | {_p(j.extra['ew_universe'].get('max_drawdown'))} | {j.extra['ew_universe'].get('sharpe') or float('nan'):.2f} |",
             "",
             "| دروازه | نتیجه | عدد |",
@@ -523,6 +575,11 @@ def main(argv: list[str] | None = None) -> int:
         "--survivors-only",
         action="store_true",
         help="drop instruments found by the R0 search crawl (reproduces the pre-R0 universe)",
+    )
+    ap.add_argument(
+        "--vs-official",
+        action="store_true",
+        help="with --top-liquid: judge against the official index instead of the basket's own",
     )
     ap.add_argument(
         "--top-liquid",
@@ -566,7 +623,12 @@ def main(argv: list[str] | None = None) -> int:
         m = restrict_top_liquid(m, args.top_liquid, cfg.v2.portfolio.min_cross_section)
     rf_daily = risk_free_daily(rf, ew.filter(pl.col("date") >= rf["date"].min())["date"])
     rf_annual = mean_risk_free(rf, rf["date"].min(), rf["date"].max(), cfg)
-    js, info = evaluate(m, ew, rf_daily, sell_queue_share(feats), rf_annual, cfg)
+    bench = (
+        basket_index(m, cfg.v2.portfolio.review_every_days)
+        if args.top_liquid and not args.vs_official
+        else None
+    )
+    js, info = evaluate(m, ew, rf_daily, sell_queue_share(feats), rf_annual, cfg, bench)
     md = render_markdown(js, info, cfg)
     if args.top_liquid:
         note = (
