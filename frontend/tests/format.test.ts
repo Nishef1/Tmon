@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faNumber, faPercent, faPrice, formatValue, jalali } from "@/lib/format";
+import { faDigits, faNumber, faPercent, faPrice, formatValue, jalali, ltr } from "@/lib/format";
 
 describe("number formatting", () => {
   it("uses Persian digits and separators", () => {
@@ -8,14 +8,25 @@ describe("number formatting", () => {
   });
 
   it("formats percentages with an explicit sign when asked", () => {
-    expect(faPercent(0.66, 0)).toBe("۶۶٪");
-    expect(faPercent(0.031, 1, true)).toBe("+۳٫۱٪");
-    expect(faPercent(-0.03, 1)).toBe("−۳٫۰٪");
+    expect(faPercent(0.66, 0)).toBe(ltr("۶۶٪"));
+    expect(faPercent(0.031, 1, true)).toBe(ltr("+۳٫۱٪"));
+    expect(faPercent(-0.03, 1)).toBe(ltr("−۳٫۰٪"));
   });
 
   it("never shows a signed zero", () => {
-    expect(faPercent(0.00001, 1, true)).toBe("۰٫۰٪");
-    expect(faPercent(-0.00001, 1)).toBe("۰٫۰٪");
+    expect(faPercent(0.00001, 1, true)).toBe(ltr("۰٫۰٪"));
+    expect(faPercent(-0.00001, 1)).toBe(ltr("۰٫۰٪"));
+  });
+
+  it("keeps sign left and percent right inside server sentences", () => {
+    expect(faDigits("مازاد +1.87٪ و خالص -1.27٪ (IC +0.116، t 26.4)")).toBe(
+      `مازاد ${ltr("+۱٫۸۷٪")} و خالص ${ltr("−۱٫۲۷٪")} (IC ${ltr("+۰٫۱۱۶")}، t ۲۶٫۴)`,
+    );
+    expect(faDigits(ltr("+۱٪"))).toBe(ltr("+۱٪"));
+  });
+
+  it("isolates negative plain numbers", () => {
+    expect(faNumber(-1500)).toBe(ltr("−۱٬۵۰۰"));
   });
 
   it("rounds prices to whole rials", () => {

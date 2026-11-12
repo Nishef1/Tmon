@@ -69,7 +69,7 @@ const AGM_FIELDS = [
   "months_alt",
 ] as const;
 
-type Search = Partial<Record<(typeof AGM_FIELDS)[number], string>>;
+type Search = Partial<Record<(typeof AGM_FIELDS)[number] | "h", string>>;
 
 function isNum(v: string | undefined): v is string {
   return v !== undefined && v.trim() !== "" && Number.isFinite(Number(v));
@@ -124,7 +124,7 @@ export default async function InstrumentPage({
         {d.instrument.name && <p className="text-muted">{d.instrument.name}</p>}
       </div>
 
-      {dash.ok && <SymbolDashboard d={dash.data} />}
+      {dash.ok && <SymbolDashboard d={dash.data} id={d.instrument.id} horizon={q.h} />}
 
       <LiveQuote instrumentId={d.instrument.id} />
 

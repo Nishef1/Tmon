@@ -143,10 +143,13 @@ function Body({ d }: { d: MarketOverview }) {
         <Movers title="بیشترین خروج پول حقیقی" rows={d.outflow} testid="market-outflow" flow />
       </div>
 
-      <section className="card flex flex-wrap items-center justify-between gap-3" data-testid="market-sectors">
+      <section
+        className="card flex flex-wrap items-center justify-between gap-3"
+        data-testid="market-sectors"
+      >
         <p className="text-sm">
-          {faNumber(d.sectors.length)} گروه بورسی با سهم‌هایشان، بازده، تصمیم مدل و فیلترها در
-          صفحهٔ صنایع و نمادها آمده است.
+          {faNumber(d.sectors.length)} گروه بورسی با سهم‌هایشان، بازده، تصمیم مدل و فیلترها در صفحهٔ
+          صنایع و نمادها آمده است.
         </p>
         <Link href="/industries" className="btn btn-primary">
           صنایع و نمادها

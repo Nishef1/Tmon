@@ -1,3 +1,4 @@
+import { text } from "./num";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Disclaimer, DISCLAIMER } from "@/components/Disclaimer";
@@ -127,7 +128,7 @@ describe("SignalTable", () => {
     expect(rows).toHaveLength(3);
     expect(within(rows[1]).getByText("باز")).toBeInTheDocument();
     expect(within(rows[2]).getByText("رسید به حد سود")).toBeInTheDocument();
-    expect(within(rows[2]).getByText("+۶٫۰٪")).toBeInTheDocument();
+    expect(within(rows[2]).getByText(text("+۶٫۰٪"))).toBeInTheDocument();
   });
 });
 

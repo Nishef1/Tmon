@@ -1,8 +1,9 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
-import { verdictPill, verdictTone } from "@/lib/ui";
+import { signedPct, signTone, verdictPill, verdictTone } from "@/lib/ui";
 
 type D = InstrumentDashboard;
 
@@ -137,7 +138,76 @@ function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
   );
 }
 
-function Decision({ d }: { d: D["decision"] }) {
+export const DEFAULT_HORIZON = "M1";
+
+/** Decision for the holding period the reader picks: its verdict, the exact reasons and the past evidence. */
+function Horizons({
+  items,
+  selected,
+  id,
+}: {
+  items: D["decision"]["horizons"];
+  selected: string;
+  id: number;
+}) {
+  if (items.length === 0) return null;
+  const h =
+    items.find((x) => x.key === selected) ??
+    items.find((x) => x.key === DEFAULT_HORIZON) ??
+    items[0];
+  return (
+    <div
+      className="mt-4"
+      id="horizon"
+      data-testid="horizons"
+      data-horizon={h.key}
+      data-verdict={h.verdict}
+    >
+      <h3 className="mb-1 font-bold">تصمیم برای کدام بازهٔ نگهداری؟</h3>
+      <p className="mb-2 text-sm text-muted">
+        یک سهم ممکن است برای ماه آینده خوب و برای فردا نامناسب باشد. بازه را انتخاب کنید تا تصمیم و
+        دلیل‌های همان بازه را ببینید.
+      </p>
+      <nav className="mb-3 flex flex-wrap gap-2" aria-label="بازهٔ نگهداری">
+        {items.map((x) => (
+          <Link
+            key={x.key}
+            href={`/instruments/${id}?h=${x.key}#horizon`}
+            scroll={false}
+            className="tab tab-pill"
+            aria-current={x.key === h.key ? "page" : undefined}
+            data-testid={`horizon-${x.key}`}
+          >
+            {x.label}
+            <span className={`${verdictPill(x.verdict)} ms-2`}>{x.verdict_label}</span>
+          </Link>
+        ))}
+      </nav>
+      <div className={`tile ${verdictTone(h.verdict)}`}>
+        <p className="text-lg font-semibold">{faDigits(h.headline)}</p>
+        {h.top_excess != null && (
+          <dl className="mt-2" data-testid="horizon-evidence">
+            <Row
+              k="مازاد ۱۰٪ برتر مدل نسبت به بازار (گذشته)"
+              v={signedPct(h.top_excess)}
+              tone={signTone(h.top_excess)}
+            />
+            <Row k="هزینهٔ رفت‌وبرگشت خرید و فروش" v={faPercent(h.cost ?? 0, 2)} />
+            <Row k="خالص پس از هزینه" v={signedPct(h.net_excess)} tone={signTone(h.net_excess)} />
+            {h.ic_t != null && <Row k="اطمینان آماری (t)" v={faNumber(h.ic_t, 1)} />}
+          </dl>
+        )}
+        <ul className="mt-3 list-inside list-disc space-y-1.5">
+          {h.reasons.map((r) => (
+            <li key={r}>{faDigits(r)}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function Decision({ d, horizon, id }: { d: D["decision"]; horizon: string; id: number }) {
   const [first, ...rest] = d.reasons;
   return (
     <section
@@ -159,6 +229,7 @@ function Decision({ d }: { d: D["decision"] }) {
           {first && <p>{faDigits(first)}</p>}
         </div>
       </div>
+      <Horizons items={d.horizons} selected={horizon} id={id} />
       <SignalBars signals={d.signals} />
       {d.holding && <Holding h={d.holding} />}
       {rest.length > 0 && (
@@ -282,7 +353,7 @@ function shareOf(part: number | null, whole: number | null): string {
   return part != null && whole ? ` (${faPercent(part / whole, 1)})` : "";
 }
 
-export function SymbolDashboard({ d }: { d: D }) {
+export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?: string }) {
   const p = d.price;
   const f = d.flow;
   const buyTot =
@@ -293,7 +364,7 @@ export function SymbolDashboard({ d }: { d: D }) {
       : null;
   return (
     <div className="space-y-4" data-testid="symbol-dashboard">
-      <Decision d={d.decision} />
+      <Decision d={d.decision} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
 
       {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
       <Company d={d} />

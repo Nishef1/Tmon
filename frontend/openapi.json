@@ -784,6 +784,14 @@
               }
             ]
           },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
           "in_basket": {
             "default": false,
             "title": "In Basket",
@@ -861,7 +869,8 @@
           "in_basket",
           "summary",
           "signals",
-          "holding"
+          "holding",
+          "horizons"
         ],
         "title": "DashDecision",
         "type": "object"
@@ -1247,6 +1256,120 @@
           "lines"
         ],
         "title": "DashHolding",
+        "type": "object"
+      },
+      "DashHorizon": {
+        "description": "The decision for one holding period, with the past evidence it rests on.",
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "ic": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ic"
+          },
+          "ic_t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ic T"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "net_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Excess"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "top_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Excess"
+          },
+          "verdict": {
+            "enum": [
+              "buy",
+              "hold",
+              "sell",
+              "none"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "verdict_label": {
+            "title": "Verdict Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "days",
+          "verdict",
+          "verdict_label",
+          "headline",
+          "reasons",
+          "top_excess",
+          "cost",
+          "net_excess",
+          "ic",
+          "ic_t"
+        ],
+        "title": "DashHorizon",
         "type": "object"
       },
       "DashMeeting": {

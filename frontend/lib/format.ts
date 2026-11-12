@@ -2,6 +2,16 @@
 
 const MINUS = "−";
 
+/**
+ * Bidi isolate: a signed number or a percent keeps one fixed order inside right-to-left text,
+ * sign on the left of the digits and ٪ after them ("+۵٫۷٪", "−۱٫۲٪"), wherever it appears.
+ */
+const LRI = "⁦";
+const PDI = "⁩";
+export function ltr(text: string): string {
+  return `${LRI}${text}${PDI}`;
+}
+
 export type NumKind = "percent" | "price" | "count" | "plain";
 
 function group(n: number, digits: number): string {
@@ -14,13 +24,16 @@ function group(n: number, digits: number): string {
 /** Latin digits inside a server-written sentence -> Persian digits. */
 export function faDigits(text: string): string {
   return text
+    .replace(/[⁦⁩]/g, "")
     .replace(/(\d)\.(\d)/g, "$1٫$2") // decimal point
     .replace(/(^|[\s(])-(?=\d)/g, "$1−") // minus sign
-    .replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+    .replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
+    .replace(/[+−]?[۰-۹][۰-۹٫٬]*٪?/g, (m) => (/^[+−]|٪$/.test(m) ? ltr(m) : m)); // signed numbers and percents
 }
 
 export function faNumber(n: number, digits = 0): string {
-  return group(n, digits);
+  const s = group(n, digits);
+  return /[−-]/.test(s) ? ltr(s.replace(/[‎‏]/g, "")) : s;
 }
 
 /** ``0.031`` -> ``۳٫۱٪``. ``signed`` adds an explicit + for positive values. */
@@ -29,7 +42,7 @@ export function faPercent(fraction: number, digits = 1, signed = false): string 
   const body = group(Math.abs(v), digits);
   const zero = Number(Math.abs(v).toFixed(digits)) === 0;
   const sign = zero ? "" : v < 0 ? MINUS : signed ? "+" : "";
-  return `${sign}${body}٪`;
+  return ltr(`${sign}${body}٪`);
 }
 
 /** Rial price, rounded to a whole rial. */
@@ -53,7 +66,9 @@ export function formatValue(
       return faNumber(value, 0);
     default: {
       const s = group(Math.abs(value), digits ?? 2);
-      return value < 0 && Number(Math.abs(value).toFixed(digits ?? 2)) !== 0 ? `${MINUS}${s}` : s;
+      return value < 0 && Number(Math.abs(value).toFixed(digits ?? 2)) !== 0
+        ? ltr(`${MINUS}${s}`)
+        : s;
     }
   }
 }

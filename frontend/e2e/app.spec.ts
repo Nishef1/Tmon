@@ -77,6 +77,19 @@ test.describe("instrument page", () => {
     await expect(page.getByTestId("disclaimer").first()).toBeVisible();
   });
 
+  test("decides per holding period and explains each one", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const hz = page.getByTestId("horizons");
+    await expect(hz).toHaveAttribute("data-horizon", "M1");
+    await expect(hz).toHaveAttribute("data-verdict", "buy");
+    await expect(hz.getByTestId("horizon-evidence")).toContainText("خالص پس از هزینه");
+    await hz.getByTestId("horizon-D1").click();
+    await expect(page).toHaveURL(/h=D1/);
+    await expect(hz).toHaveAttribute("data-horizon", "D1");
+    await expect(hz).toHaveAttribute("data-verdict", "hold");
+    await expect(hz).toContainText("کمتر از هزینهٔ رفت‌وبرگشت");
+  });
+
   test("shows one final decision with its reasons and the per-symbol numbers", async ({ page }) => {
     await page.goto("/instruments/1");
     const decision = page.getByTestId("symbol-decision");

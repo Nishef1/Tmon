@@ -684,6 +684,23 @@ class DashFundamental(ApiModel):
     text: str = ""
 
 
+class DashHorizon(ApiModel):
+    """The decision for one holding period, with the past evidence it rests on."""
+
+    key: str  # D1, W1, M1, Q1
+    label: str  # e.g. "یک ماه"
+    days: int  # trading days
+    verdict: Literal["buy", "hold", "sell", "none"]
+    verdict_label: str
+    headline: str
+    reasons: list[str] = []
+    top_excess: float | None = None  # past gross excess return of the top group over the market
+    cost: float | None = None  # round-trip trading cost as a fraction
+    net_excess: float | None = None  # top_excess - cost
+    ic: float | None = None
+    ic_t: float | None = None
+
+
 class DashDecision(ApiModel):
     """The single final answer per symbol: buy, hold, sell or none, with the reasons."""
 
@@ -701,6 +718,7 @@ class DashDecision(ApiModel):
     summary: str = ""  # one plain sentence on what the verdict means for the reader
     signals: list[DashSignal] = []
     holding: DashHolding | None = None
+    horizons: list[DashHorizon] = []  # one decision per holding period
 
 
 class InstrumentDashboard(ApiModel):

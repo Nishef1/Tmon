@@ -39,7 +39,7 @@ from tmon.backtest.v2_gates import (
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import EngineConfig, get_engine_config
-from tmon.domain.rules import RuleBook
+from tmon.domain.rules import CostModel, RuleBook
 from tmon.engine.exposure import compute_exposure
 from tmon.features.builder import KEYS, build_features
 from tmon.features.store import load_benchmark_inputs, load_inputs
@@ -47,7 +47,7 @@ from tmon.storage.models import Instrument
 from tmon.storage.objectstore import get_object_store
 
 KEY = "v2/ranking.json"
-HORIZONS = (5, 20, 60)
+HORIZONS = (1, 5, 20, 60)  # trading days: next day, week, month, three months
 BASKET = 100
 
 
@@ -208,6 +208,11 @@ def build_document() -> dict[str, Any]:
                 "bottom_excess": _f(sp["bottom_excess"]),
                 "excess_t": _f(sp.get("t")),
                 "n_days": int(sp["n_days"]),
+                "signals": {
+                    sig: {"ic": _f(si["mean"]), "t": _f(si["t"])}
+                    for sig in SIGNALS
+                    for si in [summarize_ic(daily_ic(panel, f"r_{sig}", h), h)]
+                },
             }
         )
 
@@ -239,11 +244,13 @@ def build_document() -> dict[str, Any]:
         for j in js
     ]
     exp = compute_exposure(ew, rf_daily, sell_share, cfg.v2.exposure).tail(1).to_dicts()[0]
+    round_trip = CostModel.from_rules(rules, as_of, cfg.costs.slippage_fraction).round_trip
     allowed = all(g["passed"] is True for j in js for g in j.gates.values())
     return {
         "as_of": str(as_of),
         "basket_size": BASKET,
         "recommendation_allowed": allowed,
+        "round_trip_cost": round_trip,
         "buy_top_frac": cfg.v2.portfolio.buy_top_frac,
         "hold_top_frac": cfg.v2.portfolio.hold_top_frac,
         "exposure": {

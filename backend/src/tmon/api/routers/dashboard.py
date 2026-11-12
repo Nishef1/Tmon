@@ -23,6 +23,7 @@ from tmon.api.schemas import (
     DashFund,
     DashFundamental,
     DashHolding,
+    DashHorizon,
     DashMeeting,
     DashPrice,
     DashRanges,
@@ -306,6 +307,115 @@ SUMMARY = {
 }
 
 
+HORIZONS_FA = {
+    1: ("D1", "فردا (۱ روز)"),
+    5: ("W1", "یک هفته (۵ روز معاملاتی)"),
+    20: ("M1", "یک ماه (۲۰ روز معاملاتی)"),
+    60: ("Q1", "سه ماه (۶۰ روز معاملاتی)"),
+}
+MIN_NET_EDGE = 0.01  # declared in advance: past net excess must clear 1% (survivorship bias, noise)
+MIN_T = 3.0  # and be statistically solid (Bonferroni-like bar used in the R1 report)
+
+
+def _n(x: float, digits: int = 1, sign: bool = False) -> str:
+    """A number with the Persian decimal separator."""
+    return f"{x:{'+' if sign else ''}.{digits}f}".replace(".", "٫")
+
+
+def _signed(x: float) -> str:
+    return f"{x * 100:+.2f}٪".replace(".", "٫")
+
+
+def _horizon_decision(
+    h: int, ev: dict[str, Any], zone: str, cost: float, sig: dict[str, float], advice_base: bool
+) -> DashHorizon:
+    """Buy / hold / sell for one holding period from the symbol's zone and what that zone's past
+    excess return was at this period, net of the round-trip cost. Nothing is fitted here."""
+    key, label = HORIZONS_FA[h]
+    top, bot = ev.get("top_excess"), ev.get("bottom_excess")
+    t = ev.get("excess_t")
+    net = None if top is None else top - cost
+    reasons: list[str] = []
+    if top is not None:
+        reasons.append(
+            f"در گذشته نمادهای ۱۰٪ برتر مدل، {label} بعد، به‌طور میانگین {_signed(top)} بیشتر از "
+            f"میانهٔ بازار بازده داشته‌اند (نمونه: {ev.get('n_days')} روز؛ آمارهٔ t = "
+            f"{_n(t or 0)}). هزینهٔ رفت‌وبرگشت خرید و فروش {_n(cost * 100, 2)}٪ است؛ پس خالص "
+            f"{_signed(net or 0)}."
+        )
+    for k, name in SIGNAL_FA.items():
+        s_ev = (ev.get("signals") or {}).get(k)
+        v = sig.get(k)
+        if not s_ev or s_ev.get("ic") is None or v is None:
+            continue
+        solid = (s_ev.get("t") or 0) >= 2.0
+        reasons.append(
+            f"{name}: این نماد از {v * 100:.0f}٪ سهم‌ها بهتر است؛ "
+            + (
+                f"این سیگنال در این بازه اثر معنی‌دار داشته (IC {_n(s_ev['ic'], 3, True)}، "
+                f"t {_n(s_ev['t'])})."
+                if solid
+                else f"اما در این بازه اثر معنی‌داری نداشته (IC {_n(s_ev['ic'], 3, True)}، t "
+                f"{_n(s_ev.get('t') or 0)})، پس روی تصمیم این بازه وزنی ندارد."
+            )
+        )
+    solid_edge = net is not None and t is not None and net >= MIN_NET_EDGE and t >= MIN_T
+    if zone == "buy":
+        if solid_edge:
+            verdict, head = "buy", f"برای {label}: خرید؛ مازاد گذشته پس از هزینه معنی‌دار است."
+        elif net is not None and net > 0:
+            verdict = "hold"
+            why = (
+                f"مازاد پس از هزینه ({_signed(net)}) از حداقل {_pct(MIN_NET_EDGE)} کمتر است"
+                if net < MIN_NET_EDGE
+                else f"اطمینان آماری کافی نیست (t = {_n(t or 0)}، حداقل {_n(MIN_T, 0)})"
+            )
+            head = f"برای {label}: خرید توصیه نمی‌شود؛ {why}."
+        else:
+            verdict = "hold"
+            head = f"برای {label}: معامله نکنید؛ مازاد گذشته کمتر از هزینهٔ رفت‌وبرگشت است."
+    elif zone == "hold":
+        verdict, head = "hold", f"برای {label}: نگهداری؛ نماد در ناحیهٔ میانی مدل است."
+    elif bot is not None and bot < -cost / 2:
+        verdict = "sell"
+        head = (
+            f"برای {label}: فروش یا پرهیز؛ گروه ضعیف مدل در گذشته زیر بازار بوده ({_signed(bot)})."
+        )
+    else:
+        verdict = "hold"
+        head = (
+            f"برای {label}: امتیاز پایین است ولی گروه ضعیف در این بازه زیر بازار نبوده"
+            + (f" ({_signed(bot)})" if bot is not None else "")
+            + "؛ دلیل آماری برای فروش وجود ندارد."
+        )
+    return DashHorizon(
+        key=key,
+        label=label,
+        days=h,
+        verdict=verdict,
+        verdict_label=LABEL[verdict],
+        headline=head,
+        reasons=reasons,
+        top_excess=top,
+        cost=cost,
+        net_excess=net,
+        ic=ev.get("ic"),
+        ic_t=ev.get("ic_t"),
+    )
+
+
+def _horizons(doc: dict[str, Any], zone: str, sig: dict[str, float]) -> list[DashHorizon]:
+    cost = doc.get("round_trip_cost")
+    if cost is None:
+        return []
+    by_h = {e["horizon_days"]: e for e in doc.get("evidence", [])}
+    return [
+        _horizon_decision(h, by_h[h], zone, float(cost), sig, True)
+        for h in HORIZONS_FA
+        if h in by_h
+    ]
+
+
 def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
     ev = next((e for e in doc.get("evidence", []) if e.get("horizon_days") == HOLD_DAYS), None)
     edge = ev.get("top_excess") if ev else None
@@ -476,6 +586,7 @@ def decide(
         summary=SUMMARY[verdict],
         signals=_signals(src.get("signals") or {}),
         holding=_holding(verdict, doc, advice),
+        horizons=_horizons(doc, zone, src.get("signals") or {}),
         **base,
     )
 

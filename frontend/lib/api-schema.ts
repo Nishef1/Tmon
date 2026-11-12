@@ -535,6 +535,11 @@ export interface components {
       headline: string;
       holding: components["schemas"]["DashHolding"] | null;
       /**
+       * Horizons
+       * @default []
+       */
+      horizons: components["schemas"]["DashHorizon"][];
+      /**
        * In Basket
        * @default false
        */
@@ -657,6 +662,42 @@ export interface components {
        * @default []
        */
       lines: string[];
+    };
+    /**
+     * DashHorizon
+     * @description The decision for one holding period, with the past evidence it rests on.
+     */
+    DashHorizon: {
+      /** Cost */
+      cost: number | null;
+      /** Days */
+      days: number;
+      /** Headline */
+      headline: string;
+      /** Ic */
+      ic: number | null;
+      /** Ic T */
+      ic_t: number | null;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Net Excess */
+      net_excess: number | null;
+      /**
+       * Reasons
+       * @default []
+       */
+      reasons: string[];
+      /** Top Excess */
+      top_excess: number | null;
+      /**
+       * Verdict
+       * @enum {string}
+       */
+      verdict: "buy" | "hold" | "sell" | "none";
+      /** Verdict Label */
+      verdict_label: string;
     };
     /**
      * DashMeeting
