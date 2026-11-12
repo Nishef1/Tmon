@@ -7,7 +7,7 @@ import {
   type InstrumentDetail,
 } from "@/lib/api";
 import { featureInfo } from "@/lib/glossary";
-import { faNumber, jalali } from "@/lib/format";
+import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import { SymbolDashboard } from "@/components/SymbolDashboard";
 import { LiveQuote } from "@/components/LiveQuote";
@@ -249,10 +249,11 @@ export default async function InstrumentPage({
                 </tr>
               </thead>
               <tbody>
-                {d.shareholders.map((h) => (
-                  <tr key={h.name}>
+                {d.shareholders.map((h, i) => (
+                  // TSETMC lists several holders under one name ("شخص حقیقی"), so the name alone is not a key
+                  <tr key={`${i}-${h.name}`}>
                     <td className="font-semibold">{h.name}</td>
-                    <td>{h.percent == null ? "—" : `${faNumber(h.percent, 2)}٪`}</td>
+                    <td>{h.percent == null ? "—" : faPercent(h.percent / 100, 2)}</td>
                     <td>{h.shares == null ? "—" : faNumber(h.shares)}</td>
                     <td className={signTone(h.change_amount)}>
                       {h.change_amount == null || h.change_amount === 0

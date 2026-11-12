@@ -440,6 +440,8 @@ function route(url) {
         events: [],
         shareholders: [
           { name: "شرکت نمونه", shares: 2500000000, percent: 16.7, change_amount: -1200 },
+          { name: "شخص حقیقی", shares: 90000000, percent: 1.3, change_amount: 0 },
+          { name: "شخص حقیقی", shares: 80000000, percent: 1.1, change_amount: null },
         ],
         shareholders_at: "2026-11-10",
         letters: [

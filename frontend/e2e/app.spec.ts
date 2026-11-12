@@ -119,10 +119,15 @@ test.describe("instrument page", () => {
   });
 
   test("lists the major shareholders with percent and change", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     await page.goto("/instruments/1");
     const box = page.getByTestId("shareholders");
     await expect(box).toContainText("شرکت نمونه");
     await expect(box).toContainText("۱۶٫۷۰٪");
+    // several holders can share one name; the list must still render without key warnings
+    await expect(box.getByText("شخص حقیقی")).toHaveCount(2);
+    expect(errors.filter((e) => e.includes("same key"))).toEqual([]);
   });
 
   test("lists the Codal letters of the symbol", async ({ page }) => {
