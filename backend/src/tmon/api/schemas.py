@@ -157,6 +157,15 @@ class CorporateEventOut(ApiModel):
     url: str | None = None  # the Codal letter
 
 
+class CodalLetterOut(ApiModel):
+    title: str
+    letter_code: str | None = None
+    published_at: dt.date | None = None
+    url: str | None = None
+    has_excel: bool = False
+    has_pdf: bool = False
+
+
 class InstrumentDetail(ApiModel):
     instrument: InstrumentOut
     adjusted: bool
@@ -165,6 +174,7 @@ class InstrumentDetail(ApiModel):
     features: list[FeatureValue]
     signals: list[SignalOut]
     events: list[CorporateEventOut] = []
+    letters: list[CodalLetterOut] = []  # latest Codal letters of any kind
     disclaimer: str = DISCLAIMER
 
 

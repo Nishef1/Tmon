@@ -14,6 +14,7 @@ from tmon.api.schemas import (
     AgmInputOut,
     BookLevelOut,
     Candle,
+    CodalLetterOut,
     CorporateEventOut,
     FeatureValue,
     InstrumentDetail,
@@ -28,6 +29,7 @@ from tmon.features.adjustment import apply_adjustments
 from tmon.features.builder import get_feature_set
 from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
 from tmon.storage.models import (
+    CodalLetter,
     CorporateEvent,
     FeatureRow,
     Instrument,
@@ -48,6 +50,7 @@ SHOWN_FEATURES = (
     "mkt_ret_ew", "breadth",
 )  # fmt: skip
 
+LETTERS_SHOWN = 30  # latest Codal letters on the instrument page
 EVENTS_SHOWN = 20  # latest Codal events on the instrument page
 STALE_AFTER_SECONDS = 300  # a snapshot older than this is shown as stale
 
@@ -122,6 +125,12 @@ def instrument_detail(
         .order_by(CorporateEvent.announced_at.desc(), CorporateEvent.id.desc())
         .limit(EVENTS_SHOWN)
     ).all()
+    letters = session.scalars(
+        select(CodalLetter)
+        .where(CodalLetter.instrument_id == instrument_id)
+        .order_by(CodalLetter.published_at.desc(), CodalLetter.tracing_no.desc())
+        .limit(LETTERS_SHOWN)
+    ).all()
     return InstrumentDetail(
         instrument=instrument_out(inst),
         adjusted=True,
@@ -129,6 +138,17 @@ def instrument_detail(
         features_date=frow.date if frow else None,
         features=features,
         signals=[signal_out(s, inst) for s in sigs],
+        letters=[
+            CodalLetterOut(
+                title=x.title,
+                letter_code=x.letter_code,
+                published_at=x.published_at.date() if x.published_at else None,
+                url=x.url,
+                has_excel=x.has_excel,
+                has_pdf=x.has_pdf,
+            )
+            for x in letters
+        ],
         events=[
             CorporateEventOut(
                 type=e.type,

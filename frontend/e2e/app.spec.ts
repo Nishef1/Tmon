@@ -7,7 +7,9 @@ test.describe("recommendations", () => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("html")).toHaveAttribute("lang", "fa");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("توصیه‌های امروز بازار سهام");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "توصیه‌های امروز بازار سهام",
+    );
     await expect(page.getByTestId("disclaimer").first()).toHaveText(DISCLAIMER);
     const cards = page.getByTestId("signal-card");
     await expect(cards).toHaveCount(2);
@@ -101,6 +103,13 @@ test.describe("instrument page", () => {
     const dash = page.getByTestId("symbol-dashboard");
     await expect(dash.getByText("قدرت خریدار (امروز)")).toBeVisible();
     await expect(dash.getByText("گروه صنعت")).toBeVisible();
+  });
+
+  test("lists the Codal letters of the symbol", async ({ page }) => {
+    await page.goto("/instruments/1");
+    await expect(page.getByTestId("codal-letters")).toContainText(
+      "افزایش سرمایه از محل سود انباشته",
+    );
   });
 
   test("shows the live price, five order-book levels and the data age", async ({ page }) => {

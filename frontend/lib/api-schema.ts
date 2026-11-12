@@ -436,6 +436,27 @@ export interface components {
       /** Volume */
       volume: number | null;
     };
+    /** CodalLetterOut */
+    CodalLetterOut: {
+      /**
+       * Has Excel
+       * @default false
+       */
+      has_excel: boolean;
+      /**
+       * Has Pdf
+       * @default false
+       */
+      has_pdf: boolean;
+      /** Letter Code */
+      letter_code: string | null;
+      /** Published At */
+      published_at: string | null;
+      /** Title */
+      title: string;
+      /** Url */
+      url: string | null;
+    };
     /** CompareOut */
     CompareOut: {
       /** Annualised Monthly */
@@ -981,6 +1002,11 @@ export interface components {
       /** Features Date */
       features_date: string | null;
       instrument: components["schemas"]["InstrumentOut"];
+      /**
+       * Letters
+       * @default []
+       */
+      letters: components["schemas"]["CodalLetterOut"][];
       /** Signals */
       signals: components["schemas"]["SignalOut"][];
     };

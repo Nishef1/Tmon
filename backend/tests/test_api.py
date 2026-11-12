@@ -17,6 +17,7 @@ from tmon.core.db import get_session
 from tmon.domain.agm import monthly_from_annual
 from tmon.features.builder import get_feature_set
 from tmon.storage.models import (
+    CodalLetter,
     CorporateEvent,
     FeatureRow,
     Instrument,
@@ -373,6 +374,23 @@ def test_instrument_detail_lists_codal_events(client: TestClient, session: Sessi
             "url": "https://www.codal.ir/Reports/x",
         }
     ]
+
+
+def test_instrument_detail_lists_codal_letters_newest_first(
+    client: TestClient, session: Session
+) -> None:
+    a = _priced(session)
+    for no, day, title in ((1, 1, "قدیمی"), (2, 5, "جدید")):
+        session.add(
+            CodalLetter(tracing_no=no, instrument_id=a.id, symbol="فملی", title=title,
+                        published_at=dt.datetime(2025, 3, day, 9, 0, tzinfo=dt.UTC),
+                        url=f"https://www.codal.ir/{no}",
+                        fetched_at=dt.datetime(2025, 3, 6, tzinfo=dt.UTC))
+        )  # fmt: skip
+    session.flush()
+    letters = client.get(f"/instruments/{a.id}").json()["letters"]
+    assert [x["title"] for x in letters] == ["جدید", "قدیمی"]
+    assert letters[0]["published_at"] == "2025-03-05"
 
 
 def test_agm_decision_uses_stored_price_rate_and_costs(

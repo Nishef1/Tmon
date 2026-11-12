@@ -238,13 +238,64 @@ const MARKET = {
     per_capita_sell: 4e9,
     power: 0.75,
   },
-  gainers: [{ instrument_id: 1, symbol: "الف", name: "نام الف", sector_name: "فلزات اساسی", close: 1005, change: 0.1, value: 1e10, net_real_flow: null }],
-  losers: [{ instrument_id: 1, symbol: "ب", name: "نام ب", sector_name: "فلزات اساسی", close: 1005, change: -0.05, value: 2e10, net_real_flow: null }],
-  by_value: [{ instrument_id: 1, symbol: "ج", name: "نام ج", sector_name: "فلزات اساسی", close: 1005, change: 0, value: 3e10, net_real_flow: null }],
-  inflow: [{ instrument_id: 1, symbol: "الف", name: "نام الف", sector_name: "فلزات اساسی", close: 1005, change: 0.1, value: 1e10, net_real_flow: 1e10 }],
+  gainers: [
+    {
+      instrument_id: 1,
+      symbol: "الف",
+      name: "نام الف",
+      sector_name: "فلزات اساسی",
+      close: 1005,
+      change: 0.1,
+      value: 1e10,
+      net_real_flow: null,
+    },
+  ],
+  losers: [
+    {
+      instrument_id: 1,
+      symbol: "ب",
+      name: "نام ب",
+      sector_name: "فلزات اساسی",
+      close: 1005,
+      change: -0.05,
+      value: 2e10,
+      net_real_flow: null,
+    },
+  ],
+  by_value: [
+    {
+      instrument_id: 1,
+      symbol: "ج",
+      name: "نام ج",
+      sector_name: "فلزات اساسی",
+      close: 1005,
+      change: 0,
+      value: 3e10,
+      net_real_flow: null,
+    },
+  ],
+  inflow: [
+    {
+      instrument_id: 1,
+      symbol: "الف",
+      name: "نام الف",
+      sector_name: "فلزات اساسی",
+      close: 1005,
+      change: 0.1,
+      value: 1e10,
+      net_real_flow: 1e10,
+    },
+  ],
   outflow: [],
   sectors: [
-    { sector_code: "27", name: "فلزات اساسی", n: 3, avg_change: 0.01, value: 6e10, net_real_flow: 1e10 },
+    {
+      sector_code: "27",
+      name: "فلزات اساسی",
+      n: 3,
+      avg_change: 0.01,
+      value: 6e10,
+      net_real_flow: 1e10,
+    },
   ],
 };
 
@@ -387,6 +438,16 @@ function route(url) {
         ],
         signals: [signal(1, 1, inst)],
         events: [],
+        letters: [
+          {
+            title: "افزایش سرمایه از محل سود انباشته",
+            letter_code: "ن-۵۰",
+            published_at: "2026-11-10",
+            url: "https://www.codal.ir/x",
+            has_excel: false,
+            has_pdf: false,
+          },
+        ],
         disclaimer: DISCLAIMER,
       },
     ];

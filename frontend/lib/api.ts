@@ -23,6 +23,7 @@ export type CalibrationBucket = S["CalibrationBucket"];
 export type CalibrationBlock = S["CalibrationBlock"];
 export type Calibration = S["CalibrationOut"];
 export type CorporateEvent = S["CorporateEventOut"];
+export type CodalLetter = S["CodalLetterOut"];
 export type AgmDecision = S["AgmDecisionOut"];
 export type Compare = S["CompareOut"];
 export type CompareRow = S["CompareRow"];

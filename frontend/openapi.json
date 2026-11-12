@@ -405,6 +405,68 @@
         "title": "Candle",
         "type": "object"
       },
+      "CodalLetterOut": {
+        "properties": {
+          "has_excel": {
+            "default": false,
+            "title": "Has Excel",
+            "type": "boolean"
+          },
+          "has_pdf": {
+            "default": false,
+            "title": "Has Pdf",
+            "type": "boolean"
+          },
+          "letter_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Letter Code"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "title",
+          "letter_code",
+          "published_at",
+          "url",
+          "has_excel",
+          "has_pdf"
+        ],
+        "title": "CodalLetterOut",
+        "type": "object"
+      },
       "CompareOut": {
         "properties": {
           "annualised_monthly": {
@@ -2388,6 +2450,14 @@
           "instrument": {
             "$ref": "#/components/schemas/InstrumentOut"
           },
+          "letters": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CodalLetterOut"
+            },
+            "title": "Letters",
+            "type": "array"
+          },
           "signals": {
             "items": {
               "$ref": "#/components/schemas/SignalOut"
@@ -2404,6 +2474,7 @@
           "features",
           "signals",
           "events",
+          "letters",
           "disclaimer"
         ],
         "title": "InstrumentDetail",
