@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { apiGet, type Recommendations } from "@/lib/api";
+import { apiGet, type Ranking, type Recommendations } from "@/lib/api";
 import { jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
+import { TradableRanking } from "@/components/TradableRanking";
 import { SignalCard } from "@/components/SignalCard";
 import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
 
@@ -19,7 +20,10 @@ type Search = { tf?: string; date?: string };
 
 export default async function Home({ searchParams }: { searchParams: Promise<Search> }) {
   const { tf = "D1", date } = await searchParams;
-  const res = await apiGet<Recommendations>("/recommendations", { timeframe: tf, date });
+  const [res, rank] = await Promise.all([
+    apiGet<Recommendations>("/recommendations", { timeframe: tf, date }),
+    apiGet<Ranking>("/v2/ranking"),
+  ]);
 
   return (
     <main className="space-y-5">
@@ -49,6 +53,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
           </Link>
         ))}
       </nav>
+
+      {rank.ok && rank.data.available && <TradableRanking d={rank.data} />}
+
+      <h2 className="pt-2 text-lg font-bold">مدل احتمال v1 (آستانه‌های سود پس از هزینه)</h2>
 
       {!res.ok ? <ErrorState message={res.error} /> : <Body data={res.data} tf={tf} />}
     </main>

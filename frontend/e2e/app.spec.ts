@@ -128,3 +128,12 @@ test("ranking page is labelled a model ranking and shows the failed gates", asyn
   await expect(page.getByTestId("zone-other")).toContainText("اروند");
   await expect(page.getByTestId("ranking-evidence")).toContainText("سنجیده نشده‌اند");
 });
+
+test("home lists only tradable v2 stocks and says what was left out", async ({ page }) => {
+  await page.goto("/");
+  const t = page.getByTestId("tradable-ranking");
+  await expect(t).toContainText("توصیه نیست");
+  await expect(t).not.toContainText("شکام ۰"); // in a buy queue: counted as left out, not listed
+  await expect(t).toContainText("وبانک");
+  await expect(t).toContainText("کنار گذاشته‌شده");
+});
