@@ -19,6 +19,7 @@ from tmon.api.schemas import (
     FeatureValue,
     InstrumentDetail,
     LiveOut,
+    ShareholderOut,
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
@@ -37,6 +38,7 @@ from tmon.storage.models import (
     MacroSeries,
     OrderBookSnapshot,
     PriceDaily,
+    Shareholder,
     Signal,
 )
 
@@ -131,6 +133,12 @@ def instrument_detail(
         .order_by(CodalLetter.published_at.desc(), CodalLetter.tracing_no.desc())
         .limit(LETTERS_SHOWN)
     ).all()
+    holders = session.scalars(
+        select(Shareholder)
+        .where(Shareholder.instrument_id == instrument_id)
+        .order_by(Shareholder.percent.desc().nulls_last(), Shareholder.holder_key)
+    ).all()
+    stamps = [h.fetched_at for h in holders if h.fetched_at]
     return InstrumentDetail(
         instrument=instrument_out(inst),
         adjusted=True,
@@ -138,6 +146,13 @@ def instrument_detail(
         features_date=frow.date if frow else None,
         features=features,
         signals=[signal_out(s, inst) for s in sigs],
+        shareholders=[
+            ShareholderOut(
+                name=h.name, shares=h.shares, percent=h.percent, change_amount=h.change_amount
+            )
+            for h in holders
+        ],
+        shareholders_at=max(stamps).date() if stamps else None,
         letters=[
             CodalLetterOut(
                 title=x.title,

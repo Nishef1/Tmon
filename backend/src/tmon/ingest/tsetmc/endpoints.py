@@ -16,6 +16,7 @@ MARKET_WATCH_INIT = f"{OLD}/tsev2/data/MarketWatchInit.aspx?h=0&r=0"
 DAILY_HISTORY = f"{OLD}/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={{ins_code}}"
 CLIENT_TYPES = f"{OLD}/tsev2/data/clienttype.aspx?i={{ins_code}}"
 INSTRUMENT_INFO = f"{CDN}/api/Instrument/GetInstrumentInfo/{{ins_code}}"
+SHAREHOLDERS = f"{CDN}/api/Shareholder/GetInstrumentShareHolderLast/{{ins_code}}"
 BEST_LIMITS = f"{CDN}/api/BestLimits/{{ins_code}}/{{date}}"
 BEST_LIMITS_LIVE = f"{CDN}/api/BestLimits/{{ins_code}}"  # current order book (reference client)
 # TSETMC's own adjusted series (a=1; a=0 is the raw one). Integer-rounded prices.
@@ -56,6 +57,10 @@ def client_types_url(ins_code: str) -> str:
 
 def instrument_info_url(ins_code: str) -> str:
     return INSTRUMENT_INFO.format(ins_code=ins_code)
+
+
+def shareholders_url(ins_code: str) -> str:
+    return SHAREHOLDERS.format(ins_code=ins_code)
 
 
 def best_limits_live_url(ins_code: str) -> str:

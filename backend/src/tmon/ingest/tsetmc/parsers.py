@@ -491,3 +491,49 @@ def parse_adjusted_history(text: str) -> list[AdjustedBar]:
             raise ParseError(f"bad adjusted history row {chunk!r}: {exc}") from exc
     out.sort(key=lambda b: b.day)
     return out
+
+
+# --------------------------------------------------------------------------- #
+# Major shareholders (cdn JSON)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class ShareholderRow:
+    holder_key: int
+    name: str
+    shares: int | None
+    percent: float | None
+    change_amount: int | None
+
+
+def parse_shareholders(payload: str | dict[str, Any]) -> list[ShareholderRow]:
+    """``GetInstrumentShareHolderLast``: ``{"shareHolder": [...]}``. An empty list is normal (TSETMC
+    lists none for many funds and new symbols); a layout without the key is an error."""
+    data = json.loads(payload) if isinstance(payload, str) else payload
+    if not isinstance(data, dict) or "shareHolder" not in data:
+        raise ParseError("shareholders payload has no 'shareHolder' key")
+    out: list[ShareholderRow] = []
+    for r in data["shareHolder"] or []:
+        key, name = r.get("shareHolderShareID"), r.get("shareHolderName")
+        if key is None or not name:
+            raise ParseError(f"shareholder row without id or name: {r!r}")
+
+        def num(v: Any) -> float | None:
+            return None if v is None else float(v)
+
+        shares, pct, chg = (
+            num(r.get("numberOfShares")),
+            num(r.get("perOfShares")),
+            num(r.get("changeAmount")),
+        )
+        out.append(
+            ShareholderRow(
+                holder_key=int(key),
+                name=normalize_fa(str(name)),
+                shares=None if shares is None else int(shares),
+                percent=pct,
+                change_amount=None if chg is None else int(chg),
+            )
+        )
+    return out

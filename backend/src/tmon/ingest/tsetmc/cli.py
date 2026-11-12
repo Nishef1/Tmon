@@ -21,6 +21,7 @@ from tmon.ingest.tsetmc.pipeline import (
     run_info_refresh,
     run_reclassify,
     run_risk_free,
+    run_shareholders,
 )
 
 
@@ -40,6 +41,8 @@ def main() -> None:
     adj.add_argument("--out", default="docs/reports/adjustment-check.md")
     sub.add_parser("info", help="refresh EPS and group P/E of stocks that traded lately")
     sub.add_parser("risk-free", help="treasury bill history and the one-year yield series")
+    sh = sub.add_parser("shareholders", help="major shareholders of every stock")
+    sh.add_argument("--limit", type=int, default=None)
     sub.add_parser("indices", help="TEDPIX and equal-weight index daily history")
     sub.add_parser("reclassify", help="re-run the type classifier over stored instruments")
     live = sub.add_parser("intraday", help="live price/volume snapshots and order books")
@@ -70,6 +73,9 @@ def main() -> None:
         return
     if args.cmd == "risk-free":
         print(run_risk_free())
+        return
+    if args.cmd == "shareholders":
+        print(run_shareholders(args.limit))
         return
     if args.cmd == "indices":
         print(run_indices())

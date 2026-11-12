@@ -105,6 +105,13 @@ test.describe("instrument page", () => {
     await expect(dash.getByText("گروه صنعت")).toBeVisible();
   });
 
+  test("lists the major shareholders with percent and change", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const box = page.getByTestId("shareholders");
+    await expect(box).toContainText("شرکت نمونه");
+    await expect(box).toContainText("۱۶٫۷۰٪");
+  });
+
   test("lists the Codal letters of the symbol", async ({ page }) => {
     await page.goto("/instruments/1");
     await expect(page.getByTestId("codal-letters")).toContainText(

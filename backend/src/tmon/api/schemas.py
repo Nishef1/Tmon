@@ -166,6 +166,13 @@ class CodalLetterOut(ApiModel):
     has_pdf: bool = False
 
 
+class ShareholderOut(ApiModel):
+    name: str
+    shares: int | None = None
+    percent: float | None = None
+    change_amount: int | None = None  # shares bought (+) or sold (-) since the previous list
+
+
 class InstrumentDetail(ApiModel):
     instrument: InstrumentOut
     adjusted: bool
@@ -174,6 +181,8 @@ class InstrumentDetail(ApiModel):
     features: list[FeatureValue]
     signals: list[SignalOut]
     events: list[CorporateEventOut] = []
+    shareholders: list[ShareholderOut] = []  # major holders, largest first
+    shareholders_at: dt.date | None = None  # when TSETMC's list was fetched
     letters: list[CodalLetterOut] = []  # latest Codal letters of any kind
     disclaimer: str = DISCLAIMER
 

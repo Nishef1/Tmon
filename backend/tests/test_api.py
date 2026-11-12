@@ -24,6 +24,7 @@ from tmon.storage.models import (
     MacroSeries,
     ModelRun,
     PriceDaily,
+    Shareholder,
     Signal,
     SignalNote,
 )
@@ -557,3 +558,19 @@ def test_screener_carries_flow_columns_and_decision(
     by_power = client.get("/screener", params={"sort": "power"}).json()
     assert by_power["rows"][0]["instrument"]["symbol"] == "ب"
     assert body["flow_date"] == DAY.isoformat() and body["ranking_date"] == DAY.isoformat()
+
+
+def test_instrument_detail_lists_shareholders_largest_first(
+    client: TestClient, session: Session
+) -> None:
+    a = _priced(session)
+    for key, name, pct in ((1, "کوچک", 1.5), (2, "بزرگ", 40.2)):
+        session.add(
+            Shareholder(instrument_id=a.id, holder_key=key, name=name, shares=1000 * key,
+                        percent=pct, change_amount=0,
+                        fetched_at=dt.datetime(2025, 3, 6, 8, 0, tzinfo=dt.UTC))
+        )  # fmt: skip
+    session.flush()
+    d = client.get(f"/instruments/{a.id}").json()
+    assert [h["name"] for h in d["shareholders"]] == ["بزرگ", "کوچک"]
+    assert d["shareholders_at"] == "2025-03-06"

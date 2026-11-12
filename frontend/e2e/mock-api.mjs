@@ -438,6 +438,10 @@ function route(url) {
         ],
         signals: [signal(1, 1, inst)],
         events: [],
+        shareholders: [
+          { name: "شرکت نمونه", shares: 2500000000, percent: 16.7, change_amount: -1200 },
+        ],
+        shareholders_at: "2026-11-10",
         letters: [
           {
             title: "افزایش سرمایه از محل سود انباشته",

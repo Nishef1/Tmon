@@ -471,3 +471,17 @@ class NewsEvent(Base):
     summary_fa: Mapped[str | None] = mapped_column(Text)
     model: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Shareholder(Base, Provenance):
+    """A major shareholder (about 1% or more) of an instrument, as TSETMC lists it. The table holds
+    the latest list only; a refresh replaces the rows of the instruments it fetched."""
+
+    __tablename__ = "shareholders"
+
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), primary_key=True)
+    holder_key: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text)
+    shares: Mapped[int | None] = mapped_column(BigInteger)
+    percent: Mapped[float | None] = mapped_column(Float)
+    change_amount: Mapped[int | None] = mapped_column(BigInteger)  # shares bought (+) or sold (-)

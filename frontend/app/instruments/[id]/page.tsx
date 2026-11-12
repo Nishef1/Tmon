@@ -7,7 +7,8 @@ import {
   type InstrumentDetail,
 } from "@/lib/api";
 import { featureInfo } from "@/lib/glossary";
-import { jalali } from "@/lib/format";
+import { faNumber, jalali } from "@/lib/format";
+import { signTone } from "@/lib/ui";
 import { SymbolDashboard } from "@/components/SymbolDashboard";
 import { LiveQuote } from "@/components/LiveQuote";
 import { CandleChart, type Level } from "@/components/CandleChart";
@@ -224,6 +225,45 @@ export default async function InstrumentPage({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="card" data-testid="shareholders">
+        <h2 className="mb-1 font-bold">سهامداران عمده</h2>
+        <p className="mb-2 text-xs text-muted">
+          دارندگان حدود یک درصد یا بیشتر از سهام، طبق فهرست بورس
+          {d.shareholders_at ? ` (دریافت: ${jalali(d.shareholders_at, "long")})` : ""}. «تغییر»
+          تعداد سهم خرید (مثبت) یا فروش (منفی) نسبت به فهرست قبلی است.
+        </p>
+        {d.shareholders.length === 0 ? (
+          <p className="text-sm text-muted">فهرست سهامداران عمده برای این نماد در دسترس نیست.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="tbl min-w-[28rem]">
+              <thead>
+                <tr className="text-right">
+                  <th>سهامدار</th>
+                  <th>درصد</th>
+                  <th>تعداد سهم</th>
+                  <th>تغییر</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.shareholders.map((h) => (
+                  <tr key={h.name}>
+                    <td className="font-semibold">{h.name}</td>
+                    <td>{h.percent == null ? "—" : `${faNumber(h.percent, 2)}٪`}</td>
+                    <td>{h.shares == null ? "—" : faNumber(h.shares)}</td>
+                    <td className={signTone(h.change_amount)}>
+                      {h.change_amount == null || h.change_amount === 0
+                        ? "—"
+                        : faNumber(h.change_amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

@@ -1007,6 +1007,13 @@ export interface components {
        * @default []
        */
       letters: components["schemas"]["CodalLetterOut"][];
+      /**
+       * Shareholders
+       * @default []
+       */
+      shareholders: components["schemas"]["ShareholderOut"][];
+      /** Shareholders At */
+      shareholders_at: string | null;
       /** Signals */
       signals: components["schemas"]["SignalOut"][];
     };
@@ -1683,6 +1690,17 @@ export interface components {
       query: string;
       /** Total */
       total: number;
+    };
+    /** ShareholderOut */
+    ShareholderOut: {
+      /** Change Amount */
+      change_amount: number | null;
+      /** Name */
+      name: string;
+      /** Percent */
+      percent: number | null;
+      /** Shares */
+      shares: number | null;
     };
     /** SignalOut */
     SignalOut: {

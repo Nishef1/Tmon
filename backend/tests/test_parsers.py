@@ -126,3 +126,24 @@ def test_best_limits():
     assert [lv.row for lv in levels] == [1, 2]
     assert levels[0].bid_volume == 50
     assert levels[0].as_dict()["ask_price"] == 101
+
+
+def test_parse_shareholders_reads_shares_percent_and_change() -> None:
+    payload = {
+        "shareHolder": [
+            {"shareHolderShareID": 7, "shareHolderName": "شركت يك", "numberOfShares": 2.5e9,
+             "perOfShares": 16.709, "changeAmount": -1200.0},
+            {"shareHolderShareID": 8, "shareHolderName": "دو", "numberOfShares": None,
+             "perOfShares": None, "changeAmount": None},
+        ]
+    }  # fmt: skip
+    rows = parsers.parse_shareholders(payload)
+    assert (rows[0].holder_key, rows[0].name, rows[0].shares) == (7, "شرکت یک", 2_500_000_000)
+    assert (rows[0].percent, rows[0].change_amount) == (16.709, -1200)
+    assert rows[1].shares is None and rows[1].percent is None
+
+
+def test_parse_shareholders_empty_list_is_valid_but_a_new_layout_is_an_error() -> None:
+    assert parsers.parse_shareholders('{"shareHolder": []}') == []
+    with pytest.raises(parsers.ParseError):
+        parsers.parse_shareholders('{"other": []}')

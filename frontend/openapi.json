@@ -2458,6 +2458,26 @@
             "title": "Letters",
             "type": "array"
           },
+          "shareholders": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ShareholderOut"
+            },
+            "title": "Shareholders",
+            "type": "array"
+          },
+          "shareholders_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shareholders At"
+          },
           "signals": {
             "items": {
               "$ref": "#/components/schemas/SignalOut"
@@ -2474,6 +2494,8 @@
           "features",
           "signals",
           "events",
+          "shareholders",
+          "shareholders_at",
           "letters",
           "disclaimer"
         ],
@@ -4865,6 +4887,55 @@
           "hits"
         ],
         "title": "SearchOut",
+        "type": "object"
+      },
+      "ShareholderOut": {
+        "properties": {
+          "change_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Amount"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          }
+        },
+        "required": [
+          "name",
+          "shares",
+          "percent",
+          "change_amount"
+        ],
+        "title": "ShareholderOut",
         "type": "object"
       },
       "SignalOut": {
