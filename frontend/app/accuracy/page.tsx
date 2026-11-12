@@ -29,8 +29,8 @@ export default async function AccuracyPage({
       <div>
         <h1 className="text-2xl font-extrabold">دقت زنده</h1>
         <p className="mt-1 text-sm text-muted">
-          نتیجهٔ سیگنال‌هایی که واقعاً منتشر شده‌اند، به تفکیک روز سیگنال. اگر امتیاز بریر بیست روز اخیر
-          بیش از ۲۰٪ از بریر آزمون گذشته‌نگر بدتر شود، انتشار توصیه متوقف می‌شود.
+          نتیجهٔ سیگنال‌هایی که واقعاً منتشر شده‌اند، به تفکیک روز سیگنال. اگر امتیاز بریر بیست روز
+          اخیر بیش از ۲۰٪ از بریر آزمون گذشته‌نگر بدتر شود، انتشار توصیه متوقف می‌شود.
         </p>
       </div>
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="افق">
@@ -92,16 +92,16 @@ export default async function AccuracyPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">
-                  امتیاز بریر {faNumber(res.data.recent_days)} روز اخیر ({faNumber(res.data.recent_n)} سیگنال) / آزمون
-                </dt>
+                <dt className="text-xs text-muted">امتیاز بریر (کمتر بهتر است)</dt>
                 <dd>
+                  {faNumber(res.data.recent_days)} روز اخیر ({faNumber(res.data.recent_n)} سیگنال):{" "}
                   {res.data.recent_brier != null ? (
                     <Num value={res.data.recent_brier} kind="plain" term="brier" digits={3} />
                   ) : (
                     "—"
-                  )}{" "}
-                  /{" "}
+                  )}
+                  <br />
+                  آزمون گذشته‌نگر:{" "}
                   {res.data.backtest_brier != null ? (
                     <Num value={res.data.backtest_brier} kind="plain" term="brier" digits={3} />
                   ) : (

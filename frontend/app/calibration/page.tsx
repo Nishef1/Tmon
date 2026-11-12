@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Calibration, type CalibrationBlock } from "@/lib/api";
-import { faDigits, jalali } from "@/lib/format";
+import { faDigits, friendlyWarning, jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
@@ -151,7 +151,7 @@ export default async function CalibrationPage() {
               <p className="font-semibold">هشدارها</p>
               <ul className="mt-1 list-inside list-disc">
                 {res.data.warnings.map((w) => (
-                  <li key={w}>{faDigits(w)}</li>
+                  <li key={w}>{friendlyWarning(w)}</li>
                 ))}
               </ul>
             </aside>

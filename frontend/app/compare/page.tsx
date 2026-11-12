@@ -23,7 +23,14 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">مقایسه با تورم</h1>
+      <div>
+        <h1 className="text-2xl font-extrabold">مقایسه با تورم</h1>
+        <p className="mt-1 text-sm text-muted">
+          بازدهٔ دارایی‌های ساده (دلار، طلا، سکه، اوراق) و صندوق‌های بورسی در برابر تورم دوره؛ تا
+          ببینید نگه‌داشتن پول در سهام نسبت به این گزینه‌ها و نسبت به کاهش ارزش پول چه ارزشی داشته
+          است.
+        </p>
+      </div>
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="بازهٔ زمانی و منبع تورم">
         {MONTHS.map((m) => (
           <Link

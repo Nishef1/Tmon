@@ -422,6 +422,9 @@ class RankingRow(ApiModel):
     queue_state: str | None = None
     median_value: float | None = None
     signals: dict[str, float | None]
+    instrument_id: int | None = None
+    close: float | None = None
+    change_pct: float | None = None
 
 
 class RankingEvidence(ApiModel):

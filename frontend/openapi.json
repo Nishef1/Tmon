@@ -3717,6 +3717,39 @@
       },
       "RankingRow": {
         "properties": {
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
           "median_value": {
             "anyOf": [
               {
@@ -3815,7 +3848,10 @@
           "zone",
           "queue_state",
           "median_value",
-          "signals"
+          "signals",
+          "instrument_id",
+          "close",
+          "change_pct"
         ],
         "title": "RankingRow",
         "type": "object"

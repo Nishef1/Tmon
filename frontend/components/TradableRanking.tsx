@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Ranking, RankingRow } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
-import { Num } from "@/components/Num";
 
 const isFund = (r: RankingRow) => (r.name ?? "").startsWith("صندوق");
 const inQueue = (r: RankingRow) => r.queue_state === "buy_queue" || r.queue_state === "sell_queue";
@@ -116,10 +115,27 @@ function Column({ c, rows }: { c: Col; rows: RankingRow[] }) {
 
 function Chip({ r }: { r: RankingRow }) {
   return (
-    <li className="rounded-lg border border-line bg-surface px-2 py-0.5">
-      <span className="font-semibold">{r.symbol}</span>{" "}
-      <Num value={r.score} term="rank_score" digits={2} />
-      {r.name && <div className="max-w-48 truncate text-xs text-muted">{r.name}</div>}
+    <li>
+      <Link
+        href={
+          r.instrument_id == null
+            ? `/screener?q=${encodeURIComponent(r.symbol)}`
+            : `/instruments/${r.instrument_id}`
+        }
+        className="block rounded-lg border border-line bg-surface px-2 py-1 hover:border-accent hover:bg-accent-soft"
+      >
+        <span className="flex items-baseline gap-2">
+          <span className="font-bold">{r.symbol}</span>
+          {r.change_pct != null && (
+            <span
+              className={`text-xs font-semibold ${r.change_pct > 0 ? "text-up" : r.change_pct < 0 ? "text-down" : "text-muted"}`}
+            >
+              {faPercent(r.change_pct, 1, true)}
+            </span>
+          )}
+        </span>
+        {r.name && <span className="block max-w-48 truncate text-xs text-muted">{r.name}</span>}
+      </Link>
     </li>
   );
 }

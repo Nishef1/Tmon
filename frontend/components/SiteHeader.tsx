@@ -40,7 +40,12 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
-        <Link href="/" onClick={close} className="flex items-center gap-2" aria-label="Tmon، صفحهٔ اصلی">
+        <Link
+          href="/"
+          onClick={close}
+          className="flex items-center gap-2"
+          aria-label="Tmon، صفحهٔ اصلی"
+        >
           <span className="grid size-9 place-items-center rounded-xl bg-accent text-lg font-black text-surface">
             T
           </span>
@@ -67,7 +72,10 @@ export function SiteHeader() {
               onClick={() => setMore(!more)}
               className={`${link(inMore)} flex items-center gap-1`}
             >
-              بیشتر <span aria-hidden className="text-xs">▾</span>
+              بیشتر{" "}
+              <span aria-hidden className="text-xs">
+                ▾
+              </span>
             </button>
             {more && (
               <ul className="absolute end-0 top-full z-40 mt-2 min-w-44 rounded-xl border border-line bg-surface p-1 shadow-lg">

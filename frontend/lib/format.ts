@@ -132,3 +132,22 @@ export function faCount(n: number | null | undefined): string {
   if (a >= 1e3) return `${group(n / 1e3, 0)} هزار`;
   return group(n, 0);
 }
+
+const RULE_NAMES: Record<string, string> = {
+  commission_buy: "کارمزد خرید",
+  commission_sell: "کارمزد فروش",
+  price_limit: "حد نوسان قیمت",
+  sell_tax: "مالیات فروش",
+  tick_size: "گام قیمت",
+  lot_size: "اندازهٔ سفارش",
+};
+
+/** Calibration warnings come from the backend with raw rule keys; show them in plain Persian. */
+export function friendlyWarning(w: string): string {
+  return faDigits(
+    w
+      .replace(/«([a-z_]+)»/g, (_, k: string) => `«${RULE_NAMES[k] ?? k}»`)
+      .replace(/ ?\(verified=false\)/g, "")
+      .replace("تأییدنشده است", "هنوز با منبع رسمی تطبیق داده نشده است"),
+  );
+}

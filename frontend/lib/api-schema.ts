@@ -1401,6 +1401,12 @@ export interface components {
     };
     /** RankingRow */
     RankingRow: {
+      /** Change Pct */
+      change_pct: number | null;
+      /** Close */
+      close: number | null;
+      /** Instrument Id */
+      instrument_id: number | null;
       /** Median Value */
       median_value: number | null;
       /** Name */

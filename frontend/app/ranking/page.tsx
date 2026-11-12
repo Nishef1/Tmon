@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { apiGet, type Ranking, type RankingRow } from "@/lib/api";
-import { faDigits, faNumber, jalali } from "@/lib/format";
+import { faDigits, faNumber, faPercent, faPrice, jalali } from "@/lib/format";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
@@ -76,8 +76,8 @@ function Body({ d }: { d: Ranking }) {
             : "این فهرست رتبه‌بندی مدل است، توصیهٔ خرید نیست"}
         </h2>
         <p>
-          تاریخ داده: {jalali(d.as_of)}. طبق قاعدهٔ ثبت‌شدهٔ پروژه، تا وقتی همهٔ دروازه‌های آزمون (G1 تا G6) نگذرند،
-          خروجی v2 نباید توصیه نامیده شود. وضعیت آزمون روی داده‌های واقعی:
+          تاریخ داده: {jalali(d.as_of)}. طبق قاعدهٔ ثبت‌شدهٔ پروژه، تا وقتی همهٔ دروازه‌های آزمون
+          (G1 تا G6) نگذرند، خروجی v2 نباید توصیه نامیده شود. وضعیت آزمون روی داده‌های واقعی:
         </p>
         <ul className="list-inside list-disc space-y-1">
           {d.gates.map((c) => (
@@ -221,6 +221,8 @@ function Zone({
               <tr className="text-right">
                 <th className="py-1">#</th>
                 <th>نماد</th>
+                <th>پایانی</th>
+                <th>امروز</th>
                 <th>امتیاز</th>
                 {Object.values(SIGNALS).map((l) => (
                   <th key={l}>{l}</th>
@@ -233,11 +235,34 @@ function Zone({
                 <tr key={r.symbol} className="border-t border-line">
                   <td className="py-1">{faNumber(r.rank)}</td>
                   <td>
-                    <span className="font-semibold">{r.symbol}</span>
+                    {r.instrument_id == null ? (
+                      <span className="font-semibold">{r.symbol}</span>
+                    ) : (
+                      <Link
+                        href={`/instruments/${r.instrument_id}`}
+                        className="font-bold text-accent hover:underline"
+                      >
+                        {r.symbol}
+                      </Link>
+                    )}
                     <span className="mr-1 text-xs text-muted">{r.name}</span>
                     {r.name?.startsWith("صندوق") && (
                       <span className="mr-1 rounded border border-line px-1 text-xs">صندوق</span>
                     )}
+                  </td>
+                  <td>{r.close == null ? "—" : faPrice(r.close)}</td>
+                  <td
+                    className={
+                      r.change_pct == null
+                        ? "text-muted"
+                        : r.change_pct > 0
+                          ? "font-semibold text-up"
+                          : r.change_pct < 0
+                            ? "font-semibold text-down"
+                            : ""
+                    }
+                  >
+                    {r.change_pct == null ? "—" : faPercent(r.change_pct, 1, true)}
                   </td>
                   <td>
                     <Num value={r.score} term="rank_score" digits={2} />
