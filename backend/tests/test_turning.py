@@ -180,3 +180,42 @@ def test_state_names_come_from_the_code_not_the_stored_document() -> None:
     t = turning_out(doc, 1)
     assert t is not None and t.state.title == tp.STATE_BY_KEY["deep_falling"].title
     assert "داغ" not in {s.title for s in tp.STATES}
+
+
+def test_panel_uses_adjusted_prices_across_a_capital_increase() -> None:
+    """A 50% price gap from a capital increase is not a 50% loss."""
+    n, gap = tp.MIN_HISTORY + 40, tp.MIN_HISTORY + 20
+    days = [dt.date(2015, 1, 1) + dt.timedelta(days=i) for i in range(n)]
+    close = [100.0 * 1.001**i * (0.5 if i >= gap else 1.0) for i in range(n)]
+    # the board resets the base price on the capital-increase day
+    prev = [None, *[close[i] if i + 1 != gap else close[gap] / 1.001 for i in range(n - 1)]]
+    prices = pl.DataFrame(
+        {
+            "instrument_id": [1] * n,
+            "date": days,
+            "open": close,
+            "high": close,
+            "low": close,
+            "close": close,
+            "last": close,
+            "prev_close": prev,
+            "volume": [1000.0] * n,
+            "value": [1e6] * n,
+            "market_halt": [False] * n,
+        }
+    )
+    clients = pl.DataFrame(
+        {
+            "instrument_id": [1],
+            "date": [days[0]],
+            "buy_value_i": [1.0],
+            "sell_value_i": [1.0],
+            "buy_count_i": [1],
+            "sell_count_i": [1],
+        }
+    )
+    p = tp.build_panel(prices, clients).sort("date")
+    assert p.filter(pl.col("date") == days[gap])["ret1"][0] == pytest.approx(0.001, abs=1e-6)
+    assert p.filter(pl.col("date") == days[gap - 10])["f20"][0] == pytest.approx(
+        1.001**20 - 1, abs=1e-6
+    )

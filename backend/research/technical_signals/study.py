@@ -44,6 +44,8 @@ def build_panel() -> pl.DataFrame:
     with session_scope() as s:
         prices, clients, _ = load_inputs(s)
     p = apply_adjustments(prices).filter(~C("market_halt") & (C("close") > 0)).sort(G, "date")
+    # every price below is the adjusted one, or a capital increase reads as a crash
+    p = p.with_columns(close=C("adj_close"), high=C("adj_high"), low=C("adj_low"))
     cols = ["buy_value_i", "sell_value_i", "buy_count_i", "sell_count_i"]
     p = p.join(clients.select(G, "date", *cols), on=[G, "date"], how="left")
     cl, hi, lo = C("close"), C("high"), C("low")
