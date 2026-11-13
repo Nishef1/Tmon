@@ -58,3 +58,54 @@ describe("percent ruler", () => {
     ).toBeNull();
   });
 });
+
+import fixture from "./fixtures-ta.json";
+import * as ind from "@/lib/indicators";
+
+// The same bars and last values from tmon.backtest.ta_signals (backend), so the chart and the
+// symbol card can never disagree.
+describe("chart indicators match the backend", () => {
+  const bars = fixture.bars as ind.VBar[];
+  const want = fixture.last as Record<string, number>;
+  const last = (s: ind.Series) => s[s.length - 1].value;
+  const close = (got: number, key: string) => expect(got).toBeCloseTo(want[key], 6);
+
+  it("momentum and trend", () => {
+    close(last(ind.rsi(bars)), "rsi");
+    const m = ind.macd(bars);
+    close(last(m.macd), "macd");
+    close(last(m.signal), "macd_sig");
+    const s = ind.stochastic(bars);
+    close(last(s.k), "stoch_k");
+    close(last(s.d), "stoch_d");
+    close(last(s.k) - 100, "willr");
+    close(last(ind.mfi(bars)), "mfi");
+    const a = ind.adx(bars);
+    close(last(a.adx), "adx");
+    close(last(a.pdi), "pdi");
+    close(last(a.mdi), "mdi");
+    close(last(ind.atrPct(bars)), "atr_pct");
+    close(last(ind.obv(bars)), "obv");
+  });
+
+  it("price overlays and levels", () => {
+    const b = ind.bollinger(bars);
+    close(last(b.up), "bb_up");
+    close(last(b.dn), "bb_dn");
+    close(last(b.mid), "sma20");
+    close(last(ind.ema(bars, 12)), "ema12");
+    close(last(ind.ema(bars, 26)), "ema26");
+    close(last(ind.vwap(bars)), "vwap20");
+    const i = ind.ichimoku(bars);
+    close(last(i.tenkan), "tenkan");
+    close(last(i.kijun), "kijun");
+    close(Math.max(last(i.spanA), last(i.spanB)), "cloud_top");
+    close(Math.min(last(i.spanA), last(i.spanB)), "cloud_bot");
+    const lv = Object.fromEntries(ind.levels(bars).map((l) => [l.key, l.price]));
+    close(lv.res20, "hi20");
+    close(lv.sup20, "lo20");
+    close(lv.r1, "r1");
+    close(lv.s1, "s1");
+    close(lv.fib618, "fib618");
+  });
+});

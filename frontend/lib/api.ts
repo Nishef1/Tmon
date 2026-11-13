@@ -1,6 +1,7 @@
 // Server-side client for the Tmon API. Pages call it from server components only,
 // so the browser never needs to reach the API host directly.
 
+import { unstable_rethrow } from "next/navigation";
 import type { components } from "./api-schema";
 
 // Response types are generated from the backend's OpenAPI schema (`pnpm gen:api`); the
@@ -62,6 +63,23 @@ export async function apiGet<T>(path: string, params: Params = {}): Promise<ApiR
     return { ok: true, data: (await res.json()) as T };
   } catch {
     return { ok: false, status: 0, error: "ارتباط با سرور برقرار نشد. کمی بعد دوباره تلاش کنید." };
+  }
+}
+
+export type TaSignals = S["TaSignalsOut"];
+export type TaSignal = S["TaSignal"];
+
+/** The glossary signals' tested history (changes once a day). Kept for ten minutes so the
+ *  glossary pages stay static; null when the API cannot be reached. */
+export async function taSignals(): Promise<TaSignals | null> {
+  try {
+    const res = await fetch(new URL("/research/ta-signals", API_BASE), {
+      next: { revalidate: 600 },
+    });
+    return res.ok ? ((await res.json()) as TaSignals) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
   }
 }
 

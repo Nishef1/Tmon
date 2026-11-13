@@ -6,6 +6,7 @@ import { DriversCard } from "@/components/DriversCard";
 import { PeersCard } from "@/components/PeersCard";
 import { PlainSummary } from "@/components/PlainSummary";
 import { TurningCard } from "@/components/TurningCard";
+import { TechnicalCard } from "@/components/TechnicalCard";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 import { signedPct, signTone, verdictPill, verdictTone } from "@/lib/ui";
 
@@ -379,6 +380,7 @@ export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?
       {d.peers && <PeersCard p={d.peers} />}
       {d.turning && <TurningCard t={d.turning} />}
       {d.drivers && <DriversCard d={d.drivers} />}
+      {d.technical && <TechnicalCard t={d.technical} />}
 
       {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
       <Company d={d} />

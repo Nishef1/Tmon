@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { TermTests } from "@/components/TermTests";
+import { taSignals } from "@/lib/api";
 import { GLOSSARY, GLOSSARY_KEYS, glossaryEntry, CATEGORY_LABEL } from "@/lib/glossary";
+import { SHOWN_ON } from "@/lib/glossary-usage";
 
 type Props = { params: Promise<{ term: string }> };
 
@@ -21,6 +24,8 @@ export default async function GlossaryTerm({ params }: Props) {
   const { term } = await params;
   const e = glossaryEntry(term);
   if (!e) notFound();
+  const shown = SHOWN_ON[term];
+  const tests = shown ? await taSignals() : null;
   return (
     <main className="max-w-2xl space-y-5">
       <Link href="/glossary" className="text-sm text-accent">
@@ -45,6 +50,17 @@ export default async function GlossaryTerm({ params }: Props) {
       )}
       <Section title="چرا مهم است؟">{e.why}</Section>
       <Section title="محدودیت‌ها">{e.limits}</Section>
+      {shown && (
+        <section data-testid="term-shown-on">
+          <h2 className="mb-1 font-bold">کجای سایت دیده می‌شود؟</h2>
+          <ul className="list-disc space-y-1 ps-5 text-sm">
+            {shown.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <TermTests term={term} doc={tests} />
       {e.related && e.related.length > 0 && (
         <section>
           <h2 className="mb-1 font-bold">مدخل‌های مرتبط</h2>

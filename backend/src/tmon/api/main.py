@@ -11,6 +11,7 @@ from tmon.api.routers import (
     metrics,
     ranking,
     recommendations,
+    research,
     screener,
     search,
     signals,
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
         search.router,
         market.router,
         ranking.router,
+        research.router,
     ):
         app.include_router(r)
     return app

@@ -854,6 +854,104 @@ class DashDrivers(ApiModel):
     lines: list[str] = []
 
 
+TaLabel = Literal["works", "backfires", "direction_only", "reverse_small", "no_edge", "too_few"]
+
+
+class TaHorizon(ApiModel):
+    """One horizon of a tested reading: candles after the entry at the next day's close."""
+
+    h: int
+    n: int
+    excess_mean: float  # against the liquid symbols one could also trade that day
+    excess_median: float
+    up: float  # share of cases that went up
+    up_all: float  # the same share for all those symbols on the same days
+    halves: list[float | None] = []  # mean excess in the first and second half of the history
+    years_pos: float | None = None  # share of calendar years with a positive mean excess
+
+
+class TaSignal(ApiModel):
+    """A classic reading of a glossary term, tested on the whole TSETMC history."""
+
+    key: str
+    term: str  # glossary key
+    side: Literal["buy", "sell"]  # what the textbooks teach
+    title: str
+    label: TaLabel
+    verdict: str  # one plain sentence
+    n: int
+    symbols: int
+    locked_share: float | None = None  # entries dropped because the day was probably locked
+    x20_with_locked: float | None = None  # 20-candle excess with those days left in
+    profit_horizon: int | None = None
+    direction_horizons: list[int] = []
+    horizons: list[TaHorizon] = []
+
+
+class TaSignalsOut(ApiModel):
+    available: bool
+    as_of: dt.date | None = None
+    round_trip_cost: float | None = None
+    dir_edge: float | None = None
+    history_first: dt.date | None = None
+    history_last: dt.date | None = None
+    split_date: dt.date | None = None
+    signals: list[TaSignal] = []
+
+
+class DashTaValue(ApiModel):
+    """Today's value of one indicator with its textbook reading."""
+
+    key: str
+    term: str  # glossary key
+    name: str
+    value: float | None = None
+    unit: Literal["num", "pct", "price", "x"] = "num"
+    reading: str
+    tone: Literal["buy", "sell", "neutral"] = "neutral"
+
+
+class DashTaFired(ApiModel):
+    """A reading the symbol fired in its last trading days, with what it did in the past."""
+
+    key: str
+    term: str
+    title: str
+    side: Literal["buy", "sell"]
+    date: dt.date
+    ago: int  # trading days ago (0 = the last day)
+    label: TaLabel
+    verdict: str
+
+
+class DashRisk(ApiModel):
+    """The last 250 trading days of the symbol (longer than a year when it was halted)."""
+
+    from_date: dt.date
+    days: int
+    ret_1y: float
+    vol_ann: float  # annualised standard deviation of daily returns
+    var95: float  # daily loss exceeded on one day in twenty
+    max_dd: float
+    sharpe: float | None = None
+    sortino: float | None = None
+    rf_annual: float | None = None  # one-year treasury yield used as the risk-free rate
+    beta_index: float | None = None  # from the drivers document
+
+
+class DashTechnical(ApiModel):
+    """Every chart indicator of the glossary for this symbol, read the textbook way, and what
+    those readings did on the whole exchange. Describes the past; none of it feeds the verdict."""
+
+    as_of: dt.date
+    recent_days: int
+    round_trip_cost: float
+    values: list[DashTaValue] = []
+    fired: list[DashTaFired] = []
+    risk: DashRisk | None = None
+    lines: list[str] = []
+
+
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
     isin: str | None = None
@@ -874,6 +972,7 @@ class InstrumentDashboard(ApiModel):
     turning: DashTurning | None = None
     peers: DashPeers | None = None
     drivers: DashDrivers | None = None
+    technical: DashTechnical | None = None
 
 
 class SearchHit(ApiModel):

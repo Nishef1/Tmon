@@ -18,6 +18,8 @@ with session_scope() as s:
   & $py -m tmon.tools.turning_points
   # ties to the index, dollar, copper and Brent, and moves after dated shocks
   & $py -m tmon.tools.stock_drivers
+  # every chart term of the glossary: tested readings, each symbol's values and risk numbers
+  & $py -m tmon.tools.ta_signals
   # new assembly/capital letters from Codal, then the day each invitation names
   & $py -m tmon.ingest.codal.cli events
   & $py -m tmon.ingest.codal.cli meetings

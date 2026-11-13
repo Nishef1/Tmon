@@ -299,10 +299,49 @@ const MARKET = {
   ],
 };
 
+const taHorizon = (h, x) => ({
+  h,
+  n: 89000,
+  excess_mean: x,
+  excess_median: x / 2,
+  up: 0.38,
+  up_all: 0.43,
+  halves: [x * 1.2, x * 0.9],
+  years_pos: 0.04,
+});
+
+const TA_SIGNALS = {
+  available: true,
+  as_of: "2026-11-11",
+  round_trip_cost: 0.017512,
+  dir_edge: 0.03,
+  history_first: "2002-04-07",
+  history_last: "2026-11-11",
+  split_date: "2014-06-08",
+  signals: [
+    {
+      key: "gap_down",
+      term: "gap_fill",
+      side: "buy",
+      title: "گشایش با شکاف منفی ۳٪ (انتظار پر شدن)",
+      label: "reverse_small",
+      verdict: "در هر دو نیمهٔ تاریخچه خلاف کتاب رفته، ولی کمتر از کارمزد.",
+      n: 89933,
+      symbols: 851,
+      locked_share: 0.17,
+      x20_with_locked: -0.013,
+      profit_horizon: null,
+      direction_horizons: [],
+      horizons: [1, 3, 5, 10, 20, 60].map((h) => taHorizon(h, -0.0005 * h)),
+    },
+  ],
+};
+
 function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
   if (path === "/v2/ranking") return [200, RANKING];
+  if (path === "/research/ta-signals") return [200, TA_SIGNALS];
   if (path === "/search") {
     const q = url.searchParams.get("q") ?? "";
     const all = [
@@ -622,6 +661,59 @@ function route(url) {
           ],
           lines: [
             "وقتی کل بورس ۱۰٪ بالا یا پایین رفته، این سهم حدود 12.5٪ رفته؛ یعنی تندتر از بازار.",
+          ],
+        },
+        technical: {
+          as_of: "2026-11-11",
+          recent_days: 10,
+          round_trip_cost: 0.017512,
+          values: [
+            {
+              key: "rsi",
+              term: "rsi",
+              name: "RSI ۱۴ روزه",
+              value: 25.3,
+              unit: "num",
+              reading: "زیر ۳۰: اشباع فروش",
+              tone: "buy",
+            },
+            {
+              key: "atr",
+              term: "atr",
+              name: "ATR (درصد قیمت)",
+              value: 0.04,
+              unit: "pct",
+              reading: "نوسان معمول یک روز حدود 4.0٪ قیمت",
+              tone: "neutral",
+            },
+          ],
+          fired: [
+            {
+              key: "suspicious_volume_down",
+              term: "rel_volume",
+              side: "sell",
+              title: "حجم مشکوک با افت و خروج حقیقی",
+              date: "2026-11-05",
+              ago: 4,
+              label: "works",
+              verdict:
+                "در گذشته جواب داده: 60 روز بعد به‌طور میانگین 2.0٪ بدتر از بازار بوده و در هر دو نیمهٔ تاریخچه بیش از کارمزد (1.8٪).",
+            },
+          ],
+          risk: {
+            from_date: "2025-11-01",
+            days: 250,
+            ret_1y: 0.2,
+            vol_ann: 0.35,
+            var95: 0.029,
+            max_dd: -0.21,
+            sharpe: 0.5,
+            sortino: 0.7,
+            rf_annual: 0.415,
+            beta_index: 1.25,
+          },
+          lines: [
+            "«حجم مشکوک با افت و خروج حقیقی» 4 روز معاملاتی پیش دیده شد؛ در گذشته جواب داده.",
           ],
         },
         decision: {

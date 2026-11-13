@@ -40,6 +40,7 @@ from tmon.api.schemas import (
     TurningTrigger,
     TurningWarning,
 )
+from tmon.api.technical import ta_doc, technical_out
 from tmon.backtest.turning import STATE_BY_KEY
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
@@ -683,6 +684,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         year_max=_f(tags.get("year_max")),
     )
     rank_doc, turn_doc = _ranking_doc(), _turning_doc()
+    drv_doc = _stored_doc(DRIVERS_KEY) if inst.instrument_type == "stock" else None
     fa = None
     if inst.instrument_type == "stock":
         fa = fundamental_out(inst, close, sector.name if sector else None)
@@ -713,10 +715,15 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         decision=decide(inst, rank_doc, statistics.median(vals) if vals else None),
         turning=turning_out(turn_doc, inst.id),
         peers=peers_out(session, inst, sector.name if sector else None, rank_doc, turn_doc),
-        drivers=drivers_out(_stored_doc(DRIVERS_KEY), inst.id)
-        if inst.instrument_type == "stock"
-        else None,
+        drivers=drivers_out(drv_doc, inst.id) if inst.instrument_type == "stock" else None,
+        technical=technical_out(ta_doc(), inst.id, _beta(drv_doc, inst.id)),
     )
+
+
+def _beta(doc: dict[str, Any] | None, instrument_id: int) -> float | None:
+    x = ((doc or {}).get("symbols") or {}).get(str(instrument_id)) or {}
+    b = x.get("beta_index")
+    return float(b) if b is not None else None
 
 
 def _stored_doc(key: str) -> dict[str, Any] | None:

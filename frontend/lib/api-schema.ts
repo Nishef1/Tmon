@@ -224,6 +224,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/research/ta-signals": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ta Signals
+     * @description Every classic reading of the glossary's chart terms, tested on the whole TSETMC history
+     *     (``python -m tmon.tools.ta_signals``). A description of the past, not advice.
+     */
+    get: operations["ta_signals_research_ta_signals_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/screener": {
     parameters: {
       query?: never;
@@ -883,6 +904,35 @@ export interface components {
       /** Year Min */
       year_min: number | null;
     };
+    /**
+     * DashRisk
+     * @description The last 250 trading days of the symbol (longer than a year when it was halted).
+     */
+    DashRisk: {
+      /** Beta Index */
+      beta_index: number | null;
+      /** Days */
+      days: number;
+      /**
+       * From Date
+       * Format: date
+       */
+      from_date: string;
+      /** Max Dd */
+      max_dd: number;
+      /** Ret 1Y */
+      ret_1y: number;
+      /** Rf Annual */
+      rf_annual: number | null;
+      /** Sharpe */
+      sharpe: number | null;
+      /** Sortino */
+      sortino: number | null;
+      /** Var95 */
+      var95: number;
+      /** Vol Ann */
+      vol_ann: number;
+    };
     /** DashShareChange */
     DashShareChange: {
       /** Change Pct */
@@ -911,6 +961,97 @@ export interface components {
       pct: number;
       /** Text */
       text: string;
+    };
+    /**
+     * DashTaFired
+     * @description A reading the symbol fired in its last trading days, with what it did in the past.
+     */
+    DashTaFired: {
+      /** Ago */
+      ago: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Key */
+      key: string;
+      /**
+       * Label
+       * @enum {string}
+       */
+      label: "works" | "backfires" | "direction_only" | "reverse_small" | "no_edge" | "too_few";
+      /**
+       * Side
+       * @enum {string}
+       */
+      side: "buy" | "sell";
+      /** Term */
+      term: string;
+      /** Title */
+      title: string;
+      /** Verdict */
+      verdict: string;
+    };
+    /**
+     * DashTaValue
+     * @description Today's value of one indicator with its textbook reading.
+     */
+    DashTaValue: {
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
+      /** Reading */
+      reading: string;
+      /** Term */
+      term: string;
+      /**
+       * Tone
+       * @default neutral
+       * @enum {string}
+       */
+      tone: "buy" | "sell" | "neutral";
+      /**
+       * Unit
+       * @default num
+       * @enum {string}
+       */
+      unit: "num" | "pct" | "price" | "x";
+      /** Value */
+      value: number | null;
+    };
+    /**
+     * DashTechnical
+     * @description Every chart indicator of the glossary for this symbol, read the textbook way, and what
+     *     those readings did on the whole exchange. Describes the past; none of it feeds the verdict.
+     */
+    DashTechnical: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /**
+       * Fired
+       * @default []
+       */
+      fired: components["schemas"]["DashTaFired"][];
+      /**
+       * Lines
+       * @default []
+       */
+      lines: string[];
+      /** Recent Days */
+      recent_days: number;
+      risk: components["schemas"]["DashRisk"] | null;
+      /** Round Trip Cost */
+      round_trip_cost: number;
+      /**
+       * Values
+       * @default []
+       */
+      values: components["schemas"]["DashTaValue"][];
     };
     /**
      * DashTurning
@@ -1221,6 +1362,7 @@ export interface components {
       share_changes: components["schemas"]["DashShareChange"][];
       /** Shares */
       shares: number | null;
+      technical: components["schemas"]["DashTechnical"] | null;
       turning: components["schemas"]["DashTurning"] | null;
     };
     /** InstrumentDetail */
@@ -1994,6 +2136,97 @@ export interface components {
       /** Top Reasons */
       top_reasons: components["schemas"]["Reason"][];
     };
+    /**
+     * TaHorizon
+     * @description One horizon of a tested reading: candles after the entry at the next day's close.
+     */
+    TaHorizon: {
+      /** Excess Mean */
+      excess_mean: number;
+      /** Excess Median */
+      excess_median: number;
+      /** H */
+      h: number;
+      /**
+       * Halves
+       * @default []
+       */
+      halves: (number | null)[];
+      /** N */
+      n: number;
+      /** Up */
+      up: number;
+      /** Up All */
+      up_all: number;
+      /** Years Pos */
+      years_pos: number | null;
+    };
+    /**
+     * TaSignal
+     * @description A classic reading of a glossary term, tested on the whole TSETMC history.
+     */
+    TaSignal: {
+      /**
+       * Direction Horizons
+       * @default []
+       */
+      direction_horizons: number[];
+      /**
+       * Horizons
+       * @default []
+       */
+      horizons: components["schemas"]["TaHorizon"][];
+      /** Key */
+      key: string;
+      /**
+       * Label
+       * @enum {string}
+       */
+      label: "works" | "backfires" | "direction_only" | "reverse_small" | "no_edge" | "too_few";
+      /** Locked Share */
+      locked_share: number | null;
+      /** N */
+      n: number;
+      /** Profit Horizon */
+      profit_horizon: number | null;
+      /**
+       * Side
+       * @enum {string}
+       */
+      side: "buy" | "sell";
+      /** Symbols */
+      symbols: number;
+      /** Term */
+      term: string;
+      /** Title */
+      title: string;
+      /** Verdict */
+      verdict: string;
+      /** X20 With Locked */
+      x20_with_locked: number | null;
+    };
+    /** TaSignalsOut */
+    TaSignalsOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /** Dir Edge */
+      dir_edge: number | null;
+      /** History First */
+      history_first: string | null;
+      /** History Last */
+      history_last: string | null;
+      /** Round Trip Cost */
+      round_trip_cost: number | null;
+      /**
+       * Signals
+       * @default []
+       */
+      signals: components["schemas"]["TaSignal"][];
+      /** Split Date */
+      split_date: string | null;
+    };
     /** TurningHorizon */
     TurningHorizon: {
       /** Beat */
@@ -2453,6 +2686,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  ta_signals_research_ta_signals_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TaSignalsOut"];
         };
       };
     };

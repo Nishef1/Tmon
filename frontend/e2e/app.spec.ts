@@ -138,6 +138,27 @@ test.describe("instrument page", () => {
     await expect(box.getByTestId("drivers-moves")).toContainText("جنگ ۱۲ روزه");
   });
 
+  test("technical card reads every indicator and the tested history", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const box = page.getByTestId("technical");
+    await expect(box.getByTestId("ta-values")).toContainText("اشباع فروش");
+    await expect(box.getByTestId("ta-fired")).toContainText("در گذشته کار کرده");
+    await expect(box.getByTestId("ta-risk")).toContainText("۱٫۲۵");
+    await expect(box.locator('a[href="/glossary/rsi"]')).toBeVisible();
+  });
+
+  test("chart draws glossary overlays and a lower pane", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("/instruments/1");
+    await page.getByRole("button", { name: "ایچیموکو", exact: true }).click();
+    await page.getByRole("button", { name: "MACD", exact: true }).click();
+    const terms = page.getByTestId("chart-terms");
+    await expect(terms.locator('a[href="/glossary/ichimoku"]')).toBeVisible();
+    await expect(terms.locator('a[href="/glossary/macd"]')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test("shows the tested sell warning with both halves of its history", async ({ page }) => {
     await page.goto("/instruments/1");
     const w = page.getByTestId("turning-warning");
@@ -189,6 +210,18 @@ test.describe("history and calibration", () => {
     await expect(page.getByTestId("no-live")).toBeVisible();
     await expect(page.locator("#calibration").getByRole("table").first()).toBeVisible();
   });
+});
+
+test("a chart term's glossary entry shows where it is and how it tested", async ({ page }) => {
+  await page.goto("/glossary/gap_fill");
+  await expect(page.getByTestId("term-shown-on")).toContainText("تابلوی تکنیکال");
+  const t = page.getByTestId("term-tests");
+  await expect(t).toContainText("گشایش با شکاف منفی ۳٪");
+  await expect(t).toContainText("کمی برعکس");
+  await expect(t.getByTestId("term-test").getByRole("row")).toHaveCount(7);
+  // a term with no tested reading has neither section
+  await page.goto("/glossary/pb");
+  await expect(page.getByTestId("term-tests")).toHaveCount(0);
 });
 
 test("glossary index lists terms and each entry opens", async ({ page }) => {

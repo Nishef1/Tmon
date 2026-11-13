@@ -39,6 +39,8 @@
   /* chart series that are not up/down */
   --series-1: #c98a12;
   --series-2: #3f6fb5;
+  --series-3: #8a4fb5;
+  --series-4: #2b8a6e;
   --ref: #6b675f;
   /* elevation */
   --shadow-color: 40 35 20;
@@ -80,6 +82,8 @@
     --neutral: #6b6859;
     --series-1: #e0a93a;
     --series-2: #6f9be0;
+    --series-3: #b98ae0;
+    --series-4: #4fc29d;
     --ref: #9a968a;
     --shadow-color: 0 0 0;
     --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);

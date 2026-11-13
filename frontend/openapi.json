@@ -2068,6 +2068,94 @@
         "title": "DashRanges",
         "type": "object"
       },
+      "DashRisk": {
+        "description": "The last 250 trading days of the symbol (longer than a year when it was halted).",
+        "properties": {
+          "beta_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta Index"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "from_date": {
+            "format": "date",
+            "title": "From Date",
+            "type": "string"
+          },
+          "max_dd": {
+            "title": "Max Dd",
+            "type": "number"
+          },
+          "ret_1y": {
+            "title": "Ret 1Y",
+            "type": "number"
+          },
+          "rf_annual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rf Annual"
+          },
+          "sharpe": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sharpe"
+          },
+          "sortino": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sortino"
+          },
+          "var95": {
+            "title": "Var95",
+            "type": "number"
+          },
+          "vol_ann": {
+            "title": "Vol Ann",
+            "type": "number"
+          }
+        },
+        "required": [
+          "from_date",
+          "days",
+          "ret_1y",
+          "vol_ann",
+          "var95",
+          "max_dd",
+          "sharpe",
+          "sortino",
+          "rf_annual",
+          "beta_index"
+        ],
+        "title": "DashRisk",
+        "type": "object"
+      },
       "DashShareChange": {
         "properties": {
           "change_pct": {
@@ -2131,6 +2219,195 @@
           "text"
         ],
         "title": "DashSignal",
+        "type": "object"
+      },
+      "DashTaFired": {
+        "description": "A reading the symbol fired in its last trading days, with what it did in the past.",
+        "properties": {
+          "ago": {
+            "title": "Ago",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "enum": [
+              "works",
+              "backfires",
+              "direction_only",
+              "reverse_small",
+              "no_edge",
+              "too_few"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "side": {
+            "enum": [
+              "buy",
+              "sell"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "term",
+          "title",
+          "side",
+          "date",
+          "ago",
+          "label",
+          "verdict"
+        ],
+        "title": "DashTaFired",
+        "type": "object"
+      },
+      "DashTaValue": {
+        "description": "Today's value of one indicator with its textbook reading.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "tone": {
+            "default": "neutral",
+            "enum": [
+              "buy",
+              "sell",
+              "neutral"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "unit": {
+            "default": "num",
+            "enum": [
+              "num",
+              "pct",
+              "price",
+              "x"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "term",
+          "name",
+          "value",
+          "unit",
+          "reading",
+          "tone"
+        ],
+        "title": "DashTaValue",
+        "type": "object"
+      },
+      "DashTechnical": {
+        "description": "Every chart indicator of the glossary for this symbol, read the textbook way, and what\nthose readings did on the whole exchange. Describes the past; none of it feeds the verdict.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "fired": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashTaFired"
+            },
+            "title": "Fired",
+            "type": "array"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "recent_days": {
+            "title": "Recent Days",
+            "type": "integer"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashRisk"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "round_trip_cost": {
+            "title": "Round Trip Cost",
+            "type": "number"
+          },
+          "values": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashTaValue"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "recent_days",
+          "round_trip_cost",
+          "values",
+          "fired",
+          "risk",
+          "lines"
+        ],
+        "title": "DashTechnical",
         "type": "object"
       },
       "DashTurning": {
@@ -3133,6 +3410,16 @@
             ],
             "title": "Shares"
           },
+          "technical": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashTechnical"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "turning": {
             "anyOf": [
               {
@@ -3163,7 +3450,8 @@
           "decision",
           "turning",
           "peers",
-          "drivers"
+          "drivers",
+          "technical"
         ],
         "title": "InstrumentDashboard",
         "type": "object"
@@ -5839,6 +6127,286 @@
         "title": "SignalOut",
         "type": "object"
       },
+      "TaHorizon": {
+        "description": "One horizon of a tested reading: candles after the entry at the next day's close.",
+        "properties": {
+          "excess_mean": {
+            "title": "Excess Mean",
+            "type": "number"
+          },
+          "excess_median": {
+            "title": "Excess Median",
+            "type": "number"
+          },
+          "h": {
+            "title": "H",
+            "type": "integer"
+          },
+          "halves": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Halves",
+            "type": "array"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "up": {
+            "title": "Up",
+            "type": "number"
+          },
+          "up_all": {
+            "title": "Up All",
+            "type": "number"
+          },
+          "years_pos": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Years Pos"
+          }
+        },
+        "required": [
+          "h",
+          "n",
+          "excess_mean",
+          "excess_median",
+          "up",
+          "up_all",
+          "halves",
+          "years_pos"
+        ],
+        "title": "TaHorizon",
+        "type": "object"
+      },
+      "TaSignal": {
+        "description": "A classic reading of a glossary term, tested on the whole TSETMC history.",
+        "properties": {
+          "direction_horizons": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Direction Horizons",
+            "type": "array"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TaHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "enum": [
+              "works",
+              "backfires",
+              "direction_only",
+              "reverse_small",
+              "no_edge",
+              "too_few"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "locked_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked Share"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "profit_horizon": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit Horizon"
+          },
+          "side": {
+            "enum": [
+              "buy",
+              "sell"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "symbols": {
+            "title": "Symbols",
+            "type": "integer"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          },
+          "x20_with_locked": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X20 With Locked"
+          }
+        },
+        "required": [
+          "key",
+          "term",
+          "side",
+          "title",
+          "label",
+          "verdict",
+          "n",
+          "symbols",
+          "locked_share",
+          "x20_with_locked",
+          "profit_horizon",
+          "direction_horizons",
+          "horizons"
+        ],
+        "title": "TaSignal",
+        "type": "object"
+      },
+      "TaSignalsOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "dir_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dir Edge"
+          },
+          "history_first": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History First"
+          },
+          "history_last": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Last"
+          },
+          "round_trip_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round Trip Cost"
+          },
+          "signals": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TaSignal"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "split_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Split Date"
+          }
+        },
+        "required": [
+          "available",
+          "as_of",
+          "round_trip_cost",
+          "dir_edge",
+          "history_first",
+          "history_last",
+          "split_date",
+          "signals"
+        ],
+        "title": "TaSignalsOut",
+        "type": "object"
+      },
       "TurningHorizon": {
         "properties": {
           "beat": {
@@ -6746,6 +7314,28 @@
         "summary": "Recommendations",
         "tags": [
           "recommendations"
+        ]
+      }
+    },
+    "/research/ta-signals": {
+      "get": {
+        "description": "Every classic reading of the glossary's chart terms, tested on the whole TSETMC history\n(``python -m tmon.tools.ta_signals``). A description of the past, not advice.",
+        "operationId": "ta_signals_research_ta_signals_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaSignalsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ta Signals",
+        "tags": [
+          "research"
         ]
       }
     },
