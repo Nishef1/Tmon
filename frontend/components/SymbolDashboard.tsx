@@ -203,6 +203,14 @@ function Decision({
             {faDigits(h?.headline ?? (d.summary || d.headline))}
           </p>
           {first && <p className="text-sm text-muted">{faDigits(first)}</p>}
+          {h && verdict !== "buy" && d.gauge != null && d.gauge >= 90 && (
+            <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
+              چرا با امتیاز بالا «{label}»؟ خودِ سهم قوی است (نوارهای سبز پایین)، ولی برای این بازه
+              سودِ اضافهٔ گذشته
+              {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده.
+              بازهٔ بلندتر را در تب‌ها ببینید.
+            </p>
+          )}
         </div>
       </div>
 
