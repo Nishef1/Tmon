@@ -12,7 +12,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <SiteHeader />
         <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
