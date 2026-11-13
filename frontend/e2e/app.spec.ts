@@ -377,6 +377,9 @@ test.describe("entry odds and the chart", () => {
     await lab.getByRole("button", { name: "فقط حکم‌دار" }).click();
     await expect(lab.getByTestId("entry-setups").locator("> li")).toHaveCount(1);
     await expect(lab.locator('[data-key="base_rsi30"]')).toContainText("بهتر از بقیهٔ سهم‌ها");
+    const years = lab.locator('[data-key="base_rsi30"]').getByTestId("year-strip");
+    await expect(years.locator("[data-year]")).toHaveCount(5);
+    await expect(years).toContainText("از ۴ سال، ۲ سال بهتر و ۱ سال بدتر");
   });
 
   test("compare puts symbols side by side and keeps the inflation table", async ({ page }) => {

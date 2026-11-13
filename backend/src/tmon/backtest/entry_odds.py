@@ -269,6 +269,49 @@ def _label(whole: dict[str, Any], halves: list[dict[str, Any]]) -> tuple[str, in
     return ("mixed" if pos and neg else "same"), None
 
 
+YEAR_H = (1, 5, 20)
+YEAR_MIN = 50  # a year with fewer entries than this is shown but not counted
+
+
+def _years(sub: pl.DataFrame) -> list[dict[str, Any]]:
+    """The setup's edge over every liquid symbol on the same days, Iranian year by year
+    (Nowruz to Nowruz): each year's market is different, so a setup that only worked in a few
+    years shows it here."""
+    y = sub.with_columns(
+        fy=pl.when(
+            (C("date").dt.month() > 3) | ((C("date").dt.month() == 3) & (C("date").dt.day() >= 21))
+        )
+        .then(C("date").dt.year() - 621)
+        .otherwise(C("date").dt.year() - 622)
+    )
+    aggs = [pl.len().alias("n")]
+    for h in YEAR_H:
+        ok = C(f"f{h}").is_not_null() & C(f"ub{h}").is_not_null()
+        aggs.append(
+            (
+                (C(f"f{h}") > 0).cast(pl.Float64).filter(ok).mean() - C(f"ub{h}").filter(ok).mean()
+            ).alias(f"e{h}")
+        )
+    out = []
+    for r in y.group_by("fy").agg(aggs).sort("fy").iter_rows(named=True):
+        out.append(
+            {"year": int(r["fy"]), "n": int(r["n"]), **{f"e{h}": _f(r[f"e{h}"]) for h in YEAR_H}}
+        )
+    return out
+
+
+def year_count(years: list[dict[str, Any]], h: int) -> dict[str, int]:
+    """How many counted years (YEAR_MIN entries or more) the setup was above, below or within
+    DIR_EDGE of every other symbol at h candles."""
+    c = {"better": 0, "worse": 0, "same": 0}
+    for y in years:
+        e = y.get(f"e{h}")
+        if y["n"] < YEAR_MIN or e is None:
+            continue
+        c["better" if e >= DIR_EDGE else "worse" if e <= -DIR_EDGE else "same"] += 1
+    return c
+
+
 def history(p: pl.DataFrame) -> dict[str, Any]:
     liq = p.filter(C("liquid") & ~C("entry_up_locked"))
     days = liq["date"].unique().sort()
@@ -293,6 +336,7 @@ def history(p: pl.DataFrame) -> dict[str, Any]:
             **whole,
             "symbols": sub[G].n_unique(),
             "halves": halves,
+            "years": _years(sub),
             "label": label,
             "best_h": best,
             # entries dropped because the next day was probably locked at the upper limit

@@ -374,6 +374,16 @@ const entrySetup = (key, group, title, label, up, all, extra = {}) => ({
   win_all: 0.31,
   loss: 0.4,
   loss_all: 0.42,
+  years: [1401, 1402, 1403, 1404, 1405].map((year, i) => ({
+    year,
+    n: i === 4 ? 20 : 300,
+    e1: [0.05, -0.04, 0.01, 0.06, 0.2][i],
+    e5: [0.05, -0.04, 0.01, 0.06, 0.2][i],
+    e20: [0.05, -0.04, 0.01, 0.06, 0.2][i],
+  })),
+  years_better: 2,
+  years_worse: 1,
+  years_counted: 4,
   ...extra,
 });
 const SETUPS = [

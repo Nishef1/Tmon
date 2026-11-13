@@ -955,6 +955,17 @@ class DashTechnical(ApiModel):
 EntryLabel = Literal["better", "worse", "same", "mixed", "too_few"]
 
 
+class EntryYear(ApiModel):
+    """One Iranian year (Nowruz to Nowruz) of a setup: its edge over every other liquid symbol
+    on the same days, 1, 5 and 20 candles after buying."""
+
+    year: int  # the Iranian year, e.g. 1404
+    n: int
+    e1: float | None = None
+    e5: float | None = None
+    e20: float | None = None
+
+
 class EntryHorizon(ApiModel):
     """``h`` candles after buying at the close of the day after the setup."""
 
@@ -989,6 +1000,12 @@ class EntrySetup(ApiModel):
     win_all: float | None = None
     loss: float | None = None  # LOSS reached first
     loss_all: float | None = None
+    years: list[EntryYear] = []
+    years_better: int = (
+        0  # counted years (50+ entries) 3 points or more above the rest at 5 candles
+    )
+    years_worse: int = 0
+    years_counted: int = 0
 
 
 class EntryOddsOut(ApiModel):

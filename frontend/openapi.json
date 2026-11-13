@@ -3415,6 +3415,29 @@
               }
             ],
             "title": "Win All"
+          },
+          "years": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EntryYear"
+            },
+            "title": "Years",
+            "type": "array"
+          },
+          "years_better": {
+            "default": 0,
+            "title": "Years Better",
+            "type": "integer"
+          },
+          "years_counted": {
+            "default": 0,
+            "title": "Years Counted",
+            "type": "integer"
+          },
+          "years_worse": {
+            "default": 0,
+            "title": "Years Worse",
+            "type": "integer"
           }
         },
         "required": [
@@ -3435,9 +3458,68 @@
           "win",
           "win_all",
           "loss",
-          "loss_all"
+          "loss_all",
+          "years",
+          "years_better",
+          "years_worse",
+          "years_counted"
         ],
         "title": "EntrySetup",
+        "type": "object"
+      },
+      "EntryYear": {
+        "description": "One Iranian year (Nowruz to Nowruz) of a setup: its edge over every other liquid symbol\non the same days, 1, 5 and 20 candles after buying.",
+        "properties": {
+          "e1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "E1"
+          },
+          "e20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "E20"
+          },
+          "e5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "E5"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "n",
+          "e1",
+          "e5",
+          "e20"
+        ],
+        "title": "EntryYear",
         "type": "object"
       },
       "FeatureValue": {

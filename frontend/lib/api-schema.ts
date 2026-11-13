@@ -1406,6 +1406,43 @@ export interface components {
       win: number | null;
       /** Win All */
       win_all: number | null;
+      /**
+       * Years
+       * @default []
+       */
+      years: components["schemas"]["EntryYear"][];
+      /**
+       * Years Better
+       * @default 0
+       */
+      years_better: number;
+      /**
+       * Years Counted
+       * @default 0
+       */
+      years_counted: number;
+      /**
+       * Years Worse
+       * @default 0
+       */
+      years_worse: number;
+    };
+    /**
+     * EntryYear
+     * @description One Iranian year (Nowruz to Nowruz) of a setup: its edge over every other liquid symbol
+     *     on the same days, 1, 5 and 20 candles after buying.
+     */
+    EntryYear: {
+      /** E1 */
+      e1: number | null;
+      /** E20 */
+      e20: number | null;
+      /** E5 */
+      e5: number | null;
+      /** N */
+      n: number;
+      /** Year */
+      year: number;
     };
     /** FeatureValue */
     FeatureValue: {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { EntryOdds, EntrySetup } from "@/lib/api";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
-import { HorizonTable, LabelChip, OddsBars, PathRisk } from "./EntryParts";
+import { HorizonTable, LabelChip, OddsBars, PathRisk, YearStrip } from "./EntryParts";
 
 type Group = "streak" | "base" | "uptrend";
 const GROUPS: [Group, string][] = [
@@ -212,6 +212,7 @@ export function EntryLab({ d }: { d: EntryOdds }) {
                 </div>
                 <p className="text-xs">{faDigits(s.verdict)}</p>
                 {x && <OddsBars x={x} />}
+                <YearStrip s={s} h={h} />
                 <p className="text-xs text-muted">
                   {faNumber(s.n)} بار در {faNumber(s.symbols)} نماد
                   {s.event ? " · فقط کندل اول حالت شمرده شده" : " · هر روزِ حالت شمرده شده"}

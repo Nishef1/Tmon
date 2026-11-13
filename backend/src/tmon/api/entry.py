@@ -14,11 +14,12 @@ from tmon.api.schemas import (
     EntryHorizon,
     EntryOddsOut,
     EntrySetup,
+    EntryYear,
     OwnOdds,
     OwnWindow,
 )
 from tmon.api.technical import load_doc
-from tmon.backtest.entry_odds import OWN_WINDOWS
+from tmon.backtest.entry_odds import OWN_WINDOWS, YEAR_MIN, year_count
 from tmon.tools.entry_odds import KEY
 
 
@@ -69,7 +70,13 @@ def _setup(key: str, s: dict[str, Any], horizons: list[int]) -> EntrySetup:
                 median=x.get("median"),
             )
         )
+    years = s.get("years") or []
+    yc = year_count(years, 5)
     return EntrySetup(
+        years=[EntryYear(**y) for y in years],
+        years_better=yc["better"],
+        years_worse=yc["worse"],
+        years_counted=sum(1 for y in years if y["n"] >= YEAR_MIN and y.get("e5") is not None),
         key=key,
         group=s["group"],
         title=s["title"],

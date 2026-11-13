@@ -158,3 +158,43 @@ export function PathRisk({
     </ul>
   );
 }
+
+const YEAR_MIN = 50;
+
+/** The setup Iranian year by Iranian year: one cell per year, green when it beat every other
+ *  symbol on the same days by 3 points or more at ``h`` candles, red when it trailed by as much,
+ *  grey in between; faded years had fewer than 50 entries and are not counted. */
+export function YearStrip({ s, h }: { s: EntrySetup; h: number }) {
+  const k = h <= 1 ? "e1" : h <= 5 ? "e5" : "e20";
+  const hh = h <= 1 ? 1 : h <= 5 ? 5 : 20;
+  const ys = s.years.filter((y) => y[k] != null);
+  if (ys.length === 0) return null;
+  const counted = ys.filter((y) => y.n >= YEAR_MIN);
+  const better = counted.filter((y) => y[k]! >= 0.03).length;
+  const worse = counted.filter((y) => y[k]! <= -0.03).length;
+  return (
+    <div className="space-y-1" data-testid="year-strip" data-h={hh}>
+      <div className="flex flex-wrap gap-0.5" dir="ltr">
+        {ys.map((y) => {
+          const e = y[k]!;
+          const bg = e >= 0.03 ? "bg-up" : e <= -0.03 ? "bg-down" : "bg-faint";
+          const thin = y.n < YEAR_MIN;
+          return (
+            <span
+              key={y.year}
+              className={`h-4 w-3 rounded-sm ${bg} ${thin ? "opacity-30" : ""}`}
+              title={`${faNumber(y.year)}: ${faPercent(e, 0, true)} (${faNumber(y.n)} بار)`}
+              data-year={y.year}
+            />
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted">
+        سال به سال ({hh === 1 ? "کندل بعد" : `${faNumber(hh)} کندل بعد`}): از{" "}
+        {faNumber(counted.length)} سال، <b className="text-up">{faNumber(better)}</b> سال بهتر و{" "}
+        <b className="text-down">{faNumber(worse)}</b> سال بدتر از بقیهٔ سهم‌ها؛ بقیه فرقی نداشته.
+        از {faNumber(ys[0].year)} تا {faNumber(ys[ys.length - 1].year)}.
+      </p>
+    </div>
+  );
+}

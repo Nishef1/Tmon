@@ -161,3 +161,24 @@ def test_year_starts_at_nowruz() -> None:
 
     assert eo.year_start(dt.date(2026, 11, 11)) == dt.date(2026, 3, 21)
     assert eo.year_start(dt.date(2026, 2, 1)) == dt.date(2025, 3, 21)
+
+
+def test_years_split_at_nowruz_and_count_only_full_years() -> None:
+    import datetime as dt
+
+    import polars as pl
+
+    from tmon.backtest.entry_odds import _years, year_count
+
+    days = [dt.date(2024, 3, 20)] * 60 + [dt.date(2024, 3, 21)] * 10
+    sub = pl.DataFrame(
+        {
+            "date": days,
+            **{f"f{h}": [0.01] * 60 + [-0.01] * 10 for h in (1, 5, 20)},
+            **{f"ub{h}": [0.4] * 70 for h in (1, 5, 20)},
+        }
+    )
+    ys = _years(sub)
+    assert [(y["year"], y["n"]) for y in ys] == [(1402, 60), (1403, 10)]
+    assert abs(ys[0]["e5"] - 0.6) < 1e-9
+    assert year_count(ys, 5) == {"better": 1, "worse": 0, "same": 0}
