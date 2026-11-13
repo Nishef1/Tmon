@@ -312,3 +312,122 @@ export function levels(bars: Bar[]): PriceLevel[] {
   }
   return out;
 }
+
+/** Trend regime of each day: up when the close is above a rising n-day average (higher than k
+ *  days earlier), down when below a falling one, range otherwise. */
+export function regime(bars: Bar[], n = 50, k = 10): { time: string; value: -1 | 0 | 1 }[] {
+  const m = sma(bars, n);
+  const off = bars.length - m.length;
+  return m.map((p, i) => {
+    const c = bars[i + off].close;
+    const slope = i >= k ? p.value - m[i - k].value : 0;
+    const value = c > p.value && slope > 0 ? 1 : c < p.value && slope < 0 ? -1 : 0;
+    return { time: p.time, value };
+  });
+}
+
+/** OBV with each day's volume capped at ``cap`` times its median of the last 60 days, so one
+ *  block trade (معامله بلوکی) does not throw the line off for good. */
+export function obvCapped(bars: VBar[], cap = 5, n = 60): Series {
+  let s = 0;
+  const vs: number[] = [];
+  return bars.map((b, i) => {
+    if (i > 0 && b.volume != null) {
+      const w = vs.slice(-n).sort((x, y) => x - y);
+      const med = w.length >= 10 ? w[w.length >> 1] : Infinity;
+      s += Math.sign(b.close - bars[i - 1].close) * Math.min(b.volume, cap * med);
+    }
+    if (b.volume != null) vs.push(b.volume);
+    return { time: b.time, value: s };
+  });
+}
+
+export type Zone = {
+  time: string;
+  top: number;
+  bot: number;
+  side: "bull" | "bear";
+  inverted: boolean;
+};
+
+/** Fair value gaps (three-candle imbalance of at least ``min`` of the price), the same rule as
+ *  the tested signals: a bullish gap is a low above the high of two candles before. A close
+ *  through the whole zone inverts it (iFVG: old support becomes resistance and the reverse).
+ *  Returns the latest ``keep`` live zones of each side and the latest inverted one of each. */
+export function fvgZones(bars: Bar[], min = 0.01, keep = 2): Zone[] {
+  const all: Zone[] = [];
+  for (let i = 2; i < bars.length; i++) {
+    const b = bars[i];
+    const a = bars[i - 2];
+    if ((b.low - a.high) / b.close >= min)
+      all.push({ time: b.time, top: b.low, bot: a.high, side: "bull", inverted: false });
+    if ((a.low - b.high) / b.close >= min)
+      all.push({ time: b.time, top: a.low, bot: b.high, side: "bear", inverted: false });
+    for (const z of all) {
+      if (z.inverted || z.time === b.time) continue;
+      if (z.side === "bull" && b.close < z.bot) z.inverted = true;
+      if (z.side === "bear" && b.close > z.top) z.inverted = true;
+    }
+  }
+  const pick = (side: Zone["side"], inv: boolean, n: number) =>
+    all.filter((z) => z.side === side && z.inverted === inv).slice(-n);
+  return [
+    ...pick("bull", false, keep),
+    ...pick("bear", false, keep),
+    ...pick("bull", true, 1),
+    ...pick("bear", true, 1),
+  ];
+}
+
+export type Pivot = { i: number; conf: number; price: number; kind: 1 | -1 };
+
+/** Swing pivots of the closes, known only once the close has turned ``th`` from them (the
+ *  same zigzag as the tested Elliott signals). */
+export function zigzag(bars: Bar[], th = 0.1): Pivot[] {
+  const out: Pivot[] = [];
+  if (bars.length === 0) return out;
+  let d = 0;
+  let hiI = 0;
+  let loI = 0;
+  let hi = bars[0].close;
+  let lo = hi;
+  for (let i = 1; i < bars.length; i++) {
+    const c = bars[i].close;
+    if (d >= 0 && c > hi) [hiI, hi] = [i, c];
+    if (d <= 0 && c < lo) [loI, lo] = [i, c];
+    if (d >= 0 && c <= hi * (1 - th)) {
+      out.push({ i: hiI, conf: i, price: hi, kind: 1 });
+      [d, loI, lo] = [-1, i, c];
+    } else if (d <= 0 && c >= lo * (1 + th)) {
+      out.push({ i: loI, conf: i, price: lo, kind: -1 });
+      [d, hiI, hi] = [1, i, c];
+    }
+  }
+  return out;
+}
+
+const impulse = (q: Pivot[]) => {
+  if (q.map((x) => x.kind).join() !== "-1,1,-1,1,-1,1") return false;
+  const [a, b, c, d, e, f] = q.map((x) => x.price);
+  return c > a && d > b && e > b && f > d && d - c >= Math.min(b - a, f - e);
+};
+
+/** Labels of the latest textbook up-impulse (waves 1 to 5 at its pivots, 0 at its start) and
+ *  the A-B-C after it when one followed, on confirmed zigzag pivots only. */
+export function elliottLabels(
+  bars: Bar[],
+  th = 0.1,
+): { time: string; text: string; top: boolean }[] {
+  const pv = zigzag(bars, th);
+  for (let k = pv.length - 6; k >= 0; k--) {
+    const q = pv.slice(k, k + 6);
+    if (!impulse(q)) continue;
+    const names = ["۰", "۱", "۲", "۳", "۴", "۵"];
+    const out = q.map((p, j) => ({ time: bars[p.i].time, text: names[j], top: p.kind === 1 }));
+    const r = pv.slice(k + 6, k + 9);
+    if (r.length === 3 && r[1].price < q[5].price && r[2].price < r[0].price)
+      r.forEach((p, j) => out.push({ time: bars[p.i].time, text: "ABC"[j], top: p.kind === 1 }));
+    return out;
+  }
+  return [];
+}

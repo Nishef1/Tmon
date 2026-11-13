@@ -17,6 +17,10 @@ import {
   measure,
   mfi,
   obv,
+  obvCapped,
+  fvgZones,
+  elliottLabels,
+  regime,
   rsi,
   sma,
   stochastic,
@@ -29,11 +33,17 @@ import {
 
 export type Level = { price: number; title: string; color: string };
 /** A candle to point at under or over the price, e.g. a day an entry rule fired. */
-export type Mark = { time: string; text: string; color: string; above?: boolean };
+export type Mark = {
+  time: string;
+  text: string;
+  color: string;
+  above?: boolean;
+  shape?: "circle" | "arrowUp" | "arrowDown";
+};
 
 type Kind = "candle" | "ha" | "bar" | "line";
 type Pane = "none" | "rsi" | "macd" | "stoch" | "mfi" | "adx" | "atr" | "obv";
-type Overlay = "ma1" | "ma2" | "ma3" | "ema" | "bb" | "ichi" | "vwap" | "lv";
+type Overlay = "ma1" | "ma2" | "ma3" | "ema" | "bb" | "ichi" | "vwap" | "lv" | "reg" | "fvg" | "ew";
 
 /** Every user setting of the chart; kept in this browser only. */
 type Cfg = {
@@ -67,7 +77,7 @@ const DEFAULT: Cfg = {
   log: false,
   vol: true,
   magnet: true,
-  on: ["ma1"],
+  on: ["ma1", "reg"],
   pane: "none",
   ma1: 20,
   ma2: 50,
@@ -150,8 +160,23 @@ const overlays = (c: Cfg): [Overlay, string, string, string][] => [
   ["ichi", "ایچیموکو", "var(--series-3)", "ichimoku"],
   ["vwap", `VWAP ${fa(c.vwapN)} روزه`, "var(--accent)", "vwap"],
   ["lv", "حمایت، مقاومت، پیوت و فیبو", "var(--ref)", "support_resistance"],
+  ["fvg", "FVG و iFVG", "var(--series-4)", "fvg"],
+  ["ew", "امواج الیوت", "var(--series-3)", "elliott"],
+  ["reg", "رنگ روند (صعودی، نزولی، خنثی)", "var(--hold)", "sma"],
 ];
-const OVER_KEYS: Overlay[] = ["ma1", "ma2", "ma3", "ema", "bb", "ichi", "vwap", "lv"];
+const OVER_KEYS: Overlay[] = [
+  "ma1",
+  "ma2",
+  "ma3",
+  "ema",
+  "bb",
+  "ichi",
+  "vwap",
+  "lv",
+  "reg",
+  "fvg",
+  "ew",
+];
 
 /** One indicator at a time in a pane under the price. */
 const PANES: [Pane, string, string][] = [
@@ -472,6 +497,46 @@ export function CandleChart({
         addLine(ic.spanB, "var(--down)", null, 0, Dotted);
       }
       if (on.has("vwap")) addLine(vwap(vbars, cfg.vwapN), "var(--accent)", "VWAP", 0, Solid, 2);
+      if (on.has("reg")) {
+        const bg = chart.addSeries(lc.HistogramSeries, {
+          priceScaleId: "reg",
+          priceLineVisible: false,
+          lastValueVisible: false,
+          base: 0,
+        });
+        chart.priceScale("reg").applyOptions({
+          visible: false,
+          scaleMargins: { top: 0, bottom: 0 },
+        });
+        bg.setData(
+          regime(real).map((x) => ({
+            time: x.time as Time,
+            value: 1,
+            color: faded(x.value > 0 ? up : x.value < 0 ? down : muted, "14"),
+          })),
+        );
+      }
+      if (on.has("fvg")) {
+        for (const z of fvgZones(real)) {
+          const c = tok(z.side === "bull" ? "var(--up)" : "var(--down)");
+          const name = z.inverted
+            ? z.side === "bull"
+              ? "iFVG↓"
+              : "iFVG↑"
+            : z.side === "bull"
+              ? "FVG↑"
+              : "FVG↓";
+          for (const price of [z.top, z.bot])
+            series.createPriceLine({
+              price,
+              color: faded(c, "aa"),
+              lineWidth: 1,
+              lineStyle: z.inverted ? Dotted : lc.LineStyle.Dashed,
+              axisLabelVisible: false,
+              title: price === z.top ? name : "",
+            });
+        }
+      }
       if (on.has("lv")) {
         for (const l of taLevels(real)) {
           series.createPriceLine({
@@ -533,20 +598,33 @@ export function CandleChart({
           2,
         );
       }
-      if (p === "obv") addLine(obv(vbars), "var(--series-2)", "OBV", 1, Solid, 2);
+      if (p === "obv") {
+        addLine(obvCapped(vbars), "var(--series-2)", "OBV", 1, Solid, 2);
+        addLine(obv(vbars), "var(--muted)", "OBV خام", 1, lc.LineStyle.Dotted, 1);
+      }
       if (p !== "none") chart.panes()[1]?.setHeight(view.current.paneH ?? 140);
 
-      if (marks.length > 0) {
+      const waves: Mark[] = on.has("ew")
+        ? elliottLabels(real).map((w) => ({
+            time: w.time,
+            text: w.text,
+            color: "var(--series-3)",
+            above: w.top,
+            shape: "circle" as const,
+          }))
+        : [];
+      const allMarks = [...marks, ...waves];
+      if (allMarks.length > 0) {
         const known = new Set(times);
         lc.createSeriesMarkers(
           series,
-          marks
+          allMarks
             .filter((m) => known.has(m.time))
             .sort((x, y) => (x.time < y.time ? -1 : 1))
             .map((m) => ({
               time: m.time as Time,
               position: m.above ? ("aboveBar" as const) : ("belowBar" as const),
-              shape: m.above ? ("arrowDown" as const) : ("arrowUp" as const),
+              shape: m.shape ?? (m.above ? ("arrowDown" as const) : ("arrowUp" as const)),
               color: tok(m.color),
               text: m.text,
             })),
@@ -633,6 +711,15 @@ export function CandleChart({
     setSpan(n);
     const api = chartApi.current;
     if (api) applySpan(api.chart, n);
+  };
+
+  /** Move the price up or down by a tenth of the visible range (drag the price axis to zoom). */
+  const nudge = (dir: 1 | -1) => {
+    const api = chartApi.current;
+    const r = api?.chart.priceScale("right").getVisibleRange();
+    if (!api || !r) return;
+    const d = ((r.to - r.from) / 10) * dir;
+    api.chart.priceScale("right").setVisibleRange({ from: r.from + d, to: r.to + d });
   };
 
   const resetView = () => {
@@ -770,6 +857,22 @@ export function CandleChart({
             <span className="seg" role="group" aria-label="ابزار">
               <button type="button" onClick={resetView} title="بازگرداندن بزرگنمایی و مقیاس">
                 بازنشانی نما
+              </button>
+              <button
+                type="button"
+                onClick={() => nudge(-1)}
+                title="نمودار کمی بالاتر"
+                aria-label="نمودار بالاتر"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => nudge(1)}
+                title="نمودار کمی پایین‌تر"
+                aria-label="نمودار پایین‌تر"
+              >
+                ▼
               </button>
               <button type="button" aria-pressed={panel} onClick={() => setPanel(!panel)}>
                 پارامترها

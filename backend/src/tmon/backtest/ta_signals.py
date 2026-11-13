@@ -69,6 +69,133 @@ def turns_on(cond: pl.Expr) -> pl.Expr:
     return cond.fill_null(False) & ~lag(cond).fill_null(False)
 
 
+FVG_MIN = 0.01  # a gap under 1% of the price is noise
+FVG_AGE = 20  # a zone is watched for 20 trading days after it forms
+ZIGZAG = 0.10  # Elliott pivots: a swing counts once the close turns 10% from its extreme
+
+
+def _fvg(p: pl.DataFrame) -> pl.DataFrame:
+    """Fair value gaps (three-candle imbalances) and the latest one of each side per symbol.
+
+    Bullish: today's low is above the high of two days ago (zone = that high .. today's low).
+    Bearish: today's high is below the low of two days ago. Zones are carried forward with
+    their age; the signals read yesterday's zone so a gap never triggers on the day it forms."""
+    hi, lo, cl = C("high"), C("low"), C("close")
+    bull = (lo - lag(hi, 2)) / cl >= FVG_MIN
+    bear = (lag(lo, 2) - hi) / cl >= FVG_MIN
+    idx = pl.int_range(pl.len()).over(G)
+    p = p.with_columns(
+        _i=idx,
+        fb_top=pl.when(bull).then(lo),
+        fb_bot=pl.when(bull).then(lag(hi, 2)),
+        fb_i=pl.when(bull).then(idx),
+        fs_top=pl.when(bear).then(lag(lo, 2)),
+        fs_bot=pl.when(bear).then(hi),
+        fs_i=pl.when(bear).then(idx),
+    )
+    ff = ["fb_top", "fb_bot", "fb_i", "fs_top", "fs_bot", "fs_i"]
+    p = p.with_columns([C(c).forward_fill().over(G) for c in ff])
+    p = p.with_columns(
+        fb_age=C("_i") - C("fb_i"),
+        fs_age=C("_i") - C("fs_i"),
+    )
+    # yesterday's zone, so today's own gap is not read as a retest
+    return p.with_columns(
+        [
+            lag(C(c)).alias(c + "_y")
+            for c in ("fb_top", "fb_bot", "fb_age", "fs_top", "fs_bot", "fs_age")
+        ]
+    ).drop([*ff, "_i"])
+
+
+def zigzag(close: np.ndarray, th: float = ZIGZAG) -> list[tuple[int, int, float, int]]:
+    """Swing pivots of a close series: (pivot index, confirmed index, price, +1 high / -1 low).
+    A pivot is only known on the day the close has turned ``th`` away from it, which is the
+    day any signal built on it may fire."""
+    out: list[tuple[int, int, float, int]] = []
+    if len(close) == 0:
+        return out
+    d = 0
+    hi_i = lo_i = 0
+    hi = lo = float(close[0])
+    for i in range(1, len(close)):
+        c = float(close[i])
+        if not np.isfinite(c):
+            continue
+        if d == 0:
+            if c > hi:
+                hi_i, hi = i, c
+            if c < lo:
+                lo_i, lo = i, c
+            if c <= hi * (1 - th):
+                out.append((hi_i, i, hi, 1))
+                d, lo_i, lo = -1, i, c
+            elif c >= lo * (1 + th):
+                out.append((lo_i, i, lo, -1))
+                d, hi_i, hi = 1, i, c
+        elif d == 1:
+            if c > hi:
+                hi_i, hi = i, c
+            elif c <= hi * (1 - th):
+                out.append((hi_i, i, hi, 1))
+                d, lo_i, lo = -1, i, c
+        else:
+            if c < lo:
+                lo_i, lo = i, c
+            elif c >= lo * (1 + th):
+                out.append((lo_i, i, lo, -1))
+                d, hi_i, hi = 1, i, c
+    return out
+
+
+def elliott_marks(close: np.ndarray, th: float = ZIGZAG) -> dict[str, np.ndarray]:
+    """Textbook Elliott counts on zigzag pivots, flagged on the day the last pivot is confirmed.
+
+    - ``ew_w3``: low, high, higher low that gave back 38.2-78.6% of the first swing: wave 2 is
+      done and wave 3 would start (buy).
+    - ``ew_5``: five up waves with wave 2 above the start, wave 4 above the top of wave 1,
+      wave 5 above wave 3 and wave 3 not the shortest: the impulse is done (sell).
+    - ``ew_abc``: such an impulse followed by A down, B below the top of 5, C below A: the
+      correction is done (buy)."""
+    n = len(close)
+    w3, w5, abc = (np.zeros(n, dtype=bool) for _ in range(3))
+    pv = zigzag(close, th)
+
+    def impulse(q: list[tuple[int, int, float, int]]) -> bool:
+        a, b, c, d, e, f = (x[2] for x in q)
+        if [x[3] for x in q] != [-1, 1, -1, 1, -1, 1]:
+            return False
+        legs = (b - a, d - c, f - e)
+        return c > a and d > b and e > b and f > d and legs[1] >= min(legs[0], legs[2])
+
+    for k in range(len(pv)):
+        conf = pv[k][1]
+        if k >= 2:
+            a, b, c = pv[k - 2], pv[k - 1], pv[k]
+            if (a[3], b[3], c[3]) == (-1, 1, -1) and b[2] > a[2]:
+                back = (b[2] - c[2]) / (b[2] - a[2])
+                if 0.382 <= back <= 0.786:
+                    w3[conf] = True
+        if k >= 5 and impulse(pv[k - 5 : k + 1]):
+            w5[conf] = True
+        if k >= 8 and impulse(pv[k - 8 : k - 2]):
+            top = pv[k - 3][2]
+            a_, b_, c_ = pv[k - 2], pv[k - 1], pv[k]
+            if (a_[3], b_[3], c_[3]) == (-1, 1, -1) and b_[2] < top and c_[2] < a_[2]:
+                abc[conf] = True
+    return {"ew_w3": w3, "ew_5": w5, "ew_abc": abc}
+
+
+def _elliott(p: pl.DataFrame) -> pl.DataFrame:
+    parts = []
+    for (_,), g in p.select(G, "date", "close").group_by(G, maintain_order=True):
+        m = elliott_marks(g["close"].to_numpy().astype(float))
+        parts.append(g.select(G, "date").with_columns(**{k: pl.Series(v) for k, v in m.items()}))
+    if not parts:
+        return p.with_columns(ew_w3=pl.lit(False), ew_5=pl.lit(False), ew_abc=pl.lit(False))
+    return p.join(pl.concat(parts), on=[G, "date"], how="left")
+
+
 def indicators(prices: pl.DataFrame, clients: pl.DataFrame) -> pl.DataFrame:
     """One row per symbol-day with every indicator of the glossary on adjusted prices."""
     p = apply_adjustments(prices).filter(~C("market_halt") & (C("close") > 0)).sort(G, "date")
@@ -179,6 +306,8 @@ def indicators(prices: pl.DataFrame, clients: pl.DataFrame) -> pl.DataFrame:
         hi20c=roll(cl, "max", 20),
         power_hi=(C("power") > 2).cast(pl.Int8),
     )
+    p = _fvg(p)
+    p = _elliott(p)
     return p.drop(
         "tpv", "mf", "obv_step", "up_move", "dn_move", "pdm", "mdm", "tr", "pmf", "nmf",
         "gain", "loss", "span_a_raw", "span_b_raw", *cols,
@@ -444,6 +573,41 @@ SIGNALS: dict[str, tuple[str, str, str, pl.Expr]] = {
         "رشد ۳۰٪ در ۲۰ روز (ادامهٔ روند)",
         turns_on(C("ret20") > 0.30),
     ),
+    "fvg_bull_retest": (
+        "fvg",
+        "buy",
+        "برگشت به شکاف ارزش منصفانهٔ صعودی (FVG)",
+        turns_on(
+            (C("low") <= C("fb_top_y"))
+            & (cl > C("fb_bot_y"))
+            & C("fb_age_y").is_between(1, FVG_AGE)
+        ),
+    ),
+    "fvg_bear_retest": (
+        "fvg",
+        "sell",
+        "برگشت به شکاف ارزش منصفانهٔ نزولی (FVG)",
+        turns_on(
+            (C("high") >= C("fs_bot_y"))
+            & (cl < C("fs_top_y"))
+            & C("fs_age_y").is_between(1, FVG_AGE)
+        ),
+    ),
+    "ifvg_bull": (
+        "ifvg",
+        "buy",
+        "شکست رو به بالای FVG نزولی (iFVG صعودی)",
+        cross_up(cl, C("fs_top_y")) & C("fs_age_y").is_between(1, FVG_AGE),
+    ),
+    "ifvg_bear": (
+        "ifvg",
+        "sell",
+        "شکست رو به پایین FVG صعودی (iFVG نزولی)",
+        cross_up(C("fb_bot_y"), cl) & C("fb_age_y").is_between(1, FVG_AGE),
+    ),
+    "elliott_wave3": ("elliott", "buy", "الیوت: پایان موج ۲ و شروع موج ۳", C("ew_w3")),
+    "elliott_impulse_done": ("elliott", "sell", "الیوت: پایان موج ۵ صعودی", C("ew_5")),
+    "elliott_abc_done": ("elliott", "buy", "الیوت: پایان اصلاح ABC", C("ew_abc")),
 }
 
 

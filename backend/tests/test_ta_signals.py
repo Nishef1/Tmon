@@ -175,3 +175,43 @@ def test_symbol_part_reads_the_indicators() -> None:
     assert t.risk is not None and t.risk.beta_index == 1.2 and t.risk.rf_annual == 0.3
     assert "1 روز معاملاتی پیش" in t.lines[0] and t.fired[0].label == "works"
     assert technical_out(doc, 8) is None and technical_out(None, 7) is None
+
+
+def test_elliott_counts_waves_only_once_each_pivot_is_confirmed() -> None:
+    import numpy as np
+
+    from tmon.backtest.ta_signals import elliott_marks, zigzag
+
+    pts = [100, 130, 115, 170, 150, 200, 175, 195, 160, 180]
+    c = np.concatenate(
+        [np.linspace(pts[i], pts[i + 1], 6)[:-1] for i in range(len(pts) - 1)] + [[180.0]]
+    )
+    pv = zigzag(c)
+    assert [round(x[2]) for x in pv] == [100, 130, 115, 170, 150, 200, 175, 195, 160]
+    assert all(conf > i for i, conf, *_ in pv)
+    m = elliott_marks(c)
+    assert np.flatnonzero(m["ew_w3"]).tolist() == [pv[2][1], pv[6][1]]  # 150-200-175 too
+    assert np.flatnonzero(m["ew_5"]).tolist() == [pv[5][1]]
+    assert np.flatnonzero(m["ew_abc"]).tolist() == [pv[8][1]]
+
+
+def test_fvg_zones_and_their_retest() -> None:
+    import datetime as dt
+
+    from tmon.backtest.ta_signals import _fvg
+
+    hi = [10.0, 10.5, 12.0, 12.5, 12.2, 11.0]
+    lo = [9.5, 10.0, 11.0, 11.8, 11.5, 10.2]
+    p = pl.DataFrame(
+        {
+            "instrument_id": [1] * 6,
+            "date": [dt.date(2026, 1, d) for d in range(1, 7)],
+            "high": hi,
+            "low": lo,
+            "close": [9.8, 10.4, 11.8, 12.2, 11.9, 10.4],
+        }
+    )
+    z = _fvg(p)
+    # day 3: low 11.0 above day-1 high 10.0 -> bullish zone 10.0..11.0, read from day 4 on
+    assert z["fb_top_y"].to_list()[3:] == [11.0, 11.8, 11.8]
+    assert z["fb_bot_y"][3] == 10.0

@@ -81,18 +81,20 @@ function isNum(v: string | undefined): v is string {
 
 const SHORT: Record<string, string> = { better: "ورود+", worse: "ورود−" };
 
-/** One arrow per entry day of the last year, coloured by the best tested label among its setups. */
+/** One arrow per entry day of the last year whose setup had a tested edge: green up under the
+ *  candle when the setup was better than buying any other symbol, red down over it when worse.
+ *  Days whose setups made no tested difference are left off. */
 function entryMarks(e: DashEntry): Mark[] {
-  const rank = { better: 0, worse: 1, mixed: 2, same: 3, too_few: 4 } as const;
-  const byDay = new Map<string, DashEntry["marks"][number]>();
+  const byDay = new Map<string, "better" | "worse">();
   for (const m of e.marks) {
-    const was = byDay.get(m.date);
-    if (!was || rank[m.label] < rank[was.label]) byDay.set(m.date, m);
+    if (m.label !== "better" && m.label !== "worse") continue;
+    if (byDay.get(m.date) !== "worse") byDay.set(m.date, m.label);
   }
-  return [...byDay.values()].map((m) => ({
-    time: m.date,
-    text: SHORT[m.label] ?? "",
-    color: labelColor(m.label),
+  return [...byDay].map(([time, label]) => ({
+    time,
+    text: SHORT[label],
+    color: labelColor(label),
+    above: label === "worse",
   }));
 }
 
