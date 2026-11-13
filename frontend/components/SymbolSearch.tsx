@@ -105,7 +105,7 @@ export function SymbolSearch() {
           id="symbol-search-list"
           role="listbox"
           data-testid="search-results"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-[70vh] overflow-y-auto popover"
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-[70vh] overflow-y-auto popover sm:inset-x-auto sm:left-0 sm:w-[34rem] sm:max-w-[calc(100vw-2rem)]"
         >
           {busy && hits.length === 0 && (
             <p className="px-3 py-2 text-sm text-muted">در حال جست‌وجو…</p>
@@ -124,12 +124,12 @@ export function SymbolSearch() {
               aria-selected={i === active}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => go(h)}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start hover:bg-accent-soft ${
+              className={`flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-start hover:bg-accent-soft sm:flex-nowrap ${
                 i === active ? "bg-accent-soft" : ""
               }`}
               data-testid="search-hit"
             >
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 basis-full sm:basis-0 sm:flex-1">
                 <span className="block truncate font-bold">
                   {h.instrument.symbol}{" "}
                   <span className="text-sm font-normal text-muted">{h.instrument.name}</span>
