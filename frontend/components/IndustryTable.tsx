@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import {
+  memo,
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { Gauge } from "@/components/Gauge";
 import { faCount, faNumber, faPercent, faToman, jalali } from "@/lib/format";
 import {
@@ -388,7 +396,9 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
   const totalValue = useMemo(() => all.reduce((a, i) => a + i.value, 0), [all]);
 
   const set = (p: Partial<Filters>) => setF((cur) => ({ ...cur, ...p }));
-  const cols = COLS.filter((c) => shown.has(c.key));
+  const cols = useMemo(() => COLS.filter((c) => shown.has(c.key)), [shown]);
+  const [, startTransition] = useTransition();
+  const go = useCallback((id: number) => router.push(`/instruments/${id}`), [router]);
 
   const ordered = useCallback(
     (rs: Row[]): Row[] => {
@@ -405,12 +415,15 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
   }
 
   function head(key: SortKey) {
-    setSort((s) =>
-      s?.key === key
-        ? s.dir === -1
-          ? { key, dir: 1 }
-          : null
-        : { key, dir: key === "symbol" || key === "meeting" ? 1 : -1 },
+    // a transition keeps the click responsive while the thousands of rows reorder
+    startTransition(() =>
+      setSort((s) =>
+        s?.key === key
+          ? s.dir === -1
+            ? { key, dir: 1 }
+            : null
+          : { key, dir: key === "symbol" || key === "meeting" ? 1 : -1 },
+      ),
     );
   }
 
@@ -728,12 +741,7 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
                       </tr>
                       {!shut &&
                         ordered(i.rows).map((r) => (
-                          <DataRow
-                            key={r.id}
-                            r={r}
-                            cols={cols}
-                            go={(id) => router.push(`/instruments/${id}`)}
-                          />
+                          <DataRow key={r.id} r={r} cols={cols} go={go} />
                         ))}
                     </tbody>
                   );
@@ -741,13 +749,7 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
               ) : (
                 <tbody>
                   {flat.map((r) => (
-                    <DataRow
-                      key={r.id}
-                      r={r}
-                      cols={cols}
-                      flat
-                      go={(id) => router.push(`/instruments/${id}`)}
-                    />
+                    <DataRow key={r.id} r={r} cols={cols} flat go={go} />
                   ))}
                 </tbody>
               )}
@@ -768,7 +770,7 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
   );
 }
 
-function DataRow({
+const DataRow = memo(function DataRow({
   r,
   cols,
   go,
@@ -812,4 +814,4 @@ function DataRow({
       ))}
     </tr>
   );
-}
+});
