@@ -4,7 +4,7 @@ import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
 import { DriversCard } from "@/components/DriversCard";
 import { PeersCard } from "@/components/PeersCard";
-import { PlainSummary } from "@/components/PlainSummary";
+import { PlainFacts, trustWord } from "@/components/PlainSummary";
 import { TurningCard } from "@/components/TurningCard";
 import { TechnicalCard } from "@/components/TechnicalCard";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
@@ -133,7 +133,7 @@ function SignalBars({ signals }: { signals: D["decision"]["signals"] }) {
 function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
   return (
     <div className="tile mt-4" data-testid="holding">
-      <h3 className="mb-1 font-bold">تا کی نگه دارم؟ کی بفروشم؟</h3>
+      <h3 className="mb-1 font-bold">اگر بخرم، تا کی نگه دارم و کی بفروشم؟</h3>
       <ul className="list-inside list-disc space-y-1.5">
         {h.lines.map((l) => (
           <li key={l}>{faDigits(l)}</li>
@@ -144,110 +144,108 @@ function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
 }
 
 export const DEFAULT_HORIZON = "M1";
-
-/** Decision for the holding period the reader picks: its verdict, the exact reasons and the past evidence. */
-function Horizons({
-  items,
-  selected,
+/** One card for the whole decision: the holding period (tabs), its verdict and reasons, then the
+ * plain answers (how sure, how deep a dip, place in the group) and the model's evidence. */
+function Decision({
+  d,
+  dash,
+  horizon,
   id,
 }: {
-  items: D["decision"]["horizons"];
-  selected: string;
+  d: D["decision"];
+  dash: D;
+  horizon: string;
   id: number;
 }) {
-  if (items.length === 0) return null;
+  const items = d.horizons;
   const h =
-    items.find((x) => x.key === selected) ??
+    items.find((x) => x.key === horizon) ??
     items.find((x) => x.key === DEFAULT_HORIZON) ??
     items[0];
-  return (
-    <div
-      className="mt-4"
-      id="horizon"
-      data-testid="horizons"
-      data-horizon={h.key}
-      data-verdict={h.verdict}
-    >
-      <h3 className="mb-1 font-bold">تصمیم برای کدام بازهٔ نگهداری؟</h3>
-      <p className="mb-2 text-sm text-muted">
-        یک سهم ممکن است برای ماه آینده خوب و برای فردا نامناسب باشد. بازه را انتخاب کنید تا تصمیم و
-        دلیل‌های همان بازه را ببینید.
-      </p>
-      <nav className="mb-3 flex flex-wrap gap-2" aria-label="بازهٔ نگهداری">
-        {items.map((x) => (
-          <Link
-            key={x.key}
-            href={`/instruments/${id}?h=${x.key}#horizon`}
-            scroll={false}
-            className="tab tab-pill"
-            aria-current={x.key === h.key ? "page" : undefined}
-            data-testid={`horizon-${x.key}`}
-          >
-            {x.label}
-            <span className={`${verdictPill(x.verdict)} ms-2`}>{x.verdict_label}</span>
-          </Link>
-        ))}
-      </nav>
-      <div className={`tile ${verdictTone(h.verdict)}`}>
-        <p className="text-lg font-semibold">{faDigits(h.headline)}</p>
-        {h.top_excess != null && (
-          <dl className="mt-2" data-testid="horizon-evidence">
-            <Row
-              k="سود اضافهٔ ۱۰٪ سهم‌های پرامتیاز نسبت به بازار (در گذشته)"
-              v={signedPct(h.top_excess)}
-              tone={signTone(h.top_excess)}
-            />
-            <Row k="کارمزد و مالیات خرید و فروش" v={faPercent(h.cost ?? 0, 2)} />
-            <Row
-              k="سود اضافهٔ واقعی پس از کارمزد"
-              v={signedPct(h.net_excess)}
-              tone={signTone(h.net_excess)}
-            />
-            {h.ic_t != null && (
-              <Row k="اطمینان آماری (t؛ ۳ به بالا یعنی محکم)" v={faNumber(h.ic_t, 1)} />
-            )}
-          </dl>
-        )}
-        <ul className="mt-3 list-inside list-disc space-y-1.5">
-          {h.reasons.map((r) => (
-            <li key={r}>{faDigits(r)}</li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function Decision({ d, horizon, id }: { d: D["decision"]; horizon: string; id: number }) {
+  const verdict = h?.verdict ?? d.verdict;
+  const label = h?.verdict_label ?? d.label;
+  const trust = trustWord(h?.ic_t);
   const [first, ...rest] = d.reasons;
-  // The zone sentence only repeats the summary above it; keep what it adds (a caution, a reason).
-  const extra = d.headline
-    .replace(
-      /^امتیازش (در محدودهٔ خرید است.|متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید.|ضعیف است: نخرید و اگر دارید فروش را بسنجید.)s*/,
-      "",
-    )
-    .trim();
   return (
     <section
-      className={`card ${verdictTone(d.verdict)}`}
+      className={`card ${verdictTone(verdict)}`}
       data-testid="symbol-decision"
-      data-verdict={d.verdict}
+      data-verdict={verdict}
     >
       <div className="flex flex-wrap items-center gap-4">
-        <div className="w-56 shrink-0">
+        <div className="w-44 shrink-0">
           <Gauge value={d.gauge} label="امتیاز ترکیبی مدل" />
           <p className="text-center text-sm text-muted">
             {d.gauge == null ? "امتیازی محاسبه نشده" : "امتیاز ترکیبی (۱۰۰ = بهترین)"}
           </p>
         </div>
         <div className="min-w-0 flex-1 space-y-2">
-          <span className={`${verdictPill(d.verdict)} pill-lg`}>{d.label}</span>
-          <p className="text-lg font-semibold">{faDigits(d.summary || d.headline)}</p>
-          {d.summary && extra && <p className="text-muted">{faDigits(extra)}</p>}
-          {first && <p>{faDigits(first)}</p>}
+          <h2 className="font-bold">چه کنم؟</h2>
+          {items.length > 0 && (
+            <nav className="flex flex-wrap gap-2" aria-label="بازهٔ نگهداری">
+              {items.map((x) => (
+                <Link
+                  key={x.key}
+                  href={`/instruments/${id}?h=${x.key}#horizon`}
+                  scroll={false}
+                  className="tab tab-pill"
+                  aria-current={x.key === h?.key ? "page" : undefined}
+                  data-testid={`horizon-${x.key}`}
+                >
+                  {x.label}
+                  <span className={`${verdictPill(x.verdict)} ms-2`}>{x.verdict_label}</span>
+                </Link>
+              ))}
+            </nav>
+          )}
+          <span className={`${verdictPill(verdict)} pill-lg`}>{label}</span>
+          <p className="text-lg font-semibold">
+            {faDigits(h?.headline ?? (d.summary || d.headline))}
+          </p>
+          {first && <p className="text-sm text-muted">{faDigits(first)}</p>}
         </div>
       </div>
-      <Horizons items={d.horizons} selected={horizon} id={id} />
+
+      {h && (
+        <div
+          className="mt-4"
+          id="horizon"
+          data-testid="horizons"
+          data-horizon={h.key}
+          data-verdict={h.verdict}
+        >
+          {h.top_excess != null && (
+            <dl className="tile" data-testid="horizon-evidence">
+              <Row
+                k="سود اضافهٔ سهم‌های پرامتیاز نسبت به بازار (در گذشته)"
+                v={signedPct(h.top_excess)}
+                tone={signTone(h.top_excess)}
+              />
+              <Row k="کارمزد و مالیات خرید و فروش" v={faPercent(h.cost ?? 0, 2)} />
+              <Row
+                k="سود اضافهٔ واقعی پس از کارمزد"
+                v={signedPct(h.net_excess)}
+                tone={signTone(h.net_excess)}
+              />
+              {trust && (
+                <Row
+                  k="اطمینان به این آمار"
+                  v={`${trust}${h.ic_t != null ? ` (t ${faNumber(h.ic_t, 1)})` : ""}`}
+                />
+              )}
+            </dl>
+          )}
+          <ul className="mt-3 list-inside list-disc space-y-1.5">
+            {h.reasons.map((r) => (
+              <li key={r}>{faDigits(r)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-4 border-t border-line pt-3">
+        <PlainFacts d={dash} />
+      </div>
       <SignalBars signals={d.signals} />
       {d.holding && <Holding h={d.holding} />}
       {rest.length > 0 && (
@@ -382,8 +380,7 @@ export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?
       : null;
   return (
     <div className="space-y-4" data-testid="symbol-dashboard">
-      <PlainSummary d={d} />
-      <Decision d={d.decision} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
+      <Decision d={d.decision} dash={d} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
       {d.peers && <PeersCard p={d.peers} />}
       {d.turning && <TurningCard t={d.turning} />}
       {d.drivers && <DriversCard d={d.drivers} />}

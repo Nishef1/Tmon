@@ -258,7 +258,7 @@ def test_headline_follows_the_tested_month_when_the_score_says_more() -> None:
     ]
     d = dash.decide(_with_id(8, "رابع"), doc, 3e9)
     # a low score whose zone did not lag the market in the tested month is not a sell
-    assert d.verdict == "hold" and d.label == "نگهداری"
+    assert d.verdict == "hold" and d.label == "صبر کنید"
     assert [h.verdict for h in d.horizons] == ["hold"]
     assert "دلیلی هم برای فروش نیست" in d.summary
     assert any("امتیاز به‌تنهایی «فروش»" in r for r in d.reasons)

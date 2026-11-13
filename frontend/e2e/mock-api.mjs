@@ -526,7 +526,7 @@ function route(url) {
           close: 1005,
           change_pct: 0.01,
           verdict: "hold",
-          verdict_label: "نگهداری",
+          verdict_label: "صبر کنید",
           gauge: 81,
           eps: 500,
           pe: 5,
@@ -566,9 +566,10 @@ function route(url) {
       rsi_14: 55,
     });
     const only = url.searchParams.get("verdict");
-    const rows = [row(1, "وبانک", "hold", "نگهداری", 2), row(2, "خودرو", "sell", "فروش", 3)].filter(
-      (r) => !only || r.verdict === only,
-    );
+    const rows = [
+      row(1, "وبانک", "hold", "صبر کنید", 2),
+      row(2, "خودرو", "sell", "فروش", 3),
+    ].filter((r) => !only || r.verdict === only);
     return [
       200,
       {
@@ -885,7 +886,7 @@ function route(url) {
         },
         decision: {
           verdict: "hold",
-          label: "نگهداری",
+          label: "صبر کنید",
           advice_allowed: false,
           headline: "امتیازش متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید.",
           reasons: ["رتبهٔ 20 از 100 نماد پرمعامله؛ امتیاز ترکیبی 80 از ۱۰۰ (۱۰۰ = بهترین)."],
@@ -902,7 +903,7 @@ function route(url) {
               label: "فردا (۱ روز)",
               days: 1,
               verdict: "hold",
-              verdict_label: "نگهداری",
+              verdict_label: "صبر کنید",
               headline:
                 "برای فردا (۱ روز): معامله نکنید؛ سود اضافهٔ گذشته از کارمزد خرید و فروش کمتر است.",
               reasons: [

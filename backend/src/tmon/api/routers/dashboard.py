@@ -80,7 +80,7 @@ SIGNAL_WHAT = {
     "mom_12_1": "قیمت در یک سال گذشته (به‌جز ماه آخر) چقدر رشد کرده است",
 }
 HOLD_DAYS = 20  # the horizon the evidence table is read at, in trading days
-LABEL = {"buy": "خرید", "hold": "نگهداری", "sell": "فروش", "none": "تصمیمی نیست"}
+LABEL = {"buy": "خرید", "hold": "صبر کنید", "sell": "فروش", "none": "تصمیمی نیست"}
 TYPE_FA = {
     "bond": "اوراق بدهی",
     "right": "حق‌تقدم",
@@ -383,7 +383,7 @@ def _horizon_decision(
             head = f"برای {label}: معامله نکنید؛ سود اضافهٔ گذشته از کارمزد خرید و فروش کمتر است."
     elif zone == "hold":
         verdict = "hold"
-        head = f"برای {label}: نگه دارید؛ امتیاز این سهم نه جزو بهترین‌هاست نه جزو بدترین‌ها."
+        head = f"برای {label}: فعلاً صبر کنید؛ امتیاز این سهم نه جزو بهترین‌هاست نه جزو بدترین‌ها. اگر دارید، نگه دارید."
     elif bot is not None and bot < -cost / 2:
         verdict = "sell"
         head = (

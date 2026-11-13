@@ -1,16 +1,8 @@
 import type { InstrumentDashboard } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
-import { verdictPill, verdictTone } from "@/lib/ui";
 import { NextCandles } from "@/components/entry/NextCandles";
 
 type D = InstrumentDashboard;
-
-const ACTION: Record<string, string> = {
-  buy: "خرید",
-  hold: "صبر کنید (اگر دارید نگه دارید)",
-  sell: "نخرید (اگر دارید فروش را بررسی کنید)",
-  none: "نظری نیست",
-};
 
 /** Share of similar past cases that beat the market in six months, or null when unknown. */
 function pastWinRate(t: D["turning"]): { rate: number; base: number | null } | null {
@@ -32,9 +24,15 @@ function Meter({ rate }: { rate: number }) {
   );
 }
 
-/** The whole page in four plain lines: what to do, how often it worked before, the usual dip
- * after buying, and the place in the group. No jargon; every number comes from the cards below. */
-export function PlainSummary({ d }: { d: D }) {
+/** One word for how far the past evidence can be trusted (t is the statistical strength). */
+export function trustWord(t: number | null | undefined): string | null {
+  if (t == null) return null;
+  return t >= 3 ? "زیاد" : t >= 2 ? "متوسط" : "کم";
+}
+
+/** The plain answers under the decision: how sure, how deep the dip, place in the group, and the
+ * next candles. The verdict itself lives in the decision card above; nothing is repeated here. */
+export function PlainFacts({ d }: { d: D }) {
   const v = d.decision.verdict;
   const win = pastWinRate(d.turning);
   const t = d.turning;
@@ -47,35 +45,31 @@ export function PlainSummary({ d }: { d: D }) {
         : null;
   const peers = d.peers;
   return (
-    <section className={`card ${verdictTone(v)}`} data-testid="plain-summary" data-verdict={v}>
-      <h2 className="mb-2 font-bold">خلاصه به زبان ساده</h2>
+    <div data-testid="plain-summary" data-verdict={v}>
       <dl className="space-y-3">
-        <div>
-          <dt className="text-sm text-muted">چه کنم؟</dt>
-          <dd className="mt-0.5 flex flex-wrap items-center gap-2">
-            <span className={`${verdictPill(v)} pill-lg`}>{ACTION[v] ?? ACTION.none}</span>
-          </dd>
-        </div>
         {win && per100 != null && (
           <div data-testid="plain-winrate">
             <dt className="text-sm text-muted">چقدر می‌شود مطمئن بود؟</dt>
             <dd className="mt-0.5">
-              در گذشته از هر ۱۰۰ سهمی که در همین وضعیت بودند، <b>{faNumber(per100)}</b> تا در شش ماه
-              بعد از میانگین بازار بهتر شدند
-              {win.base != null && (
-                <> (برای همهٔ سهم‌ها {faNumber(Math.round(win.base * 100))} تا)</>
-              )}
-              .
+              از هر ۱۰۰ سهمِ هم‌وضعیت، <b>{faNumber(per100)}</b> تا در شش ماه بعد از بازار بهتر شدند
+              {win.base != null && <> (همهٔ سهم‌ها: {faNumber(Math.round(win.base * 100))})</>}.
               <Meter rate={win.rate} />
             </dd>
           </div>
         )}
         {t && t.state.mae60_median != null && (
           <div>
-            <dt className="text-sm text-muted">اگر الان بخرم، چقدر ممکن است اول ضرر ببینم؟</dt>
+            <dt className="text-sm text-muted">اگر بخرم، چقدر ممکن است اول ضرر ببینم؟</dt>
             <dd className="mt-0.5">
-              معمولاً تا <b className="text-down">{faPercent(-t.state.mae60_median, 0)}</b> پایین‌تر
-              از قیمت خرید در دو ماه اول.
+              معمولاً تا <b className="text-down">{faPercent(-t.state.mae60_median, 0)}</b> زیر قیمت
+              خرید در دو ماه اول
+              {t.state.mae60_p10 != null && (
+                <>
+                  ؛ در بدترین حالت‌ها تا{" "}
+                  <b className="text-down">{faPercent(-t.state.mae60_p10, 0)}</b>
+                </>
+              )}
+              .
             </dd>
           </div>
         )}
@@ -102,11 +96,9 @@ export function PlainSummary({ d }: { d: D }) {
         </p>
       )}
       <p className="mt-3 text-xs text-muted">
-        این درصدها سابقهٔ سهم‌های مشابه در گذشته است، نه تضمین آیندهٔ همین سهم.
-        {!d.decision.advice_allowed &&
-          " مدل هنوز همهٔ آزمون‌های اعتبار را پاس نکرده؛ قطعی نگیرید."}{" "}
-        «بازار» یعنی میانگین همهٔ سهم‌های پرمعامله در همان روزها.
+        این درصدها سابقهٔ سهم‌های مشابه است، نه تضمین آینده. «بازار» یعنی میانگین همهٔ سهم‌های
+        پرمعامله در همان روزها.
       </p>
-    </section>
+    </div>
   );
 }

@@ -83,18 +83,20 @@ test.describe("instrument page", () => {
     await expect(hz).toHaveAttribute("data-horizon", "M1");
     await expect(hz).toHaveAttribute("data-verdict", "buy");
     await expect(hz.getByTestId("horizon-evidence")).toContainText("سود اضافهٔ واقعی پس از کارمزد");
-    await hz.getByTestId("horizon-D1").click();
+    await page.getByTestId("horizon-D1").click();
     await expect(page).toHaveURL(/h=D1/);
     await expect(hz).toHaveAttribute("data-horizon", "D1");
     await expect(hz).toHaveAttribute("data-verdict", "hold");
-    await expect(hz).toContainText("از کارمزد خرید و فروش کمتر است");
+    await expect(page.getByTestId("symbol-decision")).toContainText(
+      "از کارمزد خرید و فروش کمتر است",
+    );
   });
 
   test("shows one final decision with its reasons and the per-symbol numbers", async ({ page }) => {
     await page.goto("/instruments/1");
     const decision = page.getByTestId("symbol-decision");
-    await expect(decision).toHaveAttribute("data-verdict", "hold");
-    await expect(decision).toContainText("نگهداری");
+    await expect(decision).toHaveAttribute("data-verdict", "buy");
+    await expect(decision).toContainText("خرید");
     await expect(decision).toContainText("رتبهٔ ۲۰ از ۱۰۰");
     await expect(decision.getByTestId("gauge")).toHaveAttribute("data-value", "81.0");
     await expect(decision.getByTestId("signal-bars")).toContainText("قدرت خریدار حقیقی");
@@ -279,7 +281,7 @@ test("industries table shows one decision per symbol with its gauge and flow col
   const table = page.getByTestId("industry-table");
   await expect(table).toContainText("قدرت خریدار");
   await expect(table.getByTestId("gauge").first()).toBeVisible();
-  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("نگهداری");
+  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("صبر کنید");
 });
 
 test("header search finds a symbol by name or industry and opens its page", async ({ page }) => {
@@ -290,7 +292,7 @@ test("header search finds a symbol by name or industry and opens its page", asyn
   await expect(hits).toHaveCount(2);
   await expect(hits.first()).toContainText("فلزات اساسی");
   await expect(hits.first()).toContainText("P/E");
-  await expect(hits.first()).toContainText("نگهداری");
+  await expect(hits.first()).toContainText("صبر کنید");
   await box.fill("فولاد");
   await expect(hits).toHaveCount(1);
   await box.press("Enter");
