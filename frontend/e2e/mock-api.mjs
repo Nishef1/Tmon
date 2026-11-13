@@ -337,11 +337,100 @@ const TA_SIGNALS = {
   ],
 };
 
+// entry odds: the tested setups and instrument 1 sitting after two red candles in an uptrend
+const eh = (h, up, all, halves) => ({
+  h,
+  n: 5000,
+  up,
+  up_all: all,
+  edge: up - all,
+  halves_edge: halves,
+  excess_mean: 0.001 * h,
+  median: 0.002 * h,
+});
+const entrySetup = (key, group, title, label, up, all, extra = {}) => ({
+  key,
+  group,
+  title,
+  event: group !== "all",
+  label,
+  best_h: label === "better" || label === "worse" ? 1 : null,
+  verdict:
+    label === "better"
+      ? "1 کندل بعد از خرید، 52 بار از 100 بالاتر از قیمت خرید بوده؛ بیشتر از بقیهٔ سهم‌ها."
+      : label === "worse"
+        ? "1 کندل بعد از خرید، 28 بار از 100 بالاتر از قیمت خرید بوده؛ کمتر از بقیهٔ سهم‌ها."
+        : "تفاوت قابل اعتنایی با خریدن هر سهم دیگری در همان روزها نداشته.",
+  n: 5000,
+  symbols: 400,
+  locked_share: 0.1,
+  horizons: [1, 3, 5, 10, 20].map((h) =>
+    eh(h, up + 0.01 * h, all + 0.01 * h, [up - all + 0.02, up - all - 0.01]),
+  ),
+  dip_hit: 0.3,
+  dip_hit_all: 0.37,
+  dip_median: -0.03,
+  win: 0.33,
+  win_all: 0.31,
+  loss: 0.4,
+  loss_all: 0.42,
+  ...extra,
+});
+const SETUPS = [
+  entrySetup("any", "all", "هر روز، هر سهم (مبنا)", "same", 0.41, 0.41),
+  entrySetup("g6", "streak", "شش شمع سبز یا بیشتر", "better", 0.52, 0.43),
+  entrySetup("r2", "streak", "دو شمع قرمز پشت سر هم", "same", 0.41, 0.4),
+  entrySetup("r6", "streak", "شش شمع قرمز یا بیشتر", "worse", 0.28, 0.37),
+  entrySetup("base_rsi30", "base", "برگشت RSI به بالای ۳۰ در کف", "better", 0.48, 0.4),
+  entrySetup("base_breakout", "base", "شکست سقف ۶۰ روزه از کف", "same", 0.47, 0.42),
+  entrySetup("up_red2", "uptrend", "دو قرمز در روند صعودی", "same", 0.42, 0.42),
+];
+const ENTRY_ODDS = {
+  available: true,
+  as_of: "2026-11-11",
+  round_trip_cost: 0.0175,
+  dir_edge: 0.03,
+  dip: -0.05,
+  dip_within: 10,
+  win: 0.1,
+  loss: -0.05,
+  path: 20,
+  base_dd: -0.3,
+  base_range: 0.25,
+  base_days: 60,
+  history_first: "2002-04-07",
+  history_last: "2026-11-11",
+  split_date: "2014-06-08",
+  groups: { all: "مبنا", streak: "شمع‌ها", base: "کف", uptrend: "روند صعودی" },
+  setups: SETUPS,
+};
+const ENTRY_DASH = {
+  as_of: "2026-11-11",
+  green: 0,
+  red: 2,
+  in_base: false,
+  in_up: true,
+  dd: -0.08,
+  rng60: 0.3,
+  now: SETUPS.filter((x) => ["r2", "up_red2"].includes(x.key)),
+  marks: [
+    {
+      key: "base_rsi30",
+      title: "برگشت RSI به بالای ۳۰ در کف",
+      date: "2024-10-01",
+      ago: 80,
+      label: "better",
+    },
+  ],
+  lines: ["آخرین 2 شمع پشت سر هم قرمز بوده است.", "سهم در روند صعودی است."],
+};
+
 function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
   if (path === "/v2/ranking") return [200, RANKING];
   if (path === "/research/ta-signals") return [200, TA_SIGNALS];
+  if (path === "/research/entry-odds") return [200, ENTRY_ODDS];
   if (path === "/search") {
     const q = url.searchParams.get("q") ?? "";
     const all = [
@@ -663,6 +752,7 @@ function route(url) {
             "وقتی کل بورس ۱۰٪ بالا یا پایین رفته، این سهم حدود 12.5٪ رفته؛ یعنی تندتر از بازار.",
           ],
         },
+        entry: ENTRY_DASH,
         technical: {
           as_of: "2026-11-11",
           recent_days: 10,

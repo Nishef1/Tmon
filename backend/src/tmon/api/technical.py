@@ -29,22 +29,26 @@ CACHE_SECONDS = 300
 _cache: dict[str, tuple[float, dict[str, Any] | None]] = {}
 
 
-def ta_doc() -> dict[str, Any] | None:
-    """The stored document, parsed once every few minutes (it is about 2 MB)."""
-    hit = _cache.get(KEY)
+def load_doc(key: str) -> dict[str, Any] | None:
+    """A stored research document, parsed once every few minutes (they run to a few MB)."""
+    hit = _cache.get(key)
     if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
         return hit[1]
     try:
         doc: dict[str, Any] | None = json.loads(
-            get_object_store().get(get_settings().minio_artifact_bucket, KEY)
+            get_object_store().get(get_settings().minio_artifact_bucket, key)
         )
     except (FileNotFoundError, KeyError):
         doc = None
     except Exception:  # store unreachable: leave the card out instead of failing the page
-        log.warning("%s unreadable", KEY, exc_info=True)
+        log.warning("%s unreadable", key, exc_info=True)
         doc = None
-    _cache[KEY] = (time.monotonic(), doc)
+    _cache[key] = (time.monotonic(), doc)
     return doc
+
+
+def ta_doc() -> dict[str, Any] | None:
+    return load_doc(KEY)
 
 
 def _pct(x: float, digits: int = 1) -> str:

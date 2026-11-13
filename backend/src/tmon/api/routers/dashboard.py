@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from tmon.api.entry import entry_doc, entry_out
 from tmon.api.returns import day_change
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import (
@@ -717,6 +718,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         peers=peers_out(session, inst, sector.name if sector else None, rank_doc, turn_doc),
         drivers=drivers_out(drv_doc, inst.id) if inst.instrument_type == "stock" else None,
         technical=technical_out(ta_doc(), inst.id, _beta(drv_doc, inst.id)),
+        entry=entry_out(entry_doc(), inst.id),
     )
 
 

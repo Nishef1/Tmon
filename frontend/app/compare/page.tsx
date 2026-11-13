@@ -1,40 +1,109 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, type Compare, type Funds } from "@/lib/api";
+import {
+  apiGet,
+  type Compare,
+  type Funds,
+  type InstrumentDashboard,
+  type InstrumentDetail,
+} from "@/lib/api";
 import { faNumber, jalali } from "@/lib/format";
+import { CompareChart } from "@/components/compare/CompareChart";
+import { SymbolPicker } from "@/components/compare/SymbolPicker";
+import { SymbolsTable, type Picked } from "@/components/compare/SymbolsTable";
+import { MAX_SYMBOLS } from "@/components/compare/colors";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 
-export const metadata: Metadata = { title: "مقایسه با تورم" };
+export const metadata: Metadata = { title: "مقایسه" };
 export const dynamic = "force-dynamic";
 
-type Search = { months?: string; source?: string };
+type Search = { months?: string; source?: string; s?: string };
 const MONTHS = [1, 3, 12] as const;
 
 export default async function ComparePage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const months = MONTHS.find((m) => String(m) === sp.months) ?? 12;
   const source = sp.source === "cbi" ? "cbi" : "sci";
-  const [cmp, funds] = await Promise.all([
+  const ids = [...new Set((sp.s ?? "").split(",").filter((x) => /^\d+$/.test(x)))].slice(
+    0,
+    MAX_SYMBOLS,
+  );
+  const [cmp, funds, picked] = await Promise.all([
     apiGet<Compare>("/compare", { months, inflation_source: source }),
     apiGet<Funds>("/funds"),
+    Promise.all(
+      ids.map(async (id): Promise<Picked | null> => {
+        const [d, dash] = await Promise.all([
+          apiGet<InstrumentDetail>(`/instruments/${id}`),
+          apiGet<InstrumentDashboard>(`/instruments/${id}/dashboard`),
+        ]);
+        return d.ok ? { detail: d.data, dash: dash.ok ? dash.data : null } : null;
+      }),
+    ),
   ]);
+  const chosen = picked.filter((p): p is Picked => p != null);
+  const sq = chosen.length ? `&s=${chosen.map((p) => p.detail.instrument.id).join(",")}` : "";
+  const lines = chosen.map((p) => ({
+    id: p.detail.instrument.id,
+    symbol: p.detail.instrument.symbol,
+    closes: p.detail.candles.flatMap((c) =>
+      c.close == null ? [] : [{ date: c.date, close: c.close }],
+    ),
+  }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold">مقایسه با تورم</h1>
-        <p className="mt-1 text-sm text-muted">
-          بازدهٔ دارایی‌های ساده (دلار، طلا، سکه، اوراق) و صندوق‌های بورسی در برابر تورم دوره؛ تا
-          ببینید نگه‌داشتن پول در سهام نسبت به این گزینه‌ها و نسبت به کاهش ارزش پول چه ارزشی داشته
-          است.
+        <h1 className="page-title">مقایسه</h1>
+        <p className="lead">
+          چند نماد را کنار هم بگذارید: بازده از یک روز مشترک، ریسک، این‌که الان چند کندل سبز یا قرمز
+          پشت سر هم دارند و بعد از چنین وضعی در گذشته کندل‌های بعدی چند بار بالاتر رفته‌اند.
+          پایین‌تر، دارایی‌های ساده و صندوق‌ها در برابر تورم آمده‌اند.
         </p>
+        <nav aria-label="بخش‌های صفحه" className="mt-3 flex flex-wrap gap-2">
+          <a href="#symbols" className="tab tab-pill">
+            مقایسهٔ نمادها
+          </a>
+          <a href="#inflation" className="tab tab-pill">
+            دارایی‌ها و تورم
+          </a>
+          <a href="#funds" className="tab tab-pill">
+            صندوق‌ها
+          </a>
+        </nav>
       </div>
+
+      <section id="symbols" className="card space-y-4" data-testid="compare-symbols">
+        <h2 className="font-bold">مقایسهٔ نمادها</h2>
+        <SymbolPicker
+          chosen={chosen.map((p) => ({
+            id: p.detail.instrument.id,
+            symbol: p.detail.instrument.symbol,
+          }))}
+          keep={`months=${months}&source=${source}`}
+        />
+        {chosen.length === 0 ? (
+          <p className="text-sm text-muted">
+            یک تا {faNumber(MAX_SYMBOLS)} نماد اضافه کنید تا بازده، ریسک و شانس کندل‌های بعدی‌شان
+            کنار هم دیده شود.
+          </p>
+        ) : (
+          <>
+            <CompareChart lines={lines} />
+            <SymbolsTable picked={chosen} />
+          </>
+        )}
+      </section>
+
+      <h2 id="inflation" className="text-xl font-extrabold">
+        دارایی‌ها در برابر تورم
+      </h2>
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="بازهٔ زمانی و منبع تورم">
         {MONTHS.map((m) => (
           <Link
             key={m}
-            href={`/compare?months=${m}&source=${source}`}
+            href={`/compare?months=${m}&source=${source}${sq}#inflation`}
             aria-current={m === months ? "page" : undefined}
             className="tab"
           >
@@ -44,7 +113,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         {(["sci", "cbi"] as const).map((s) => (
           <Link
             key={s}
-            href={`/compare?months=${months}&source=${s}`}
+            href={`/compare?months=${months}&source=${s}${sq}#inflation`}
             aria-current={s === source ? "page" : undefined}
             className="tab"
           >
@@ -150,7 +219,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         </section>
       )}
 
-      <section className="card space-y-3">
+      <section id="funds" className="card space-y-3">
         <h2 className="font-bold">صندوق‌های بورسی: NAV و حباب</h2>
         {!funds.ok ? (
           <ErrorState message={funds.error} />

@@ -9,8 +9,8 @@ const NAV = [
   { href: "/", label: "امروز" },
   { href: "/market", label: "نمای بازار" },
   { href: "/industries", label: "صنایع و نمادها" },
-  { href: "/model", label: "اعتبار مدل" },
-  { href: "/compare", label: "مقایسه با تورم" },
+  { href: "/model", label: "شانس ورود و مدل" },
+  { href: "/compare", label: "مقایسه" },
   { href: "/glossary", label: "واژه‌نامه" },
 ];
 

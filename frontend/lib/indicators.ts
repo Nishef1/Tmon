@@ -149,11 +149,11 @@ export function rsi(bars: Bar[], n = 14): Series {
   );
 }
 
-export function macd(bars: Bar[]) {
+export function macd(bars: Bar[], fast = 12, slow = 26, signal = 9) {
   const c = bars.map((b) => b.close);
-  const e26 = emaOf(c, 26);
-  const line = emaOf(c, 12).map((x, i) => both(x, e26[i], (a, b) => a - b));
-  const sig = emaOf(line, 9);
+  const es = emaOf(c, slow);
+  const line = emaOf(c, fast).map((x, i) => both(x, es[i], (a, b) => a - b));
+  const sig = emaOf(line, signal);
   return {
     macd: toSeries(bars, line),
     signal: toSeries(bars, sig),

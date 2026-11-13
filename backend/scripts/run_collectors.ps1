@@ -20,6 +20,8 @@ with session_scope() as s:
   & $py -m tmon.tools.stock_drivers
   # every chart term of the glossary: tested readings, each symbol's values and risk numbers
   & $py -m tmon.tools.ta_signals
+  # after which candles the next ones were green: streaks, entries from a base, uptrend pullbacks
+  & $py -m tmon.tools.entry_odds
   # new assembly/capital letters from Codal, then the day each invitation names
   & $py -m tmon.ingest.codal.cli events
   & $py -m tmon.ingest.codal.cli meetings

@@ -1058,6 +1058,134 @@
         "title": "DashDrivers",
         "type": "object"
       },
+      "DashEntry": {
+        "description": "Where the symbol stands for a buyer now: its streak, whether it sits in a months-long base\nor an uptrend, and the tested odds of every setup it is in. Describes the past, not advice.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "dd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dd"
+          },
+          "green": {
+            "title": "Green",
+            "type": "integer"
+          },
+          "in_base": {
+            "title": "In Base",
+            "type": "boolean"
+          },
+          "in_up": {
+            "title": "In Up",
+            "type": "boolean"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "marks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DashEntryMark"
+            },
+            "title": "Marks",
+            "type": "array"
+          },
+          "now": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EntrySetup"
+            },
+            "title": "Now",
+            "type": "array"
+          },
+          "red": {
+            "title": "Red",
+            "type": "integer"
+          },
+          "rng60": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rng60"
+          }
+        },
+        "required": [
+          "as_of",
+          "green",
+          "red",
+          "in_base",
+          "in_up",
+          "dd",
+          "rng60",
+          "now",
+          "marks",
+          "lines"
+        ],
+        "title": "DashEntry",
+        "type": "object"
+      },
+      "DashEntryMark": {
+        "description": "An entry candle of the symbol's last year, for the chart.",
+        "properties": {
+          "ago": {
+            "title": "Ago",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "enum": [
+              "better",
+              "worse",
+              "same",
+              "mixed",
+              "too_few"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "date",
+          "ago",
+          "label"
+        ],
+        "title": "DashEntryMark",
+        "type": "object"
+      },
       "DashEvent": {
         "properties": {
           "date": {
@@ -2804,6 +2932,462 @@
         "title": "DriverMove",
         "type": "object"
       },
+      "EntryHorizon": {
+        "description": "``h`` candles after buying at the close of the day after the setup.",
+        "properties": {
+          "edge": {
+            "title": "Edge",
+            "type": "number"
+          },
+          "excess_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excess Mean"
+          },
+          "h": {
+            "title": "H",
+            "type": "integer"
+          },
+          "halves_edge": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Halves Edge",
+            "type": "array"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "up": {
+            "title": "Up",
+            "type": "number"
+          },
+          "up_all": {
+            "title": "Up All",
+            "type": "number"
+          }
+        },
+        "required": [
+          "h",
+          "n",
+          "up",
+          "up_all",
+          "edge",
+          "halves_edge",
+          "excess_mean",
+          "median"
+        ],
+        "title": "EntryHorizon",
+        "type": "object"
+      },
+      "EntryOddsOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "base_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Days"
+          },
+          "base_dd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Dd"
+          },
+          "base_range": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Range"
+          },
+          "dip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dip"
+          },
+          "dip_within": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dip Within"
+          },
+          "dir_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dir Edge"
+          },
+          "groups": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Groups",
+            "type": "object"
+          },
+          "history_first": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History First"
+          },
+          "history_last": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Last"
+          },
+          "loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loss"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "round_trip_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round Trip Cost"
+          },
+          "setups": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EntrySetup"
+            },
+            "title": "Setups",
+            "type": "array"
+          },
+          "split_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Split Date"
+          },
+          "win": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win"
+          }
+        },
+        "required": [
+          "available",
+          "as_of",
+          "round_trip_cost",
+          "dir_edge",
+          "dip",
+          "dip_within",
+          "win",
+          "loss",
+          "path",
+          "base_dd",
+          "base_range",
+          "base_days",
+          "history_first",
+          "history_last",
+          "split_date",
+          "groups",
+          "setups"
+        ],
+        "title": "EntryOddsOut",
+        "type": "object"
+      },
+      "EntrySetup": {
+        "description": "A fixed entry condition and how the candles after it went on the whole exchange.",
+        "properties": {
+          "best_h": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best H"
+          },
+          "dip_hit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dip Hit"
+          },
+          "dip_hit_all": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dip Hit All"
+          },
+          "dip_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dip Median"
+          },
+          "event": {
+            "title": "Event",
+            "type": "boolean"
+          },
+          "group": {
+            "enum": [
+              "all",
+              "streak",
+              "base",
+              "uptrend"
+            ],
+            "title": "Group",
+            "type": "string"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EntryHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "enum": [
+              "better",
+              "worse",
+              "same",
+              "mixed",
+              "too_few"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "locked_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked Share"
+          },
+          "loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loss"
+          },
+          "loss_all": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loss All"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "symbols": {
+            "title": "Symbols",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          },
+          "win": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win"
+          },
+          "win_all": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win All"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "title",
+          "event",
+          "label",
+          "best_h",
+          "verdict",
+          "n",
+          "symbols",
+          "locked_share",
+          "horizons",
+          "dip_hit",
+          "dip_hit_all",
+          "dip_median",
+          "win",
+          "win_all",
+          "loss",
+          "loss_all"
+        ],
+        "title": "EntrySetup",
+        "type": "object"
+      },
       "FeatureValue": {
         "properties": {
           "feature": {
@@ -3277,6 +3861,16 @@
               }
             ]
           },
+          "entry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "events": {
             "default": [],
             "items": {
@@ -3451,7 +4045,8 @@
           "turning",
           "peers",
           "drivers",
-          "technical"
+          "technical",
+          "entry"
         ],
         "title": "InstrumentDashboard",
         "type": "object"
@@ -7314,6 +7909,28 @@
         "summary": "Recommendations",
         "tags": [
           "recommendations"
+        ]
+      }
+    },
+    "/research/entry-odds": {
+      "get": {
+        "description": "After a given candle, how often the next 1 to 20 candles were up, against every symbol\none could buy on the same days (``python -m tmon.tools.entry_odds``). The past, not advice.",
+        "operationId": "entry_odds_research_entry_odds_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOddsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Entry Odds",
+        "tags": [
+          "research"
         ]
       }
     },

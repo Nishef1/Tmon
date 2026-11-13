@@ -327,3 +327,57 @@ test("industries page groups stocks, searches and opens a symbol", async ({ page
   await table.getByText("خودرو").first().click();
   await expect(page).toHaveURL(/\/instruments\/2/);
 });
+
+test.describe("entry odds and the chart", () => {
+  test("chart keeps the zoom when overlays, panes and parameters change", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const box = page.locator("[data-view]");
+    await page.getByRole("button", { name: "۱ ماه", exact: true }).click();
+    await expect(box).toHaveAttribute("data-view", /\d+:\d+/);
+    const view = await box.getAttribute("data-view");
+    await page.getByRole("button", { name: "ایچیموکو", exact: true }).click();
+    await page.getByRole("button", { name: "MACD", exact: true }).click();
+    await expect(box).toHaveAttribute("data-view", view!);
+    await page.getByRole("button", { name: "پارامترها", exact: true }).click();
+    const params = page.getByTestId("chart-params");
+    await params.getByLabel("میانگین ۱", { exact: true }).fill("30");
+    await expect(page.getByRole("button", { name: /۳۰/ }).first()).toBeVisible();
+    await expect(box).toHaveAttribute("data-view", view!);
+  });
+
+  test("symbol page says how the candles after its current state went", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const card = page.getByTestId("entry-odds");
+    await expect(card).toContainText("اگر امروز بخرم");
+    await expect(card).toContainText("آمار گذشته‌اند، نه پیش‌بینی و نه توصیه");
+    await expect(card.getByTestId("entry-now").locator("> li")).toHaveCount(2);
+    await expect(card.locator('[data-key="r2"]')).toContainText("فرقی نداشته");
+    await card.locator('[data-key="r2"] summary').click();
+    await expect(card.getByTestId("entry-horizons").first().getByRole("row")).toHaveCount(6);
+    await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
+  });
+
+  test("model page leads with the entry lab", async ({ page }) => {
+    await page.goto("/model");
+    const lab = page.getByTestId("entry-lab");
+    await expect(lab.getByTestId("streak-ladder").locator("[data-key]")).toHaveCount(3);
+    await expect(lab.getByTestId("entry-facts")).toContainText("شش شمع سبز یا بیشتر (بهتر)");
+    await lab.getByRole("button", { name: "ورود از کف چندماهه" }).click();
+    await expect(lab.getByTestId("entry-setups").locator("> li")).toHaveCount(2);
+    await lab.getByRole("button", { name: "فقط حکم‌دار" }).click();
+    await expect(lab.getByTestId("entry-setups").locator("> li")).toHaveCount(1);
+    await expect(lab.locator('[data-key="base_rsi30"]')).toContainText("بهتر از بقیهٔ سهم‌ها");
+  });
+
+  test("compare puts symbols side by side and keeps the inflation table", async ({ page }) => {
+    await page.goto("/compare?s=1");
+    const sec = page.getByTestId("compare-symbols");
+    await expect(sec.getByTestId("compare-legend")).toContainText("فولاد");
+    await expect(sec.getByTestId("compare-table")).toContainText("دو شمع قرمز پشت سر هم");
+    await expect(sec.getByTestId("compare-table")).toContainText("۲ قرمز پشت سر هم");
+    await expect(page.locator("#inflation")).toBeVisible();
+    await sec.getByRole("button", { name: "حذف فولاد از مقایسه" }).click();
+    await expect(page).toHaveURL(/\/compare\?months=12/);
+    await expect(sec).toContainText("نماد اضافه کنید");
+  });
+});

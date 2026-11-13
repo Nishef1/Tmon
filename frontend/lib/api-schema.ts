@@ -224,6 +224,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/research/entry-odds": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Entry Odds
+     * @description After a given candle, how often the next 1 to 20 candles were up, against every symbol
+     *     one could buy on the same days (``python -m tmon.tools.entry_odds``). The past, not advice.
+     */
+    get: operations["entry_odds_research_entry_odds_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/research/ta-signals": {
     parameters: {
       query?: never;
@@ -639,6 +660,67 @@ export interface components {
       usd_years: number | null;
       /** Weeks */
       weeks: number | null;
+    };
+    /**
+     * DashEntry
+     * @description Where the symbol stands for a buyer now: its streak, whether it sits in a months-long base
+     *     or an uptrend, and the tested odds of every setup it is in. Describes the past, not advice.
+     */
+    DashEntry: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Dd */
+      dd: number | null;
+      /** Green */
+      green: number;
+      /** In Base */
+      in_base: boolean;
+      /** In Up */
+      in_up: boolean;
+      /**
+       * Lines
+       * @default []
+       */
+      lines: string[];
+      /**
+       * Marks
+       * @default []
+       */
+      marks: components["schemas"]["DashEntryMark"][];
+      /**
+       * Now
+       * @default []
+       */
+      now: components["schemas"]["EntrySetup"][];
+      /** Red */
+      red: number;
+      /** Rng60 */
+      rng60: number | null;
+    };
+    /**
+     * DashEntryMark
+     * @description An entry candle of the symbol's last year, for the chart.
+     */
+    DashEntryMark: {
+      /** Ago */
+      ago: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Key */
+      key: string;
+      /**
+       * Label
+       * @enum {string}
+       */
+      label: "better" | "worse" | "same" | "mixed" | "too_few";
+      /** Title */
+      title: string;
     };
     /** DashEvent */
     DashEvent: {
@@ -1185,6 +1267,127 @@ export interface components {
       /** Title */
       title: string;
     };
+    /**
+     * EntryHorizon
+     * @description ``h`` candles after buying at the close of the day after the setup.
+     */
+    EntryHorizon: {
+      /** Edge */
+      edge: number;
+      /** Excess Mean */
+      excess_mean: number | null;
+      /** H */
+      h: number;
+      /**
+       * Halves Edge
+       * @default []
+       */
+      halves_edge: (number | null)[];
+      /** Median */
+      median: number | null;
+      /** N */
+      n: number;
+      /** Up */
+      up: number;
+      /** Up All */
+      up_all: number;
+    };
+    /** EntryOddsOut */
+    EntryOddsOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /** Base Days */
+      base_days: number | null;
+      /** Base Dd */
+      base_dd: number | null;
+      /** Base Range */
+      base_range: number | null;
+      /** Dip */
+      dip: number | null;
+      /** Dip Within */
+      dip_within: number | null;
+      /** Dir Edge */
+      dir_edge: number | null;
+      /**
+       * Groups
+       * @default {}
+       */
+      groups: {
+        [key: string]: string;
+      };
+      /** History First */
+      history_first: string | null;
+      /** History Last */
+      history_last: string | null;
+      /** Loss */
+      loss: number | null;
+      /** Path */
+      path: number | null;
+      /** Round Trip Cost */
+      round_trip_cost: number | null;
+      /**
+       * Setups
+       * @default []
+       */
+      setups: components["schemas"]["EntrySetup"][];
+      /** Split Date */
+      split_date: string | null;
+      /** Win */
+      win: number | null;
+    };
+    /**
+     * EntrySetup
+     * @description A fixed entry condition and how the candles after it went on the whole exchange.
+     */
+    EntrySetup: {
+      /** Best H */
+      best_h: number | null;
+      /** Dip Hit */
+      dip_hit: number | null;
+      /** Dip Hit All */
+      dip_hit_all: number | null;
+      /** Dip Median */
+      dip_median: number | null;
+      /** Event */
+      event: boolean;
+      /**
+       * Group
+       * @enum {string}
+       */
+      group: "all" | "streak" | "base" | "uptrend";
+      /**
+       * Horizons
+       * @default []
+       */
+      horizons: components["schemas"]["EntryHorizon"][];
+      /** Key */
+      key: string;
+      /**
+       * Label
+       * @enum {string}
+       */
+      label: "better" | "worse" | "same" | "mixed" | "too_few";
+      /** Locked Share */
+      locked_share: number | null;
+      /** Loss */
+      loss: number | null;
+      /** Loss All */
+      loss_all: number | null;
+      /** N */
+      n: number;
+      /** Symbols */
+      symbols: number;
+      /** Title */
+      title: string;
+      /** Verdict */
+      verdict: string;
+      /** Win */
+      win: number | null;
+      /** Win All */
+      win_all: number | null;
+    };
     /** FeatureValue */
     FeatureValue: {
       /** Feature */
@@ -1336,6 +1539,7 @@ export interface components {
       board: string | null;
       decision: components["schemas"]["DashDecision"];
       drivers: components["schemas"]["DashDrivers"] | null;
+      entry: components["schemas"]["DashEntry"] | null;
       /**
        * Events
        * @default []
@@ -2686,6 +2890,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  entry_odds_research_entry_odds_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EntryOddsOut"];
         };
       };
     };

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   apiGet,
+  entryOdds,
   type AgmDecision,
+  type DashEntry,
   type InstrumentDashboard,
   type InstrumentDetail,
 } from "@/lib/api";
@@ -11,7 +13,9 @@ import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import { SymbolDashboard } from "@/components/SymbolDashboard";
 import { LiveQuote } from "@/components/LiveQuote";
-import { CandleChart, type Level } from "@/components/CandleChart";
+import { CandleChart, type Level, type Mark } from "@/components/CandleChart";
+import { EntryOddsCard } from "@/components/entry/EntryOddsCard";
+import { labelColor } from "@/components/entry/EntryParts";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { SignalTable } from "@/components/SignalTable";
@@ -75,6 +79,23 @@ function isNum(v: string | undefined): v is string {
   return v !== undefined && v.trim() !== "" && Number.isFinite(Number(v));
 }
 
+const SHORT: Record<string, string> = { better: "ورود+", worse: "ورود−" };
+
+/** One arrow per entry day of the last year, coloured by the best tested label among its setups. */
+function entryMarks(e: DashEntry): Mark[] {
+  const rank = { better: 0, worse: 1, mixed: 2, same: 3, too_few: 4 } as const;
+  const byDay = new Map<string, DashEntry["marks"][number]>();
+  for (const m of e.marks) {
+    const was = byDay.get(m.date);
+    if (!was || rank[m.label] < rank[was.label]) byDay.set(m.date, m);
+  }
+  return [...byDay.values()].map((m) => ({
+    time: m.date,
+    text: SHORT[m.label] ?? "",
+    color: labelColor(m.label),
+  }));
+}
+
 export default async function InstrumentPage({
   params,
   searchParams,
@@ -85,9 +106,10 @@ export default async function InstrumentPage({
   const { id } = await params;
   const q = await searchParams;
   if (!/^\d+$/.test(id)) notFound();
-  const [res, dash] = await Promise.all([
+  const [res, dash, odds] = await Promise.all([
     apiGet<InstrumentDetail>(`/instruments/${id}`),
     apiGet<InstrumentDashboard>(`/instruments/${id}/dashboard`),
+    entryOdds(),
   ]);
   if (!res.ok && res.status === 404) notFound();
   if (!res.ok) {
@@ -114,6 +136,9 @@ export default async function InstrumentPage({
       ]
     : [];
 
+  const entry = dash.ok ? dash.data.entry : null;
+  const marks = entry ? entryMarks(entry) : [];
+
   return (
     <main className="space-y-6">
       <div>
@@ -128,13 +153,15 @@ export default async function InstrumentPage({
 
       <LiveQuote instrumentId={d.instrument.id} />
 
+      {entry && <EntryOddsCard e={entry} odds={odds} />}
+
       <section className="card">
         <h2 className="mb-2 font-bold">نمودار قیمت تعدیل‌شده</h2>
         {d.candles.length === 0 ? (
           <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
         ) : (
           <>
-            <CandleChart candles={d.candles} levels={levels} />
+            <CandleChart candles={d.candles} levels={levels} marks={marks} />
             <p className="mt-2 text-xs text-muted">
               قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
               <Link href="/glossary/adjusted_price" className="underline">
@@ -142,6 +169,8 @@ export default async function InstrumentPage({
               </Link>{" "}
               شده‌اند. روزهای توقف نماد نمایش داده نمی‌شوند.
               {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
+              {marks.length > 0 &&
+                " پیکان‌ها کندل‌های ورودِ آزموده‌شدهٔ یک سال اخیرند: سبز یعنی بعد از چنین کندلی در گذشته بیشتر از بقیهٔ سهم‌ها بالا رفته، قرمز کمتر، خاکستری فرقی نداشته."}
             </p>
           </>
         )}

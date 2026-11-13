@@ -952,6 +952,91 @@ class DashTechnical(ApiModel):
     lines: list[str] = []
 
 
+EntryLabel = Literal["better", "worse", "same", "mixed", "too_few"]
+
+
+class EntryHorizon(ApiModel):
+    """``h`` candles after buying at the close of the day after the setup."""
+
+    h: int
+    n: int
+    up: float  # share of entries above the entry price
+    up_all: float  # the same share for every liquid symbol one could buy on the same days
+    edge: float  # up - up_all
+    halves_edge: list[float | None] = []  # the edge in the first and second half of the history
+    excess_mean: float | None = None  # mean return over those symbols
+    median: float | None = None  # median return of the entries
+
+
+class EntrySetup(ApiModel):
+    """A fixed entry condition and how the candles after it went on the whole exchange."""
+
+    key: str
+    group: Literal["all", "streak", "base", "uptrend"]
+    title: str
+    event: bool  # counted on the first day only (an entry candle) or on every day (a state)
+    label: EntryLabel
+    best_h: int | None = None
+    verdict: str
+    n: int
+    symbols: int
+    locked_share: float | None = None  # dropped: the entry day was probably locked at the limit
+    horizons: list[EntryHorizon] = []
+    dip_hit: float | None = None  # a close DIP below entry within DIP_WITHIN candles
+    dip_hit_all: float | None = None
+    dip_median: float | None = None  # median worst close in those candles
+    win: float | None = None  # +WIN reached before LOSS within PATH candles
+    win_all: float | None = None
+    loss: float | None = None  # LOSS reached first
+    loss_all: float | None = None
+
+
+class EntryOddsOut(ApiModel):
+    available: bool
+    as_of: dt.date | None = None
+    round_trip_cost: float | None = None
+    dir_edge: float | None = None
+    dip: float | None = None
+    dip_within: int | None = None
+    win: float | None = None
+    loss: float | None = None
+    path: int | None = None
+    base_dd: float | None = None
+    base_range: float | None = None
+    base_days: int | None = None
+    history_first: dt.date | None = None
+    history_last: dt.date | None = None
+    split_date: dt.date | None = None
+    groups: dict[str, str] = {}
+    setups: list[EntrySetup] = []
+
+
+class DashEntryMark(ApiModel):
+    """An entry candle of the symbol's last year, for the chart."""
+
+    key: str
+    title: str
+    date: dt.date
+    ago: int
+    label: EntryLabel
+
+
+class DashEntry(ApiModel):
+    """Where the symbol stands for a buyer now: its streak, whether it sits in a months-long base
+    or an uptrend, and the tested odds of every setup it is in. Describes the past, not advice."""
+
+    as_of: dt.date
+    green: int  # green candles in a row up to the last day (0 when the last one was not green)
+    red: int
+    in_base: bool
+    in_up: bool
+    dd: float | None = None  # from the 52-week high
+    rng60: float | None = None  # band of the last 60 closes
+    now: list[EntrySetup] = []
+    marks: list[DashEntryMark] = []
+    lines: list[str] = []
+
+
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
     isin: str | None = None
@@ -973,6 +1058,7 @@ class InstrumentDashboard(ApiModel):
     peers: DashPeers | None = None
     drivers: DashDrivers | None = None
     technical: DashTechnical | None = None
+    entry: DashEntry | None = None
 
 
 class SearchHit(ApiModel):

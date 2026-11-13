@@ -87,3 +87,22 @@ export type BookLevel = S["BookLevelOut"];
 
 /** Latest stored intraday snapshot + order book (what the poller last wrote). */
 export type LiveQuote = S["LiveOut"];
+
+export type EntryOdds = S["EntryOddsOut"];
+export type EntrySetup = S["EntrySetup"];
+export type EntryHorizon = S["EntryHorizon"];
+export type DashEntry = S["DashEntry"];
+
+/** After which candles the next ones were green, tested on the whole exchange history (changes
+ *  once a day). Kept for ten minutes; null when the API cannot be reached. */
+export async function entryOdds(): Promise<EntryOdds | null> {
+  try {
+    const res = await fetch(new URL("/research/entry-odds", API_BASE), {
+      next: { revalidate: 600 },
+    });
+    return res.ok ? ((await res.json()) as EntryOdds) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
+  }
+}

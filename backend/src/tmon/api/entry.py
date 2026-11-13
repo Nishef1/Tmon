@@ -1,0 +1,172 @@
+"""The entry-odds document (``tmon.tools.entry_odds``) turned into plain readings.
+
+``entry_odds_out`` is the tested history for the research pages, ``entry_out`` the symbol's part
+for its dashboard. Every sentence follows the stored numbers; none of it feeds the verdict.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from tmon.api.schemas import (
+    DashEntry,
+    DashEntryMark,
+    EntryHorizon,
+    EntryOddsOut,
+    EntrySetup,
+)
+from tmon.api.technical import load_doc
+from tmon.tools.entry_odds import KEY
+
+
+def entry_doc() -> dict[str, Any] | None:
+    return load_doc(KEY)
+
+
+def _n(x: float) -> str:
+    return f"{round(100 * x)}"
+
+
+def verdict(s: dict[str, Any]) -> str:
+    """One plain sentence on how the candles after this setup went, from its stored numbers."""
+    label = s["label"]
+    if label == "too_few":
+        return f"نمونه کم است ({s['n']} بار)؛ حکمی نمی‌شود داد."
+    if label in ("better", "worse"):
+        h = s["best_h"]
+        x = s[f"h{h}"]
+        word = "بیشتر" if label == "better" else "کمتر"
+        return (
+            f"{h} کندل بعد از خرید، {_n(x['up'])} بار از ۱۰۰ بالاتر از قیمت خرید بوده؛ "
+            f"{word} از بقیهٔ سهم‌ها در همان روزها ({_n(x['up_all'])} از ۱۰۰)، "
+            "و در هر دو نیمهٔ تاریخچه همین‌طور."
+        )
+    x = s.get("h5") or s.get("h1") or {}
+    tail = f" ({x and _n(x['up'])} در برابر {x and _n(x['up_all'])} از ۱۰۰ در ۵ کندل)" if x else ""
+    if label == "mixed":
+        return "در بعضی بازه‌ها بهتر و در بعضی بدتر از بقیهٔ سهم‌ها بوده؛ قابل اتکا نیست" + tail + "."
+    return "تفاوت قابل اعتنایی با خریدن هر سهم دیگری در همان روزها نداشته" + tail + "."
+
+
+def _setup(key: str, s: dict[str, Any], horizons: list[int]) -> EntrySetup:
+    hs = []
+    for h in horizons:
+        x = s.get(f"h{h}")
+        if not x:
+            continue
+        hs.append(
+            EntryHorizon(
+                h=h,
+                n=x["n"],
+                up=x["up"],
+                up_all=x["up_all"],
+                edge=x["edge"],
+                halves_edge=[(b.get(f"h{h}") or {}).get("edge") for b in s["halves"]],
+                excess_mean=x.get("excess_mean"),
+                median=x.get("median"),
+            )
+        )
+    return EntrySetup(
+        key=key,
+        group=s["group"],
+        title=s["title"],
+        event=s["event"],
+        label=s["label"],
+        best_h=s.get("best_h"),
+        verdict=verdict(s),
+        n=s["n"],
+        symbols=s["symbols"],
+        locked_share=s.get("locked_share"),
+        horizons=hs,
+        **{
+            k: s.get(k)
+            for k in (
+                "dip_hit",
+                "dip_hit_all",
+                "dip_median",
+                "win",
+                "win_all",
+                "loss",
+                "loss_all",
+            )
+        },
+    )
+
+
+def entry_odds_out(doc: dict[str, Any] | None) -> EntryOddsOut:
+    if not doc:
+        return EntryOddsOut(available=False)
+    hz = doc["horizons"]
+    br = doc.get("base_rule") or {}
+    return EntryOddsOut(
+        available=True,
+        as_of=doc["as_of"],
+        round_trip_cost=doc["round_trip_cost"],
+        dir_edge=doc["dir_edge"],
+        dip=doc["dip"],
+        dip_within=doc["dip_within"],
+        win=doc["win"],
+        loss=doc["loss"],
+        path=doc["path"],
+        base_dd=br.get("dd"),
+        base_range=br.get("range"),
+        base_days=br.get("days"),
+        history_first=doc["first"],
+        history_last=doc["last"],
+        split_date=doc["split_date"],
+        groups=doc["groups"],
+        setups=[_setup(k, s, hz) for k, s in doc["setups"].items()],
+    )
+
+
+def _pct(x: float) -> str:
+    return f"{abs(x) * 100:.0f}٪"
+
+
+def entry_out(doc: dict[str, Any] | None, instrument_id: int) -> DashEntry | None:
+    """The symbol's part: its streak and base/uptrend, the setups it is in now with their
+    tested odds, and its entry candles of the last year."""
+    if not doc:
+        return None
+    me = (doc.get("now") or {}).get(str(instrument_id))
+    if not me:
+        return None
+    hz = doc["horizons"]
+    setups = doc["setups"]
+    now = [_setup(k, setups[k], hz) for k in me["active"] if k in setups]
+    marks = [
+        DashEntryMark(
+            key=m["key"],
+            title=setups[m["key"]]["title"],
+            date=m["date"],
+            ago=m["ago"],
+            label=setups[m["key"]]["label"],
+        )
+        for m in me["marks"]
+        if m["key"] in setups
+    ]
+    lines: list[str] = []
+    for k, word in (("green", "سبز"), ("red", "قرمز")):
+        if me[k] == 1:
+            lines.append(f"آخرین شمع {word} بوده و شمع پیش از آن {word} نبوده است.")
+        elif me[k]:
+            lines.append(f"آخرین {me[k]} شمع پشت سر هم {word} بوده است.")
+    if me["in_base"]:
+        lines.append(
+            f"سهم در کف چندماهه است: {_pct(me['dd'] or 0)} زیر سقف ۵۲ هفته و ۶۰ روز اخیر در "
+            f"دامنهٔ {_pct(me['rng60'] or 0)}."
+        )
+    if me["in_up"]:
+        lines.append("سهم در روند صعودی است: میانگین ۲۰ روزه بالای ۵۰ و ۵۰ بالای ۲۰۰.")
+    return DashEntry(
+        as_of=doc["as_of"],
+        green=me["green"],
+        red=me["red"],
+        in_base=me["in_base"],
+        in_up=me["in_up"],
+        dd=me.get("dd"),
+        rng60=me.get("rng60"),
+        now=now,
+        marks=marks,
+        lines=lines,
+    )
