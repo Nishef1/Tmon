@@ -417,16 +417,28 @@ const impulse = (q: Pivot[]) => {
 export function elliottLabels(
   bars: Bar[],
   th = 0.1,
-): { time: string; text: string; top: boolean }[] {
+): { time: string; known: string; text: string; top: boolean }[] {
   const pv = zigzag(bars, th);
   for (let k = pv.length - 6; k >= 0; k--) {
     const q = pv.slice(k, k + 6);
     if (!impulse(q)) continue;
     const names = ["۰", "۱", "۲", "۳", "۴", "۵"];
-    const out = q.map((p, j) => ({ time: bars[p.i].time, text: names[j], top: p.kind === 1 }));
+    const out = q.map((p, j) => ({
+      time: bars[p.i].time,
+      known: bars[p.conf].time,
+      text: names[j],
+      top: p.kind === 1,
+    }));
     const r = pv.slice(k + 6, k + 9);
     if (r.length === 3 && r[1].price < q[5].price && r[2].price < r[0].price)
-      r.forEach((p, j) => out.push({ time: bars[p.i].time, text: "ABC"[j], top: p.kind === 1 }));
+      r.forEach((p, j) =>
+        out.push({
+          time: bars[p.i].time,
+          known: bars[p.conf].time,
+          text: "ABC"[j],
+          top: p.kind === 1,
+        }),
+      );
     return out;
   }
   return [];

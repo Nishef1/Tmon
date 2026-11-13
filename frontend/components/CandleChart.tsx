@@ -604,14 +604,25 @@ export function CandleChart({
       }
       if (p !== "none") chart.panes()[1]?.setHeight(view.current.paneH ?? 140);
 
+      // Elliott: a faint dot at the turn, and the wave number on the day the 10% turn made it
+      // known (that is when it could have been used; drawn at the turn it looks too perfect)
       const waves: Mark[] = on.has("ew")
-        ? elliottLabels(real).map((w) => ({
-            time: w.time,
-            text: w.text,
-            color: "var(--series-3)",
-            above: w.top,
-            shape: "circle" as const,
-          }))
+        ? elliottLabels(real).flatMap((w) => [
+            {
+              time: w.time,
+              text: "",
+              color: "var(--muted)",
+              above: w.top,
+              shape: "circle" as const,
+            },
+            {
+              time: w.known,
+              text: `${w.text} معلوم شد`,
+              color: "var(--series-3)",
+              above: !w.top,
+              shape: "circle" as const,
+            },
+          ])
         : [];
       const allMarks = [...marks, ...waves];
       if (allMarks.length > 0) {
