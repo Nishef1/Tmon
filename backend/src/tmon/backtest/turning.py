@@ -39,6 +39,10 @@ FLOW_POWER5 = 1.2  # 5-day mean of per-capita buy / per-capita sell (individuals
 OUT_NET5 = -0.05
 OUT_POWER5 = 0.8
 MKT_DD = -0.2
+# the one sell warning of docs/reports/technical-signals-2026-11.md that held in both halves:
+# volume over three times its 20-day mean on a down day with individuals net sellers
+WARN_VR = 3.0
+WARN_RECENT = 20  # shown when it fired within the symbol's last 20 trading days
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,12 @@ STATES: tuple[State, ...] = (
     State("normal", "وضعیت معمولی", "هیچ‌یک از حالت‌های بالا نیست."),
 )
 STATE_BY_KEY = {s.key: s for s in STATES}
+WARNING = State(
+    "suspicious_volume_down",
+    "حجم مشکوک با افت قیمت و خروج حقیقی",
+    "حجم معاملات بیش از سه برابر میانگین ۲۰ روزه، قیمت پایانی پایین‌تر از روز قبل و حقیقی‌ها "
+    "در مجموع فروشنده.",
+)
 
 # what would move a symbol from one state to a better or worse one (shown with that state's stats)
 TRIGGERS: dict[str, list[tuple[str, str]]] = {
@@ -159,6 +169,7 @@ def build_panel(prices: pl.DataFrame, clients: pl.DataFrame) -> pl.DataFrame:
         sma50=_roll(cl, "mean", 50),
         sma200=_roll(cl, "mean", 200),
         vmed20=_roll(C("value"), "median", 20),
+        vol20=_roll(C("volume"), "mean", 20).shift(1).over(G),
         net_i=(C("buy_value_i") - C("sell_value_i")) / C("value"),
         power=(C("buy_value_i") / C("buy_count_i")) / (C("sell_value_i") / C("sell_count_i")),
         n=pl.int_range(pl.len()).over(G),
@@ -170,8 +181,11 @@ def build_panel(prices: pl.DataFrame, clients: pl.DataFrame) -> pl.DataFrame:
         gain=C("ret1").clip(lower_bound=0),
         loss=(-C("ret1")).clip(lower_bound=0),
     )
+    sell_flag = (C("volume") / C("vol20") > WARN_VR) & (C("ret1") < 0) & (C("net_i") < 0)
     p = p.with_columns(
-        rsi=100 - 100 / (1 + _roll(C("gain"), "mean", 14) / _roll(C("loss"), "mean", 14))
+        rsi=100 - 100 / (1 + _roll(C("gain"), "mean", 14) / _roll(C("loss"), "mean", 14)),
+        # first day of the run only, as in the study (research/technical_signals/study.py)
+        warn=sell_flag.fill_null(False) & ~sell_flag.shift(1).over(G).fill_null(False),
     )
     entry = C("close").shift(-1).over(G)  # entry at the close of t+1
     p = p.with_columns(
@@ -326,11 +340,33 @@ def _tone(halves: list[dict[str, Any]], base: list[dict[str, Any]], cost: float)
     return "none"
 
 
+def warning_stats(panel: pl.DataFrame) -> dict[str, Any]:
+    """History of the sell warning on the liquid universe, whole and per half (same split as
+    ``state_stats``)."""
+    liq = panel.filter(C("liquid") & C("state").is_not_null())
+    days = liq["date"].unique().sort()
+    split = days[len(days) // 2]
+    sub = liq.filter(C("warn"))
+    out = _block(sub)
+    out["symbols"] = sub[G].n_unique()
+    out["halves"] = [_block(sub.filter(C("date") < split)), _block(sub.filter(C("date") >= split))]
+    return out
+
+
 def current_states(panel: pl.DataFrame) -> dict[int, dict[str, Any]]:
     """Latest row per symbol (its own last trading day) with the inputs of its state."""
     last = panel.filter(C("state").is_not_null()).group_by(G).agg(pl.all().sort_by("date").last())
+    tail = panel.sort(G, "date").group_by(G).tail(WARN_RECENT)
+    warned = (
+        tail.with_columns(ago=pl.int_range(pl.len(), 0, -1).over(G) - 1)
+        .filter(C("warn"))
+        .group_by(G)
+        .agg(C("date").max().alias("warn_date"), C("ago").min().alias("warn_ago"))
+    )
+    wmap = {int(r[G]): r for r in warned.iter_rows(named=True)}
     out: dict[int, dict[str, Any]] = {}
     for r in last.iter_rows(named=True):
+        w = wmap.get(int(r[G]))
         out[int(r[G])] = {
             "date": str(r["date"]),
             "state": r["state"],
@@ -342,6 +378,8 @@ def current_states(panel: pl.DataFrame) -> dict[int, dict[str, Any]]:
             "power5": _f(r["power5"]),
             "above_sma20": None if r["sma20"] is None else bool(r["close"] > r["sma20"]),
             "liquid": bool(r["liquid"]),
+            "warn_date": str(w["warn_date"]) if w else None,
+            "warn_ago": int(w["warn_ago"]) if w else None,
         }
     return out
 

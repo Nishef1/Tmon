@@ -138,6 +138,14 @@ test.describe("instrument page", () => {
     await expect(box.getByTestId("drivers-moves")).toContainText("جنگ ۱۲ روزه");
   });
 
+  test("shows the tested sell warning with both halves of its history", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const w = page.getByTestId("turning-warning");
+    await expect(w).toContainText("حجم مشکوک با افت قیمت و خروج حقیقی");
+    await expect(w).toContainText("۴ روز معاملاتی پیش");
+    await expect(w).toContainText("به‌تنهایی برای فروش کافی نیست");
+  });
+
   test("lists the Codal letters of the symbol", async ({ page }) => {
     await page.goto("/instruments/1");
     await expect(page.getByTestId("codal-letters")).toContainText(

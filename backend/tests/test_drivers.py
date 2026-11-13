@@ -130,6 +130,41 @@ def test_sentences_follow_the_numbers() -> None:
     text = " ".join(d.lines)
     assert "تندتر از بازار" in text and "دلاری" in text and "مس" in text and "برنت" not in text
     assert "2 بار از شاخص کل بهتر و 2 بار بدتر" in text
+    assert "در کل بازار" not in text  # no market count in the document
+    doc["market_bad"] = {"n": 16, "index_up": 10, "usd_n": 16, "usd_up": 12}
+    text = " ".join(drivers_out(doc, 7).lines)  # type: ignore[union-attr]
+    assert "دلار آزاد 12 بار از 16 بار و شاخص کل 10 بار از 16 بار بالاتر" in text
     sym["beta_usd"] = 0.02
     assert "اثر روشنی" in " ".join(drivers_out(doc, 7).lines)  # type: ignore[union-attr]
     assert drivers_out(doc, 8) is None and drivers_out(None, 7) is None
+
+
+def test_a_shock_inside_the_previous_window_is_not_counted_twice() -> None:
+    closes, index, macro = _world(n=300)
+    days = closes["date"].to_list()
+    ev = [
+        {"date": str(days[100]), "kind": "war"},
+        {"date": str(days[110]), "kind": "deal"},  # a ceasefire ten days later
+        {"date": str(days[200]), "kind": "sanction"},
+    ]
+    assert [r[0] for r in dv.event_moves(closes, index, ev)[1]] == [0, 2]
+    m = dv.market_after_bad(index, macro, ev)
+    assert m["n"] == 2 and m["usd_n"] == 2
+    c = index["close"].to_numpy()
+    assert m["index_up"] == int(c[119] > c[99]) + int(c[219] > c[199])
+
+
+def test_market_count_skips_days_the_exchange_was_shut() -> None:
+    closes, index, macro = _world(n=300)
+    days = closes["date"].to_list()
+    flat = index.with_columns(
+        pl.when(pl.col("date").is_between(days[101], days[140]))
+        .then(pl.lit(float(index["close"][100])))
+        .otherwise(pl.col("close"))
+        .alias("close")
+    )
+    m = dv.market_after_bad(flat, macro, [{"date": str(days[101]), "kind": "war"}])
+    c = flat["close"].to_numpy()
+    # 20 trading days after day 100 run past the shut stretch: day 160, not day 120
+    assert m == {"n": 1, "index_up": int(c[160] > c[100]), "usd_n": 1,
+                 "usd_up": m["usd_up"]}  # fmt: skip

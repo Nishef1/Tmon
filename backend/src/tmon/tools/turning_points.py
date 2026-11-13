@@ -46,6 +46,13 @@ def build_document() -> dict[str, Any]:
             for st in tp.STATES
         ],
         "history": tp.state_stats(panel, cost),
+        "warning": {
+            "key": tp.WARNING.key,
+            "title": tp.WARNING.title,
+            "meaning": tp.WARNING.meaning,
+            "recent_days": tp.WARN_RECENT,
+            **tp.warning_stats(panel),
+        },
         "market": tp.market_now(panel),
         "symbols": {str(k): v for k, v in tp.current_states(panel).items()},
     }
@@ -64,6 +71,13 @@ def main() -> None:
     counts = Counter(v["state"] for v in doc["symbols"].values())
     print(f"as_of={doc['as_of']} symbols={len(doc['symbols'])} states={dict(counts)}")
     nan = float("nan")
+    w = doc["warning"]
+    print(
+        f"warning n={w['n']} x60={(w.get('h60') or {}).get('excess_mean', nan):+.3f} "
+        f"halves60={[round((b.get('h60') or {}).get('excess_mean', nan), 3) for b in w['halves']]} "
+        f"x120={(w.get('h120') or {}).get('excess_mean', nan):+.3f} "
+        f"now={sum(1 for v in doc['symbols'].values() if v.get('warn_date'))}"
+    )
     for k, v in doc["history"]["states"].items():
         h = v.get("h120") or {}
         halves = [round((b.get("h120") or {}).get("excess_mean", nan), 3) for b in v["halves"]]

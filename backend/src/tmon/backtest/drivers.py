@@ -159,7 +159,8 @@ def event_moves(
 ) -> dict[int, list[list[float | int]]]:
     """[event number, stock change, index change] over the stock's first EVENT_DAYS trading days
     after each shock, from its last close before it. Skipped when the stock had not traded in
-    the month before the shock (a halt would hide the move)."""
+    the month before the shock (a halt would hide the move), or when the window starts inside the
+    previous counted shock's window (a ceasefire twelve days after a war is the same move)."""
     idx = index.sort("date")
     idx_d = idx["date"].to_numpy()
     idx_c = idx["close"].to_numpy()
@@ -169,11 +170,15 @@ def event_moves(
         dd = g["date"].to_numpy()
         cc = g["close"].to_numpy()
         rows: list[list[float | int]] = []
+        last_end = -1
         for k, ed in enumerate(days):
             i0 = int(np.searchsorted(dd, ed)) - 1
             i1 = i0 + EVENT_DAYS
             if i0 < 0 or i1 >= len(dd) or (ed - dd[i0]) > np.timedelta64(30, "D"):
                 continue
+            if i0 < last_end:  # inside the previous shock's window: the same move, not a new one
+                continue
+            last_end = i1
             j0 = int(np.searchsorted(idx_d, dd[i0], side="right")) - 1
             j1 = int(np.searchsorted(idx_d, dd[i1], side="right")) - 1
             if j0 < 0 or j1 < 0:
@@ -181,4 +186,38 @@ def event_moves(
             rows.append([k, float(cc[i1] / cc[i0] - 1), float(idx_c[j1] / idx_c[j0] - 1)])
         if rows:
             out[int(iid)] = rows
+    return out
+
+
+def market_after_bad(
+    index: pl.DataFrame, macro: pl.DataFrame, events: list[dict[str, str]]
+) -> dict[str, int]:
+    """How often the index and the free dollar were higher EVENT_DAYS trading days after a bad
+    shock (war, sanction, unrest), counted from the last index close before it. Days the
+    exchange was shut repeat the last close and are dropped first; a shock inside the previous
+    counted window is skipped, as in ``event_moves``."""
+    ix = index.sort("date").filter(C("close") != C("close").shift(1).fill_null(-1.0))
+    d, c = ix["date"].to_numpy(), ix["close"].to_numpy()
+    us = (
+        macro.filter(C("series") == "usd_free").unique("date", keep="last").sort("date")
+    )  # fmt: skip
+    ud, uv = us["date"].to_numpy(), us["value"].to_numpy()
+    out = {"n": 0, "index_up": 0, "usd_n": 0, "usd_up": 0}
+    last_end = -1
+    for e in events:
+        ed = np.datetime64(e["date"])
+        i0 = int(np.searchsorted(d, ed)) - 1
+        i1 = i0 + EVENT_DAYS
+        if i0 < 0 or i1 >= len(d) or i0 < last_end:
+            continue
+        last_end = i1
+        if e["kind"] not in BAD_KINDS:
+            continue
+        out["n"] += 1
+        out["index_up"] += int(c[i1] > c[i0])
+        a = int(np.searchsorted(ud, d[i0], side="right")) - 1
+        b = int(np.searchsorted(ud, d[i1], side="right")) - 1
+        if a >= 0 and (d[i0] - ud[a]) <= np.timedelta64(10, "D"):
+            out["usd_n"] += 1
+            out["usd_up"] += int(uv[b] > uv[a])
     return out

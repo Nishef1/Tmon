@@ -2277,6 +2277,16 @@
             },
             "title": "Triggers",
             "type": "array"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurningWarning"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2297,7 +2307,8 @@
           "round_trip_cost",
           "history_first",
           "history_last",
-          "split_date"
+          "split_date",
+          "warning"
         ],
         "title": "DashTurning",
         "type": "object"
@@ -6009,6 +6020,83 @@
           "state"
         ],
         "title": "TurningTrigger",
+        "type": "object"
+      },
+      "TurningWarning": {
+        "description": "The one tested sell warning (high volume, a down day, individuals selling) when it fired\nin the symbol's last few weeks, with its history on all liquid symbols.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "days_ago": {
+            "title": "Days Ago",
+            "type": "integer"
+          },
+          "halves_excess_60": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Halves Excess 60",
+            "type": "array"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TurningHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "recent_days": {
+            "title": "Recent Days",
+            "type": "integer"
+          },
+          "symbols": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbols"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "meaning",
+          "date",
+          "days_ago",
+          "recent_days",
+          "n",
+          "symbols",
+          "horizons",
+          "halves_excess_60"
+        ],
+        "title": "TurningWarning",
         "type": "object"
       },
       "ValidationError": {

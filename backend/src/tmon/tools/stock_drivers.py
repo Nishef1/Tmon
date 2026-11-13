@@ -84,6 +84,7 @@ def build_document() -> dict[str, Any]:
         "window_weeks": dv.WINDOW_WEEKS,
         "event_days": dv.EVENT_DAYS,
         "events": events,
+        "market_bad": dv.market_after_bad(index, macro, events),
         "symbols": {
             str(i): {
                 **sens.get(i, {}),

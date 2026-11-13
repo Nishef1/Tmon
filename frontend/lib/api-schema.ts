@@ -969,6 +969,7 @@ export interface components {
        * @default []
        */
       triggers: components["schemas"]["TurningTrigger"][];
+      warning: components["schemas"]["TurningWarning"] | null;
     };
     /**
      * DiagnosisOut
@@ -2059,6 +2060,40 @@ export interface components {
       state: components["schemas"]["TurningState"];
       /** When */
       when: string;
+    };
+    /**
+     * TurningWarning
+     * @description The one tested sell warning (high volume, a down day, individuals selling) when it fired
+     *     in the symbol's last few weeks, with its history on all liquid symbols.
+     */
+    TurningWarning: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Days Ago */
+      days_ago: number;
+      /**
+       * Halves Excess 60
+       * @default []
+       */
+      halves_excess_60: (number | null)[];
+      /**
+       * Horizons
+       * @default []
+       */
+      horizons: components["schemas"]["TurningHorizon"][];
+      /** Meaning */
+      meaning: string;
+      /** N */
+      n: number;
+      /** Recent Days */
+      recent_days: number;
+      /** Symbols */
+      symbols: number | null;
+      /** Title */
+      title: string;
     };
     /** ValidationError */
     ValidationError: {

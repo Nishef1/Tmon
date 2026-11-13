@@ -219,3 +219,58 @@ def test_panel_uses_adjusted_prices_across_a_capital_increase() -> None:
     assert p.filter(pl.col("date") == days[gap - 10])["f20"][0] == pytest.approx(
         1.001**20 - 1, abs=1e-6
     )
+
+
+def test_sell_warning_fires_on_the_first_day_and_is_kept_with_its_age() -> None:
+    n = tp.MIN_HISTORY + 40
+    k = n - 5  # high volume on a down day with individuals selling, two days running
+    days = [dt.date(2015, 1, 1) + dt.timedelta(days=i) for i in range(n)]
+    close = [100.0 * 1.001**i * (0.97 if i >= k else 1.0) for i in range(n)]
+    vol = [5000.0 if i in (k, k + 1) else 1000.0 for i in range(n)]
+    close = [c * (0.99 if i >= k + 1 else 1.0) for i, c in enumerate(close)]  # day two: lower
+    prices = pl.DataFrame(
+        {
+            "instrument_id": [1] * n,
+            "date": days,
+            "open": close,
+            "high": close,
+            "low": close,
+            "close": close,
+            "last": close,
+            "prev_close": [None, *close[:-1]],
+            "volume": vol,
+            "value": [v * 100 for v in vol],
+            "market_halt": [False] * n,
+        }
+    )
+    clients = pl.DataFrame(
+        {
+            "instrument_id": [1] * n,
+            "date": days,
+            "buy_value_i": [4e4 if i in (k, k + 1) else 5e4 for i in range(n)],
+            "sell_value_i": [6e4 if i in (k, k + 1) else 5e4 for i in range(n)],
+            "buy_count_i": [10] * n,
+            "sell_count_i": [10] * n,
+        }
+    )
+    p = tp.build_panel(prices, clients)
+    assert p.filter(pl.col("warn"))["date"].to_list() == [days[k]]  # once per run
+    cur = tp.current_states(p)[1]
+    assert cur["warn_date"] == str(days[k]) and cur["warn_ago"] == n - 1 - k
+
+
+def test_turning_out_shows_the_warning_only_when_it_fired() -> None:
+    from tmon.api.routers.dashboard import turning_out
+
+    doc = _doc()
+    h = {"n": 3000, "excess_mean": -0.022, "excess_median": -0.04, "beat": 0.42,
+         "raw_median": 0.0, "p_up50": 0.1, "p_dn20": 0.2}  # fmt: skip
+    doc["warning"] = {"key": "suspicious_volume_down", "title": "t", "meaning": "m",
+                      "recent_days": 20, "n": 3000, "symbols": 500, "h60": h,
+                      "halves": [{"h60": {**h, "excess_mean": -0.046}}, {"h60": h}]}  # fmt: skip
+    t = turning_out(doc, 1)
+    assert t is not None and t.warning is None
+    doc["symbols"]["1"].update(warn_date="2026-11-01", warn_ago=6)  # type: ignore[index]
+    w = turning_out(doc, 1).warning  # type: ignore[union-attr]
+    assert w is not None and w.days_ago == 6 and w.halves_excess_60 == [-0.046, -0.022]
+    assert [x.horizon_days for x in w.horizons] == [60]

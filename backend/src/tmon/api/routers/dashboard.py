@@ -38,6 +38,7 @@ from tmon.api.schemas import (
     TurningHorizon,
     TurningState,
     TurningTrigger,
+    TurningWarning,
 )
 from tmon.backtest.turning import STATE_BY_KEY
 from tmon.core.config import get_settings
@@ -738,7 +739,9 @@ DRIVER_WEAK = 0.1  # |extra move per 1% dollar| below this reads as "no clear ti
 DRIVER_CORR = 0.3  # a copper or Brent correlation worth a sentence
 
 
-def _driver_lines(x: dict[str, Any], moves: list[DriverMove], days: int) -> list[str]:
+def _driver_lines(
+    x: dict[str, Any], moves: list[DriverMove], days: int, mkt: dict[str, Any] | None = None
+) -> list[str]:
     out: list[str] = []
     bi, r2 = x.get("beta_index"), x.get("r2")
     if bi is not None and r2 is not None:
@@ -791,8 +794,15 @@ def _driver_lines(x: dict[str, Any], moves: list[DriverMove], days: int) -> list
         beat = sum(1 for m in bad if m.stock > m.index)
         out.append(
             f"پس از {len(bad)} رویداد بد (جنگ، تحریم، اعتراض)، این سهم در {days} روز معاملاتی بعد "
-            f"{beat} بار از شاخص کل بهتر و {len(bad) - beat} بار بدتر بوده. در بورس تهران خبر بد "
-            "اغلب با گرانی دلار همراه بوده و شاخص کل را هم در ماه بعد بالا برده است."
+            f"{beat} بار از شاخص کل بهتر و {len(bad) - beat} بار بدتر بوده."
+        )
+    mkt = mkt or {}
+    if int(mkt.get("n") or 0) >= 3 and mkt.get("usd_n"):
+        out.append(
+            f"در کل بازار، {days} روز معاملاتی پس از {_n(mkt['n'], 0)} خبر بد جدا از هم، دلار آزاد "
+            f"{_n(mkt['usd_up'], 0)} بار از {_n(mkt['usd_n'], 0)} بار و شاخص کل "
+            f"{_n(mkt['index_up'], 0)} بار از {_n(mkt['n'], 0)} بار بالاتر بود؛ "
+            "یعنی خبر بد در بورس تهران همیشه به معنای ریزش شاخص نبوده است."
         )
     return out
 
@@ -823,7 +833,7 @@ def drivers_out(doc: dict[str, Any] | None, instrument_id: int) -> DashDrivers |
         as_of=doc["as_of"],
         event_days=days,
         moves=moves[::-1],
-        lines=_driver_lines(x, moves, days),
+        lines=_driver_lines(x, moves, days, doc.get("market_bad")),
         **fields,
     )
 
@@ -854,6 +864,24 @@ def _state_meta(doc: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     for k, st in STATE_BY_KEY.items():
         meta[k] = {**meta.get(k, {"key": k}), "title": st.title, "meaning": st.meaning}
     return meta
+
+
+def _warning(w: dict[str, Any] | None, cur: dict[str, Any]) -> TurningWarning | None:
+    if not w or not cur.get("warn_date"):
+        return None
+    return TurningWarning(
+        title=w["title"],
+        meaning=w["meaning"],
+        date=dt.date.fromisoformat(cur["warn_date"]),
+        days_ago=int(cur.get("warn_ago") or 0),
+        recent_days=int(w.get("recent_days") or 20),
+        n=int(w.get("n") or 0),
+        symbols=w.get("symbols"),
+        horizons=[
+            TurningHorizon(horizon_days=d, **w[f"h{d}"]) for d in (20, 60, 120) if w.get(f"h{d}")
+        ],
+        halves_excess_60=[(b.get("h60") or {}).get("excess_mean") for b in w.get("halves", [])],
+    )
 
 
 def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning | None:
@@ -899,6 +927,7 @@ def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning |
         history_first=dt.date.fromisoformat(hist["first"]),
         history_last=dt.date.fromisoformat(hist["last"]),
         split_date=dt.date.fromisoformat(hist["split_date"]),
+        warning=_warning(doc.get("warning"), cur),
     )
 
 

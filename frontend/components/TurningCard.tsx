@@ -195,6 +195,39 @@ function Triggers({ t }: { t: T }) {
   );
 }
 
+/** The one sell warning that held in both halves of the history, when it fired lately. */
+function Warning({ w }: { w: NonNullable<T["warning"]> }) {
+  const h = w.horizons.find((x) => x.horizon_days === 60);
+  const [a, b] = w.halves_excess_60;
+  return (
+    <div className="tile mb-3 !p-3" data-testid="turning-warning">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="pill v-sell">هشدار آزموده‌شده</span>
+        <span className="font-semibold">{w.title}</span>
+      </div>
+      <p className="mt-1 text-sm">
+        {faDigits(w.meaning)} آخرین بار:{" "}
+        {w.days_ago === 0 ? "آخرین روز معامله" : `${faNumber(w.days_ago)} روز معاملاتی پیش`} (
+        {jalali(w.date, "short")}).
+      </p>
+      {h && (
+        <p className="mt-1 text-sm">
+          در {faNumber(w.n)} بار مشابه در گذشته، سهم در سه ماه بعد به‌طور میانگین{" "}
+          <b className={signTone(h.excess_mean)}>{signedPct(h.excess_mean)}</b> نسبت به بازار ماند
+          {a != null && b != null && (
+            <>
+              {" "}
+              (نیمهٔ اول تاریخ {signedPct(a)}، نیمهٔ دوم {signedPct(b)})
+            </>
+          )}{" "}
+          و فقط {pct(h.beat)} موارد از بازار جلو زدند. یعنی خریدن در این روزها در گذشته بدتر از
+          بازار بوده؛ ولی اثر کوچک و پراکنده است و این نشانه به‌تنهایی برای فروش کافی نیست.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Where the symbol stands in its fall or run-up, and what happened to symbols in that place. */
 export function TurningCard({ t }: { t: T }) {
   const s = t.state;
@@ -206,6 +239,7 @@ export function TurningCard({ t }: { t: T }) {
         <ToneLabel s={s} />
       </div>
       <p className="mb-3">{faDigits(s.meaning)}</p>
+      {t.warning && <Warning w={t.warning} />}
       <Now t={t} />
       <div className="mt-4">
         <Answers t={t} />

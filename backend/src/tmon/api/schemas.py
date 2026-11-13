@@ -754,6 +754,21 @@ class TurningTrigger(ApiModel):
     state: TurningState
 
 
+class TurningWarning(ApiModel):
+    """The one tested sell warning (high volume, a down day, individuals selling) when it fired
+    in the symbol's last few weeks, with its history on all liquid symbols."""
+
+    title: str
+    meaning: str
+    date: dt.date  # last day it fired
+    days_ago: int  # trading days since then
+    recent_days: int
+    n: int
+    symbols: int | None = None
+    horizons: list[TurningHorizon] = []
+    halves_excess_60: list[float | None] = []
+
+
 class DashTurning(ApiModel):
     """Where the symbol stands in its fall or run-up and what history says about that place."""
 
@@ -775,6 +790,7 @@ class DashTurning(ApiModel):
     history_first: dt.date
     history_last: dt.date
     split_date: dt.date
+    warning: TurningWarning | None = None
 
 
 class DashPeer(ApiModel):
