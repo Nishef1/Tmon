@@ -56,7 +56,10 @@ def test_verdict_by_zone(sym: str, verdict: str) -> None:
 def test_reasons_carry_rank_and_signals_and_gate_status() -> None:
     d = dash.decide(_inst("الف"), _doc(allowed=False), None)
     text = " ".join(d.reasons)
-    assert "رتبهٔ 1 از 4" in text and "قدرت خریدار حقیقی" in text and "روند ۱۲ ماههٔ" in text
+    assert "رتبهٔ 1 از 4" in text
+    # strongest/weakest live in the signal bars, not repeated in the reasons
+    names = {g.name for g in d.signals}
+    assert "قدرت خریدار حقیقی" in names and "نقطهٔ قوت" not in text
     assert not d.advice_allowed
     assert dash.decide(_inst("الف"), _doc(allowed=True), None).advice_allowed
 
@@ -202,11 +205,11 @@ def test_decision_explains_in_plain_words_and_says_how_long_to_hold() -> None:
     assert "۱۰٪ بهترین" in d.summary
     assert d.signals[0].key == "ind_buy_power"
     assert d.signals[0].pct == pytest.approx(90)
-    assert "بهتر از 90٪" in " ".join(d.reasons)
+    assert "از 90٪ سهم‌ها بهتر" in d.signals[0].text
     assert d.holding is not None and d.holding.horizon_days == 20
     assert d.holding.expected_excess == pytest.approx(0.04)
     text = " ".join(d.holding.lines)
-    assert "همان روز" in text and "4.0٪" in text and "ماهی یک‌بار" in text
+    assert "همان روز" in text and "نه قول" in text and "ماهی یک‌بار" in text
     assert "توصیهٔ مطمئن نیست" in text  # the gates have not passed in this document
     hold = dash.decide(_inst("ب"), doc, None)
     assert hold.holding is not None and "خرید تازه" in " ".join(hold.holding.lines)

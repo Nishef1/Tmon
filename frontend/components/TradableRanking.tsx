@@ -26,7 +26,7 @@ export function TradableRanking({ d }: { d: Ranking }) {
     {
       zone: "buy",
       title: "خرید",
-      why: `بالاترین ${d.buy_top_frac == null ? "بخش" : faPercent(d.buy_top_frac, 0)} رتبه‌بندی ترکیبی قدرت خریدار، آرام‌بودن نوسان، نزدیکی به سقف یک‌ساله و روند ۱۲ ماهه.`,
+      why: `بالاترین ${d.buy_top_frac == null ? "بخش" : faPercent(d.buy_top_frac, 0)} رتبه‌بندی ترکیبی قدرت خریدار، کم‌نوسان بودن قیمت، نزدیکی به سقف یک‌ساله و روند ۱۲ ماهه.`,
     },
     {
       zone: "hold",

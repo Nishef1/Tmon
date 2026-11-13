@@ -34,8 +34,8 @@ function Answers({ t }: { t: T }) {
       q: "در گذشته بعد از این حالت چه شده؟",
       a: (
         <>
-          در {faNumber(s.n)} روز-سهم مشابه ({faNumber(s.episodes ?? 0)} دوره در{" "}
-          {faNumber(s.symbols ?? 0)} نماد)، بازدهٔ شش ماه بعد به‌طور میانگین{" "}
+          در {faNumber(s.n)} روز-سهم مشابه (هر روزِ هر سهم یک مورد؛ {faNumber(s.episodes ?? 0)} دوره
+          در {faNumber(s.symbols ?? 0)} نماد)، بازدهٔ شش ماه بعد به‌طور میانگین{" "}
           <b className={signTone(h.excess_mean)}>{signedPct(h.excess_mean)}</b> نسبت به میانگین
           بازار بوده و {pct(h.beat)} موارد از بازار جلو زده‌اند.
           {h1 != null && h2 != null && (

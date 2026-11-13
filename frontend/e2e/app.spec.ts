@@ -73,7 +73,7 @@ test.describe("instrument page", () => {
     await page.goto("/instruments/1");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("فولاد");
     await expect(page.locator('[role="img"] canvas').first()).toBeVisible();
-    await expect(page.getByText("RSI (۱۴ روزه)").first()).toBeVisible();
+    await expect(page.getByTestId("technical")).toContainText("RSI ۱۴ روزه");
     await expect(page.getByTestId("disclaimer").first()).toBeVisible();
   });
 
@@ -348,7 +348,7 @@ test.describe("entry odds and the chart", () => {
   test("symbol page says how the candles after its current state went", async ({ page }) => {
     await page.goto("/instruments/1");
     const card = page.getByTestId("entry-odds");
-    await expect(card).toContainText("اگر امروز بخرم");
+    await expect(card).toContainText("در کل بورس");
     await expect(card).toContainText("آمار گذشته‌اند، نه پیش‌بینی و نه توصیه");
     await expect(card.getByTestId("entry-now").locator("> li")).toHaveCount(2);
     await expect(card.locator('[data-key="r2"]')).toContainText("فرقی نداشته");

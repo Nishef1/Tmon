@@ -220,6 +220,13 @@ function Horizons({
 
 function Decision({ d, horizon, id }: { d: D["decision"]; horizon: string; id: number }) {
   const [first, ...rest] = d.reasons;
+  // The zone sentence only repeats the summary above it; keep what it adds (a caution, a reason).
+  const extra = d.headline
+    .replace(
+      /^امتیازش (در محدودهٔ خرید است.|متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید.|ضعیف است: نخرید و اگر دارید فروش را بسنجید.)s*/,
+      "",
+    )
+    .trim();
   return (
     <section
       className={`card ${verdictTone(d.verdict)}`}
@@ -236,7 +243,7 @@ function Decision({ d, horizon, id }: { d: D["decision"]; horizon: string; id: n
         <div className="min-w-0 flex-1 space-y-2">
           <span className={`${verdictPill(d.verdict)} pill-lg`}>{d.label}</span>
           <p className="text-lg font-semibold">{faDigits(d.summary || d.headline)}</p>
-          {d.summary && <p className="text-muted">{faDigits(d.headline)}</p>}
+          {d.summary && extra && <p className="text-muted">{faDigits(extra)}</p>}
           {first && <p>{faDigits(first)}</p>}
         </div>
       </div>

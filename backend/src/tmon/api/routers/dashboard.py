@@ -68,13 +68,14 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 SIGNAL_FA = {
     "ind_buy_power": "قدرت خریدار حقیقی",
-    "rv_20": "آرام‌بودن قیمت",
+    "rv_20": "کم‌نوسان بودن قیمت",
     "dist_high_52w": "نزدیکی به سقف یک‌ساله",
     "mom_12_1": "روند ۱۲ ماههٔ قیمت",
 }
 SIGNAL_WHAT = {
     "ind_buy_power": "خریداران حقیقی چقدر بیشتر از فروشندگان حقیقی پول وارد سهم کرده‌اند",
-    "rv_20": "قیمت در ۲۰ روز اخیر چقدر کم‌نوسان بوده است (آرام‌تر یعنی ریسک کمتر)",
+    "rv_20": "قیمت در ۲۰ روز اخیر روزبه‌روز چقدر کم بالا و پایین رفته است؛ هرچه تکان‌های روزانه "
+    "کوچک‌تر، نمرهٔ این بخش بیشتر. روزهای صف خرید یا فروش هم تکان کمی دارند و نمره را بالا می‌برند",
     "dist_high_52w": "قیمت امروز چقدر به بالاترین قیمت یک سال اخیر نزدیک است",
     "mom_12_1": "قیمت در یک سال گذشته (به‌جز ماه آخر) چقدر رشد کرده است",
 }
@@ -302,17 +303,6 @@ def _signals(sig: dict[str, float]) -> list[DashSignal]:
     return out
 
 
-def _signal_lines(sig: dict[str, float]) -> list[str]:
-    best = _signals(sig)
-    if not best:
-        return []
-    top, low = best[0], best[-1]
-    out = [f"نقطهٔ قوت: {top.name}؛ بهتر از {top.pct:.0f}٪ سهم‌های دیگر."]
-    if low.key != top.key:
-        out.append(f"نقطهٔ ضعف: {low.name}؛ فقط از {low.pct:.0f}٪ سهم‌ها بهتر است.")
-    return out
-
-
 SUMMARY = {
     "buy": "امتیازش جزو ۱۰٪ بهترین سهم‌های بازار است؛ یعنی چند نشانهٔ خوب را با هم دارد.",
     "hold": "وضعش متوسط رو به خوب است: اگر دارید نگه دارید؛ برای خرید تازه صبر کنید تا امتیازش "
@@ -350,12 +340,10 @@ def _horizon_decision(
     t = ev.get("excess_t")
     net = None if top is None else top - cost
     reasons: list[str] = []
-    if top is not None:
+    if top is not None and ev.get("n_days"):
         reasons.append(
-            f"در گذشته ۱۰٪ سهم‌هایی که بالاترین امتیاز را داشتند، {label} بعد به‌طور میانگین "
-            f"{_signed(top)} بیشتر از یک سهم معمولی بازار سود دادند. کارمزد و مالیات خرید و فروش "
-            f"روی هم {_n(cost * 100, 2)}٪ است؛ پس سود اضافهٔ واقعی {_signed(net or 0)} بوده. "
-            f"(پایه: {ev.get('n_days')} روز معاملاتی؛ برای کارشناس: آمارهٔ t = {_n(t or 0)})"
+            f"اعداد بالا از {ev.get('n_days')} روز معاملاتی گذشته آمده‌اند: هر روز ۱۰٪ سهم‌های "
+            f"پرامتیاز خریده و {label} بعد با بازار مقایسه شده‌اند."
         )
     for k, name in SIGNAL_FA.items():
         s_ev = (ev.get("signals") or {}).get(k)
@@ -364,14 +352,13 @@ def _horizon_decision(
             continue
         solid = (s_ev.get("t") or 0) >= 2.0
         reasons.append(
-            f"{name}: این سهم از {v * 100:.0f}٪ سهم‌ها بهتر است؛ "
+            f"{name}: "
             + (
-                "این نشانه در گذشته برای همین مدت واقعاً به پیش‌بینی کمک کرده است "
-                f"(IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev['t'])})."
+                "برای این بازه در گذشته واقعاً به پیش‌بینی کمک کرده است"
                 if solid
-                else "اما این نشانه در گذشته برای همین مدت کمکی به پیش‌بینی نکرده، پس در تصمیم "
-                f"حساب نمی‌شود (IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev.get('t') or 0)})."
+                else "برای این بازه در گذشته کمکی به پیش‌بینی نکرده و در تصمیم حساب نمی‌شود"
             )
+            + f" (برای کارشناس: IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev.get('t') or 0)})."
         )
     solid_edge = net is not None and t is not None and net >= MIN_NET_EDGE and t >= MIN_T
     if zone == "buy":
@@ -449,9 +436,7 @@ def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
     if verdict == "buy":
         if edge is not None:
             lines.append(
-                f"در گذشته سهم‌های پرامتیاز در {HOLD_DAYS} روز بعد به‌طور میانگین حدود "
-                f"{edge * 100:.1f}٪ بیشتر از بازار سود دادند. این یک میانگین است، نه قول؛ بعضی از "
-                "همین سهم‌ها ضرر هم کرده‌اند."
+                "سود اضافهٔ بالا میانگین گذشته است، نه قول؛ بعضی از سهم‌های پرامتیاز ضرر هم کرده‌اند."
             )
         lines.append(
             "کی بفروشم: ماهی یک‌بار امتیاز را دوباره ببینید. تا وقتی سهم در محدودهٔ خرید یا "
@@ -569,7 +554,6 @@ def decide(
             f"امتیاز ترکیبی {(score or 0) * 100:.0f} از ۱۰۰ (۱۰۰ = بهترین)؛ رتبهٔ {pos} "
             f"از {len(scored)} نماد دارای امتیاز."
         ]
-    reasons += _signal_lines(src.get("signals") or {})
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
         reasons.append(
@@ -781,7 +765,7 @@ def _driver_lines(
         pace = (
             "تندتر از بازار بالا و پایین می‌رود"
             if bi > 1.2
-            else "آرام‌تر از بازار حرکت می‌کند"
+            else "کمتر از بازار بالا و پایین می‌رود"
             if bi < 0.8
             else "تقریباً هم‌قدِ بازار حرکت می‌کند"
         )

@@ -29,7 +29,7 @@ export function EntryOddsCard({ e, odds }: { e: DashEntry; odds: EntryOdds | nul
   return (
     <section className="card space-y-3" data-testid="entry-odds">
       <div>
-        <h2 className="font-bold">اگر امروز بخرم، کندل‌های بعدی معمولاً چه شده‌اند؟</h2>
+        <h2 className="font-bold">حالت امروز این سهم، در کل بورس: بعدش چه شده؟</h2>
         <p className="text-xs text-muted">
           تا {jalali(e.as_of)}. هر حالت روی همهٔ تاریخچهٔ بورس تهران آزموده شده و با خریدن هر سهم
           دیگری در همان روزها مقایسه شده است. این‌ها آمار گذشته‌اند، نه پیش‌بینی و نه توصیه.

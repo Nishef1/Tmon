@@ -8,7 +8,6 @@ import {
   type InstrumentDashboard,
   type InstrumentDetail,
 } from "@/lib/api";
-import { featureInfo } from "@/lib/glossary";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import { SymbolDashboard } from "@/components/SymbolDashboard";
@@ -178,86 +177,49 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      <section className="card">
-        <h2 className="mb-2 font-bold">
-          شاخص‌ها
-          {d.features_date && (
-            <span className="text-sm font-normal text-muted">
-              {" "}
-              · تا {jalali(d.features_date, "long")}
-            </span>
-          )}
-        </h2>
-        {d.features.length === 0 ? (
-          <p className="text-sm text-muted">شاخصی برای این نماد محاسبه نشده است.</p>
-        ) : (
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-            {d.features.map((f) => {
-              const info = featureInfo(f.feature);
-              return (
-                <div key={f.feature} className="flex justify-between border-b border-line py-1.5">
-                  <dt>
-                    <Link href={`/glossary/${info.term}`} className="hover:text-accent">
-                      {info.label}
-                    </Link>
-                  </dt>
-                  <dd className="font-semibold">
-                    <Num term={info.term} value={f.value} digits={2} />
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-        )}
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="font-bold">سیگنال‌های منتشرشده برای این نماد</h2>
-        {d.signals.length === 0 ? (
-          <p className="text-sm text-muted">تاکنون سیگنالی برای این نماد منتشر نشده است.</p>
-        ) : (
+      {d.signals.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="font-bold">سیگنال‌های منتشرشده برای این نماد</h2>
           <SignalTable items={d.signals} showSymbol={false} />
-        )}
-      </section>
+        </section>
+      )}
 
-      <section className="card">
-        <h2 className="mb-2 font-bold">
-          <Link href="/glossary/codal_event" className="hover:text-accent">
-            رویدادهای کدال
-          </Link>
-        </h2>
-        {d.events.length === 0 ? (
-          <p className="text-sm text-muted">
-            رویداد مجمع یا افزایش سرمایه‌ای برای این نماد ثبت نشده است.
-          </p>
-        ) : (
-          <ul className="divide-y divide-line text-sm">
-            {d.events.map((e, i) => (
-              <li key={`${e.url ?? ""}-${i}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
-                <span className="text-muted">
-                  {e.announced_at ? jalali(e.announced_at, "short") : "—"}
-                </span>
-                <span className="font-semibold">
-                  {TYPE_LABEL[e.type] ?? e.type}
-                  {e.stage && ` · ${STAGE_LABEL[e.stage] ?? e.stage}`}
-                </span>
-                {e.url ? (
-                  <a
-                    href={e.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-w-0 break-words text-accent underline"
-                  >
-                    {e.title ?? "نامهٔ کدال"}
-                  </a>
-                ) : (
-                  <span className="min-w-0 break-words">{e.title}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {d.events.length > 0 && (
+        <section className="card">
+          <h2 className="mb-2 font-bold">
+            <Link href="/glossary/codal_event" className="hover:text-accent">
+              رویدادهای کدال
+            </Link>
+          </h2>
+          {
+            <ul className="divide-y divide-line text-sm">
+              {d.events.map((e, i) => (
+                <li key={`${e.url ?? ""}-${i}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
+                  <span className="text-muted">
+                    {e.announced_at ? jalali(e.announced_at, "short") : "—"}
+                  </span>
+                  <span className="font-semibold">
+                    {TYPE_LABEL[e.type] ?? e.type}
+                    {e.stage && ` · ${STAGE_LABEL[e.stage] ?? e.stage}`}
+                  </span>
+                  {e.url ? (
+                    <a
+                      href={e.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 break-words text-accent underline"
+                    >
+                      {e.title ?? "نامهٔ کدال"}
+                    </a>
+                  ) : (
+                    <span className="min-w-0 break-words">{e.title}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          }
+        </section>
+      )}
 
       <section className="card" data-testid="shareholders">
         <h2 className="mb-1 font-bold">سهامداران عمده</h2>
@@ -299,38 +261,38 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      <section className="card" data-testid="codal-letters">
-        <h2 className="mb-1 font-bold">آخرین نامه‌های کدال</h2>
-        <p className="mb-2 text-xs text-muted">
-          همهٔ اطلاعیه‌های ناشر، به ترتیب تاریخ انتشار؛ با کلیک، نامهٔ اصلی در کدال باز می‌شود.
-        </p>
-        {d.letters.length === 0 ? (
-          <p className="text-sm text-muted">نامه‌ای از کدال برای این نماد ثبت نشده است.</p>
-        ) : (
-          <ul className="divide-y divide-line text-sm">
-            {d.letters.map((l, i) => (
-              <li key={`${l.url ?? ""}-${i}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
-                <span className="text-muted">
-                  {l.published_at ? jalali(l.published_at, "short") : "—"}
-                </span>
-                {l.letter_code && <span className="chip">{l.letter_code}</span>}
-                {l.url ? (
-                  <a
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-w-0 break-words text-accent underline"
-                  >
-                    {l.title}
-                  </a>
-                ) : (
-                  <span className="min-w-0 break-words">{l.title}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {d.letters.length > 0 && (
+        <section className="card" data-testid="codal-letters">
+          <h2 className="mb-1 font-bold">آخرین نامه‌های کدال</h2>
+          <p className="mb-2 text-xs text-muted">
+            همهٔ اطلاعیه‌های ناشر، به ترتیب تاریخ انتشار؛ با کلیک، نامهٔ اصلی در کدال باز می‌شود.
+          </p>
+          {
+            <ul className="divide-y divide-line text-sm">
+              {d.letters.map((l, i) => (
+                <li key={`${l.url ?? ""}-${i}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
+                  <span className="text-muted">
+                    {l.published_at ? jalali(l.published_at, "short") : "—"}
+                  </span>
+                  {l.letter_code && <span className="chip">{l.letter_code}</span>}
+                  {l.url ? (
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 break-words text-accent underline"
+                    >
+                      {l.title}
+                    </a>
+                  ) : (
+                    <span className="min-w-0 break-words">{l.title}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          }
+        </section>
+      )}
 
       <section className="card" id="agm">
         <h2 className="mb-1 font-bold">
