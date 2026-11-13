@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
+import { DriversCard } from "@/components/DriversCard";
 import { PeersCard } from "@/components/PeersCard";
 import { PlainSummary } from "@/components/PlainSummary";
 import { TurningCard } from "@/components/TurningCard";
@@ -191,13 +192,19 @@ function Horizons({
         {h.top_excess != null && (
           <dl className="mt-2" data-testid="horizon-evidence">
             <Row
-              k="مازاد ۱۰٪ برتر مدل نسبت به بازار (گذشته)"
+              k="سود اضافهٔ ۱۰٪ سهم‌های پرامتیاز نسبت به بازار (در گذشته)"
               v={signedPct(h.top_excess)}
               tone={signTone(h.top_excess)}
             />
-            <Row k="هزینهٔ رفت‌وبرگشت خرید و فروش" v={faPercent(h.cost ?? 0, 2)} />
-            <Row k="خالص پس از هزینه" v={signedPct(h.net_excess)} tone={signTone(h.net_excess)} />
-            {h.ic_t != null && <Row k="اطمینان آماری (t)" v={faNumber(h.ic_t, 1)} />}
+            <Row k="کارمزد و مالیات خرید و فروش" v={faPercent(h.cost ?? 0, 2)} />
+            <Row
+              k="سود اضافهٔ واقعی پس از کارمزد"
+              v={signedPct(h.net_excess)}
+              tone={signTone(h.net_excess)}
+            />
+            {h.ic_t != null && (
+              <Row k="اطمینان آماری (t؛ ۳ به بالا یعنی محکم)" v={faNumber(h.ic_t, 1)} />
+            )}
           </dl>
         )}
         <ul className="mt-3 list-inside list-disc space-y-1.5">
@@ -371,6 +378,7 @@ export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?
       <Decision d={d.decision} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
       {d.peers && <PeersCard p={d.peers} />}
       {d.turning && <TurningCard t={d.turning} />}
+      {d.drivers && <DriversCard d={d.drivers} />}
 
       {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
       <Company d={d} />

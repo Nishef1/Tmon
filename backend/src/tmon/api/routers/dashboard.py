@@ -18,6 +18,7 @@ from tmon.api.returns import day_change
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import (
     DashDecision,
+    DashDrivers,
     DashEvent,
     DashFlow,
     DashFund,
@@ -32,6 +33,7 @@ from tmon.api.schemas import (
     DashShareChange,
     DashSignal,
     DashTurning,
+    DriverMove,
     InstrumentDashboard,
     TurningHorizon,
     TurningState,
@@ -53,6 +55,7 @@ from tmon.storage.models import (
     ShareChange,
 )
 from tmon.storage.objectstore import get_object_store
+from tmon.tools.stock_drivers import KEY as DRIVERS_KEY
 from tmon.tools.turning_points import KEY as TURNING_KEY
 from tmon.tools.v2_ranking import KEY
 
@@ -308,10 +311,10 @@ def _signal_lines(sig: dict[str, float]) -> list[str]:
 
 
 SUMMARY = {
-    "buy": "در میان سهم‌های بازار جزو ۱۰٪ برتر امتیاز است؛ یعنی چند نشانهٔ خوب را با هم دارد.",
-    "hold": "وضعش نسبتاً خوب است: اگر دارید نگه دارید؛ برای خرید تازه صبر کنید تا به ناحیهٔ "
-    "خرید برسد.",
-    "sell": "امتیازش در میان ضعیف‌ترین‌هاست: خرید نکنید و اگر دارید فروش را بسنجید.",
+    "buy": "امتیازش جزو ۱۰٪ بهترین سهم‌های بازار است؛ یعنی چند نشانهٔ خوب را با هم دارد.",
+    "hold": "وضعش متوسط رو به خوب است: اگر دارید نگه دارید؛ برای خرید تازه صبر کنید تا امتیازش "
+    "به محدودهٔ خرید برسد.",
+    "sell": "امتیازش جزو ضعیف‌ترین سهم‌هاست: نخرید و اگر دارید فروش را بسنجید.",
 }
 
 
@@ -346,10 +349,10 @@ def _horizon_decision(
     reasons: list[str] = []
     if top is not None:
         reasons.append(
-            f"در گذشته نمادهای ۱۰٪ برتر مدل، {label} بعد، به‌طور میانگین {_signed(top)} بیشتر از "
-            f"میانهٔ بازار بازده داشته‌اند (نمونه: {ev.get('n_days')} روز؛ آمارهٔ t = "
-            f"{_n(t or 0)}). هزینهٔ رفت‌وبرگشت خرید و فروش {_n(cost * 100, 2)}٪ است؛ پس خالص "
-            f"{_signed(net or 0)}."
+            f"در گذشته ۱۰٪ سهم‌هایی که بالاترین امتیاز را داشتند، {label} بعد به‌طور میانگین "
+            f"{_signed(top)} بیشتر از یک سهم معمولی بازار سود دادند. کارمزد و مالیات خرید و فروش "
+            f"روی هم {_n(cost * 100, 2)}٪ است؛ پس سود اضافهٔ واقعی {_signed(net or 0)} بوده. "
+            f"(پایه: {ev.get('n_days')} روز معاملاتی؛ برای کارشناس: آمارهٔ t = {_n(t or 0)})"
         )
     for k, name in SIGNAL_FA.items():
         s_ev = (ev.get("signals") or {}).get(k)
@@ -358,43 +361,52 @@ def _horizon_decision(
             continue
         solid = (s_ev.get("t") or 0) >= 2.0
         reasons.append(
-            f"{name}: این نماد از {v * 100:.0f}٪ سهم‌ها بهتر است؛ "
+            f"{name}: این سهم از {v * 100:.0f}٪ سهم‌ها بهتر است؛ "
             + (
-                f"این سیگنال در این بازه اثر معنی‌دار داشته (IC {_n(s_ev['ic'], 3, True)}، "
-                f"t {_n(s_ev['t'])})."
+                "این نشانه در گذشته برای همین مدت واقعاً به پیش‌بینی کمک کرده است "
+                f"(IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev['t'])})."
                 if solid
-                else f"اما در این بازه اثر معنی‌داری نداشته (IC {_n(s_ev['ic'], 3, True)}، t "
-                f"{_n(s_ev.get('t') or 0)})، پس روی تصمیم این بازه وزنی ندارد."
+                else "اما این نشانه در گذشته برای همین مدت کمکی به پیش‌بینی نکرده، پس در تصمیم "
+                f"حساب نمی‌شود (IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev.get('t') or 0)})."
             )
         )
     solid_edge = net is not None and t is not None and net >= MIN_NET_EDGE and t >= MIN_T
     if zone == "buy":
         if solid_edge:
-            verdict, head = "buy", f"برای {label}: خرید؛ مازاد گذشته پس از هزینه معنی‌دار است."
+            verdict = "buy"
+            head = (
+                f"برای {label}: بخرید؛ در گذشته این گروه حتی پس از کسر کارمزد، سود اضافهٔ "
+                "مطمئنی داده است."
+            )
         elif net is not None and net > 0:
             verdict = "hold"
             why = (
-                f"مازاد پس از هزینه ({_signed(net)}) از حداقل {_pct(MIN_NET_EDGE)} کمتر است"
+                f"سود اضافهٔ گذشته پس از کارمزد ({_signed(net)}) از حداقل {_pct(MIN_NET_EDGE)} "
+                "که از پیش تعیین کرده‌ایم کمتر است"
                 if net < MIN_NET_EDGE
-                else f"اطمینان آماری کافی نیست (t = {_n(t or 0)}، حداقل {_n(MIN_T, 0)})"
+                else "سود گذشته ممکن است شانسی بوده باشد؛ اطمینان آماری کافی نیست "
+                f"(t = {_n(t or 0)}، حداقل {_n(MIN_T, 0)})"
             )
-            head = f"برای {label}: خرید توصیه نمی‌شود؛ {why}."
+            head = f"برای {label}: فعلاً نخرید؛ {why}."
         else:
             verdict = "hold"
-            head = f"برای {label}: معامله نکنید؛ مازاد گذشته کمتر از هزینهٔ رفت‌وبرگشت است."
+            head = f"برای {label}: معامله نکنید؛ سود اضافهٔ گذشته از کارمزد خرید و فروش کمتر است."
     elif zone == "hold":
-        verdict, head = "hold", f"برای {label}: نگهداری؛ نماد در ناحیهٔ میانی مدل است."
+        verdict = "hold"
+        head = f"برای {label}: نگه دارید؛ امتیاز این سهم نه جزو بهترین‌هاست نه جزو بدترین‌ها."
     elif bot is not None and bot < -cost / 2:
         verdict = "sell"
         head = (
-            f"برای {label}: فروش یا پرهیز؛ گروه ضعیف مدل در گذشته زیر بازار بوده ({_signed(bot)})."
+            f"برای {label}: نخرید و اگر دارید فروش را بسنجید؛ در گذشته سهم‌های کم‌امتیاز از "
+            f"بازار عقب مانده‌اند ({_signed(bot)})."
         )
     else:
         verdict = "hold"
         head = (
-            f"برای {label}: امتیاز پایین است ولی گروه ضعیف در این بازه زیر بازار نبوده"
+            f"برای {label}: امتیاز پایین است، اما در گذشته سهم‌های کم‌امتیاز در این مدت از بازار "
+            "عقب نمانده‌اند"
             + (f" ({_signed(bot)})" if bot is not None else "")
-            + "؛ دلیل آماری برای فروش وجود ندارد."
+            + "؛ پس دلیلی برای فروش نیست."
         )
     return DashHorizon(
         key=key,
@@ -428,30 +440,32 @@ def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
     ev = next((e for e in doc.get("evidence", []) if e.get("horizon_days") == HOLD_DAYS), None)
     edge = ev.get("top_excess") if ev else None
     lines = [
-        f"مدل برای نگهداری حدود {HOLD_DAYS} روز معاملاتی (حدود یک ماه) ساخته شده است، نه برای "
-        "خرید و فروش در همان روز؛ آزمونی روی نگهداری یک‌روزه انجام نشده و نتیجه‌اش معلوم نیست."
+        f"این امتیاز برای نگه‌داشتن سهم حدود {HOLD_DAYS} روز کاری بورس (حدود یک ماه) ساخته شده، "
+        "نه برای خرید و فروش در همان روز؛ برای نوسان‌گیری روزانه آزمایش نشده است."
     ]
     if verdict == "buy":
         if edge is not None:
             lines.append(
-                f"در گذشته سهم‌های گروه برتر در {HOLD_DAYS} روز بعد به‌طور میانگین حدود "
-                f"{edge * 100:.1f}٪ بیشتر از میانگین بازار بازده داشته‌اند. این میانگین است؛ برای "
-                "یک سهم تضمینی ندارد و بعضی سهم‌های همین گروه ضرر می‌کنند."
+                f"در گذشته سهم‌های پرامتیاز در {HOLD_DAYS} روز بعد به‌طور میانگین حدود "
+                f"{edge * 100:.1f}٪ بیشتر از بازار سود دادند. این یک میانگین است، نه قول؛ بعضی از "
+                "همین سهم‌ها ضرر هم کرده‌اند."
             )
         lines.append(
-            "کی بفروشم: هر ماه یک‌بار امتیاز را دوباره ببینید. تا وقتی نماد در ناحیهٔ خرید یا "
-            "نگهداری است نگه دارید؛ اگر به ناحیهٔ فروش رفت بفروشید."
+            "کی بفروشم: ماهی یک‌بار امتیاز را دوباره ببینید. تا وقتی سهم در محدودهٔ خرید یا "
+            "نگهداری است نگه دارید؛ اگر به محدودهٔ فروش رفت بفروشید."
         )
-        lines.append("اگر نماد در صف خرید باشد خرید ممکن نیست؛ با چشم بسته و درشت وارد نشوید.")
+        lines.append(
+            "اگر سهم صف خرید است، خرید عملاً ممکن نیست؛ با سفارش بزرگ و بی‌حساب وارد صف نشوید."
+        )
     elif verdict == "hold":
         lines.append(
-            "اگر سهم را دارید همان‌طور نگه دارید و هر ماه امتیاز را ببینید؛ خرید تازه وقتی "
-            "منطقی است که نماد به ناحیهٔ خرید برسد."
+            "اگر سهم را دارید نگه دارید و ماهی یک‌بار امتیاز را ببینید؛ خرید تازه وقتی منطقی "
+            "است که امتیاز به محدودهٔ خرید برسد."
         )
     else:
-        lines.append("خرید تازه نکنید. اگر دارید، هر ماه امتیاز را ببینید و فروش را بسنجید.")
+        lines.append("خرید تازه نکنید. اگر دارید، ماهی یک‌بار امتیاز را ببینید و فروش را بسنجید.")
     if not advice:
-        lines.append("این‌ها آمار گذشته‌اند و هنوز توصیهٔ مطمئن نیستند (آزمون‌های اعتبار کامل نشده).")
+        lines.append("این‌ها آمار گذشته‌اند و هنوز توصیهٔ مطمئن نیستند (همهٔ آزمون‌ها تمام نشده).")
     return DashHolding(horizon_days=HOLD_DAYS, expected_excess=edge, lines=lines)
 
 
@@ -493,8 +507,9 @@ def decide(
         ]
         if median_value and floor:
             reasons.append(
-                f"میانهٔ ارزش معامله این نماد در ۲۰ روز اخیر {median_value / 1e10:.1f} میلیارد "
-                f"تومان است؛ حداقل لازم برای ورود به فهرست {floor / 1e10:.1f} میلیارد تومان است."
+                f"در یک روز معمولیِ ۲۰ روز اخیر حدود {median_value / 1e10:.1f} میلیارد تومان از "
+                f"این سهم معامله شده؛ حداقل لازم برای ورود به فهرست {floor / 1e10:.1f} "
+                "میلیارد تومان است."
             )
         return _none(
             "این نماد در فهرست پرمعامله‌های مدل نیست؛ تصمیمی برایش صادر نمی‌شود.",
@@ -555,8 +570,7 @@ def decide(
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
         reasons.append(
-            f"قاعدهٔ مدل: {_pct(bt)} بالای جدول «خرید»، تا {_pct(ht)} «نگهداری» و بقیه "
-            "«فروش/پرهیز» است."
+            f"قاعدهٔ کار: {_pct(bt)} بالای جدول «خرید»، تا {_pct(ht)} «نگهداری» و بقیه «نخرید» است."
         )
     if not in_basket:
         floor = get_engine_config().universe.min_median_value_20d
@@ -568,7 +582,7 @@ def decide(
         )
         if mv:
             line += (
-                f" میانهٔ ارزش معاملهٔ ۲۰ روزهٔ آن {mv / 1e10:.1f} میلیارد تومان است"
+                f" در یک روز معمولی حدود {mv / 1e10:.1f} میلیارد تومان از آن معامله می‌شود"
                 f" (حداقل لازم برای ورود به آزمون‌ها {floor / 1e10:.1f} میلیارد تومان)."
             )
         reasons.append(line)
@@ -578,12 +592,12 @@ def decide(
             "نه توصیهٔ مطمئن."
         )
     head = {
-        "buy": "در ناحیهٔ خرید مدل است.",
-        "hold": "در ناحیهٔ نگهداری مدل است؛ خرید تازه توصیه نمی‌شود.",
-        "sell": "در ناحیهٔ ضعیف مدل است؛ خرید نکنید و اگر دارید فروش را بسنجید.",
+        "buy": "امتیازش در محدودهٔ خرید است.",
+        "hold": "امتیازش متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید.",
+        "sell": "امتیازش ضعیف است: نخرید و اگر دارید فروش را بسنجید.",
     }[verdict]
     if not in_basket:
-        head += " (کم‌اعتبار: خارج از سبد پرمعامله)"
+        head += " (با احتیاط: این سهم کم‌معامله است و مدل روی آن آزموده نشده)"
     advice = allowed and in_basket
     return DashDecision(
         verdict=verdict,
@@ -698,19 +712,120 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         decision=decide(inst, rank_doc, statistics.median(vals) if vals else None),
         turning=turning_out(turn_doc, inst.id),
         peers=peers_out(session, inst, sector.name if sector else None, rank_doc, turn_doc),
+        drivers=drivers_out(_stored_doc(DRIVERS_KEY), inst.id)
+        if inst.instrument_type == "stock"
+        else None,
     )
 
 
-def _turning_doc() -> dict[str, Any] | None:
+def _stored_doc(key: str) -> dict[str, Any] | None:
     try:
-        raw = get_object_store().get(get_settings().minio_artifact_bucket, TURNING_KEY)
+        raw = get_object_store().get(get_settings().minio_artifact_bucket, key)
     except (FileNotFoundError, KeyError):
         return None
     except Exception:  # store unreachable: leave the card out instead of failing the page
-        log.warning("turning document unreadable", exc_info=True)
+        log.warning("%s unreadable", key, exc_info=True)
         return None
     doc: dict[str, Any] = json.loads(raw)
     return doc
+
+
+def _turning_doc() -> dict[str, Any] | None:
+    return _stored_doc(TURNING_KEY)
+
+
+DRIVER_WEAK = 0.1  # |extra move per 1% dollar| below this reads as "no clear tie"
+DRIVER_CORR = 0.3  # a copper or Brent correlation worth a sentence
+
+
+def _driver_lines(x: dict[str, Any], moves: list[DriverMove], days: int) -> list[str]:
+    out: list[str] = []
+    bi, r2 = x.get("beta_index"), x.get("r2")
+    if bi is not None and r2 is not None:
+        pace = (
+            "تندتر از بازار بالا و پایین می‌رود"
+            if bi > 1.2
+            else "آرام‌تر از بازار حرکت می‌کند"
+            if bi < 0.8
+            else "تقریباً هم‌قدِ بازار حرکت می‌کند"
+        )
+        out.append(
+            f"وقتی شاخص کل بورس ۱۰٪ بالا یا پایین رفته، این سهم معمولاً حدود "
+            f"{_n(abs(bi) * 10, 0)}٪ جابه‌جا شده؛ یعنی {pace}. حرکت شاخص و دلار روی هم حدود "
+            f"{_n(max(r2, 0) * 100, 0)}٪ از نوسان هفتگی این سهم را توضیح می‌دهد و بقیه به خود "
+            f"شرکت و خبرهایش برمی‌گردد (سه سال اخیر، {x.get('weeks')} هفته)."
+        )
+    bu = x.get("beta_usd")
+    if bu is not None:
+        if bu >= DRIVER_WEAK:
+            out.append(
+                f"وقتی دلار آزاد ۱۰٪ گران شده، این سهم جدا از حرکت کل بازار حدود "
+                f"{_n(bu * 10, 1)}٪ بیشتر بالا رفته؛ یعنی از گرانی دلار سود برده (سهم «دلاری»)."
+            )
+        elif bu <= -DRIVER_WEAK:
+            out.append(
+                f"وقتی دلار آزاد ۱۰٪ گران شده، این سهم جدا از حرکت کل بازار حدود "
+                f"{_n(-bu * 10, 1)}٪ کمتر بالا رفته؛ یعنی گرانی دلار به نفعش نبوده."
+            )
+        else:
+            out.append("گرانی یا ارزانی دلار، جدا از حرکت کل بازار، اثر روشنی روی این سهم نداشته.")
+    for key, what in (("corr_copper", "قیمت جهانی مس"), ("corr_brent", "قیمت جهانی نفت برنت")):
+        c = x.get(key)
+        if c is not None and abs(c) >= DRIVER_CORR:
+            way = "هم‌جهت" if c > 0 else "خلاف جهت"
+            out.append(
+                f"ماه‌به‌ماه بیشتر وقت‌ها {way} با {what} حرکت کرده (همبستگی {_n(c, 2, True)}؛ "
+                "۰ یعنی بی‌ربط و ۱ یعنی کاملاً هم‌جهت)."
+            )
+    pc, yrs = x.get("usd_pctl"), x.get("usd_years")
+    if pc is not None and yrs:
+        level = "گران" if pc >= 0.8 else "ارزان" if pc <= 0.2 else "میانه"
+        out.append(
+            f"قیمت این سهم به دلار از {_n(pc * 100, 0)}٪ روزهای {_n(yrs, 0)} سال گذشته بالاتر "
+            f"است (به دلار نسبتاً {level})؛ "
+            f"{_n(abs(x.get('usd_from_peak') or 0) * 100, 0)}٪ زیر گران‌ترین روزش. این فقط برای "
+            "مقایسه است: در آزمون ما «ارزان به دلار» به‌تنهایی سهم بهتر را جدا نکرد."
+        )
+    bad = [m for m in moves if m.kind in ("war", "sanction", "unrest")]
+    if len(bad) >= 3:
+        beat = sum(1 for m in bad if m.stock > m.index)
+        out.append(
+            f"پس از {len(bad)} رویداد بد (جنگ، تحریم، اعتراض)، این سهم در {days} روز معاملاتی بعد "
+            f"{beat} بار از شاخص کل بهتر و {len(bad) - beat} بار بدتر بوده. در بورس تهران خبر بد "
+            "اغلب با گرانی دلار همراه بوده و شاخص کل را هم در ماه بعد بالا برده است."
+        )
+    return out
+
+
+def drivers_out(doc: dict[str, Any] | None, instrument_id: int) -> DashDrivers | None:
+    """The stock's part of the drivers document with plain sentences; None when it has none."""
+    if not doc:
+        return None
+    x = (doc.get("symbols") or {}).get(str(instrument_id))
+    if not x:
+        return None
+    events = doc.get("events") or []
+    days = int(doc.get("event_days") or 20)
+    moves = [
+        DriverMove(
+            date=events[k]["date"],
+            kind=events[k]["kind"],
+            title=events[k]["title_fa"],
+            source=events[k]["source"],
+            stock=st,
+            index=ix,
+        )
+        for k, st, ix in x.get("moves", [])
+        if k < len(events)
+    ]
+    fields = {k: x.get(k) for k in DashDrivers.model_fields if k in x and k != "moves"}
+    return DashDrivers(
+        as_of=doc["as_of"],
+        event_days=days,
+        moves=moves[::-1],
+        lines=_driver_lines(x, moves, days),
+        **fields,
+    )
 
 
 def _turning_state(key: str, meta: dict[str, Any], h: dict[str, Any]) -> TurningState:

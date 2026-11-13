@@ -875,6 +875,189 @@
         "title": "DashDecision",
         "type": "object"
       },
+      "DashDrivers": {
+        "description": "What moves the stock besides its own chart: index, dollar, copper, Brent and shocks.\nA description of the past; none of it feeds the verdict.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "beta_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta Index"
+          },
+          "beta_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta Usd"
+          },
+          "corr_brent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr Brent"
+          },
+          "corr_copper": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr Copper"
+          },
+          "div_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Div Date"
+          },
+          "div_yield": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Div Yield"
+          },
+          "dps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dps"
+          },
+          "event_days": {
+            "title": "Event Days",
+            "type": "integer"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "moves": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DriverMove"
+            },
+            "title": "Moves",
+            "type": "array"
+          },
+          "r2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R2"
+          },
+          "usd_from_peak": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd From Peak"
+          },
+          "usd_pctl": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Pctl"
+          },
+          "usd_years": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Years"
+          },
+          "weeks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weeks"
+          }
+        },
+        "required": [
+          "as_of",
+          "weeks",
+          "beta_index",
+          "beta_usd",
+          "r2",
+          "corr_copper",
+          "corr_brent",
+          "usd_pctl",
+          "usd_from_peak",
+          "usd_years",
+          "div_date",
+          "dps",
+          "div_yield",
+          "event_days",
+          "moves",
+          "lines"
+        ],
+        "title": "DashDrivers",
+        "type": "object"
+      },
       "DashEvent": {
         "properties": {
           "date": {
@@ -2284,6 +2467,55 @@
         "title": "DiagnosisStats",
         "type": "object"
       },
+      "DriverMove": {
+        "description": "The stock against the index in the 20 trading days after one dated shock.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "index": {
+            "title": "Index",
+            "type": "number"
+          },
+          "kind": {
+            "enum": [
+              "war",
+              "sanction",
+              "unrest",
+              "deal",
+              "politics",
+              "market",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "stock": {
+            "title": "Stock",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "kind",
+          "title",
+          "source",
+          "stock",
+          "index"
+        ],
+        "title": "DriverMove",
+        "type": "object"
+      },
       "FeatureValue": {
         "properties": {
           "feature": {
@@ -2747,6 +2979,16 @@
           "decision": {
             "$ref": "#/components/schemas/DashDecision"
           },
+          "drivers": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashDrivers"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "events": {
             "default": [],
             "items": {
@@ -2909,7 +3151,8 @@
           "share_changes",
           "decision",
           "turning",
-          "peers"
+          "peers",
+          "drivers"
         ],
         "title": "InstrumentDashboard",
         "type": "object"

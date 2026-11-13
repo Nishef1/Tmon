@@ -805,6 +805,39 @@ class DashPeers(ApiModel):
     items: list[DashPeer] = []
 
 
+class DriverMove(ApiModel):
+    """The stock against the index in the 20 trading days after one dated shock."""
+
+    date: dt.date
+    kind: Literal["war", "sanction", "unrest", "deal", "politics", "market", "other"]
+    title: str
+    source: str
+    stock: float
+    index: float
+
+
+class DashDrivers(ApiModel):
+    """What moves the stock besides its own chart: index, dollar, copper, Brent and shocks.
+    A description of the past; none of it feeds the verdict."""
+
+    as_of: dt.date
+    weeks: int | None = None  # weeks behind the betas (up to three years)
+    beta_index: float | None = None  # move for a 1% index move
+    beta_usd: float | None = None  # extra move for a 1% dollar move, on top of the index
+    r2: float | None = None  # share of the weekly swing the index and dollar explain
+    corr_copper: float | None = None  # 4-week correlations
+    corr_brent: float | None = None
+    usd_pctl: float | None = None  # share of the last years' days its dollar price was lower
+    usd_from_peak: float | None = None
+    usd_years: float | None = None
+    div_date: dt.date | None = None
+    dps: float | None = None  # rial per share, read off the price gap
+    div_yield: float | None = None
+    event_days: int
+    moves: list[DriverMove] = []
+    lines: list[str] = []
+
+
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
     isin: str | None = None
@@ -824,6 +857,7 @@ class InstrumentDashboard(ApiModel):
     decision: DashDecision
     turning: DashTurning | None = None
     peers: DashPeers | None = None
+    drivers: DashDrivers | None = None
 
 
 class SearchHit(ApiModel):

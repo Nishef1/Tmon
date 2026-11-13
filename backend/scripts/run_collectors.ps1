@@ -16,6 +16,8 @@ with session_scope() as s:
   & $py -m tmon.tools.v2_ranking
   # where each symbol stands in its fall or run-up, with that state's history
   & $py -m tmon.tools.turning_points
+  # ties to the index, dollar, copper and Brent, and moves after dated shocks
+  & $py -m tmon.tools.stock_drivers
   # new assembly/capital letters from Codal, then the day each invitation names
   & $py -m tmon.ingest.codal.cli events
   & $py -m tmon.ingest.codal.cli meetings

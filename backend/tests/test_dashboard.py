@@ -176,7 +176,7 @@ def test_every_scored_stock_gets_a_gauge_but_only_basket_names_are_advice() -> N
     out = dash.decide(_with_id(7, "ثالث"), doc, 3e9)
     assert out.verdict == "buy" and out.gauge == pytest.approx(97)
     assert not out.in_basket and not out.advice_allowed
-    assert "کم‌اعتبار" in out.headline
+    assert "با احتیاط" in out.headline
     assert any("اثبات نشده" in r for r in out.reasons)
     assert any("رتبهٔ" in r and "نماد دارای امتیاز" in r for r in out.reasons)
     assert dash.decide(_with_id(8, "رابع"), doc, 3e9).verdict == "sell"
@@ -199,14 +199,14 @@ def test_decision_explains_in_plain_words_and_says_how_long_to_hold() -> None:
     doc = _doc()
     doc["evidence"] = [{"horizon_days": 20, "top_excess": 0.04}, {"horizon_days": 5}]
     d = dash.decide(_inst("الف"), doc, None)
-    assert "۱۰٪ برتر" in d.summary
+    assert "۱۰٪ بهترین" in d.summary
     assert d.signals[0].key == "ind_buy_power"
     assert d.signals[0].pct == pytest.approx(90)
     assert "بهتر از 90٪" in " ".join(d.reasons)
     assert d.holding is not None and d.holding.horizon_days == 20
     assert d.holding.expected_excess == pytest.approx(0.04)
     text = " ".join(d.holding.lines)
-    assert "همان روز" in text and "4.0٪" in text and "هر ماه" in text
+    assert "همان روز" in text and "4.0٪" in text and "ماهی یک‌بار" in text
     assert "توصیهٔ مطمئن نیست" in text  # the gates have not passed in this document
     hold = dash.decide(_inst("ب"), doc, None)
     assert hold.holding is not None and "خرید تازه" in " ".join(hold.holding.lines)

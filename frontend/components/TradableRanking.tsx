@@ -31,19 +31,19 @@ export function TradableRanking({ d }: { d: Ranking }) {
     {
       zone: "hold",
       title: "نگهداری",
-      why: `تا ${d.hold_top_frac == null ? "ناحیهٔ بعدی" : `${faPercent(d.hold_top_frac, 0)} برتر`} رتبه‌بندی؛ اگر دارید نگه دارید، خرید تازه توصیه نمی‌شود.`,
+      why: `تا ${d.hold_top_frac == null ? "محدودهٔ بعدی" : `${faPercent(d.hold_top_frac, 0)} برتر`} رتبه‌بندی؛ اگر دارید نگه دارید، ولی خرید تازه نکنید.`,
     },
     {
       zone: "avoid",
       title: "فروش",
-      why: "پایین‌تر از ناحیهٔ نگهداری؛ خرید نکنید و اگر دارید فروش را بسنجید.",
+      why: "پایین‌تر از محدودهٔ نگهداری؛ نخرید و اگر دارید فروش را بسنجید.",
     },
   ];
   return (
     <section className="card space-y-3" data-testid="tradable-ranking">
       <h2 className="text-lg font-bold">تصمیم امروز: خرید، نگهداری یا فروش (توصیه نیست)</h2>
       <p className="text-sm text-muted">
-        هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها ناحیهٔ خرید تهی است یا آزمون‌های اعتبار
+        هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها محدودهٔ خرید خالی است یا آزمون‌های اعتبار
         مدل نگذشته‌اند و آن‌وقت این فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}، از{" "}
         {d.basket_size == null ? "نمادهای" : `${faNumber(d.basket_size)} نمادِ`} پرمعامله.{" "}
         <Link href="/model#v2" className="text-accent underline">

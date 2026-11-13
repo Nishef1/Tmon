@@ -82,12 +82,12 @@ test.describe("instrument page", () => {
     const hz = page.getByTestId("horizons");
     await expect(hz).toHaveAttribute("data-horizon", "M1");
     await expect(hz).toHaveAttribute("data-verdict", "buy");
-    await expect(hz.getByTestId("horizon-evidence")).toContainText("خالص پس از هزینه");
+    await expect(hz.getByTestId("horizon-evidence")).toContainText("سود اضافهٔ واقعی پس از کارمزد");
     await hz.getByTestId("horizon-D1").click();
     await expect(page).toHaveURL(/h=D1/);
     await expect(hz).toHaveAttribute("data-horizon", "D1");
     await expect(hz).toHaveAttribute("data-verdict", "hold");
-    await expect(hz).toContainText("کمتر از هزینهٔ رفت‌وبرگشت");
+    await expect(hz).toContainText("از کارمزد خرید و فروش کمتر است");
   });
 
   test("shows one final decision with its reasons and the per-symbol numbers", async ({ page }) => {
@@ -128,6 +128,14 @@ test.describe("instrument page", () => {
     // several holders can share one name; the list must still render without key warnings
     await expect(box.getByText("شخص حقیقی")).toHaveCount(2);
     expect(errors.filter((e) => e.includes("same key"))).toEqual([]);
+  });
+
+  test("shows what moves the stock outside its chart", async ({ page }) => {
+    await page.goto("/instruments/1");
+    const box = page.getByTestId("drivers");
+    await expect(box).toContainText("تندتر از بازار");
+    await expect(box).toContainText("۳۷۰ ریال");
+    await expect(box.getByTestId("drivers-moves")).toContainText("جنگ ۱۲ روزه");
   });
 
   test("lists the Codal letters of the symbol", async ({ page }) => {

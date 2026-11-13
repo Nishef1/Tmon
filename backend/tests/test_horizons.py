@@ -42,7 +42,7 @@ def test_low_t_blocks_buy_even_with_a_big_edge() -> None:
 def test_edge_below_cost_means_do_not_trade() -> None:
     h = _horizon_decision(1, _ev(0.0048, 18.0), "buy", COST, SIG, True)
     assert h.verdict == "hold"
-    assert "هزینهٔ رفت‌وبرگشت" in h.headline
+    assert "کارمزد" in h.headline and "معامله نکنید" in h.headline
 
 
 def test_avoid_zone_is_sell_only_when_the_weak_group_lost_to_the_market() -> None:

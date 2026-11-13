@@ -571,6 +571,54 @@ export interface components {
        */
       verdict: "buy" | "hold" | "sell" | "none";
     };
+    /**
+     * DashDrivers
+     * @description What moves the stock besides its own chart: index, dollar, copper, Brent and shocks.
+     *     A description of the past; none of it feeds the verdict.
+     */
+    DashDrivers: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Beta Index */
+      beta_index: number | null;
+      /** Beta Usd */
+      beta_usd: number | null;
+      /** Corr Brent */
+      corr_brent: number | null;
+      /** Corr Copper */
+      corr_copper: number | null;
+      /** Div Date */
+      div_date: string | null;
+      /** Div Yield */
+      div_yield: number | null;
+      /** Dps */
+      dps: number | null;
+      /** Event Days */
+      event_days: number;
+      /**
+       * Lines
+       * @default []
+       */
+      lines: string[];
+      /**
+       * Moves
+       * @default []
+       */
+      moves: components["schemas"]["DriverMove"][];
+      /** R2 */
+      r2: number | null;
+      /** Usd From Peak */
+      usd_from_peak: number | null;
+      /** Usd Pctl */
+      usd_pctl: number | null;
+      /** Usd Years */
+      usd_years: number | null;
+      /** Weeks */
+      weeks: number | null;
+    };
     /** DashEvent */
     DashEvent: {
       /** Date */
@@ -971,6 +1019,30 @@ export interface components {
       /** P Win Median */
       p_win_median: number | null;
     };
+    /**
+     * DriverMove
+     * @description The stock against the index in the 20 trading days after one dated shock.
+     */
+    DriverMove: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Index */
+      index: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "war" | "sanction" | "unrest" | "deal" | "politics" | "market" | "other";
+      /** Source */
+      source: string;
+      /** Stock */
+      stock: number;
+      /** Title */
+      title: string;
+    };
     /** FeatureValue */
     FeatureValue: {
       /** Feature */
@@ -1121,6 +1193,7 @@ export interface components {
       /** Board */
       board: string | null;
       decision: components["schemas"]["DashDecision"];
+      drivers: components["schemas"]["DashDrivers"] | null;
       /**
        * Events
        * @default []

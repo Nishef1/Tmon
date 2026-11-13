@@ -60,7 +60,12 @@ export function PeersCard({ p }: { p: P }) {
               <th className="py-1 text-start font-normal">نماد</th>
               <th className="py-1 font-normal">امتیاز</th>
               <th className="py-1 font-normal">حالت</th>
-              <th className="py-1 font-normal">P/E</th>
+              <th
+                className="py-1 font-normal"
+                title="قیمت تقسیم بر سود هر سهم: چند سال سود طول می‌کشد تا پول خرید برگردد؛ کمتر یعنی ارزان‌تر"
+              >
+                P/E
+              </th>
               <th className="py-1 font-normal">بازده ۶۰ روز</th>
               <th className="py-1 font-normal">تا سقف یک‌ساله</th>
             </tr>
@@ -86,7 +91,7 @@ export function PeersCard({ p }: { p: P }) {
                   {x.in_basket && (
                     <span
                       className="ms-1 text-xs text-muted"
-                      title="در سبد نقدشوندهٔ اعتبارسنجی‌شده"
+                      title="در فهرست سهم‌های پرمعامله‌ای که مدل روی آن‌ها آزموده شده"
                     >
                       ●
                     </span>
@@ -109,10 +114,10 @@ export function PeersCard({ p }: { p: P }) {
         </table>
       </div>
       <p className="mt-2 text-xs text-muted">
-        امتیاز: امتیاز ترکیبی رتبه‌بندی (۰ تا ۱۰۰) با رنگ خرید، نگه‌داری یا فروش. ● یعنی در سبد
-        نقدشوندهٔ اعتبارسنجی‌شده است. رنگ «حالت» سابقهٔ آن حالت را نشان می‌دهد: سبز بهتر و قرمز بدتر
-        از بازار در گذشته. {faNumber(p.total)} سهم فعال در گروه. این مقایسه است، نه توصیهٔ خرید یا
-        فروش.
+        امتیاز: امتیاز ترکیبی رتبه‌بندی (۰ تا ۱۰۰) با رنگ خرید، نگه‌داری یا فروش. ● یعنی در فهرست
+        سهم‌های پرمعامله‌ای است که مدل روی آن‌ها آزموده شده. P/E یعنی قیمت تقسیم بر سود هر سهم (کمتر
+        = ارزان‌تر). رنگ «حالت» سابقهٔ آن حالت را نشان می‌دهد: سبز بهتر و قرمز بدتر از بازار در
+        گذشته. {faNumber(p.total)} سهم فعال در گروه. این مقایسه است، نه توصیهٔ خرید یا فروش.
       </p>
     </section>
   );
