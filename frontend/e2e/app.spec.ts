@@ -355,6 +355,16 @@ test.describe("entry odds and the chart", () => {
     await card.locator('[data-key="r2"] summary').click();
     await expect(card.getByTestId("entry-horizons").first().getByRole("row")).toHaveCount(6);
     await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
+    // the plain answer sits in the summary at the top, with its interval and range
+    const next = page.getByTestId("plain-summary").getByTestId("next-candles");
+    await expect(next.locator("tr[data-h]")).toHaveCount(2);
+    await expect(next.locator('tr[data-h="5"]')).toContainText("۵۰٪");
+    await expect(next.locator('tr[data-h="5"]')).toContainText("۹۴۰ تا ۱٬۰۹۰");
+    await expect(next).toContainText("شیر یا خط");
+    await next.getByRole("button", { name: "۳ سال" }).click();
+    await expect(next).toHaveAttribute("data-window", "y3");
+    await expect(next.locator('tr[data-h="5"]')).toContainText("۶۰٪");
+    await expect(next.locator("tr[data-h]")).toHaveCount(1);
   });
 
   test("model page leads with the entry lab", async ({ page }) => {

@@ -20,6 +20,7 @@ These are base rates of the past on the whole market, not a forecast for one sym
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import Any
 
 import numpy as np
@@ -38,6 +39,9 @@ DIR_EDGE = 0.03
 MIN_N = 200
 RECENT = 5  # an entry event is "current" when it fired in the symbol's last 5 trading days
 MARKS_DAYS = 250  # chart markers for the last year
+OWN_H = H
+OWN_MIN = 20  # fewer own entries than this: no own odds
+Z95 = 1.96
 BASE_DD = -0.30  # at least 30% under the 52-week high ...
 BASE_RANGE = 0.25  # ... and the last 60 closes within a 25% band: months near the bottom
 BASE_DAYS = 60
@@ -320,6 +324,7 @@ def current(p: pl.DataFrame) -> dict[int, dict[str, Any]]:
         marks.setdefault(int(r[G]), []).append(
             {"key": r["k"][2:], "date": str(r["date"]), "ago": int(r["ago"])}
         )
+    own = _own(s)
     now_states = s.group_by(G).agg(*[C("e_" + k).last() for k in keys if not SETUPS[k][3]])
     st = {int(r[G]): r for r in now_states.iter_rows(named=True)}
     out: dict[int, dict[str, Any]] = {}
@@ -338,5 +343,90 @@ def current(p: pl.DataFrame) -> dict[int, dict[str, Any]]:
             "rng60": _f(r["rng60"]),
             "active": active,
             "marks": ms,
+            "own": own.get(i),
         }
+    return out
+
+
+def wilson(k: float, n: int) -> tuple[float, float]:
+    """95% Wilson interval for a share k/n: where the true rate plausibly lies given n tries."""
+    p = k / n
+    d = 1 + Z95**2 / n
+    c = (p + Z95**2 / (2 * n)) / d
+    w = Z95 * np.sqrt(p * (1 - p) / n + Z95**2 / (4 * n * n)) / d
+    return float(max(0.0, c - w)), float(min(1.0, c + w))
+
+
+def year_start(d: Any) -> dt.date:
+    """1 Farvardin of the Iranian year that ``d`` falls in (Nowruz, taken as 21 March): each
+    year's market is different, so a symbol's own record starts at this year's spring."""
+    y = d.year if (d.month, d.day) >= (3, 21) else d.year - 1
+    return dt.date(y, 3, 21)
+
+
+OWN_WINDOWS = (("year", "امسال", None), ("y1", "۱ سال", 1), ("y3", "۳ سال", 3),
+               ("y5", "۵ سال", 5), ("all", "همه", 0))  # fmt: skip
+
+
+def _own_window(base: pl.DataFrame) -> dict[int, dict[str, Any]]:
+    """One window of each symbol's own record: after h candles, how often it closed above the
+    price paid, the 95% interval of that share, and where 8 in 10 of the outcomes fell (10th to
+    90th percentile), next to every liquid symbol on the same days."""
+    out: dict[int, dict[str, Any]] = {}
+    for h in OWN_H:
+        ok = base.filter(C(f"f{h}").is_not_null() & C(f"ub{h}").is_not_null())
+        agg = ok.group_by(G).agg(
+            n=pl.len(),
+            k=(C(f"f{h}") > 0).sum(),
+            up_all=C(f"ub{h}").mean(),
+            q10=C(f"f{h}").quantile(0.1),
+            q50=C(f"f{h}").median(),
+            q90=C(f"f{h}").quantile(0.9),
+            first=C("date").min(),
+        )
+        for r in agg.iter_rows(named=True):
+            n = int(r["n"])
+            if n < OWN_MIN:
+                continue
+            # h-candle windows overlap, so neighbouring days are not separate tries: the interval
+            # uses one try per h days, which widens it honestly.
+            eff = max(1, n // h)
+            lo, hi = wilson(float(r["k"]) * eff / n, eff)
+            d = out.setdefault(int(r[G]), {"since": str(r["first"]), "h": []})
+            d["since"] = min(d["since"], str(r["first"]))
+            d["h"].append(
+                {
+                    "h": h,
+                    "n": n,
+                    "eff": eff,
+                    "up": r["k"] / n,
+                    "lo": lo,
+                    "hi": hi,
+                    "up_all": _f(r["up_all"]),
+                    "q10": _f(r["q10"]),
+                    "q50": _f(r["q50"]),
+                    "q90": _f(r["q90"]),
+                }
+            )
+    return out
+
+
+def _own(s: pl.DataFrame) -> dict[int, dict[str, Any]]:
+    """Each symbol's own record in every window of OWN_WINDOWS: this Iranian year (the default,
+    since each year's market differs), the last 1, 3 or 5 years, or all of its history."""
+    tradable = s.filter(C("liquid") & ~C("entry_up_locked"))
+    last = s["date"].max()
+    close = dict(s.group_by(G).agg(C("close").last()).iter_rows())
+    out: dict[int, dict[str, Any]] = {}
+    for key, _, years in OWN_WINDOWS:
+        if years is None:
+            cut: dt.date | None = year_start(last)
+        elif years:
+            cut = dt.date.fromisoformat(str(last)) - dt.timedelta(days=365 * years)
+        else:
+            cut = None
+        part = tradable if cut is None else tradable.filter(C("date") >= cut)
+        for i, w in _own_window(part).items():
+            d = out.setdefault(i, {"close": _f(close.get(i)), "windows": {}})
+            d["windows"][key] = w
     return out

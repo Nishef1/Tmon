@@ -674,6 +674,11 @@ export interface components {
       as_of: string;
       /** Dd */
       dd: number | null;
+      /**
+       * Forecast
+       * @default []
+       */
+      forecast: string[];
       /** Green */
       green: number;
       /** In Base */
@@ -695,10 +700,24 @@ export interface components {
        * @default []
        */
       now: components["schemas"]["EntrySetup"][];
+      /**
+       * Own
+       * @default []
+       */
+      own: components["schemas"]["OwnOdds"][];
+      /** Own Close */
+      own_close: number | null;
+      /** Own Since */
+      own_since: string | null;
       /** Red */
       red: number;
       /** Rng60 */
       rng60: number | null;
+      /**
+       * Windows
+       * @default []
+       */
+      windows: components["schemas"]["OwnWindow"][];
     };
     /**
      * DashEntryMark
@@ -1900,6 +1919,60 @@ export interface components {
       p_win: number;
       /** Shortfall */
       shortfall: number | null;
+    };
+    /**
+     * OwnOdds
+     * @description The symbol's own record ``h`` candles after any tradable day since this year's spring.
+     */
+    OwnOdds: {
+      /**
+       * Eff
+       * @default 0
+       */
+      eff: number;
+      /** H */
+      h: number;
+      /** Hi */
+      hi: number;
+      /** Lo */
+      lo: number;
+      /** N */
+      n: number;
+      /** Q10 */
+      q10: number | null;
+      /** Q50 */
+      q50: number | null;
+      /** Q90 */
+      q90: number | null;
+      /** Up */
+      up: number;
+      /** Up All */
+      up_all: number | null;
+    };
+    /**
+     * OwnWindow
+     * @description The symbol's own record over one window: this year, the last 1/3/5 years or all.
+     */
+    OwnWindow: {
+      /**
+       * Forecast
+       * @default []
+       */
+      forecast: string[];
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /**
+       * Odds
+       * @default []
+       */
+      odds: components["schemas"]["OwnOdds"][];
+      /**
+       * Since
+       * Format: date
+       */
+      since: string;
     };
     /** RankingBook */
     RankingBook: {

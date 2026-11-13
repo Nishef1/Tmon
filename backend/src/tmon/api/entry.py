@@ -14,8 +14,11 @@ from tmon.api.schemas import (
     EntryHorizon,
     EntryOddsOut,
     EntrySetup,
+    OwnOdds,
+    OwnWindow,
 )
 from tmon.api.technical import load_doc
+from tmon.backtest.entry_odds import OWN_WINDOWS
 from tmon.tools.entry_odds import KEY
 
 
@@ -123,6 +126,54 @@ def _pct(x: float) -> str:
     return f"{abs(x) * 100:.0f}٪"
 
 
+def _signed_pct(x: float) -> str:
+    return f"{x * 100:+.0f}٪".replace("+-", "−").replace("-", "−")
+
+
+def forecast(own: list[OwnOdds], now: list[EntrySetup], window: str = "year") -> list[str]:
+    """The plain answer to "what will the next candles do": the symbol's own record with its 95%
+    interval and the band 8 in 10 outcomes fell in, then any setup it is in that changed the
+    odds in both halves of the exchange history. Past counts, not a promise."""
+    out: list[str] = []
+    for x in own:
+        if x.h not in (1, 5, 20):
+            continue
+        when = "کندل بعد" if x.h == 1 else f"{x.h} کندل بعد"
+        line = f"{when}: شانس بالاتر بودن از قیمت خرید {_n(x.up)}٪ (همهٔ سهم‌ها {_n(x.up_all or 0)}٪)"
+        if x.q10 is not None and x.q90 is not None:
+            line += f"؛ ۸ بار از ۱۰ تغییر قیمت بین {_signed_pct(x.q10)} و {_signed_pct(x.q90)} بوده"
+        out.append(line + ".")
+    if own:
+        x = next((o for o in own if o.h == 5), own[0])
+        if x.lo > 0.5:
+            out.append("در این سابقه ۵ کندل بعد بیشتر بالا رفته تا پایین، ولی نه همیشه.")
+        elif x.hi < 0.5:
+            out.append(
+                "در این سابقه بیشتر پایین آمده تا بالا؛ کندل‌های سبز بعدی را نمی‌شود انتظار داشت."
+            )
+        else:
+            out.append("یعنی جهت ۵ کندل بعد در سابقهٔ خود این سهم تقریباً شیر یا خط بوده است.")
+    if own:
+        out.append(
+            (
+                "این سابقهٔ خود این سهم از ابتدای امسال است"
+                if window == "year"
+                else "این سابقهٔ خود این سهم در همین بازه است"
+            )
+            + ": اگر سهم در این مدت روند تندی داشته، عدد همان روند را نشان می‌دهد و تضمین "
+            "نمی‌کند ادامه پیدا کند. بازه‌های ۱۰ و ۲۰ کندل از روزهای هم‌پوشان ساخته شده‌اند و "
+            "با سابقهٔ کوتاه کم‌اعتمادترند."
+        )
+    for st in now:
+        if st.label in ("better", "worse"):
+            word = "بیشتر" if st.label == "better" else "کمتر"
+            out.append(
+                f"این سهم الان در حالت «{st.title}» است که در کل بورس، در هر دو نیمهٔ تاریخچه، "
+                f"کندل‌های بعدی را {word} از بقیهٔ سهم‌ها بالا برده است."
+            )
+    return out
+
+
 def entry_out(doc: dict[str, Any] | None, instrument_id: int) -> DashEntry | None:
     """The symbol's part: its streak and base/uptrend, the setups it is in now with their
     tested odds, and its entry candles of the last year."""
@@ -156,6 +207,24 @@ def entry_out(doc: dict[str, Any] | None, instrument_id: int) -> DashEntry | Non
             f"سهم در کف چندماهه است: {_pct(me['dd'] or 0)} زیر سقف ۵۲ هفته و ۶۰ روز اخیر در "
             f"دامنهٔ {_pct(me['rng60'] or 0)}."
         )
+    mine = me.get("own") or {}
+    windows = []
+    for key, label, _ in OWN_WINDOWS:
+        w = (mine.get("windows") or {}).get(key)
+        if not w:
+            continue
+        odds = [OwnOdds(**x) for x in w["h"]]
+        windows.append(
+            OwnWindow(
+                key=key,
+                label=label,
+                since=w["since"],
+                odds=odds,
+                forecast=forecast(odds, now, key),
+            )
+        )
+    first = windows[0] if windows else None
+    own = first.odds if first else []
     if me["in_up"]:
         lines.append("سهم در روند صعودی است: میانگین ۲۰ روزه بالای ۵۰ و ۵۰ بالای ۲۰۰.")
     return DashEntry(
@@ -169,4 +238,9 @@ def entry_out(doc: dict[str, Any] | None, instrument_id: int) -> DashEntry | Non
         now=now,
         marks=marks,
         lines=lines,
+        own_since=first.since if first else None,
+        own_close=mine.get("close"),
+        own=own,
+        forecast=first.forecast if first else [],
+        windows=windows,
     )

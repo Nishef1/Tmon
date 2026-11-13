@@ -1021,6 +1021,31 @@ class DashEntryMark(ApiModel):
     label: EntryLabel
 
 
+class OwnOdds(ApiModel):
+    """The symbol's own record ``h`` candles after any tradable day since this year's spring."""
+
+    h: int
+    n: int
+    eff: int = 0  # separate tries behind the interval: one per h days, as the windows overlap
+    up: float  # share of days the close h candles later was above the price paid
+    lo: float  # 95% interval of that share
+    hi: float
+    up_all: float | None = None  # every liquid symbol on the same days
+    q10: float | None = None  # 8 in 10 outcomes fell between q10 and q90
+    q50: float | None = None
+    q90: float | None = None
+
+
+class OwnWindow(ApiModel):
+    """The symbol's own record over one window: this year, the last 1/3/5 years or all."""
+
+    key: str
+    label: str
+    since: dt.date
+    odds: list[OwnOdds] = []
+    forecast: list[str] = []
+
+
 class DashEntry(ApiModel):
     """Where the symbol stands for a buyer now: its streak, whether it sits in a months-long base
     or an uptrend, and the tested odds of every setup it is in. Describes the past, not advice."""
@@ -1035,6 +1060,11 @@ class DashEntry(ApiModel):
     now: list[EntrySetup] = []
     marks: list[DashEntryMark] = []
     lines: list[str] = []
+    own_since: dt.date | None = None
+    own_close: float | None = None  # last adjusted close: the price the ranges are drawn from
+    own: list[OwnOdds] = []
+    forecast: list[str] = []  # the plain answer: what the next candles usually did
+    windows: list[OwnWindow] = []  # the same over every window the symbol has data for
 
 
 class InstrumentDashboard(ApiModel):

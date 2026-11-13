@@ -1,6 +1,7 @@
 import type { InstrumentDashboard } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
 import { verdictPill, verdictTone } from "@/lib/ui";
+import { NextCandles } from "@/components/entry/NextCandles";
 
 type D = InstrumentDashboard;
 
@@ -89,6 +90,12 @@ export function PlainSummary({ d }: { d: D }) {
           </div>
         )}
       </dl>
+      {d.entry && d.entry.own.length > 0 && (
+        <div className="mt-4 border-t border-line pt-3">
+          <h3 className="mb-1 text-sm text-muted">کندل‌های بعدی چه می‌شوند؟</h3>
+          <NextCandles e={d.entry} />
+        </div>
+      )}
       {clash && (
         <p className="mt-3 rounded-lg bg-warn-soft p-2 text-sm" data-testid="plain-clash">
           {clash}

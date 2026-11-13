@@ -245,3 +245,20 @@ def test_dashboard_shows_the_next_meeting_and_skips_cancelled_or_past_ones(
     )  # fmt: skip
     session.commit()
     assert client.get("/instruments/1/dashboard").json()["meeting"]["days_left"] == 20
+
+
+def test_headline_follows_the_tested_month_when_the_score_says_more() -> None:
+    doc = _uni_doc()
+    doc["round_trip_cost"] = 0.0175
+    doc["evidence"] = [
+        {"horizon_days": 20, "top_excess": 0.04, "excess_t": 4.0, "bottom_excess": 0.003}
+    ]
+    d = dash.decide(_with_id(8, "رابع"), doc, 3e9)
+    # a low score whose zone did not lag the market in the tested month is not a sell
+    assert d.verdict == "hold" and d.label == "نگهداری"
+    assert [h.verdict for h in d.horizons] == ["hold"]
+    assert "دلیلی هم برای فروش نیست" in d.summary
+    assert any("امتیاز به‌تنهایی «فروش»" in r for r in d.reasons)
+    doc["evidence"][0]["bottom_excess"] = -0.03
+    lag = dash.decide(_with_id(8, "رابع"), doc, 3e9)
+    assert lag.verdict == "sell" and lag.horizons[0].verdict == "sell"

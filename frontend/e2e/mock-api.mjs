@@ -404,7 +404,7 @@ const ENTRY_ODDS = {
   groups: { all: "مبنا", streak: "شمع‌ها", base: "کف", uptrend: "روند صعودی" },
   setups: SETUPS,
 };
-const ENTRY_DASH = {
+const ENTRY_DASH_BASE = {
   as_of: "2026-11-11",
   green: 0,
   red: 2,
@@ -423,6 +423,73 @@ const ENTRY_DASH = {
     },
   ],
   lines: ["آخرین 2 شمع پشت سر هم قرمز بوده است.", "سهم در روند صعودی است."],
+  own_since: "2023-11-12",
+  own_close: 1000,
+  own: [
+    {
+      h: 1,
+      n: 740,
+      eff: 740,
+      up: 0.42,
+      lo: 0.38,
+      hi: 0.46,
+      up_all: 0.43,
+      q10: -0.024,
+      q50: 0,
+      q90: 0.027,
+    },
+    {
+      h: 5,
+      n: 736,
+      eff: 147,
+      up: 0.5,
+      lo: 0.42,
+      hi: 0.58,
+      up_all: 0.47,
+      q10: -0.06,
+      q50: 0.001,
+      q90: 0.09,
+    },
+  ],
+  windows: [],
+  forecast: [
+    "کندل بعد: شانس بالاتر بودن از قیمت خرید 42٪.",
+    "5 کندل بعد: شانس بالاتر بودن از قیمت خرید 50٪.",
+    "یعنی جهت کندل‌های بعدی در سابقهٔ خود این سهم تقریباً شیر یا خط بوده است.",
+    "این سابقهٔ سه سال گذشتهٔ خود این سهم است.",
+  ],
+};
+const ENTRY_DASH = {
+  ...ENTRY_DASH_BASE,
+  windows: [
+    {
+      key: "year",
+      label: "امسال",
+      since: "2026-03-21",
+      odds: ENTRY_DASH_BASE.own,
+      forecast: ENTRY_DASH_BASE.forecast,
+    },
+    {
+      key: "y3",
+      label: "۳ سال",
+      since: "2023-11-12",
+      odds: [
+        {
+          h: 5,
+          n: 494,
+          eff: 98,
+          up: 0.6,
+          lo: 0.5,
+          hi: 0.7,
+          up_all: 0.5,
+          q10: -0.1,
+          q50: 0.01,
+          q90: 0.2,
+        },
+      ],
+      forecast: ["در این سابقه ۵ کندل بعد بیشتر بالا رفته تا پایین، ولی نه همیشه."],
+    },
+  ],
 };
 
 function route(url) {

@@ -133,3 +133,31 @@ def test_readings_follow_the_numbers() -> None:
     assert e.lines[0] == "آخرین شمع سبز بوده و شمع پیش از آن سبز نبوده است."
     assert "40٪ زیر سقف" in e.lines[1]
     assert entry_out(doc, 8) is None
+
+
+def test_wilson_interval_widens_with_fewer_tries() -> None:
+    lo, hi = eo.wilson(50, 100)
+    assert lo < 0.5 < hi
+    lo2, hi2 = eo.wilson(500, 1000)
+    assert hi2 - lo2 < hi - lo
+
+
+def test_forecast_reads_the_symbols_own_record() -> None:
+    from tmon.api.entry import forecast
+    from tmon.api.schemas import OwnOdds
+
+    coin = OwnOdds(h=5, n=700, eff=140, up=0.5, lo=0.42, hi=0.58, up_all=0.47, q10=-0.06, q90=0.09)
+    lines = forecast([coin], [])
+    assert "شانس بالاتر بودن از قیمت خرید 50٪" in lines[0] and "42" not in lines[0]
+    assert "−6٪" in lines[0] and "+9٪" in lines[0]
+    assert "شیر یا خط" in lines[1]
+    up = coin.model_copy(update={"up": 0.6, "lo": 0.55, "hi": 0.65})
+    assert "بیشتر بالا رفته" in forecast([up], [])[1]
+    assert forecast([], []) == []
+
+
+def test_year_starts_at_nowruz() -> None:
+    import datetime as dt
+
+    assert eo.year_start(dt.date(2026, 11, 11)) == dt.date(2026, 3, 21)
+    assert eo.year_start(dt.date(2026, 2, 1)) == dt.date(2025, 3, 21)

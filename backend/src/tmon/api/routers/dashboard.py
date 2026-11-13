@@ -594,11 +594,35 @@ def decide(
             "آزمون‌های اعتبار مدل هنوز کامل نگذشته‌اند؛ این جایگاه یک رتبه‌بندی آماری است، "
             "نه توصیهٔ مطمئن."
         )
+    horizons = _horizons(doc, zone, src.get("signals") or {})
+    summary = SUMMARY[verdict]
+    # The headline must not say more than the tested month says: when the score's zone and the
+    # past excess of that zone at HOLD_DAYS disagree, the tested month decides.
+    month = next((h for h in horizons if h.days == HOLD_DAYS), None)
+    softened = month is not None and month.verdict != verdict
+    if softened and month is not None:
+        if verdict == "sell":
+            summary = (
+                "امتیازش ضعیف است، اما در آزمون گذشته سهم‌های کم‌امتیاز در یک ماه بعد از بازار "
+                "عقب نمانده‌اند: خرید تازه نکنید، ولی دلیلی هم برای فروش نیست."
+            )
+        else:
+            summary = (
+                "امتیازش در محدودهٔ خرید است، اما برتری گذشتهٔ این محدوده پس از کارمزد آن‌قدر "
+                "محکم نبوده که خرید را توصیه کند: اگر دارید نگه دارید، خرید تازه را صبر کنید."
+            )
+        reasons.insert(
+            1,
+            f"تصمیم بالا از آزمون بازهٔ یک ماه آمده است؛ امتیاز به‌تنهایی «{LABEL[verdict]}» می‌گفت.",
+        )
+        verdict = month.verdict
     head = {
         "buy": "امتیازش در محدودهٔ خرید است.",
         "hold": "امتیازش متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید.",
         "sell": "امتیازش ضعیف است: نخرید و اگر دارید فروش را بسنجید.",
     }[verdict]
+    if softened and month is not None:
+        head = month.headline
     if not in_basket:
         head += " (با احتیاط: این سهم کم‌معامله است و مدل روی آن آزموده نشده)"
     advice = allowed and in_basket
@@ -608,10 +632,10 @@ def decide(
         advice_allowed=advice,
         headline=head,
         reasons=reasons,
-        summary=SUMMARY[verdict],
+        summary=summary,
         signals=_signals(src.get("signals") or {}),
         holding=_holding(verdict, doc, advice),
-        horizons=_horizons(doc, zone, src.get("signals") or {}),
+        horizons=horizons,
         **base,
     )
 
