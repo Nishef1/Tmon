@@ -34,7 +34,7 @@ import { heatProps, signTone, signedPct, verdictPill } from "@/lib/ui";
 
 const VERDICTS: [Verdict, string][] = [
   ["buy", "خرید"],
-  ["hold", "صبر کنید"],
+  ["hold", "نگهداری"],
   ["sell", "فروش"],
   ["none", "تصمیمی نیست"],
 ];

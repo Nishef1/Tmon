@@ -18,7 +18,7 @@ def _pick() -> tuple[TrackedPick, Instrument]:
         "gauge": 90.0,
         "verdict": "buy",
         "horizons": [
-            {"key": "D1", "label": "x", "verdict": "hold", "verdict_label": "صبر کنید"},
+            {"key": "D1", "label": "x", "verdict": "hold", "verdict_label": "نگهداری"},
             {"key": "W1", "label": "x", "verdict": "buy", "verdict_label": "خرید"},
         ],
         "candles": [

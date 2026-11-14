@@ -222,3 +222,25 @@ def tick(
     finish(kv, day, ok=True)
     log.info("cycle day=%s status=complete", day)
     return "complete"
+
+
+def main() -> None:
+    """``python -m tmon.tasks.cycle``: today's whole cycle once, without Redis or Celery (the
+    Windows scheduled task). Exits non-zero only if a required step failed."""
+    import sys
+
+    from tmon.core.logging import configure_logging
+
+    configure_logging()
+    day = utcnow().astimezone(TEHRAN).date()
+    try:
+        results = run_cycle(day, default_steps())
+    except CycleFailedError as exc:
+        print(f"cycle {day} failed: {exc}")
+        sys.exit(1)
+    for r in results:
+        print(f"{'ok ' if r.ok else 'ERR'} {r.name} {r.seconds:.0f}s {r.detail[:120]}")
+
+
+if __name__ == "__main__":
+    main()

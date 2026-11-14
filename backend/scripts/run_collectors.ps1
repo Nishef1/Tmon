@@ -8,11 +8,9 @@ $env:TMON_OBJECT_STORE_DIR = Join-Path $root "data/objects"
 $py = Join-Path $root "backend/.venv/Scripts/python.exe"
 Set-Location (Join-Path $root "backend")
 if ($Eod) {
-  & $py -m tmon.ingest.tsetmc.cli eod
-  & $py -m tmon.ingest.tsetmc.cli indices
-  & $py -c "from tmon.core.db import session_scope; from tmon.features.store import refresh_features; from tmon.engine.service import train_and_publish; from tmon.storage.objectstore import get_object_store
-with session_scope() as s:
-    refresh_features(s,'D1'); s.commit(); train_and_publish(s,get_object_store()); s.commit()"
+  # the same cycle as the Celery beat: EOD prices and flows, indices, order book, risk-free rate,
+  # dollar/gold/oil, news, features, living ranking, and the D1, W1 and M1 models (engine.yaml)
+  & $py -m tmon.tasks.cycle
   & $py -m tmon.tools.v2_ranking
   # where each symbol stands in its fall or run-up, with that state's history
   & $py -m tmon.tools.turning_points

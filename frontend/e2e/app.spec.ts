@@ -306,7 +306,7 @@ test("industries table shows one decision per symbol with its gauge and flow col
   const table = page.getByTestId("industry-table");
   await expect(table).toContainText("قدرت خریدار");
   await expect(table.getByTestId("gauge").first()).toBeVisible();
-  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("صبر کنید");
+  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("نگهداری");
 });
 
 test("header search finds a symbol by name or industry and opens its page", async ({ page }) => {
@@ -317,7 +317,7 @@ test("header search finds a symbol by name or industry and opens its page", asyn
   await expect(hits).toHaveCount(2);
   await expect(hits.first()).toContainText("فلزات اساسی");
   await expect(hits.first()).toContainText("P/E");
-  await expect(hits.first()).toContainText("صبر کنید");
+  await expect(hits.first()).toContainText("نگهداری");
   await box.fill("فولاد");
   await expect(hits).toHaveCount(1);
   await box.press("Enter");

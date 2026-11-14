@@ -23,6 +23,7 @@ export function TradableRanking({ d }: { d: Ranking }) {
   const left = d.rows.filter((r) => isFund(r) || inQueue(r));
   const funds = left.filter(isFund);
   const queued = left.filter((r) => !isFund(r));
+  const extra = d.rows.filter((r) => r.in_basket === false).length;
   const cols: Col[] = [
     {
       zone: "buy",
@@ -45,8 +46,10 @@ export function TradableRanking({ d }: { d: Ranking }) {
       <h2 className="text-lg font-bold">تصمیم امروز: خرید، نگهداری یا فروش (توصیه نیست)</h2>
       <p className="text-sm text-muted">
         هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها محدودهٔ خرید خالی است یا آزمون‌های اعتبار
-        مدل نگذشته‌اند و آن‌وقت این فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}، از{" "}
-        {d.basket_size == null ? "نمادهای" : `${faNumber(d.basket_size)} نمادِ`} پرمعامله.{" "}
+        مدل نگذشته‌اند و آن‌وقت این فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}:{" "}
+        {d.basket_size == null ? "نمادهای پرمعامله" : `${faNumber(d.basket_size)} نماد پرمعامله`}
+        {extra > 0 &&
+          ` و ${faNumber(extra)} نماد محدودهٔ خرید بیرون از آن‌ها («کم‌معامله‌تر»)`}.{" "}
         <Link href="/model#v2" className="text-accent underline">
           اعداد دروازه‌ها و همهٔ نمادها
         </Link>
@@ -65,9 +68,10 @@ export function TradableRanking({ d }: { d: Ranking }) {
       <p className="text-xs text-muted">
         کنار گذاشته‌شده: {faNumber(queued.length)} سهم در صف فروش
         {queued.length > 0 && ` (${queued.map((r) => r.symbol).join("، ")})`} و{" "}
-        {faNumber(funds.length)} صندوق. نمادهای «صف خرید» نشان داده می‌شوند ولی ممکن است سفارش امروز
-        پر نشود؛ نماد خریدِ خارج از ۱۰۰ نماد پرمعامله با برچسب «کم‌معامله‌تر» آمده است
-        {funds.length > 0 && ` (${funds.map((r) => r.symbol).join("، ")})`}.
+        {faNumber(funds.length)} صندوق
+        {funds.length > 0 && ` (${funds.map((r) => r.symbol).join("، ")})`}؛ این‌ها در جدول کامل
+        پایین هستند و برای همین شمار آنجا بیشتر است. نمادهای «صف خرید» نشان داده می‌شوند ولی ممکن
+        است سفارش امروز پر نشود.
       </p>
     </section>
   );
