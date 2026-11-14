@@ -87,6 +87,13 @@ export function PlainFacts({ d }: { d: D }) {
       {d.entry && d.entry.own.length > 0 && (
         <div className="mt-4 border-t border-line pt-3">
           <h3 className="mb-1 text-sm text-muted">کندل‌های بعدی چه می‌شوند؟</h3>
+          <p className="mb-2 text-xs text-muted" data-testid="candles-vs-verdict">
+            این کندل‌ها قیمت خود سهم را نشان می‌دهند و چون تورم تقریباً همهٔ قیمت‌ها را بالا می‌برد،
+            اغلب رو به سودند. حکم «خرید» سخت‌گیرتر است: سهم باید پس از کسر کارمزد از کل بازار جلو
+            بزند و این برتری در آزمون گذشته شانسی نبوده باشد. پس «صبر کنید» کنار کندل سبز یعنی سود
+            احتمالی هست، ولی بیشتر از بازار بودنش ثابت نشده؛ وقتی هر دو هم‌جهت‌اند، نشانه محکم‌تر
+            است.
+          </p>
           <NextCandles e={d.entry} />
         </div>
       )}
