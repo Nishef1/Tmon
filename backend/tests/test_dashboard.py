@@ -70,12 +70,15 @@ def test_outside_basket_states_the_value_floor() -> None:
     assert any("حداقل لازم" in r for r in d.reasons)
 
 
-def test_symbol_in_a_limit_queue_gets_no_decision() -> None:
+def test_buy_queue_keeps_its_verdict_and_sell_queue_gets_none() -> None:
     doc = _doc()
     doc["rows"][0]["queue_state"] = "buy_queue"
     d = dash.decide(_inst("الف"), doc, None)
-    assert d.verdict == "none" and "صف خرید" in d.headline
+    assert d.verdict != "none" and any("صف خرید" in r for r in d.reasons)
     assert d.rank == 1
+    doc["rows"][0]["queue_state"] = "sell_queue"
+    d = dash.decide(_inst("الف"), doc, None)
+    assert d.verdict == "none" and "صف فروش" in d.headline
 
 
 def test_non_stock_and_missing_ranking() -> None:
@@ -190,7 +193,11 @@ def test_unscored_and_queued_stocks_say_exactly_why() -> None:
     d = dash.decide(_with_id(9, "خامس"), doc, 3e9)
     assert d.verdict == "none" and d.gauge is None and "روند ۱۲ ماهه" in d.headline
     q = dash.decide(_with_id(10, "سادس"), doc, 3e9)
-    assert q.verdict == "none" and "صف خرید" in q.headline and q.gauge == pytest.approx(80)
+    assert (
+        q.verdict != "none"
+        and any("صف خرید" in r for r in q.reasons)
+        and q.gauge == pytest.approx(80)
+    )
 
 
 def test_stock_not_traded_on_the_last_day_gets_no_score() -> None:

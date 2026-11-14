@@ -74,7 +74,9 @@ export function TradableRanking({ d }: { d: Ranking }) {
 }
 
 function Column({ c, rows }: { c: Col; rows: RankingRow[] }) {
-  const shown = c.zone === "avoid" ? rows.slice().reverse() : rows; // weakest first for sell
+  // buy and hold: strongest first; sell: weakest (most urgent to exit) first
+  const dir = c.zone === "avoid" ? 1 : -1;
+  const shown = rows.slice().sort((a, b) => dir * ((a.score ?? 0) - (b.score ?? 0)));
   const head = shown.slice(0, 12);
   const rest = shown.slice(12);
   return (

@@ -529,10 +529,9 @@ def decide(
         "in_basket": in_basket,
     }
     queue = src.get("queue_state")
-    if queue in ("buy_queue", "sell_queue"):
-        side = "خرید" if queue == "buy_queue" else "فروش"
+    if queue == "sell_queue":
         return _none(
-            f"امروز تصمیمی نیست: نماد در صف {side} است و عملاً قابل معامله نیست.",
+            "امروز تصمیمی نیست: نماد در صف فروش است و عملاً قابل معامله نیست.",
             [f"امتیاز {(score or 0) * 100:.0f} از ۱۰۰؛ جایگاه مدل فقط پس از خروج از صف معنا دارد."]
             if score is not None
             else [],
@@ -557,6 +556,11 @@ def decide(
             f"امتیاز ترکیبی {(score or 0) * 100:.0f} از ۱۰۰ (۱۰۰ = بهترین)؛ رتبهٔ {pos} "
             f"از {len(scored)} نماد دارای امتیاز."
         ]
+    if queue == "buy_queue":
+        reasons.append(
+            "در صف خرید است: سهم قوی است ولی سفارش خرید امروز ممکن است پر نشود؛ "
+            "به قیمت سقف صف نخرید مگر بخواهید در نوبت بمانید."
+        )
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
         reasons.append(
