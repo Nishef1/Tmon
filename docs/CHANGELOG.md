@@ -426,3 +426,9 @@
 - مطالعهٔ عمیق خودش دوباره انجام می‌شود وقتی: ثبت‌نشده، یا از `adapt.deep_refresh_days` (۲۸) قدیمی‌تر از داده، یا بعد از تغییر رژیم ساخته شده. تسک Celery `deep_refresh` (هر روز ۲۰:۰۰، با قفل Redis) یا `python -m tmon.tools.autopilot --deep` روی ماشین دارای GPU. سرور بدون torch (ایمیج Docker فعلی) فقط ثبت می‌کند که مطالعه قدیمی است؛ هیچ‌وقت قدیمی را «به‌روز» نشان نمی‌دهد.
 - API: `GET /research/autopilot`. رابط: کارت «خودکار» در `/model#adapt` (وضعیت بازار، تازگی مطالعهٔ عمیق، فهرست تغییرات)؛ جملهٔ «یک رژیم صعودی» حالا از همین اندازه‌گیری می‌آید.
 - تست: `tests/test_autopilot.py` (۱۷ تست) و `tests/autopilot.test.tsx` (۳ تست). روی داده‌ی واقعی: شاخص ۱٫۳٪ زیر قله، بازدهٔ ۱۲۰ روز +۱۲۵٪، بدون افت اسمی ≥۱۰٪ در چهار سال اخیر؛ مطالعهٔ عمیق ۳ روز قدیمی‌تر از داده و به‌روز.
+
+## Docker کنار گذاشته شد؛ CI به‌روز شد (۲۴ آبان ۱۴۰۵)
+
+- **Docker از مدار خارج شد (دستور کاربر):** `backend/Dockerfile`، `frontend/Dockerfile`، دو `.dockerignore` و `infra/docker-compose.yml` حذف شدند. همه‌چیز محلی با SQLite و ذخیره‌ساز فایلی اجرا می‌شود؛ بخش Docker در [14-local-run](14-local-run.md) برداشته شد. کد Celery مانده ولی بی‌worker است. سندهای تاریخی (ADR 0001، نقشهٔ راه M0) برای ثبت سابقه دست نخوردند.
+- **خطای CI (mypy):** torch افزونهٔ اختیاری است و در CI نصب نمی‌شود، پس نوع‌هایش `Any` می‌شد و ۷ خطا در `deep_study.py` می‌داد. برای همان یک ماژول سه بررسی که بین «با torch» و «بدون torch» فرق می‌کنند خاموش شد (`pyproject.toml`).
+- **GitHub Actions:** `checkout@v7`، `setup-uv@v10` (uv 0.13.8)، `pnpm/action-setup@v6`، `setup-node@v7` (همه Node 24)، و runner با برچسب صریح `ubuntu-26.04` تا هشدار مهاجرت `ubuntu-latest` نیاید.

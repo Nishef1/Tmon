@@ -83,39 +83,9 @@ backend/.venv/Scripts/python.exe backend/scripts/run_live.py --stand-in
 
 یک سرور محلی **مصنوعی** (`tmon.devtools.fake_tsetmc`) با همان قالب پاسخ‌های مرجع بالا می‌آید و کل زنجیره روی HTTP واقعی اجرا می‌شود: probe ← بک‌فیل ← ویژگی‌ها ← مدل ← API و وب ← دریافت لحظه‌ای (قیمت و صف خرید/فروش در صفحهٔ هر نماد تازه می‌شود). داده در `data/standin/` است و **داده بازار نیست**؛ فقط ثابت می‌کند کد ما با قالب‌های مستند کار می‌کند. همین سرور را می‌توان جدا اجرا کرد: `python -m tmon.devtools.fake_tsetmc [--live]` و با `TMON_TSETMC_OLD_URL` / `TMON_TSETMC_CDN_URL` به آن اشاره داد.
 
-## مسیر تولید: Docker Compose
+## زمان‌بندی و چرخهٔ روزانه (Celery، فعلاً غیرفعال)
 
-این مسیر همان چیزی است که در ADR 0001 ثابت شده: PostgreSQL/TimescaleDB، Redis، MinIO، API، Celery worker، Celery beat و فرانت.
-
-### بالا آوردن
-
-```bash
-cp .env.example .env          # مقدارها را عوض کنید؛ .env هرگز commit نمی‌شود
-cd infra
-docker compose --env-file ../.env up -d --build
-docker compose --env-file ../.env ps    # همه باید healthy یا Up باشند
-```
-
-- مهاجرت‌ها را خود سرویس `backend` پیش از بالا آمدن اجرا می‌کند (`alembic upgrade head`). سرویس‌های `worker` و `beat` فقط پس از سالم شدن `backend` شروع می‌شوند.
-- پورت‌های میزبان: ۸۰۰۰ (API)، ۳۰۰۰ (رابط)، ۵۴۳۲ (PostgreSQL)، ۶۳۷۹ (Redis)، ۹۰۰۰ و ۹۰۰۱ (MinIO). اگر پورتی اشغال است، قبل از `up` آن را آزاد کنید یا نگاشت را در `infra/docker-compose.yml` عوض کنید. پورت رابط با `TMON_FRONTEND_PORT` در `.env` عوض می‌شود (مثلاً `3001` وقتی `next start -p 3000` روی میزبان در حال اجراست).
-- تصویر MinIO: ایمیج رسمی `minio/minio` دیگر روی Docker Hub نیست، پس `chainguard/minio` استفاده شده. ← [OPEN_QUESTIONS](OPEN_QUESTIONS.md) (تصویر MinIO).
-- دسترسی به TSETMC باید از داخل کانتینر باز باشد (Docker Desktop معمولاً از همان شبکهٔ میزبان خارج می‌شود). بررسی: `docker compose --env-file ../.env exec -T backend python -m tmon.ingest.tsetmc.cli probe`.
-
-### دادهٔ اولیه
-
-پایگاه‌دادهٔ Compose خالی شروع می‌شود. یک بار:
-
-```bash
-docker compose --env-file ../.env exec -T backend sh -c \
-  "python -m tmon.ingest.tsetmc.cli backfill --since 2021-11-01 && \
-   python -m tmon.ingest.tsetmc.cli indices && \
-   python -m tmon.ingest.tsetmc.cli risk-free && \
-   python -m tmon.ingest.tsetmc.cli reclassify"
-```
-
-`reclassify` فقط یک بار پس از بک‌فیل لازم است (نوع نمادها را از روی فهرست بازار اصلاح می‌کند)؛ تازه‌سازی روزانهٔ فهرست نمادها نوع نمادهای جدید را خودش تعیین می‌کند. اجرای دوباره بی‌ضرر است.
-
-بک‌فیل کامل ساعت‌ها طول می‌کشد؛ `--limit N` فقط N نماد اول را می‌گیرد (برای آزمایش).
+Docker از این پروژه کنار گذاشته شده است: نه Dockerfile هست نه Compose. همهٔ اجراها محلی و با SQLite و ذخیره‌ساز فایلی است. کد Celery (چرخهٔ روزانه و `deep_refresh`) مانده ولی هیچ worker یا beat‌ای بالا نمی‌آید؛ همان گام‌ها را می‌شود دستی اجرا کرد (`python -m tmon.tools.adapt_cycle`، `python -m tmon.tools.autopilot [--deep]`). متن زیر توضیح همان زمان‌بندی است برای وقتی که بخواهند فعالش کنند.
 
 ### زمان‌بندی روزانه (Celery beat، به وقت تهران)
 

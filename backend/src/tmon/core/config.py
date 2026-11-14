@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     minio_raw_bucket: str = "raw-payloads"
     minio_artifact_bucket: str = "artifacts"
 
-    # "minio" (default, Docker Compose) or "file" (no-Docker local runs: payloads and model
+    # "minio" (default) or "file" (local runs: payloads and model
     # artifacts are written under object_store_dir).
     object_store: str = "minio"
     object_store_dir: Path = Path("data/objects")

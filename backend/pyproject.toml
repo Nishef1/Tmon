@@ -92,5 +92,13 @@ module = "tmon.core.*"
 strict = true
 
 [[tool.mypy.overrides]]
+# torch is an optional extra (not installed in CI): its types are Any there and real locally, so
+# the checks that differ between the two cases are off for this one module.
+module = "tmon.backtest.deep_study"
+disallow_subclassing_any = false
+warn_unused_ignores = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
 module = "tmon.tasks.*"
 disallow_untyped_decorators = false
