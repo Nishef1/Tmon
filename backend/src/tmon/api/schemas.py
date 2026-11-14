@@ -1270,3 +1270,99 @@ class InstrumentBookOut(ApiModel):
     ranks: list[BookFeatureRank] = []
     days: list[BookDay] = []
     disclaimer: str = DISCLAIMER
+
+
+class AdaptCandidate(ApiModel):
+    """One candidate method against equal weights on the latest window."""
+
+    passed: bool
+    reasons: list[str] = []
+    n: int
+    ic: float | None = None
+    d_ic: float | None = None  # IC gain over equal weights
+    t: float | None = None  # t of that gain (overlap-corrected)
+    early: float | None = None  # gain in the first half of the window
+    late: float | None = None  # gain in the second half
+    top_excess: float | None = None  # top-decile excess return of the candidate
+    d_top_excess: float | None = None  # ... minus the same for equal weights
+
+
+class AdaptHorizon(ApiModel):
+    horizon_days: int
+    window_from: dt.date
+    window_to: dt.date
+    window_dates: int
+    champion: str
+    why: str
+    production_expressible: bool  # weights are on the four production signals
+    weights: dict[str, float]  # the champion's weights (equal when nobody passed)
+    reference_weights: dict[str, float]  # what the reference ridge says now, for drift context
+    candidates: dict[str, AdaptCandidate]
+
+
+class AdaptDrift(ApiModel):
+    dates: list[dt.date]
+    series: dict[str, list[float]]  # signal -> the reference weight at each date
+
+
+class AdaptHistoryRow(ApiModel):
+    as_of: dt.date
+    champions: dict[str, str]  # horizon (days) -> champion
+
+
+class AdaptStat(ApiModel):
+    n: int
+    mean: float | None = None
+    t: float | None = None
+    pos: float | None = None  # share of dates with a positive value
+
+
+class AdaptTimelinePoint(ApiModel):
+    date: dt.date
+    champion: str
+
+
+class AdaptReplayHorizon(ApiModel):
+    """What the gate would have chosen on each past cycle and how the choices scored."""
+
+    horizon_days: int
+    first_cycle: dt.date
+    n_cycles: int
+    share_equal: float  # share of cycles where equal weights stayed champion
+    meta_ic: AdaptStat  # IC of the living choice
+    equal_ic: AdaptStat
+    d_ic: AdaptStat  # living minus equal
+    d_ic_early: AdaptStat
+    d_ic_late: AdaptStat
+    d_top_excess: AdaptStat
+    split_date: dt.date
+    timeline: list[AdaptTimelinePoint]
+    candidate_counts: dict[str, int]
+
+
+class AdaptReplay(ApiModel):
+    every: int
+    as_of: dt.date | None = None
+    horizons: dict[str, AdaptReplayHorizon]
+
+
+class AdaptConfigOut(ApiModel):
+    window_dates: int
+    min_half_dates: int
+    min_t: float
+    switch_margin_t: float
+    history_keep: int
+    replay_every_dates: int
+    candidates: list[str]
+
+
+class AdaptOut(ApiModel):
+    available: bool
+    as_of: dt.date | None = None
+    round_trip_cost: float | None = None
+    config: AdaptConfigOut | None = None
+    horizons: list[AdaptHorizon] = []
+    drift: dict[str, AdaptDrift] = {}
+    history: list[AdaptHistoryRow] = []
+    replay: AdaptReplay | None = None
+    disclaimer: str = DISCLAIMER

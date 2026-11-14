@@ -125,3 +125,20 @@ export async function orderbookResearch(): Promise<OrderbookResearch | null> {
     return null;
   }
 }
+
+export type Adapt = S["AdaptOut"];
+export type AdaptHorizon = S["AdaptHorizon"];
+export type AdaptCandidate = S["AdaptCandidate"];
+export type AdaptReplayHorizon = S["AdaptReplayHorizon"];
+
+/** The living ranking: champion per horizon, weights, drift, history and the replay.
+ *  Always read fresh; null when unreachable. */
+export async function adaptState(): Promise<Adapt | null> {
+  try {
+    const res = await fetch(new URL("/research/adapt", API_BASE), { cache: "no-store" });
+    return res.ok ? ((await res.json()) as Adapt) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
+  }
+}

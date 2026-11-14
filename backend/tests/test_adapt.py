@@ -206,3 +206,15 @@ def test_the_adapt_step_is_in_the_daily_cycle_and_optional() -> None:
 
     steps = {s.name: s for s in default_steps(("1d",))}
     assert "adapt" in steps and steps["adapt"].required is False
+
+
+def test_api_serves_a_stored_state_and_says_so_when_there_is_none(panel: Panel) -> None:
+    from tmon.api.adapt import adapt_out
+
+    assert adapt_out(None).available is False
+    state = adapt.run_cycle(panel, CFG, RT, None)
+    out = adapt_out(state)
+    assert out.available and [h.horizon_days for h in out.horizons] == list(HORIZONS)
+    assert all(h.champion == adapt.EQUAL for h in out.horizons)
+    assert out.replay is None
+    assert set(out.drift) == {str(h) for h in HORIZONS}

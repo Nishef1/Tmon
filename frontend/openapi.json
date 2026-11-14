@@ -1,6 +1,554 @@
 {
   "components": {
     "schemas": {
+      "AdaptCandidate": {
+        "description": "One candidate method against equal weights on the latest window.",
+        "properties": {
+          "d_ic": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "D Ic"
+          },
+          "d_top_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "D Top Excess"
+          },
+          "early": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Early"
+          },
+          "ic": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ic"
+          },
+          "late": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Late"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T"
+          },
+          "top_excess": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top Excess"
+          }
+        },
+        "required": [
+          "passed",
+          "reasons",
+          "n",
+          "ic",
+          "d_ic",
+          "t",
+          "early",
+          "late",
+          "top_excess",
+          "d_top_excess"
+        ],
+        "title": "AdaptCandidate",
+        "type": "object"
+      },
+      "AdaptConfigOut": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "history_keep": {
+            "title": "History Keep",
+            "type": "integer"
+          },
+          "min_half_dates": {
+            "title": "Min Half Dates",
+            "type": "integer"
+          },
+          "min_t": {
+            "title": "Min T",
+            "type": "number"
+          },
+          "replay_every_dates": {
+            "title": "Replay Every Dates",
+            "type": "integer"
+          },
+          "switch_margin_t": {
+            "title": "Switch Margin T",
+            "type": "number"
+          },
+          "window_dates": {
+            "title": "Window Dates",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "window_dates",
+          "min_half_dates",
+          "min_t",
+          "switch_margin_t",
+          "history_keep",
+          "replay_every_dates",
+          "candidates"
+        ],
+        "title": "AdaptConfigOut",
+        "type": "object"
+      },
+      "AdaptDrift": {
+        "properties": {
+          "dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Dates",
+            "type": "array"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Series",
+            "type": "object"
+          }
+        },
+        "required": [
+          "dates",
+          "series"
+        ],
+        "title": "AdaptDrift",
+        "type": "object"
+      },
+      "AdaptHistoryRow": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "champions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Champions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "as_of",
+          "champions"
+        ],
+        "title": "AdaptHistoryRow",
+        "type": "object"
+      },
+      "AdaptHorizon": {
+        "properties": {
+          "candidates": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AdaptCandidate"
+            },
+            "title": "Candidates",
+            "type": "object"
+          },
+          "champion": {
+            "title": "Champion",
+            "type": "string"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "production_expressible": {
+            "title": "Production Expressible",
+            "type": "boolean"
+          },
+          "reference_weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Reference Weights",
+            "type": "object"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Weights",
+            "type": "object"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          },
+          "window_dates": {
+            "title": "Window Dates",
+            "type": "integer"
+          },
+          "window_from": {
+            "format": "date",
+            "title": "Window From",
+            "type": "string"
+          },
+          "window_to": {
+            "format": "date",
+            "title": "Window To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "window_from",
+          "window_to",
+          "window_dates",
+          "champion",
+          "why",
+          "production_expressible",
+          "weights",
+          "reference_weights",
+          "candidates"
+        ],
+        "title": "AdaptHorizon",
+        "type": "object"
+      },
+      "AdaptOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdaptConfigOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "drift": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AdaptDrift"
+            },
+            "default": {},
+            "title": "Drift",
+            "type": "object"
+          },
+          "history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdaptHistoryRow"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdaptHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "replay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdaptReplay"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "round_trip_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round Trip Cost"
+          }
+        },
+        "required": [
+          "available",
+          "as_of",
+          "round_trip_cost",
+          "config",
+          "horizons",
+          "drift",
+          "history",
+          "replay",
+          "disclaimer"
+        ],
+        "title": "AdaptOut",
+        "type": "object"
+      },
+      "AdaptReplay": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "every": {
+            "title": "Every",
+            "type": "integer"
+          },
+          "horizons": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AdaptReplayHorizon"
+            },
+            "title": "Horizons",
+            "type": "object"
+          }
+        },
+        "required": [
+          "every",
+          "as_of",
+          "horizons"
+        ],
+        "title": "AdaptReplay",
+        "type": "object"
+      },
+      "AdaptReplayHorizon": {
+        "description": "What the gate would have chosen on each past cycle and how the choices scored.",
+        "properties": {
+          "candidate_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Candidate Counts",
+            "type": "object"
+          },
+          "d_ic": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "d_ic_early": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "d_ic_late": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "d_top_excess": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "equal_ic": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "first_cycle": {
+            "format": "date",
+            "title": "First Cycle",
+            "type": "string"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "meta_ic": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "n_cycles": {
+            "title": "N Cycles",
+            "type": "integer"
+          },
+          "share_equal": {
+            "title": "Share Equal",
+            "type": "number"
+          },
+          "split_date": {
+            "format": "date",
+            "title": "Split Date",
+            "type": "string"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/AdaptTimelinePoint"
+            },
+            "title": "Timeline",
+            "type": "array"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "first_cycle",
+          "n_cycles",
+          "share_equal",
+          "meta_ic",
+          "equal_ic",
+          "d_ic",
+          "d_ic_early",
+          "d_ic_late",
+          "d_top_excess",
+          "split_date",
+          "timeline",
+          "candidate_counts"
+        ],
+        "title": "AdaptReplayHorizon",
+        "type": "object"
+      },
+      "AdaptStat": {
+        "properties": {
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "pos": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pos"
+          },
+          "t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T"
+          }
+        },
+        "required": [
+          "n",
+          "mean",
+          "t",
+          "pos"
+        ],
+        "title": "AdaptStat",
+        "type": "object"
+      },
+      "AdaptTimelinePoint": {
+        "properties": {
+          "champion": {
+            "title": "Champion",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "champion"
+        ],
+        "title": "AdaptTimelinePoint",
+        "type": "object"
+      },
       "AgmDecisionOut": {
         "properties": {
           "decision": {
@@ -9598,6 +10146,28 @@
         "summary": "Recommendations",
         "tags": [
           "recommendations"
+        ]
+      }
+    },
+    "/research/adapt": {
+      "get": {
+        "description": "The living ranking: which method is champion per horizon after the gate, its weights against\nequal weights, the weight drift, the cycle history and the replay on the past\n(``python -m tmon.tools.adapt_cycle``). The past, not advice.",
+        "operationId": "adapt_research_adapt_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Adapt",
+        "tags": [
+          "research"
         ]
       }
     },

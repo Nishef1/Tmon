@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from tmon.api.adapt import KEY as ADAPT_KEY
+from tmon.api.adapt import adapt_out
 from tmon.api.book import KEY as BOOK_KEY
 from tmon.api.book import research_out as book_research_out
 from tmon.api.entry import entry_doc, entry_odds_out
-from tmon.api.schemas import EntryOddsOut, OrderbookResearchOut, TaSignalsOut
+from tmon.api.schemas import AdaptOut, EntryOddsOut, OrderbookResearchOut, TaSignalsOut
 from tmon.api.technical import load_doc, signals_out, ta_doc
 
 router = APIRouter(tags=["research"])
@@ -31,3 +33,11 @@ def orderbook_queue() -> OrderbookResearchOut:
     (queue waits, 10% of the day's value, costs) earned in the tested history
     (``python -m tmon.tools.orderbook_research``). The past, not advice."""
     return book_research_out(load_doc(BOOK_KEY))
+
+
+@router.get("/research/adapt", response_model=AdaptOut)
+def adapt() -> AdaptOut:
+    """The living ranking: which method is champion per horizon after the gate, its weights against
+    equal weights, the weight drift, the cycle history and the replay on the past
+    (``python -m tmon.tools.adapt_cycle``). The past, not advice."""
+    return adapt_out(load_doc(ADAPT_KEY))
