@@ -27,6 +27,13 @@ export function RankingTrust({ d }: { d: Ranking }) {
           تاریخ داده: {jalali(d.as_of)}. طبق قاعدهٔ ثبت‌شدهٔ پروژه، تا وقتی همهٔ دروازه‌های آزمون
           (G1 تا G6) نگذرند، خروجی v2 نباید توصیه نامیده شود. وضعیت آزمون روی داده‌های واقعی:
         </p>
+        <p data-testid="ranking-weights">
+          وزن چهار سیگنال در امتیاز:{" "}
+          {d.weights_champion === "equal"
+            ? "مساوی (میانگین ساده)؛ هیچ روشی از دروازهٔ ارتقای الگوریتم زنده نگذشته است."
+            : `روش «${d.weights_champion}» که از دروازهٔ ارتقا گذشته؛ دروازه‌های بالا روی همین امتیاز سنجیده شده‌اند.`}{" "}
+          <Link href="/model#adapt">جزئیات</Link>
+        </p>
         <ul className="list-inside list-disc space-y-1">
           {d.gates.map((c) => (
             <li key={c.candidate}>

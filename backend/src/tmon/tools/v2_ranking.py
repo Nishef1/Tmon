@@ -40,13 +40,16 @@ from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import CostModel, RuleBook
+from tmon.engine import adapt
 from tmon.engine.exposure import compute_exposure
 from tmon.features.builder import KEYS, build_features
 from tmon.features.store import load_benchmark_inputs, load_inputs
 from tmon.storage.models import Instrument
 from tmon.storage.objectstore import get_object_store
+from tmon.tools import adapt_cycle
 
 KEY = "v2/ranking.json"
+REVIEW_HORIZON = 5  # the product reviews every 5 days, so the horizon-5 champion governs
 HORIZONS = (1, 5, 20, 60)  # trading days: next day, week, month, three months
 BASKET = 100
 
@@ -117,7 +120,11 @@ def _mid_rank(ref: np.ndarray, x: np.ndarray) -> np.ndarray:
 
 
 def universe_scores(
-    feats: pl.DataFrame, adj: pl.DataFrame, cfg: EngineConfig, last: date
+    feats: pl.DataFrame,
+    adj: pl.DataFrame,
+    cfg: EngineConfig,
+    last: date,
+    weights: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """The composite score of every instrument traded on ``last``, not only the liquid basket.
 
@@ -148,7 +155,11 @@ def universe_scores(
     done = d.filter(ok)
     ranks = {c: signal_rank(c, done[c].to_numpy().astype(float)) for c in cols}
     # rounded so that exactly tied sums stay tied (float noise must not split them)
-    comp = np.round(np.mean([ranks[c] for c in cols], axis=0), 12)
+    w = np.full(len(cols), 1.0 / len(cols))
+    if weights is not None:
+        w = np.array([weights.get(c, 0.0) for c in cols], dtype=float)
+        w = w / np.abs(w).sum()
+    comp = np.round(np.sum([wi * ranks[c] for wi, c in zip(w, cols, strict=True)], axis=0), 12)
     is_member = (
         done["eligible"].to_numpy()
         & ~done["market_halt"].to_numpy()
@@ -181,6 +192,26 @@ def universe_scores(
     return out
 
 
+def live_weights(
+    state: dict[str, Any] | None, as_of: date
+) -> tuple[dict[str, float] | None, str, str]:
+    """``(weights, champion, note)`` for the production score.
+
+    ``weights`` is None (the plain equal mean, ADR 0003) unless the living ranking's champion for
+    the review horizon passed its gate, can be written as weights on the four signals, and was
+    computed on the same last day as this ranking. A state of another day is never used."""
+    if not state:
+        return None, adapt.EQUAL, "no_state"
+    if state.get("as_of") != str(as_of):
+        return None, adapt.EQUAL, "state_not_current"
+    cell = (state.get("horizons") or {}).get(str(REVIEW_HORIZON)) or {}
+    champion = str(cell.get("champion", adapt.EQUAL))
+    w = adapt.weights_for(state, REVIEW_HORIZON)
+    if champion == adapt.EQUAL or all(abs(v - 1 / len(w)) < 1e-9 for v in w.values()):
+        return None, adapt.EQUAL, "equal"
+    return w, champion, "champion"
+
+
 def build_document() -> dict[str, Any]:
     cfg = get_engine_config()
     with session_scope() as s:
@@ -193,6 +224,11 @@ def build_document() -> dict[str, Any]:
     feats = build_features(prices, clients, rules, sectors=sectors)
     adj = adjusted_close(prices)
     panel = build_panel(feats, adj, cfg, horizons=HORIZONS)
+    day = panel["date"].max()
+    assert isinstance(day, date)
+    weights, champion, note = live_weights(adapt_cycle.load_state(), day)
+    if weights is not None:  # a gate-passing champion sets the score: the gates judge that score
+        panel = build_panel(feats, adj, cfg, horizons=HORIZONS, weights=weights)
 
     as_of, rows = rows_for(feats, panel, names, cfg)
     evidence = []
@@ -259,7 +295,10 @@ def build_document() -> dict[str, Any]:
         },
         "exposure_date": str(exp["date"]),
         "rows": rows,
-        "universe": universe_scores(feats, adj, cfg, as_of),
+        "universe": universe_scores(feats, adj, cfg, as_of, weights),
+        "weights": weights or {s: 1 / len(SIGNALS) for s in SIGNALS},
+        "weights_champion": champion,
+        "weights_note": note,
         "evidence": evidence,
         "gates": gates,
         "book": {

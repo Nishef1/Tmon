@@ -7422,6 +7422,30 @@
               }
             ],
             "title": "Universe Size"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "default": {},
+            "title": "Weights",
+            "type": "object"
+          },
+          "weights_champion": {
+            "default": "equal",
+            "title": "Weights Champion",
+            "type": "string"
+          },
+          "weights_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weights Note"
           }
         },
         "required": [
@@ -7439,7 +7463,10 @@
           "gates",
           "book",
           "outside",
-          "universe_size"
+          "universe_size",
+          "weights",
+          "weights_champion",
+          "weights_note"
         ],
         "title": "RankingOut",
         "type": "object"

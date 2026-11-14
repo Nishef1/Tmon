@@ -519,6 +519,9 @@ class RankingOut(ApiModel):
     book: RankingBook | None = None
     outside: list[OutsideRow] = []  # best scores outside the basket, with why they are not listed
     universe_size: int | None = None
+    weights: dict[str, float] = {}  # weights of the four signals in today's score
+    weights_champion: str = "equal"  # which method set them ("equal" = the plain mean)
+    weights_note: str | None = None
 
 
 class MarketIndexPoint(ApiModel):

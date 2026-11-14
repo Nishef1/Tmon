@@ -22,7 +22,7 @@ day is the engine's: eligible and not in an excluded queue state.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -62,14 +62,27 @@ def _pct_rank(col: str) -> pl.Expr:
     return (r - 0.5) / n
 
 
+def composite_expr(weights: Mapping[str, float] | None = None) -> pl.Expr:
+    """Mean of the signal ranks, or their weighted sum (weights as shares of the total absolute
+    weight; a signal missing from ``weights`` gets zero)."""
+    if weights is None:
+        return pl.mean_horizontal([f"r_{s}" for s in SIGNALS])
+    tot = sum(abs(weights.get(s, 0.0)) for s in SIGNALS)
+    if tot <= 0:
+        raise ValueError("composite weights are all zero")
+    return pl.sum_horizontal([pl.col(f"r_{s}") * (weights.get(s, 0.0) / tot) for s in SIGNALS])
+
+
 def build_panel(
     features: pl.DataFrame,
     adj: pl.DataFrame,
     cfg: EngineConfig | None = None,
     horizons: Sequence[int] = HORIZONS,
+    weights: Mapping[str, float] | None = None,
 ) -> pl.DataFrame:
     """Universe rows with signals (sign-adjusted percentile ranks ``r_*``), the composite score
-    and the forward returns."""
+    and the forward returns. The composite is the plain mean of the signal ranks unless
+    ``weights`` (signal -> weight, see ``tmon.engine.adapt.weights_for``) is given."""
     c = cfg or get_engine_config()
     fwd = forward_returns(adj, horizons).select(*KEYS, "mom_12_1", *[f"fwd_{h}" for h in horizons])
     d = features.filter(~pl.col("market_halt")).select(
@@ -88,9 +101,9 @@ def build_panel(
             for s, sign in SIGNALS.items()
         ]
     )
-    return d.with_columns(
-        pl.mean_horizontal([f"r_{s}" for s in SIGNALS]).alias("composite")
-    ).with_columns(_pct_rank("composite").alias("r_composite"))
+    return d.with_columns(composite_expr(weights).alias("composite")).with_columns(
+        _pct_rank("composite").alias("r_composite")
+    )
 
 
 def daily_ic(panel: pl.DataFrame, signal: str, horizon: int) -> pl.DataFrame:

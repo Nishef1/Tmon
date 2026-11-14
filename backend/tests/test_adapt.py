@@ -218,3 +218,42 @@ def test_api_serves_a_stored_state_and_says_so_when_there_is_none(panel: Panel) 
     assert all(h.champion == adapt.EQUAL for h in out.horizons)
     assert out.replay is None
     assert set(out.drift) == {str(h) for h in HORIZONS}
+
+
+def _champion_state(as_of: str, champion: str, expressible: bool = True) -> dict[str, object]:
+    w = {BASE[0]: 0.7, BASE[1]: 0.3, BASE[2]: 0.0, BASE[3]: 0.0}
+    cell = {"champion": champion, "production_expressible": expressible, "weights": w}
+    return {"as_of": as_of, "horizons": {"5": cell}}
+
+
+def test_production_uses_equal_weights_unless_a_fresh_gate_passing_champion_exists() -> None:
+    from tmon.tools.v2_ranking import live_weights
+
+    day = dt.date(2026, 11, 11)
+    assert live_weights(None, day)[0] is None
+    # a state of another day is never used, even when its champion would qualify
+    assert live_weights(_champion_state("2026-11-10", "ridge4_x120"), day)[1:] == (
+        adapt.EQUAL,
+        "state_not_current",
+    )
+    assert live_weights(_champion_state("2026-11-11", "equal"), day)[0] is None
+    # shadow-only champion (e.g. gbm): the product keeps the plain mean
+    assert live_weights(_champion_state("2026-11-11", "gbm", expressible=False), day)[0] is None
+    w, champ, note = live_weights(_champion_state("2026-11-11", "ridge4_x120"), day)
+    assert champ == "ridge4_x120" and note == "champion"
+    assert w is not None and w[BASE[0]] == pytest.approx(0.7)
+
+
+def test_the_composite_is_the_plain_mean_until_weights_are_given() -> None:
+    from tmon.backtest.signal_decay import SIGNALS, composite_expr
+
+    df = pl.DataFrame({f"r_{s}": [0.1 * (i + 1) for i in range(3)] for s in SIGNALS})
+    names = list(SIGNALS)
+    mean = df.select(composite_expr().alias("c"))["c"].to_list()
+    assert mean == pytest.approx(
+        df.select(pl.mean_horizontal(df.columns).alias("c"))["c"].to_list()
+    )
+    only_first = df.select(composite_expr({names[0]: 3.0}).alias("c"))["c"].to_list()
+    assert only_first == pytest.approx(df[f"r_{names[0]}"].to_list())  # shares sum to one
+    with pytest.raises(ValueError):
+        composite_expr({names[0]: 0.0})

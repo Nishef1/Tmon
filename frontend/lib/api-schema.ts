@@ -2797,6 +2797,20 @@ export interface components {
       rows: components["schemas"]["RankingRow"][];
       /** Universe Size */
       universe_size: number | null;
+      /**
+       * Weights
+       * @default {}
+       */
+      weights: {
+        [key: string]: number;
+      };
+      /**
+       * Weights Champion
+       * @default equal
+       */
+      weights_champion: string;
+      /** Weights Note */
+      weights_note: string | null;
     };
     /** RankingRow */
     RankingRow: {
