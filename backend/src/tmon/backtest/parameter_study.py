@@ -21,6 +21,7 @@ import argparse
 import itertools
 import json
 import math
+from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from typing import Any, cast
@@ -46,7 +47,7 @@ def _prank(col: str, by: list[str] | None = None) -> pl.Expr:
     return (r - 0.5) / pl.col(col).count().over(keys) - 0.5
 
 
-def build() -> tuple[pl.DataFrame, float]:
+def build(extra: Sequence[str] = ()) -> tuple[pl.DataFrame, float, pl.DataFrame]:
     cfg = get_engine_config()
     with session_scope() as s:
         prices, clients, sectors = load_inputs(s)
@@ -63,6 +64,11 @@ def build() -> tuple[pl.DataFrame, float]:
         ex.append((c / c.rolling_max(w, min_samples=w // 2) - 1.0).over(G).alias(f"dhw_{w}"))
     for sk, lb in ((0, 63), (5, 126), (21, 126), (21, 63), (63, 252)):
         ex.append((c.shift(sk) / c.shift(lb) - 1.0).over(G).alias(f"momw_{sk}_{lb}"))
+    paths = (
+        adj.sort(KEYS)
+        .join(feats.select(*KEYS, "queue_state"), on=list(KEYS), how="left")
+        .join(prices.select(*KEYS, "value"), on=list(KEYS), how="left")
+    )
     derived = adj.sort(KEYS).with_columns(*ex).select(*KEYS, *[e.meta.output_name() for e in ex])
     d = feats.filter(~pl.col("market_halt")).select(
         *KEYS,
@@ -72,6 +78,7 @@ def build() -> tuple[pl.DataFrame, float]:
         "rv_20",
         "dist_high_52w",
         "median_value_20",
+        *[c for c in extra if c not in ("eligible", "queue_state")],
     )
     d = d.sort(KEYS).with_columns(
         *[
@@ -100,7 +107,7 @@ def build() -> tuple[pl.DataFrame, float]:
         rules, cast(date, d["date"].max()), cfg.costs.slippage_fraction
     ).round_trip
     d = d.with_columns(*[_prank(f"fwd_{h}").alias(f"y_{h}") for h in HS])
-    return d.sort("date"), float(cost)
+    return d.sort("date"), float(cost), paths
 
 
 def sig_cols(
@@ -345,7 +352,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(prog="tmon-parameter-study")
     ap.add_argument("--out", default=str(Path("docs/data/parameter-study.json")))
     args = ap.parse_args()
-    df, cost = build()
+    df, cost, _ = build()
     print("panel", df.shape, "round trip", cost, flush=True)
     res: dict[str, Any] = {
         "cost": cost,

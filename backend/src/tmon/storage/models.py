@@ -503,3 +503,35 @@ class TrackedPick(Base):
     note: Mapped[str | None] = mapped_column(String(300))
     snapshot: Mapped[dict[str, Any]] = mapped_column(JsonType)  # the frozen forecast
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+
+
+class OrderBookDaily(Base, Provenance):
+    """One day of the 5-level order book of one instrument, reduced from TSETMC's intraday
+    ``BestLimits/{ins}/{date}`` change log: the book at the close of the session, time-weighted
+    averages over the continuous session and the share of the session spent in a buy/sell queue."""
+
+    __tablename__ = "order_book_daily"
+
+    instrument_id: Mapped[int] = mapped_column(
+        ForeignKey("instruments.id"), primary_key=True, index=True
+    )
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True, index=True)
+    n_events: Mapped[int] = mapped_column(Integer)
+    close_bid_price: Mapped[float | None] = mapped_column(Float)
+    close_ask_price: Mapped[float | None] = mapped_column(Float)
+    close_bid_volume: Mapped[float | None] = mapped_column(Float)  # level 1
+    close_ask_volume: Mapped[float | None] = mapped_column(Float)
+    close_bid_count: Mapped[int | None] = mapped_column(Integer)
+    close_ask_count: Mapped[int | None] = mapped_column(Integer)
+    close_imbalance: Mapped[float | None] = mapped_column(Float)  # 5 levels, (bid-ask)/(bid+ask)
+    open_imbalance: Mapped[float | None] = mapped_column(Float)  # book at the start of trading
+    early_imbalance: Mapped[float | None] = mapped_column(Float)  # time-weighted first 30 minutes
+    tw_imbalance: Mapped[float | None] = mapped_column(Float)  # whole continuous session
+    tw_spread: Mapped[float | None] = mapped_column(Float)  # (ask1-bid1)/mid, two-sided books
+    tw_depth_value: Mapped[float | None] = mapped_column(Float)  # rial, both sides, 5 levels
+    tw_size_ratio: Mapped[float | None] = mapped_column(
+        Float
+    )  # bid per-order size / ask's, level 1
+    frac_buy_queue: Mapped[float | None] = mapped_column(Float)  # share of session, ask side empty
+    frac_sell_queue: Mapped[float | None] = mapped_column(Float)  # share of session, bid side empty
+    peak_queue_volume: Mapped[float | None] = mapped_column(Float)  # largest one-sided queue
