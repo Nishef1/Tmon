@@ -38,6 +38,7 @@ export type Ranking = S["RankingOut"];
 export type RankingRow = S["RankingRow"];
 export type MarketOverview = S["MarketOverviewOut"];
 export type MarketMover = S["MarketMover"];
+export type Pick = S["PickOut"];
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 

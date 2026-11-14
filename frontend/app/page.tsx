@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { TradableRanking } from "@/components/TradableRanking";
 import { ZoneTables } from "@/components/ZoneTables";
+import { OutsideBasket } from "@/components/OutsideBasket";
 import { ExposureCard } from "@/components/ExposureCard";
 import { SignalCard } from "@/components/SignalCard";
 import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
@@ -52,6 +53,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       {rank.ok && rank.data.available && (
         <>
           <TradableRanking d={rank.data} />
+          <OutsideBasket d={rank.data} />
           <ExposureCard d={rank.data} />
           <details className="card" data-testid="zone-details">
             <summary className="cursor-pointer font-semibold">

@@ -214,6 +214,25 @@ test.describe("history and calibration", () => {
   });
 });
 
+test("a bought symbol is checked against the candles after it", async ({ page }) => {
+  await page.goto("/instruments/1");
+  await page.getByTestId("track-buy").getByRole("button").first().click();
+  await page.getByTestId("track-price").fill("1000");
+  await page.getByTestId("track-save").click();
+  await expect(page.getByTestId("track-done")).toContainText("ثبت شد");
+
+  await page.goto("/picks");
+  const pick = page.getByTestId("pick");
+  await expect(pick).toContainText("فولاد");
+  const rows = pick.getByTestId("pick-candles").locator("tbody tr");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0)).toHaveAttribute("data-status", "inside");
+  await expect(rows.nth(1)).toHaveAttribute("data-status", "above");
+  await expect(rows.nth(2)).toHaveAttribute("data-status", "pending");
+  await expect(pick.getByTestId("pick-score")).toContainText("۱ تا داخل بازه");
+  await expect(pick.getByTestId("pick-verdicts")).toContainText("تصمیم درست بود");
+});
+
 test("a chart term's glossary entry shows where it is and how it tested", async ({ page }) => {
   await page.goto("/glossary/gap_fill");
   await expect(page.getByTestId("term-shown-on")).toContainText("تابلوی تکنیکال");
@@ -264,6 +283,8 @@ test("home lists only tradable v2 stocks and says what was left out", async ({ p
   await expect(page.getByTestId("decision-hold")).toContainText("وبانک");
   await expect(page.getByTestId("decision-avoid")).toContainText("خودرو");
   await expect(page.getByTestId("decision-buy")).toContainText("امروز سهم عادیِ بدون صف");
+  await expect(page.getByTestId("outside-basket")).toContainText("داوه");
+  await expect(page.getByTestId("outside-basket")).toContainText("بیرون از سبد");
 });
 
 test("the old all-symbols address opens the industries page with the search filled in", async ({

@@ -405,6 +405,111 @@
         "title": "Candle",
         "type": "object"
       },
+      "CandleCheck": {
+        "description": "The forecast for ``h`` candles after the snapshot day next to what happened.",
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "direction_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction Ok"
+          },
+          "h": {
+            "title": "H",
+            "type": "integer"
+          },
+          "q10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q10"
+          },
+          "q50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q50"
+          },
+          "q90": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q90"
+          },
+          "status": {
+            "default": "pending",
+            "title": "Status",
+            "type": "string"
+          },
+          "up": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Up"
+          }
+        },
+        "required": [
+          "h",
+          "up",
+          "q10",
+          "q50",
+          "q90",
+          "actual",
+          "date",
+          "status",
+          "direction_ok"
+        ],
+        "title": "CandleCheck",
+        "type": "object"
+      },
       "CodalLetterOut": {
         "properties": {
           "has_excel": {
@@ -5163,6 +5268,54 @@
         "title": "NearMiss",
         "type": "object"
       },
+      "OutsideRow": {
+        "description": "A high-scored stock that is not in the liquid basket the model was tested on.",
+        "properties": {
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "median_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Value"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "symbol",
+          "name",
+          "score",
+          "median_value"
+        ],
+        "title": "OutsideRow",
+        "type": "object"
+      },
       "OwnOdds": {
         "description": "The symbol's own record ``h`` candles after any tradable day since this year's spring.",
         "properties": {
@@ -5292,6 +5445,187 @@
           "forecast"
         ],
         "title": "OwnWindow",
+        "type": "object"
+      },
+      "PickIn": {
+        "properties": {
+          "entered_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered On"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "paid_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Price"
+          }
+        },
+        "required": [
+          "instrument_id"
+        ],
+        "title": "PickIn",
+        "type": "object"
+      },
+      "PickOut": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "candles": {
+            "items": {
+              "$ref": "#/components/schemas/CandleCheck"
+            },
+            "title": "Candles",
+            "type": "array"
+          },
+          "direction_ok": {
+            "title": "Direction Ok",
+            "type": "integer"
+          },
+          "entered_on": {
+            "format": "date",
+            "title": "Entered On",
+            "type": "string"
+          },
+          "gauge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gauge"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "inside": {
+            "title": "Inside",
+            "type": "integer"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "last_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Date"
+          },
+          "last_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Return"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "paid_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Price"
+          },
+          "resolved": {
+            "title": "Resolved",
+            "type": "integer"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/components/schemas/VerdictCheck"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "instrument_id",
+          "symbol",
+          "name",
+          "entered_on",
+          "as_of",
+          "paid_price",
+          "note",
+          "last_date",
+          "last_return",
+          "gauge",
+          "candles",
+          "verdicts",
+          "resolved",
+          "inside",
+          "direction_ok"
+        ],
+        "title": "PickOut",
         "type": "object"
       },
       "RankingBook": {
@@ -5690,6 +6024,14 @@
             ],
             "title": "Hold Top Frac"
           },
+          "outside": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OutsideRow"
+            },
+            "title": "Outside",
+            "type": "array"
+          },
           "recommendation_allowed": {
             "default": false,
             "title": "Recommendation Allowed",
@@ -5702,6 +6044,17 @@
             },
             "title": "Rows",
             "type": "array"
+          },
+          "universe_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe Size"
           }
         },
         "required": [
@@ -5717,7 +6070,9 @@
           "rows",
           "evidence",
           "gates",
-          "book"
+          "book",
+          "outside",
+          "universe_size"
         ],
         "title": "RankingOut",
         "type": "object"
@@ -7566,6 +7921,75 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VerdictCheck": {
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          },
+          "verdict_label": {
+            "title": "Verdict Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "verdict",
+          "verdict_label",
+          "days",
+          "actual",
+          "net",
+          "right"
+        ],
+        "title": "VerdictCheck",
+        "type": "object"
       }
     }
   },
@@ -8108,6 +8532,144 @@
         "summary": "Live Accuracy",
         "tags": [
           "metrics"
+        ]
+      }
+    },
+    "/picks": {
+      "get": {
+        "operationId": "list_picks_picks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "instrument_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PickOut"
+                  },
+                  "title": "Response List Picks Picks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Picks",
+        "tags": [
+          "picks"
+        ]
+      },
+      "post": {
+        "operationId": "add_pick_picks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Pick",
+        "tags": [
+          "picks"
+        ]
+      }
+    },
+    "/picks/{pick_id}": {
+      "delete": {
+        "operationId": "delete_pick_picks__pick_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pick_id",
+            "required": true,
+            "schema": {
+              "title": "Pick Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Delete Pick Picks  Pick Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Pick",
+        "tags": [
+          "picks"
         ]
       }
     },

@@ -446,6 +446,16 @@ class RankingRow(ApiModel):
     change_pct: float | None = None
 
 
+class OutsideRow(ApiModel):
+    """A high-scored stock that is not in the liquid basket the model was tested on."""
+
+    instrument_id: int
+    symbol: str
+    name: str | None = None
+    score: float
+    median_value: float | None = None  # median daily traded value, rial
+
+
 class RankingEvidence(ApiModel):
     horizon_days: int
     ic: float | None = None
@@ -507,6 +517,8 @@ class RankingOut(ApiModel):
     evidence: list[RankingEvidence] = []
     gates: list[RankingCandidate] = []
     book: RankingBook | None = None
+    outside: list[OutsideRow] = []  # best scores outside the basket, with why they are not listed
+    universe_size: int | None = None
 
 
 class MarketIndexPoint(ApiModel):

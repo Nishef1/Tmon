@@ -128,6 +128,16 @@ const RANKING = {
   disclaimer: DISCLAIMER,
   as_of: "2026-11-10",
   basket_size: 100,
+  universe_size: 900,
+  outside: [
+    {
+      instrument_id: 77,
+      symbol: "داوه",
+      name: "داروسازی داوه",
+      score: 0.998,
+      median_value: 90000000000,
+    },
+  ],
   recommendation_allowed: false,
   buy_top_frac: 0.1,
   hold_top_frac: 0.3,
@@ -502,9 +512,84 @@ const ENTRY_DASH = {
   ],
 };
 
+const PICK = {
+  id: 1,
+  instrument_id: 1,
+  symbol: "فولاد",
+  name: "فولاد مبارکه اصفهان",
+  entered_on: "2026-11-01",
+  as_of: "2026-11-01",
+  paid_price: 1000,
+  note: null,
+  last_date: "2026-11-05",
+  last_return: 0.031,
+  gauge: 91,
+  candles: [
+    {
+      h: 1,
+      up: 0.6,
+      q10: -0.02,
+      q50: 0.01,
+      q90: 0.03,
+      actual: 0.012,
+      date: "2026-11-02",
+      status: "inside",
+      direction_ok: true,
+    },
+    {
+      h: 3,
+      up: 0.6,
+      q10: -0.03,
+      q50: 0.02,
+      q90: 0.05,
+      actual: 0.07,
+      date: "2026-11-04",
+      status: "above",
+      direction_ok: true,
+    },
+    {
+      h: 20,
+      up: 0.7,
+      q10: -0.1,
+      q50: 0.05,
+      q90: 0.1,
+      actual: null,
+      date: null,
+      status: "pending",
+      direction_ok: null,
+    },
+  ],
+  verdicts: [
+    {
+      key: "D1",
+      label: "فردا",
+      verdict: "hold",
+      verdict_label: "صبر کنید",
+      days: 1,
+      actual: 0.012,
+      net: -0.0055,
+      right: true,
+    },
+    {
+      key: "M1",
+      label: "یک ماه",
+      verdict: "buy",
+      verdict_label: "خرید",
+      days: 20,
+      actual: null,
+      net: null,
+      right: null,
+    },
+  ],
+  resolved: 2,
+  inside: 1,
+  direction_ok: 2,
+};
+
 function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
+  if (path === "/picks") return [200, [PICK]];
   if (path === "/v2/ranking") return [200, RANKING];
   if (path === "/research/ta-signals") return [200, TA_SIGNALS];
   if (path === "/research/entry-odds") return [200, ENTRY_ODDS];

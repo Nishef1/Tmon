@@ -488,3 +488,18 @@ class Shareholder(Base, Provenance):
     shares: Mapped[int | None] = mapped_column(BigInteger)
     percent: Mapped[float | None] = mapped_column(Float)
     change_amount: Mapped[int | None] = mapped_column(BigInteger)  # shares bought (+) or sold (-)
+
+
+class TrackedPick(Base):
+    """A symbol the user marked as bought (or about to buy), with the model forecast frozen on
+    that day so it can be compared with what the candles actually did."""
+
+    __tablename__ = "tracked_picks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), index=True)
+    entered_on: Mapped[dt.date] = mapped_column(Date)  # the day the user bought
+    paid_price: Mapped[float | None] = mapped_column(Float)  # what the user paid, if given
+    note: Mapped[str | None] = mapped_column(String(300))
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JsonType)  # the frozen forecast
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))

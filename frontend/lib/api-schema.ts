@@ -203,6 +203,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/picks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Picks */
+    get: operations["list_picks_picks_get"];
+    put?: never;
+    /** Add Pick */
+    post: operations["add_pick_picks_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/picks/{pick_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Pick */
+    delete: operations["delete_pick_picks__pick_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/recommendations": {
     parameters: {
       query?: never;
@@ -477,6 +512,33 @@ export interface components {
       open: number | null;
       /** Volume */
       volume: number | null;
+    };
+    /**
+     * CandleCheck
+     * @description The forecast for ``h`` candles after the snapshot day next to what happened.
+     */
+    CandleCheck: {
+      /** Actual */
+      actual: number | null;
+      /** Date */
+      date: string | null;
+      /** Direction Ok */
+      direction_ok: boolean | null;
+      /** H */
+      h: number;
+      /** Q10 */
+      q10: number | null;
+      /** Q50 */
+      q50: number | null;
+      /** Q90 */
+      q90: number | null;
+      /**
+       * Status
+       * @default pending
+       */
+      status: string;
+      /** Up */
+      up: number | null;
     };
     /** CodalLetterOut */
     CodalLetterOut: {
@@ -1958,6 +2020,22 @@ export interface components {
       shortfall: number | null;
     };
     /**
+     * OutsideRow
+     * @description A high-scored stock that is not in the liquid basket the model was tested on.
+     */
+    OutsideRow: {
+      /** Instrument Id */
+      instrument_id: number;
+      /** Median Value */
+      median_value: number | null;
+      /** Name */
+      name: string | null;
+      /** Score */
+      score: number;
+      /** Symbol */
+      symbol: string;
+    };
+    /**
      * OwnOdds
      * @description The symbol's own record ``h`` candles after any tradable day since this year's spring.
      */
@@ -2010,6 +2088,58 @@ export interface components {
        * Format: date
        */
       since: string;
+    };
+    /** PickIn */
+    PickIn: {
+      /** Entered On */
+      entered_on?: string | null;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Note */
+      note?: string | null;
+      /** Paid Price */
+      paid_price?: number | null;
+    };
+    /** PickOut */
+    PickOut: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Candles */
+      candles: components["schemas"]["CandleCheck"][];
+      /** Direction Ok */
+      direction_ok: number;
+      /**
+       * Entered On
+       * Format: date
+       */
+      entered_on: string;
+      /** Gauge */
+      gauge: number | null;
+      /** Id */
+      id: number;
+      /** Inside */
+      inside: number;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Last Date */
+      last_date: string | null;
+      /** Last Return */
+      last_return: number | null;
+      /** Name */
+      name: string;
+      /** Note */
+      note: string | null;
+      /** Paid Price */
+      paid_price: number | null;
+      /** Resolved */
+      resolved: number;
+      /** Symbol */
+      symbol: string;
+      /** Verdicts */
+      verdicts: components["schemas"]["VerdictCheck"][];
     };
     /** RankingBook */
     RankingBook: {
@@ -2120,6 +2250,11 @@ export interface components {
       /** Hold Top Frac */
       hold_top_frac: number | null;
       /**
+       * Outside
+       * @default []
+       */
+      outside: components["schemas"]["OutsideRow"][];
+      /**
        * Recommendation Allowed
        * @default false
        */
@@ -2129,6 +2264,8 @@ export interface components {
        * @default []
        */
       rows: components["schemas"]["RankingRow"][];
+      /** Universe Size */
+      universe_size: number | null;
     };
     /** RankingRow */
     RankingRow: {
@@ -2655,6 +2792,25 @@ export interface components {
       /** Error Type */
       type: string;
     };
+    /** VerdictCheck */
+    VerdictCheck: {
+      /** Actual */
+      actual: number | null;
+      /** Days */
+      days: number;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Net */
+      net: number | null;
+      /** Right */
+      right: boolean | null;
+      /** Verdict */
+      verdict: string;
+      /** Verdict Label */
+      verdict_label: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -2959,6 +3115,103 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LiveAccuracyOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_picks_picks_get: {
+    parameters: {
+      query?: {
+        instrument_id?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PickOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_pick_picks_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PickIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PickOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_pick_picks__pick_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        pick_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: boolean;
+          };
         };
       };
       /** @description Validation Error */

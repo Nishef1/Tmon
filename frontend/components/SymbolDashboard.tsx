@@ -5,6 +5,7 @@ import { Gauge } from "@/components/Gauge";
 import { DriversCard } from "@/components/DriversCard";
 import { PeersCard } from "@/components/PeersCard";
 import { PlainFacts, trustWord } from "@/components/PlainSummary";
+import { TrackBuyButton } from "@/components/TrackBuyButton";
 import { TurningCard } from "@/components/TurningCard";
 import { TechnicalCard } from "@/components/TechnicalCard";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
@@ -253,6 +254,9 @@ function Decision({
 
       <div className="mt-4 border-t border-line pt-3">
         <PlainFacts d={dash} />
+      </div>
+      <div className="mt-4">
+        <TrackBuyButton id={id} symbol={dash.instrument.symbol} />
       </div>
       <SignalBars signals={d.signals} />
       {d.holding && <Holding h={d.holding} />}
