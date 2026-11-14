@@ -745,6 +745,14 @@ function route(url) {
             has_pdf: false,
           },
         ],
+        news: [
+          {
+            title: "فولاد مبارکه رکورد تولید ماهانه را شکست",
+            source: "tejaratnews",
+            url: "https://example.com/n1",
+            published_at: "2026-11-12T08:30:00Z",
+          },
+        ],
         disclaimer: DISCLAIMER,
       },
     ];

@@ -30,20 +30,13 @@ export function trustWord(t: number | null | undefined): string | null {
   return t >= 3 ? "زیاد" : t >= 2 ? "متوسط" : "کم";
 }
 
-/** The plain answers under the decision: how sure, how deep the dip, place in the group, and the
- * next candles. The verdict itself lives in the decision card above; nothing is repeated here. */
+/** The plain answers under the decision: how sure, how deep the dip and the next
+ * candles. The verdict itself lives in the decision card above; nothing is repeated here. */
 export function PlainFacts({ d }: { d: D }) {
   const v = d.decision.verdict;
   const win = pastWinRate(d.turning);
   const t = d.turning;
   const per100 = win ? Math.round(win.rate * 100) : null;
-  const clash =
-    t && v === "buy" && t.state.tone === "down"
-      ? "امتیاز سهم بالاست، ولی سهم‌هایی که در همین وضعیت بودند در گذشته اغلب از بازار عقب ماندند. این دو را کنار هم ببینید."
-      : t && v === "sell" && t.state.tone === "up"
-        ? "امتیاز سهم پایین است، ولی سهم‌هایی که در همین وضعیت بودند در گذشته اغلب از بازار جلو زدند."
-        : null;
-  const peers = d.peers;
   return (
     <div data-testid="plain-summary" data-verdict={v}>
       <dl className="space-y-3">
@@ -65,21 +58,15 @@ export function PlainFacts({ d }: { d: D }) {
               خرید در دو ماه اول
               {t.state.mae60_p10 != null && (
                 <>
-                  ؛ در بدترین حالت‌ها تا{" "}
+                  ؛ در یک‌دهم بدترین موارد تا{" "}
                   <b className="text-down">{faPercent(-t.state.mae60_p10, 0)}</b>
                 </>
               )}
-              .
-            </dd>
-          </div>
-        )}
-        {peers && peers.position != null && (
-          <div>
-            <dt className="text-sm text-muted">در گروه خودش چطور است؟</dt>
-            <dd className="mt-0.5">
-              {peers.position === 1
-                ? `بهترین امتیاز میان ${faNumber(peers.scored)} سهم گروه.`
-                : `رتبهٔ ${faNumber(peers.position)} از ${faNumber(peers.scored)}؛ بهترین گروه ${peers.items[0]?.symbol ?? ""} است.`}
+              {t.base.mae60_median != null && (
+                <> (برای همهٔ سهم‌ها معمولاً {faPercent(-t.base.mae60_median, 0)})</>
+              )}
+              . این از سابقهٔ سهم‌های هم‌حالت است؛ بیشترین افت خود این سهم در یک سال اخیر در بخش
+              ریسک آمده.
             </dd>
           </div>
         )}
@@ -96,11 +83,6 @@ export function PlainFacts({ d }: { d: D }) {
           </p>
           <NextCandles e={d.entry} />
         </div>
-      )}
-      {clash && (
-        <p className="mt-3 rounded-lg bg-warn-soft p-2 text-sm" data-testid="plain-clash">
-          {clash}
-        </p>
       )}
       <p className="mt-3 text-xs text-muted">
         این درصدها سابقهٔ سهم‌های مشابه است، نه تضمین آینده. «بازار» یعنی میانگین همهٔ سهم‌های

@@ -11,7 +11,16 @@ import {
 } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
-import { SymbolDashboard } from "@/components/SymbolDashboard";
+import {
+  SymbolContext,
+  SymbolDecision,
+  SymbolFacts,
+  SymbolTechnical,
+  SymbolValuation,
+} from "@/components/SymbolDashboard";
+import { Fold } from "@/components/stock/Fold";
+import { StockHeader } from "@/components/stock/StockHeader";
+import { StockNews } from "@/components/stock/StockNews";
 import { LiveQuote } from "@/components/LiveQuote";
 import { CandleChart, type Level, type Mark } from "@/components/CandleChart";
 import { BookCard } from "@/components/book/BookCard";
@@ -22,37 +31,6 @@ import { Num } from "@/components/Num";
 import { SignalTable } from "@/components/SignalTable";
 
 export const dynamic = "force-dynamic";
-
-const STAGE_LABEL: Record<string, string> = {
-  invitation: "دعوت",
-  decisions: "تصمیمات",
-  decisions_summary: "خلاصهٔ تصمیمات",
-  decisions_registered: "ثبت تصمیمات",
-  dividend_schedule: "زمان‌بندی پرداخت سود",
-  dividend_schedule_prior_years: "زمان‌بندی سود سال‌های قبل",
-  ordinary_extraordinary_invitation: "دعوت مجمع عادی به‌طور فوق‌العاده",
-  ordinary_extraordinary_decisions: "تصمیمات مجمع عادی به‌طور فوق‌العاده",
-  ordinary_extraordinary_decisions_summary: "خلاصهٔ تصمیمات مجمع فوق‌العاده",
-  egm_invitation: "دعوت مجمع فوق‌العاده",
-  egm_decisions: "تصمیمات مجمع فوق‌العاده",
-  meeting_cancelled: "لغو جلسه",
-  board_proposal: "پیشنهاد هیئت‌مدیره",
-  auditor_opinion: "نظر حسابرس",
-  documents: "مدارک",
-  registered: "ثبت",
-  board_decision_delegated: "تصمیم هیئت‌مدیره (تفویض)",
-  board_meeting_scheduled: "زمان جلسهٔ هیئت‌مدیره",
-  board_decision: "تصمیم هیئت‌مدیره",
-  rights_deadline_extended: "تمدید مهلت حق‌تقدم",
-  public_subscription_extended: "تمدید پذیره‌نویسی",
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  agm_dividend: "مجمع عادی",
-  egm_capital_increase: "افزایش سرمایه",
-  rights_offering: "حق‌تقدم",
-  other: "سایر",
-};
 
 const AGM_INPUT_LABEL: Record<string, string> = {
   dps: "سود نقدی هر سهم (ریال)",
@@ -145,21 +123,11 @@ export default async function InstrumentPage({
 
   return (
     <main className="space-y-6">
-      <div>
-        <Link href="/" className="text-sm text-accent">
-          ← توصیه‌های امروز
-        </Link>
-        <h1 className="mt-2 text-2xl font-extrabold">{d.instrument.symbol}</h1>
-        {d.instrument.name && <p className="text-muted">{d.instrument.name}</p>}
-      </div>
-
-      {dash.ok && <SymbolDashboard d={dash.data} id={d.instrument.id} horizon={q.h} />}
+      <StockHeader d={d} dash={dash.ok ? dash.data : null} book={book.ok ? book.data : null} />
 
       <LiveQuote instrumentId={d.instrument.id} />
 
-      {entry && <EntryOddsCard e={entry} odds={odds} />}
-
-      {book.ok && <BookCard b={book.data} />}
+      {dash.ok && <SymbolDecision d={dash.data} id={d.instrument.id} horizon={q.h} />}
 
       <section className="card">
         <h2 className="mb-2 font-bold">نمودار قیمت تعدیل‌شده</h2>
@@ -182,219 +150,197 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      {d.signals.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="font-bold">سیگنال‌های منتشرشده برای این نماد</h2>
-          <SignalTable items={d.signals} showSymbol={false} />
-        </section>
+      <StockNews d={d} />
+
+      {dash.ok && <SymbolContext d={dash.data} />}
+
+      {entry && (
+        <Fold id="entry" title="آزمایشگاه ورود" hint="بعد از کندل‌هایی مثل امروز در گذشته چه شد">
+          <EntryOddsCard e={entry} odds={odds} />
+        </Fold>
       )}
 
-      {d.events.length > 0 && (
-        <section className="card">
-          <h2 className="mb-2 font-bold">
-            <Link href="/glossary/codal_event" className="hover:text-accent">
-              رویدادهای کدال
-            </Link>
-          </h2>
-          {
-            <ul className="divide-y divide-line text-sm">
-              {d.events.map((e, i) => (
-                <li key={`${e.url ?? ""}-${i}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
-                  <span className="text-muted">
-                    {e.announced_at ? jalali(e.announced_at, "short") : "—"}
-                  </span>
-                  <span className="font-semibold">
-                    {TYPE_LABEL[e.type] ?? e.type}
-                    {e.stage && ` · ${STAGE_LABEL[e.stage] ?? e.stage}`}
-                  </span>
-                  {e.url ? (
-                    <a
-                      href={e.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="min-w-0 break-words text-accent underline"
-                    >
-                      {e.title ?? "نامهٔ کدال"}
-                    </a>
-                  ) : (
-                    <span className="min-w-0 break-words">{e.title}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          }
-        </section>
+      {dash.ok && dash.data.technical && (
+        <Fold
+          id="technical"
+          title="تحلیل تکنیکال و ریسک"
+          hint="اندیکاتورها، سابقهٔ آزموده و بیشترین افت"
+        >
+          <SymbolTechnical d={dash.data} />
+        </Fold>
       )}
 
-      <section className="card" data-testid="shareholders">
-        <h2 className="mb-1 font-bold">سهامداران عمده</h2>
-        <p className="mb-2 text-xs text-muted">
-          دارندگان حدود یک درصد یا بیشتر از سهام، طبق فهرست بورس
-          {d.shareholders_at ? ` (دریافت: ${jalali(d.shareholders_at, "long")})` : ""}. «تغییر»
-          تعداد سهم خرید (مثبت) یا فروش (منفی) نسبت به فهرست قبلی است.
-        </p>
-        {d.shareholders.length === 0 ? (
-          <p className="text-sm text-muted">فهرست سهامداران عمده برای این نماد در دسترس نیست.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="tbl min-w-[28rem]">
-              <thead>
-                <tr className="text-right">
-                  <th>سهامدار</th>
-                  <th>درصد</th>
-                  <th>تعداد سهم</th>
-                  <th>تغییر</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.shareholders.map((h, i) => (
-                  // TSETMC lists several holders under one name ("شخص حقیقی"), so the name alone is not a key
-                  <tr key={`${i}-${h.name}`}>
-                    <td className="font-semibold">{h.name}</td>
-                    <td>{h.percent == null ? "—" : faPercent(h.percent / 100, 2)}</td>
-                    <td>{h.shares == null ? "—" : faNumber(h.shares)}</td>
-                    <td className={signTone(h.change_amount)}>
-                      {h.change_amount == null || h.change_amount === 0
-                        ? "—"
-                        : faNumber(h.change_amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {book.ok && (
+        <Fold id="book" title="رفتار خریداران و فروشندگان" hint="ردهٔ سهم در کل بازار، روز به روز">
+          <BookCard b={book.data} />
+        </Fold>
+      )}
 
-      {d.letters.length > 0 && (
-        <section className="card" data-testid="codal-letters">
-          <h2 className="mb-1 font-bold">آخرین نامه‌های کدال</h2>
+      {dash.ok && (
+        <Fold
+          id="facts"
+          title="ارزش‌گذاری، شرکت و معاملات امروز"
+          hint="P/E، مجمع، قیمت، حقیقی و حقوقی"
+        >
+          <SymbolValuation d={dash.data} />
+          <SymbolFacts d={dash.data} />
+        </Fold>
+      )}
+
+      <Fold id="holders" title="سهامداران عمده" hint="دارندگان یک درصد یا بیشتر">
+        <section data-testid="shareholders">
           <p className="mb-2 text-xs text-muted">
-            همهٔ اطلاعیه‌های ناشر، به ترتیب تاریخ انتشار؛ با کلیک، نامهٔ اصلی در کدال باز می‌شود.
+            دارندگان حدود یک درصد یا بیشتر از سهام، طبق فهرست بورس
+            {d.shareholders_at ? ` (دریافت: ${jalali(d.shareholders_at, "long")})` : ""}. «تغییر»
+            تعداد سهم خرید (مثبت) یا فروش (منفی) نسبت به فهرست قبلی است.
           </p>
-          {
-            <ul className="divide-y divide-line text-sm">
-              {d.letters.map((l, i) => (
-                <li key={`${l.url ?? ""}-${i}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2">
-                  <span className="text-muted">
-                    {l.published_at ? jalali(l.published_at, "short") : "—"}
-                  </span>
-                  {l.letter_code && <span className="chip">{l.letter_code}</span>}
-                  {l.url ? (
-                    <a
-                      href={l.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="min-w-0 break-words text-accent underline"
-                    >
-                      {l.title}
-                    </a>
-                  ) : (
-                    <span className="min-w-0 break-words">{l.title}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          }
-        </section>
-      )}
-
-      <section className="card" id="agm">
-        <h2 className="mb-1 font-bold">
-          <Link href="/glossary/agm_decision" className="hover:text-accent">
-            مجمع: نگه‌داشتن یا فروش
-          </Link>
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          قیمت، نرخ بدون ریسک و هزینهٔ معامله از پایگاه داده خوانده می‌شوند؛ سود نقدی و زمان پرداخت
-          را از اطلاعیهٔ مجمع وارد کنید.
-        </p>
-        <form method="get" action="#agm" className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          {AGM_FIELDS.map((f) => (
-            <label key={f} className="flex flex-col gap-1">
-              <span>
-                {AGM_INPUT_LABEL[f]}
-                {(f === "dps" || f === "months_to_payment") && " *"}
-              </span>
-              <input
-                name={f}
-                type="number"
-                step="any"
-                min={f === "expected_drop_after" ? undefined : 0}
-                required={f === "dps" || f === "months_to_payment"}
-                defaultValue={q[f] ?? ""}
-                dir="ltr"
-                className="tile"
-              />
-            </label>
-          ))}
-          <div className="flex items-end">
-            <button type="submit" className="btn btn-primary">
-              محاسبه
-            </button>
-          </div>
-        </form>
-        {agm && !agm.ok && (
-          <div className="mt-3">
-            <ErrorState message={agm.error} />
-          </div>
-        )}
-        {agm?.ok && (
-          <div className="mt-4 space-y-3">
-            <p className="text-lg font-extrabold">
-              {agm.data.decision === "hold" ? "نگه‌داشتن تا مجمع" : "فروش پیش از مجمع"}
-            </p>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-              <div className="flex justify-between border-b border-line py-1.5">
-                <dt>ارزش فعلی سود</dt>
-                <dd className="font-semibold">
-                  <Num term="dps" value={agm.data.pv_dividend} kind="price" />
-                </dd>
-              </div>
-              <div className="flex justify-between border-b border-line py-1.5">
-                <dt>NetHold</dt>
-                <dd className="font-semibold">
-                  <Num term="agm_decision" value={agm.data.net_hold} kind="price" />
-                </dd>
-              </div>
-              <div className="flex justify-between border-b border-line py-1.5">
-                <dt>NetSell</dt>
-                <dd className="font-semibold">
-                  <Num term="agm_decision" value={agm.data.net_sell} kind="price" />
-                </dd>
-              </div>
-            </dl>
+          {d.shareholders.length === 0 ? (
+            <p className="text-sm text-muted">فهرست سهامداران عمده برای این نماد در دسترس نیست.</p>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="tbl">
+              <table className="tbl min-w-[28rem]">
                 <thead>
-                  <tr className="text-muted">
-                    <th>ورودی</th>
-                    <th>مقدار</th>
-                    <th>منبع</th>
+                  <tr className="text-right">
+                    <th>سهامدار</th>
+                    <th>درصد</th>
+                    <th>تعداد سهم</th>
+                    <th>تغییر</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {agm.data.inputs.map((x) => (
-                    <tr key={x.name} className="border-t border-line">
-                      <td className="py-1.5">{AGM_INPUT_LABEL[x.name] ?? x.name}</td>
-                      <td className="py-1.5">
-                        <Num
-                          term="agm_decision"
-                          value={x.value}
-                          digits={x.value !== 0 && Math.abs(x.value) < 1 ? 4 : 0}
-                        />
-                      </td>
-                      <td className="py-1.5 text-xs text-muted" dir="ltr">
-                        {x.source}
+                  {d.shareholders.map((h, i) => (
+                    // TSETMC lists several holders under one name ("شخص حقیقی"), so the name alone is not a key
+                    <tr key={`${i}-${h.name}`}>
+                      <td className="font-semibold">{h.name}</td>
+                      <td>{h.percent == null ? "—" : faPercent(h.percent / 100, 2)}</td>
+                      <td>{h.shares == null ? "—" : faNumber(h.shares)}</td>
+                      <td className={signTone(h.change_amount)}>
+                        {h.change_amount == null || h.change_amount === 0
+                          ? "—"
+                          : faNumber(h.change_amount)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      </Fold>
+      {d.signals.length > 0 && (
+        <Fold
+          id="signals"
+          title="سیگنال‌های منتشرشده"
+          hint={`${faNumber(d.signals.length)} سیگنال`}
+        >
+          <section className="space-y-2">
+            <SignalTable items={d.signals} showSymbol={false} />
+          </section>
+        </Fold>
+      )}
+
+      <Fold id="agm" title="مجمع: نگه‌داشتن یا فروش" hint="ماشین‌حساب سود نقدی" open={asked}>
+        <section>
+          <h2 className="mb-1 font-bold">
+            <Link href="/glossary/agm_decision" className="hover:text-accent">
+              مجمع: نگه‌داشتن یا فروش
+            </Link>
+          </h2>
+          <p className="mb-3 text-xs text-muted">
+            قیمت، نرخ بدون ریسک و هزینهٔ معامله از پایگاه داده خوانده می‌شوند؛ سود نقدی و زمان
+            پرداخت را از اطلاعیهٔ مجمع وارد کنید.
+          </p>
+          <form
+            method="get"
+            action="#agm"
+            className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2"
+          >
+            {AGM_FIELDS.map((f) => (
+              <label key={f} className="flex flex-col gap-1">
+                <span>
+                  {AGM_INPUT_LABEL[f]}
+                  {(f === "dps" || f === "months_to_payment") && " *"}
+                </span>
+                <input
+                  name={f}
+                  type="number"
+                  step="any"
+                  min={f === "expected_drop_after" ? undefined : 0}
+                  required={f === "dps" || f === "months_to_payment"}
+                  defaultValue={q[f] ?? ""}
+                  dir="ltr"
+                  className="tile"
+                />
+              </label>
+            ))}
+            <div className="flex items-end">
+              <button type="submit" className="btn btn-primary">
+                محاسبه
+              </button>
+            </div>
+          </form>
+          {agm && !agm.ok && (
+            <div className="mt-3">
+              <ErrorState message={agm.error} />
+            </div>
+          )}
+          {agm?.ok && (
+            <div className="mt-4 space-y-3">
+              <p className="text-lg font-extrabold">
+                {agm.data.decision === "hold" ? "نگه‌داشتن تا مجمع" : "فروش پیش از مجمع"}
+              </p>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+                <div className="flex justify-between border-b border-line py-1.5">
+                  <dt>ارزش فعلی سود</dt>
+                  <dd className="font-semibold">
+                    <Num term="dps" value={agm.data.pv_dividend} kind="price" />
+                  </dd>
+                </div>
+                <div className="flex justify-between border-b border-line py-1.5">
+                  <dt>NetHold</dt>
+                  <dd className="font-semibold">
+                    <Num term="agm_decision" value={agm.data.net_hold} kind="price" />
+                  </dd>
+                </div>
+                <div className="flex justify-between border-b border-line py-1.5">
+                  <dt>NetSell</dt>
+                  <dd className="font-semibold">
+                    <Num term="agm_decision" value={agm.data.net_sell} kind="price" />
+                  </dd>
+                </div>
+              </dl>
+              <div className="overflow-x-auto">
+                <table className="tbl">
+                  <thead>
+                    <tr className="text-muted">
+                      <th>ورودی</th>
+                      <th>مقدار</th>
+                      <th>منبع</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agm.data.inputs.map((x) => (
+                      <tr key={x.name} className="border-t border-line">
+                        <td className="py-1.5">{AGM_INPUT_LABEL[x.name] ?? x.name}</td>
+                        <td className="py-1.5">
+                          <Num
+                            term="agm_decision"
+                            value={x.value}
+                            digits={x.value !== 0 && Math.abs(x.value) < 1 ? 4 : 0}
+                          />
+                        </td>
+                        <td className="py-1.5 text-xs text-muted" dir="ltr">
+                          {x.source}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      </Fold>
     </main>
   );
 }

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from typing import Annotated
 
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from tmon.api.book import book_out
@@ -22,6 +23,7 @@ from tmon.api.schemas import (
     InstrumentDetail,
     LiveOut,
     ShareholderOut,
+    SymbolNewsOut,
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
@@ -38,6 +40,7 @@ from tmon.storage.models import (
     Instrument,
     IntradaySnapshot,
     MacroSeries,
+    NewsRaw,
     OrderBookSnapshot,
     PriceDaily,
     Shareholder,
@@ -135,6 +138,7 @@ def instrument_detail(
         .order_by(CodalLetter.published_at.desc(), CodalLetter.tracing_no.desc())
         .limit(LETTERS_SHOWN)
     ).all()
+    news = symbol_news(session, inst)
     holders = session.scalars(
         select(Shareholder)
         .where(Shareholder.instrument_id == instrument_id)
@@ -155,6 +159,7 @@ def instrument_detail(
             for h in holders
         ],
         shareholders_at=max(stamps).date() if stamps else None,
+        news=news,
         letters=[
             CodalLetterOut(
                 title=x.title,
@@ -370,3 +375,34 @@ def instrument_live(instrument_id: int, session: SessionDep) -> LiveOut:
         book_as_of=_utc(book_row.ts) if book_row else None,
         book=[BookLevelOut(**lv) for lv in book_row.levels] if book_row else [],
     )
+
+
+NEWS_DAYS = 45
+NEWS_SHOWN = 12
+
+
+def symbol_news(session: Session, inst: Instrument) -> list[SymbolNewsOut]:
+    """Recent headlines that name the symbol or the company. Symbols are short Persian words, so
+    the symbol must stand alone (spaces, punctuation or the title's ends around it)."""
+    since = utcnow() - dt.timedelta(days=NEWS_DAYS)
+    names = [n for n in {inst.symbol_fa, (inst.name_fa or "").strip()} if n and len(n) >= 3]
+    if not names:
+        return []
+    rows = session.scalars(
+        select(NewsRaw)
+        .where(NewsRaw.published_at >= since, or_(*[NewsRaw.title.contains(n) for n in names]))
+        .order_by(NewsRaw.published_at.desc())
+        .limit(80)
+    ).all()
+    word = re.compile("|".join(rf"(?<![\w‌]){re.escape(n)}(?![\w‌])" for n in names))
+    out: list[SymbolNewsOut] = []
+    seen: set[str] = set()
+    for n in rows:
+        key = n.title_norm or n.title
+        if key in seen or not word.search(n.title):
+            continue
+        seen.add(key)
+        out.append(
+            SymbolNewsOut(title=n.title, source=n.source, url=n.url, published_at=n.published_at)
+        )
+    return out[:NEWS_SHOWN]

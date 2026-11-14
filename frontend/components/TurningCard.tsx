@@ -50,23 +50,6 @@ function Answers({ t }: { t: T }) {
       ),
     },
     {
-      q: "اگر الان بخرم، قبل از هر سودی چقدر ممکن است پایین برود؟",
-      a:
-        s.mae60_median == null ? (
-          "نامعلوم"
-        ) : (
-          <>
-            در نیمی از موارد قیمت در ۶۰ روز بعد از ورود تا{" "}
-            <b className="text-down">{faPercent(-s.mae60_median, 0)}</b> پایین‌تر رفت و در یک‌دهم
-            بدترین موارد تا <b className="text-down">{faPercent(-(s.mae60_p10 ?? 0), 0)}</b>
-            {t.base.mae60_median != null && (
-              <> (برای همهٔ سهم‌ها: {faPercent(-t.base.mae60_median, 0)})</>
-            )}
-            .
-          </>
-        ),
-    },
-    {
       q: "شانس جهش بزرگ در برابر ریزش سنگین",
       a: (
         <>

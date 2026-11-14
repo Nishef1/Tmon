@@ -78,12 +78,17 @@ function Cone({ own, close }: { own: Own[]; close: number }) {
  *  price was above the price paid, and the price band 8 in 10 outcomes fell in, from this
  *  symbol's own record since this year's spring. */
 export function NextCandles({ e }: { e: DashEntry }) {
-  const [key, setKey] = useState(e.windows[0]?.key ?? "");
+  // Default to about three years of history: "this year" alone mostly replays a recent run-up
+  // (a stock that rose 10x shows a 100% "chance" of rising), "all" mixes very old regimes.
+  const pick = e.windows.find((x) => x.key === "y3") ?? e.windows[e.windows.length - 1];
+  const [key, setKey] = useState(pick?.key ?? "");
   const w = e.windows.find((x) => x.key === key) ?? e.windows[0];
   if (!w || w.odds.length === 0) return null;
   const own = w.odds;
   const close = e.own_close;
-  const readings = w.forecast.filter((l) => !/کندل بعد:/.test(l));
+  // the entry-state line ("این سهم الان در حالت «...»") is shown in the entry card below
+  const readings = w.forecast.filter((l) => !/کندل بعد:/.test(l) && !l.includes("الان در حالت"));
+  const extreme = own.some((x) => x.up >= 0.95 || x.up <= 0.05);
   return (
     <div className="space-y-3" data-testid="next-candles" data-window={w.key}>
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="بازهٔ سابقه">
@@ -117,7 +122,13 @@ export function NextCandles({ e }: { e: DashEntry }) {
                 <tr key={x.h} className="border-b border-line last:border-0" data-h={x.h}>
                   <td className="py-1.5">{when(x.h)}</td>
                   <td className="py-1.5">
-                    <b className={`text-base ${tone}`}>{faPercent(x.up, 0)}</b>
+                    <b className={`text-base ${tone}`}>
+                      {x.up >= 0.95
+                        ? "بیش از ۹۵٪"
+                        : x.up <= 0.05
+                          ? "کمتر از ۵٪"
+                          : faPercent(x.up, 0)}
+                    </b>
                     {x.up_all != null && (
                       <span className="ms-2 text-xs text-muted">
                         همهٔ سهم‌ها {faPercent(x.up_all, 0)}
@@ -152,6 +163,12 @@ export function NextCandles({ e }: { e: DashEntry }) {
           </tbody>
         </table>
       </div>
+      {extreme && (
+        <p className="rounded-lg bg-warn-soft p-2 text-xs" data-testid="candles-extreme">
+          شانس نزدیک صفر یا صد معمولاً یعنی این بازه فقط یک روند تند را دیده است، نه اینکه نتیجه
+          قطعی باشد. بازهٔ بلندتر را هم ببینید.
+        </p>
+      )}
       {close != null && <Cone own={own} close={close} />}
       {readings.map((l, i) => (
         <p key={l} className={i === 0 ? "font-semibold" : "text-xs text-muted"}>

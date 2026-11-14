@@ -2494,6 +2494,17 @@
             "title": "Label",
             "type": "string"
           },
+          "queue_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue State"
+          },
           "rank": {
             "anyOf": [
               {
@@ -2560,6 +2571,7 @@
           "score",
           "gauge",
           "in_basket",
+          "queue_state",
           "summary",
           "signals",
           "holding",
@@ -6579,6 +6591,14 @@
             "title": "Letters",
             "type": "array"
           },
+          "news": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SymbolNewsOut"
+            },
+            "title": "News",
+            "type": "array"
+          },
           "shareholders": {
             "default": [],
             "items": {
@@ -6618,6 +6638,7 @@
           "shareholders",
           "shareholders_at",
           "letters",
+          "news",
           "disclaimer"
         ],
         "title": "InstrumentDetail",
@@ -9964,6 +9985,49 @@
           "outcome_date"
         ],
         "title": "SignalOut",
+        "type": "object"
+      },
+      "SymbolNewsOut": {
+        "properties": {
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "title",
+          "source",
+          "url",
+          "published_at"
+        ],
+        "title": "SymbolNewsOut",
         "type": "object"
       },
       "TaHorizon": {

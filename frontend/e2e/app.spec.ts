@@ -115,9 +115,10 @@ test.describe("instrument page", () => {
     await ha.click();
     await expect(ha).toHaveAttribute("aria-pressed", "false");
     await expect(page.getByTestId("chart-legend")).toContainText("قیمت واقعی");
-    const dash = page.getByTestId("symbol-dashboard");
-    await expect(dash.getByText("قدرت خریدار (امروز)")).toBeVisible();
-    await expect(dash.getByText("گروه صنعت")).toBeVisible();
+    const facts = page.locator('[data-fold="facts"]');
+    await facts.locator("> summary").click();
+    await expect(facts.getByText("قدرت خریدار (امروز)")).toBeVisible();
+    await expect(facts.getByText("گروه صنعت")).toBeVisible();
   });
 
   test("lists the major shareholders with percent and change", async ({ page }) => {
@@ -142,6 +143,7 @@ test.describe("instrument page", () => {
 
   test("technical card reads every indicator and the tested history", async ({ page }) => {
     await page.goto("/instruments/1");
+    await page.locator('[data-fold="technical"] > summary').click();
     const box = page.getByTestId("technical");
     await expect(box.getByTestId("ta-values")).toContainText("اشباع فروش");
     await expect(box.getByTestId("ta-fired")).toContainText("در گذشته کار کرده");
@@ -171,9 +173,11 @@ test.describe("instrument page", () => {
 
   test("lists the Codal letters of the symbol", async ({ page }) => {
     await page.goto("/instruments/1");
-    await expect(page.getByTestId("codal-letters")).toContainText(
-      "افزایش سرمایه از محل سود انباشته",
-    );
+    const box = page.getByTestId("codal-letters");
+    await expect(box).toContainText("افزایش سرمایه از محل سود انباشته");
+    // news whose headline names the symbol sits in the same timeline, newest first
+    await expect(box.locator("li").first()).toHaveAttribute("data-kind", "news");
+    await expect(box).toContainText("رکورد تولید ماهانه");
   });
 
   test("shows the live price, five order-book levels and the data age", async ({ page }) => {
@@ -370,6 +374,7 @@ test.describe("entry odds and the chart", () => {
 
   test("symbol page says how the candles after its current state went", async ({ page }) => {
     await page.goto("/instruments/1");
+    await page.locator('[data-fold="entry"] > summary').click();
     const card = page.getByTestId("entry-odds");
     await expect(card).toContainText("در کل بورس");
     await expect(card).toContainText("آمار گذشته‌اند، نه پیش‌بینی و نه توصیه");
@@ -380,14 +385,16 @@ test.describe("entry odds and the chart", () => {
     await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
     // the plain answer sits in the summary at the top, with its interval and range
     const next = page.getByTestId("plain-summary").getByTestId("next-candles");
+    // three years is the default window; "this year" alone mostly replays a recent run
+    await expect(next).toHaveAttribute("data-window", "y3");
+    await expect(next.locator('tr[data-h="5"]')).toContainText("۶۰٪");
+    await expect(next.locator("tr[data-h]")).toHaveCount(1);
+    await next.getByRole("button", { name: "امسال" }).click();
+    await expect(next).toHaveAttribute("data-window", "year");
     await expect(next.locator("tr[data-h]")).toHaveCount(2);
     await expect(next.locator('tr[data-h="5"]')).toContainText("۵۰٪");
     await expect(next.locator('tr[data-h="5"]')).toContainText("۹۴۰ تا ۱٬۰۹۰");
     await expect(next).toContainText("شیر یا خط");
-    await next.getByRole("button", { name: "۳ سال" }).click();
-    await expect(next).toHaveAttribute("data-window", "y3");
-    await expect(next.locator('tr[data-h="5"]')).toContainText("۶۰٪");
-    await expect(next.locator("tr[data-h]")).toHaveCount(1);
   });
 
   test("model page leads with the entry lab", async ({ page }) => {

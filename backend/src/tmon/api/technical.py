@@ -330,7 +330,8 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
             "این سطح",
             "neutral",
         )
-    if c is not None and v.get("pivot") and v.get("r1") and v.get("s1"):
+    # a flat day (limit queue all session) gives R1 == S1 == pivot: no levels to read
+    if c is not None and v.get("pivot") and v.get("r1") and v.get("s1") and v["r1"] > v["s1"]:
         add(
             "pivot",
             "support_resistance",

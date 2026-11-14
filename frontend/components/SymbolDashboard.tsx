@@ -8,6 +8,7 @@ import { PlainFacts, trustWord } from "@/components/PlainSummary";
 import { TrackBuyButton } from "@/components/TrackBuyButton";
 import { TurningCard } from "@/components/TurningCard";
 import { TechnicalCard } from "@/components/TechnicalCard";
+import { Synthesis } from "@/components/stock/Synthesis";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 import { signedPct, signTone, verdictPill, verdictTone } from "@/lib/ui";
 
@@ -215,6 +216,10 @@ function Decision({
         </div>
       </div>
 
+      <div className="mt-4">
+        <Synthesis d={dash} />
+      </div>
+
       {h && (
         <div
           className="mt-4"
@@ -325,11 +330,11 @@ function Company({ d }: { d: D }) {
   const r = d.ranges;
   const m = d.meeting;
   const baseVol = d.base_volume != null && d.base_volume > 1 ? d.base_volume : null;
-  const empty = !m && !r && !baseVol && d.events.length === 0 && d.share_changes.length === 0;
+  const empty = !m && !r && !baseVol && d.share_changes.length === 0;
   if (empty) return null;
   return (
     <section className="card" data-testid="company">
-      <h2 className="mb-1 font-bold">مجمع، رویدادها و اطلاعات شرکت</h2>
+      <h2 className="mb-1 font-bold">مجمع و اطلاعات شرکت</h2>
       <dl>
         <Row
           k="مجمع بعدی"
@@ -355,19 +360,6 @@ function Company({ d }: { d: D }) {
           />
         ))}
       </dl>
-      {d.events.length > 0 && (
-        <>
-          <h3 className="mt-3 text-sm font-bold">آخرین رویدادهای کدال</h3>
-          <ul className="mt-1 space-y-1 text-sm" data-testid="company-events">
-            {d.events.map((e, i) => (
-              <li key={i} className="text-muted">
-                {e.date ? `${jalali(e.date, "short")} · ` : ""}
-                {e.label}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
       <p className="mt-2 text-sm text-muted">
         منبع: بورس تهران و کدال. روز مجمع از متن آگهی دعوت خوانده می‌شود؛ اگر آگهی روز را ننوشته
         باشد یا هنوز خوانده نشده باشد، نمایش داده نمی‌شود. حجم مبنا همان عددی است که بورس ثبت کرده و
@@ -381,7 +373,41 @@ function shareOf(part: number | null, whole: number | null): string {
   return part != null && whole ? ` (${faPercent(part / whole, 1)})` : "";
 }
 
-export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?: string }) {
+/** The decision card: verdict per holding period, the synthesis and the plain answers. */
+export function SymbolDecision({ d, id, horizon }: { d: D; id: number; horizon?: string }) {
+  return (
+    <div className="space-y-4" data-testid="symbol-dashboard">
+      <Decision d={d.decision} dash={d} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
+    </div>
+  );
+}
+
+/** Where the stock stands: its current state's past record, what moves it, and its group. */
+export function SymbolContext({ d }: { d: D }) {
+  return (
+    <>
+      {d.turning && <TurningCard t={d.turning} />}
+      {d.drivers && <DriversCard d={d.drivers} />}
+      {d.peers && <PeersCard p={d.peers} />}
+    </>
+  );
+}
+
+export function SymbolTechnical({ d }: { d: D }) {
+  return d.technical ? <TechnicalCard t={d.technical} /> : null;
+}
+
+export function SymbolValuation({ d }: { d: D }) {
+  return (
+    <>
+      {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
+      <Company d={d} />
+    </>
+  );
+}
+
+/** Today's price, trades, real/legal money and the symbol's facts. */
+export function SymbolFacts({ d }: { d: D }) {
   const p = d.price;
   const f = d.flow;
   const buyTot =
@@ -391,16 +417,7 @@ export function SymbolDashboard({ d, id, horizon }: { d: D; id: number; horizon?
       ? f.sell_volume_i + f.sell_volume_n
       : null;
   return (
-    <div className="space-y-4" data-testid="symbol-dashboard">
-      <Decision d={d.decision} dash={d} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
-      {d.peers && <PeersCard p={d.peers} />}
-      {d.turning && <TurningCard t={d.turning} />}
-      {d.drivers && <DriversCard d={d.drivers} />}
-      {d.technical && <TechnicalCard t={d.technical} />}
-
-      {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
-      <Company d={d} />
-
+    <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {p && (
           <Card title="قیمت" note={`روز ${jalali(p.date)}`}>

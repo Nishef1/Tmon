@@ -30,7 +30,7 @@ function Risk({ r }: { r: NonNullable<T["risk"]> }) {
     ["بازده این دوره", r.ret_1y == null ? "—" : faPercent(r.ret_1y, 0, true), "realized_return"],
     ["نوسان سالانه", r.vol_ann == null ? "—" : faPercent(r.vol_ann, 0), "volatility"],
     ["VaR روزانهٔ ۹۵٪", r.var95 == null ? "—" : faPercent(r.var95, 1), "var"],
-    ["بیشترین افت", r.max_dd == null ? "—" : faPercent(r.max_dd, 0), "max_drawdown"],
+    ["بیشترین افت همین سهم", r.max_dd == null ? "—" : faPercent(r.max_dd, 0), "max_drawdown"],
     ["شارپ", r.sharpe == null ? "—" : faNumber(r.sharpe, 2), "sharpe"],
     ["سورتینو", r.sortino == null ? "—" : faNumber(r.sortino, 2), "sortino"],
     ["بتا به شاخص کل", r.beta_index == null ? "—" : faNumber(r.beta_index, 2), "beta"],
@@ -56,6 +56,12 @@ function Risk({ r }: { r: NonNullable<T["risk"]> }) {
           ` شارپ و سورتینو با نرخ بدون ریسک ${faPercent(r.rf_annual, 1)} (بازده اوراق خزانه) حساب شده‌اند.`}{" "}
         VaR یعنی در ۹۵ از ۱۰۰ روز ضرر یک روز از این بیشتر نبوده است.
       </p>
+      {r.ret_1y != null && r.ret_1y > 1 && (
+        <p className="mt-1 rounded-lg bg-warn-soft p-2 text-xs" data-testid="risk-runup">
+          بازده این دوره بیش از دو برابر بوده؛ شارپ و سورتینو بالا فقط همین جهش را نشان می‌دهند و
+          برای آینده عدد قابل اتکایی نیستند.
+        </p>
+      )}
     </div>
   );
 }

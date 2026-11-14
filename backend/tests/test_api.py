@@ -590,3 +590,31 @@ def test_live_hit_uses_stored_label_over_exit_reason(session: Session, client: T
     assert sorted(y.tolist()) == [0.0, 1.0, 1.0]
     j = client.get("/metrics/live?timeframe=D1").json()
     assert j["days"][0]["hits"] == 2
+
+
+def test_instrument_news_matches_the_symbol_as_a_whole_word(
+    client: TestClient, session: Session
+) -> None:
+    from tmon.storage.models import NewsRaw
+
+    a = _inst(session, "IRO1FOLD0001", "فولاد")
+    now = dt.datetime.now(dt.UTC)
+    rows = [
+        ("فولاد رکورد فروش ماهانه را شکست", now - dt.timedelta(days=1)),
+        ("صنایع فولادی در صف خرید", now - dt.timedelta(days=1)),  # another word that contains it
+        ("سود فولاد در سال گذشته", now - dt.timedelta(days=90)),  # too old
+        ("فولاد رکورد فروش ماهانه را شکست", now - dt.timedelta(days=2)),  # the same headline again
+    ]
+    for i, (title, at) in enumerate(rows):
+        session.add(
+            NewsRaw(
+                source="tejarat",
+                url=f"https://example.com/{i}",
+                title=title,
+                title_norm=title,
+                published_at=at,
+            )
+        )
+    session.flush()
+    news = client.get(f"/instruments/{a.id}").json()["news"]
+    assert [n["title"] for n in news] == ["فولاد رکورد فروش ماهانه را شکست"]

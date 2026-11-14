@@ -166,6 +166,13 @@ class CodalLetterOut(ApiModel):
     has_pdf: bool = False
 
 
+class SymbolNewsOut(ApiModel):
+    title: str
+    source: str
+    url: str | None = None
+    published_at: dt.datetime | None = None
+
+
 class ShareholderOut(ApiModel):
     name: str
     shares: int | None = None
@@ -184,6 +191,7 @@ class InstrumentDetail(ApiModel):
     shareholders: list[ShareholderOut] = []  # major holders, largest first
     shareholders_at: dt.date | None = None  # when TSETMC's list was fetched
     letters: list[CodalLetterOut] = []  # latest Codal letters of any kind
+    news: list[SymbolNewsOut] = []  # recent news whose title names the symbol or the company
     disclaimer: str = DISCLAIMER
 
 
@@ -731,6 +739,7 @@ class DashDecision(ApiModel):
     score: float | None = None
     gauge: float | None = None  # score on 0-100 for the semicircle gauge; None = not scored
     in_basket: bool = False  # inside the validated liquid basket; False = unvalidated score
+    queue_state: str | None = None  # buy_queue / sell_queue / none on the ranking day
     summary: str = ""  # one plain sentence on what the verdict means for the reader
     signals: list[DashSignal] = []
     holding: DashHolding | None = None

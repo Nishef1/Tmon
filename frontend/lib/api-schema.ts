@@ -1503,6 +1503,8 @@ export interface components {
       in_basket: boolean;
       /** Label */
       label: string;
+      /** Queue State */
+      queue_state: string | null;
       /** Rank */
       rank: number | null;
       /**
@@ -2738,6 +2740,11 @@ export interface components {
        */
       letters: components["schemas"]["CodalLetterOut"][];
       /**
+       * News
+       * @default []
+       */
+      news: components["schemas"]["SymbolNewsOut"][];
+      /**
        * Shareholders
        * @default []
        */
@@ -3759,6 +3766,17 @@ export interface components {
       timeframe: string;
       /** Top Reasons */
       top_reasons: components["schemas"]["Reason"][];
+    };
+    /** SymbolNewsOut */
+    SymbolNewsOut: {
+      /** Published At */
+      published_at: string | null;
+      /** Source */
+      source: string;
+      /** Title */
+      title: string;
+      /** Url */
+      url: string | null;
     };
     /**
      * TaHorizon
