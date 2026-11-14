@@ -92,7 +92,15 @@ export function TechnicalCard({ t }: { t: T }) {
               {t.fired.map((f) => (
                 <tr key={f.key} className="border-t border-line align-top">
                   <td className="py-1.5">
-                    <span className={f.side === "buy" ? "text-up" : "text-down"}>
+                    <span
+                      className={
+                        f.label !== "works" && f.label !== "direction_only"
+                          ? "text-muted"
+                          : f.side === "buy"
+                            ? "text-up"
+                            : "text-down"
+                      }
+                    >
                       {f.side === "buy" ? "خرید" : "فروش"}
                     </span>{" "}
                     <Link href={`/glossary/${f.term}`} className="underline hover:text-accent">

@@ -1,3 +1,4 @@
+import { NEAR_HIGH, nearHighNote } from "@/components/stock/nearHigh";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
@@ -119,8 +120,9 @@ function HorizonTable({ s, base }: { s: S; base: S }) {
 }
 
 function Now({ t }: { t: T }) {
+  const note = nearHighNote(t);
   const items: [string, ReactNode, string?][] = [
-    ["فاصله از سقف ۵۲ هفته", pct(t.dd, 0), signTone(t.dd)],
+    ["فاصله از سقف ۵۲ هفته", t.dd != null && t.dd >= NEAR_HIGH ? "نزدیک سقف" : pct(t.dd, 0)],
     ["بازده ۲۰ روز", signedPct(t.ret20, 0), signTone(t.ret20)],
     ["بازده ۶۰ روز", signedPct(t.ret60, 0), signTone(t.ret60)],
     ["خالص خرید حقیقی (۵ روز)", signedPct(t.net5, 1), signTone(t.net5)],
@@ -144,6 +146,11 @@ function Now({ t }: { t: T }) {
           <div className={`font-semibold ${tone ?? ""}`}>{v}</div>
         </div>
       ))}
+      {note && (
+        <p className="col-span-full text-sm text-muted" data-testid="near-high-note">
+          {note}
+        </p>
+      )}
     </div>
   );
 }

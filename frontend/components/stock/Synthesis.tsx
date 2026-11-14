@@ -23,11 +23,12 @@ export function Synthesis({ d }: { d: D }) {
   const worse = r != null && r.rate < r.base - 0.03;
   const better = r != null && r.rate > r.base + 0.03;
   const rec = r ? ` (${per100(r.rate)} از ۱۰۰ در برابر ${per100(r.base)} برای همهٔ سهم‌ها)` : "";
+  const state = d.turning ? ` («${d.turning.state.title}»)` : "";
   let head: string | null = null;
   let tone = "bg-accent-soft";
   if (v === "buy") {
     head = worse
-      ? `برای حدود یک ماه قوی است، ولی سهم‌هایی که در همین حالت بودند در شش ماه بعد کمتر از بازار جلو زدند${rec}. اگر می‌خرید، کوتاه‌مدت و با سطح خروج پایین بخرید.`
+      ? `برای حدود یک ماه قوی است، ولی سهم‌هایی که در همین حالت${state} بودند در شش ماه بعد کمتر از بازار جلو زدند${rec}. اگر می‌خرید، کوتاه‌مدت و با سطح خروج پایین بخرید.`
       : `امتیاز یک‌ماهه و سابقهٔ حالت فعلی سهم هم‌جهت‌اند${rec}؛ نشانهٔ خرید محکم‌تر است.`;
     tone = worse ? "bg-warn-soft" : "bg-up-soft";
   } else if (v === "hold") {
