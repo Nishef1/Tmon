@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 
-from test_ta_signals import _world
+from tests.test_ta_signals import _world
 from tmon.api.entry import entry_out, verdict
 from tmon.backtest import entry_odds as eo
 
