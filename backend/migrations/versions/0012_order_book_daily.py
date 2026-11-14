@@ -12,11 +12,22 @@ down_revision = "0011"
 branch_labels = None
 depends_on = None
 
-_FLOATS = (
-    "close_bid_price close_ask_price close_bid_volume close_ask_volume close_imbalance "
-    "open_imbalance early_imbalance tw_imbalance tw_spread tw_depth_value tw_size_ratio "
-    "frac_buy_queue frac_sell_queue peak_queue_volume"
-).split()
+_FLOATS = [
+    "close_bid_price",
+    "close_ask_price",
+    "close_bid_volume",
+    "close_ask_volume",
+    "close_imbalance",
+    "open_imbalance",
+    "early_imbalance",
+    "tw_imbalance",
+    "tw_spread",
+    "tw_depth_value",
+    "tw_size_ratio",
+    "frac_buy_queue",
+    "frac_sell_queue",
+    "peak_queue_volume",
+]
 
 
 def upgrade() -> None:

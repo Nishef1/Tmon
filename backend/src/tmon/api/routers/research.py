@@ -6,8 +6,10 @@ from tmon.api.adapt import KEY as ADAPT_KEY
 from tmon.api.adapt import adapt_out
 from tmon.api.book import KEY as BOOK_KEY
 from tmon.api.book import research_out as book_research_out
+from tmon.api.deep import KEY as DEEP_KEY
+from tmon.api.deep import deep_out
 from tmon.api.entry import entry_doc, entry_odds_out
-from tmon.api.schemas import AdaptOut, EntryOddsOut, OrderbookResearchOut, TaSignalsOut
+from tmon.api.schemas import AdaptOut, DeepOut, EntryOddsOut, OrderbookResearchOut, TaSignalsOut
 from tmon.api.technical import load_doc, signals_out, ta_doc
 
 router = APIRouter(tags=["research"])
@@ -41,3 +43,11 @@ def adapt() -> AdaptOut:
     equal weights, the weight drift, the cycle history and the replay on the past
     (``python -m tmon.tools.adapt_cycle``). The past, not advice."""
     return adapt_out(load_doc(ADAPT_KEY))
+
+
+@router.get("/research/deep", response_model=DeepOut)
+def deep() -> DeepOut:
+    """The deep-learning, autoregressive and diffusion study: every method against equal weights
+    over the whole out-of-sample period, in two halves, with the gate verdict. Read fresh from
+    the stored document (``python -m tmon.backtest.deep_study``). The past, not advice."""
+    return deep_out(load_doc(DEEP_KEY))

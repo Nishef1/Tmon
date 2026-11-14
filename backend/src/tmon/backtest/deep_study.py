@@ -18,7 +18,8 @@ statistic, in both halves. Methods:
 
 Each deep model is trained with several seeds; its score is the standardised mean over the seeds and
 the per-seed mean ICs are kept so the spread is visible. ``python -m tmon.backtest.deep_study``
-writes ``docs/data/deep-study.json``. Nothing here changes the production model.
+writes ``docs/data/deep-study.json`` and, through ``tmon.tools.deep_doc``, the judged copy the
+API serves. Nothing here changes the production model.
 """
 
 from __future__ import annotations
@@ -521,6 +522,7 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--horizons", default=",".join(str(h) for h in HORIZONS))
     ap.add_argument("--methods", default="gbm,mlp," + ",".join(KINDS))
+    ap.add_argument("--no-store", action="store_true", help="skip the gate verdicts and the store")
     a = ap.parse_args()
     methods = a.methods.split(",")
     horizons = [int(x) for x in a.horizons.split(",")]
@@ -558,6 +560,11 @@ def main() -> None:
         path.write_text(json.dumps(res, ensure_ascii=False, indent=1))  # partial results survive
         print("horizon", h, "done", flush=True)
     print("wrote", path)
+    if not a.no_store:  # the gate verdicts and the copy the API serves (v2/deep_study.json)
+        from tmon.tools.deep_doc import finish_file
+
+        finish_file(path)
+        print("judged and stored")
 
 
 if __name__ == "__main__":

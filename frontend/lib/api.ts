@@ -142,3 +142,19 @@ export async function adaptState(): Promise<Adapt | null> {
     return null;
   }
 }
+
+export type Deep = S["DeepOut"];
+export type DeepMethod = S["DeepMethod"];
+export type DeepHorizon = S["DeepHorizon"];
+
+/** The deep-learning study: every method against equal weights, out of sample, with the gate
+ *  verdict. Always read fresh; null when unreachable. */
+export async function deepStudy(): Promise<Deep | null> {
+  try {
+    const res = await fetch(new URL("/research/deep", API_BASE), { cache: "no-store" });
+    return res.ok ? ((await res.json()) as Deep) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
+  }
+}

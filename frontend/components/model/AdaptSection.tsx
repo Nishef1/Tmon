@@ -1,7 +1,11 @@
 import Link from "next/link";
-import type { Adapt, AdaptCandidate, AdaptHorizon, AdaptReplayHorizon } from "@/lib/api";
+import type { Adapt, AdaptCandidate, AdaptHorizon, AdaptReplayHorizon, Deep } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { Num } from "@/components/Num";
+import { DeepStudy } from "@/components/model/DeepStudy";
+import { methodLabel } from "@/components/model/methods";
+
+export { methodLabel };
 
 /** Persian names of the four production signals, in the order of the weight columns. */
 const SIGNALS: [string, string][] = [
@@ -12,24 +16,6 @@ const SIGNALS: [string, string][] = [
 ];
 const STROKES = ["stroke-accent", "stroke-up", "stroke-down", "stroke-muted"];
 const DASHES = [undefined, "6 3", "2 3", "10 3 2 3"];
-
-const KINDS: Record<string, string> = {
-  ridge4: "ریج روی ۴ سیگنال",
-  ridgeall: "ریج روی ۱۸ سیگنال",
-  icw: "وزن به‌نسبت IC",
-};
-
-/** Plain name of a method key of ``tmon.backtest.adaptive_study`` (the number is the half-life in days). */
-export function methodLabel(key: string): string {
-  if (key === "equal") return "وزن مساوی";
-  const m = /^(ridge4|ridgeall|icw)_x(\d+)$/.exec(key);
-  if (m) return `${KINDS[m[1]]} (نیمه‌عمر ${faNumber(Number(m[2]))} روز)`;
-  const h = /^hedge_k(\d+)$/.exec(key);
-  if (h) return `Hedge (κ=${faNumber(Number(h[1]))})`;
-  if (key === "step6") return "پلهٔ شش‌ماهه";
-  if (key === "gbm") return "درخت تقویتی (GBM)";
-  return key;
-}
 
 const horizonLabel = (h: number) => `${faNumber(h)} روز`;
 
@@ -171,7 +157,7 @@ function HorizonCard({ h, d }: { h: AdaptHorizon; d: Adapt }) {
 
 /** The living ranking: champion per horizon behind the promotion gate, weights against equal
  *  weights, how the reference weights drift, the cycle history and the replay on the past. */
-export function AdaptSection({ d }: { d: Adapt }) {
+export function AdaptSection({ d, deep }: { d: Adapt; deep?: Deep | null }) {
   const replay = d.replay;
   const allEqual = d.horizons.every((h) => h.champion === "equal");
   const h5 = d.horizons.find((h) => h.horizon_days === 5);
@@ -350,6 +336,8 @@ export function AdaptSection({ d }: { d: Adapt }) {
           </table>
         </div>
       </section>
+
+      {deep?.available && <DeepStudy d={deep} />}
     </section>
   );
 }

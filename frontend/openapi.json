@@ -3997,6 +3997,297 @@
         "title": "DashTurning",
         "type": "object"
       },
+      "DeepGate": {
+        "properties": {
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "passed",
+          "reasons"
+        ],
+        "title": "DeepGate",
+        "type": "object"
+      },
+      "DeepHorizon": {
+        "properties": {
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "methods": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DeepMethod"
+            },
+            "title": "Methods",
+            "type": "object"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "methods"
+        ],
+        "title": "DeepHorizon",
+        "type": "object"
+      },
+      "DeepMethod": {
+        "description": "One method over the whole out-of-sample period, against equal weights.",
+        "properties": {
+          "d_ex": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdaptStat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "d_ic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdaptStat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "d_ic_early": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdaptStat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "d_ic_late": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdaptStat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ex": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "gate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeepGate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ic": {
+            "$ref": "#/components/schemas/AdaptStat"
+          },
+          "seed_ic": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed Ic"
+          }
+        },
+        "required": [
+          "ic",
+          "ex",
+          "d_ic",
+          "d_ex",
+          "d_ic_early",
+          "d_ic_late",
+          "seed_ic",
+          "gate"
+        ],
+        "title": "DeepMethod",
+        "type": "object"
+      },
+      "DeepOut": {
+        "description": "The deep-learning study: what each method did out of sample, and who passed the gate.",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "first": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DeepHorizon"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "last": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last"
+          },
+          "mid": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mid"
+          },
+          "min_t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min T"
+          },
+          "oos_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oos From"
+          },
+          "round_trip_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round Trip Cost"
+          },
+          "seeds": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Seeds",
+            "type": "array"
+          },
+          "settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "default": {},
+            "title": "Settings",
+            "type": "object"
+          },
+          "torch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Torch"
+          }
+        },
+        "required": [
+          "available",
+          "first",
+          "oos_from",
+          "mid",
+          "last",
+          "device",
+          "torch",
+          "seeds",
+          "settings",
+          "round_trip_cost",
+          "min_t",
+          "horizons",
+          "disclaimer"
+        ],
+        "title": "DeepOut",
+        "type": "object"
+      },
       "DiagnosisOut": {
         "description": "Exact numbers behind a day with few or no recommendations.",
         "properties": {
@@ -10193,6 +10484,28 @@
           }
         },
         "summary": "Adapt",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/research/deep": {
+      "get": {
+        "description": "The deep-learning, autoregressive and diffusion study: every method against equal weights\nover the whole out-of-sample period, in two halves, with the gate verdict. Read fresh from\nthe stored document (``python -m tmon.backtest.deep_study``). The past, not advice.",
+        "operationId": "deep_research_deep_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeepOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Deep",
         "tags": [
           "research"
         ]
