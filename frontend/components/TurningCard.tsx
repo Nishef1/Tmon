@@ -1,4 +1,4 @@
-import { NEAR_HIGH, nearHighNote } from "@/components/stock/nearHigh";
+import { NEAR_HIGH, nearHighNote, toneWord } from "@/components/stock/nearHigh";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
@@ -20,7 +20,7 @@ const h120 = (s: S) => s.horizons.find((h) => h.horizon_days === 120) ?? null;
 
 function ToneLabel({ s }: { s: S }) {
   const t = TONE[s.tone];
-  return <span className={`pill ${t.cls}`}>{t.label}</span>;
+  return <span className={`pill ${t.cls}`}>{toneWord(s) ?? t.label}</span>;
 }
 
 /** The three questions a reader asks at a turning point, answered from this state's history. */
@@ -125,8 +125,12 @@ function Now({ t }: { t: T }) {
     ["فاصله از سقف ۵۲ هفته", t.dd != null && t.dd >= NEAR_HIGH ? "نزدیک سقف" : pct(t.dd, 0)],
     ["بازده ۲۰ روز", signedPct(t.ret20, 0), signTone(t.ret20)],
     ["بازده ۶۰ روز", signedPct(t.ret60, 0), signTone(t.ret60)],
-    ["خالص خرید حقیقی (۵ روز)", signedPct(t.net5, 1), signTone(t.net5)],
-    ["قدرت خریدار (۵ روز)", t.power5 == null ? "—" : faNumber(t.power5, 2)],
+    [
+      "خالص خرید حقیقی (۵ روز)",
+      t.net5 == null ? "هنوز نیامده" : signedPct(t.net5, 1),
+      signTone(t.net5),
+    ],
+    ["قدرت خریدار (۵ روز)", t.power5 == null ? "هنوز نیامده" : faNumber(t.power5, 2)],
     [
       "نسبت به میانگین ۲۰ روزه",
       t.above_sma20 == null ? "—" : t.above_sma20 ? "بالای آن" : "زیر آن",

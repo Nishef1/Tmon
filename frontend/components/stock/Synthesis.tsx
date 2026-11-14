@@ -53,7 +53,7 @@ export function Synthesis({ d }: { d: D }) {
   const exit =
     typeof sma === "number" && close
       ? close > sma
-        ? `سطح خروج: اگر قیمت پایانی زیر ${faNumber(Math.round(sma))} (میانگین ۲۰ روزه، ${faPercent(1 - sma / close, 0)} پایین‌تر از قیمت فعلی) بسته شود، روند کوتاه‌مدت شکسته است.`
+        ? `سطح خروج: اگر قیمت پایانی زیر ${faNumber(Math.round(sma))} (میانگین ۲۰ روزه) بسته شود، روند کوتاه‌مدت شکسته است. قیمت الان ${faPercent(close / sma - 1, 0)} بالای آن است؛ یعنی تا آن سطح حدود ${faPercent(1 - sma / close, 0)} افت جا دارد.`
         : `قیمت الان زیر میانگین ۲۰ روزه (${faNumber(Math.round(sma))}) است: روند کوتاه‌مدت ضعیف است.`
       : null;
   if (!head && !queue && !exit) return null;

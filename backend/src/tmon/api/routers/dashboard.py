@@ -356,7 +356,8 @@ def _horizon_decision(
             + (
                 "برای این بازه در گذشته واقعاً به پیش‌بینی کمک کرده است"
                 if solid
-                else "برای این بازه در گذشته کمکی به پیش‌بینی نکرده و در تصمیم حساب نمی‌شود"
+                else "برای این بازه به‌تنهایی در گذشته کمکی به پیش‌بینی نکرده، ولی در امتیاز ترکیبی "
+                "مثل بقیه حساب می‌شود"
             )
             + f" (برای کارشناس: IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev.get('t') or 0)})."
         )
@@ -365,8 +366,8 @@ def _horizon_decision(
         if solid_edge:
             verdict = "buy"
             head = (
-                f"برای {label}: بخرید؛ در گذشته این گروه حتی پس از کسر کارمزد، سود اضافهٔ "
-                "مطمئنی داده است."
+                f"برای {label}: بخرید؛ در گذشته این گروه حتی پس از کسر کارمزد، سود اضافه‌ای داده "
+                "که از نظر آماری شانسی نبوده است."
             )
         elif net is not None and net > 0:
             verdict = "hold"
@@ -549,8 +550,9 @@ def decide(
     verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
     if row is not None:
         reasons = [
-            f"رتبهٔ {row['rank']} از {len(rows)} نماد فهرست امروز؛ امتیاز ترکیبی "
-            f"{(score or 0) * 100:.0f} از ۱۰۰ (۱۰۰ = بهترین)."
+            f"امتیاز ترکیبی {(score or 0) * 100:.0f} از ۱۰۰ یعنی از حدود "
+            f"{(score or 0) * 100:.0f}٪ نمادهای امتیازدار بازار بهتر است؛ در فهرست امروز "
+            f"({len(rows)} نماد) رتبهٔ {row['rank']} را دارد."
         ]
     else:
         pos = sum(1 for u in scored if u["score"] > (score or 0)) + 1
@@ -566,7 +568,9 @@ def decide(
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
         reasons.append(
-            f"قاعدهٔ کار: {_pct(bt)} بالای جدول «خرید»، تا {_pct(ht)} «نگهداری» و بقیه «نخرید» است."
+            f"قاعدهٔ کار: امتیاز {(1 - bt) * 100:.0f} و بالاتر ({_pct(bt)} بالای کل بازار) «خرید»، "
+            f"{(1 - ht) * 100:.0f} تا {(1 - bt) * 100:.0f} «نگهداری» و زیر {(1 - ht) * 100:.0f} "
+            "«نخرید» است."
         )
     if not in_basket:
         floor = get_engine_config().universe.min_median_value_20d

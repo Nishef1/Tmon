@@ -352,7 +352,15 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
             "buy" if o > 0.1 else "sell" if o < -0.1 else "neutral",
         )
     if (vr := v.get("vr")) is not None:
-        txt = "حجم مشکوک (بیش از ۳ برابر)" if vr > 3 else "بالاتر از معمول" if vr > 1.5 else "عادی"
+        txt = (
+            "حجم مشکوک (بیش از ۳ برابر)"
+            if vr > 3
+            else "بالاتر از معمول"
+            if vr > 1.5
+            else "کمتر از معمول (در روز صف طبیعی است)"
+            if vr < 0.5
+            else "عادی"
+        )
         add("vr", "rel_volume", "حجم امروز به میانگین ۲۰ روز", vr, "x", txt, "neutral")
     if (p5 := v.get("power5")) is not None:
         txt = "خریداران حقیقی درشت‌تر" if p5 > 1 else "فروشندگان حقیقی درشت‌تر"

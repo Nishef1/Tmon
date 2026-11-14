@@ -56,7 +56,7 @@ def test_verdict_by_zone(sym: str, verdict: str) -> None:
 def test_reasons_carry_rank_and_signals_and_gate_status() -> None:
     d = dash.decide(_inst("الف"), _doc(allowed=False), None)
     text = " ".join(d.reasons)
-    assert "رتبهٔ 1 از 4" in text
+    assert "(4 نماد) رتبهٔ 1" in text and "نمادهای امتیازدار بازار بهتر" in text
     # strongest/weakest live in the signal bars, not repeated in the reasons
     names = {g.name for g in d.signals}
     assert "قدرت خریدار حقیقی" in names and "نقطهٔ قوت" not in text
@@ -216,7 +216,7 @@ def test_decision_explains_in_plain_words_and_says_how_long_to_hold() -> None:
     assert d.holding is not None and d.holding.horizon_days == 20
     assert d.holding.expected_excess == pytest.approx(0.04)
     text = " ".join(d.holding.lines)
-    assert "همان روز" in text and "نه قول" in text and "ماهی یک‌بار" in text
+    assert "همان روز" in text and "نه قول" in text and "پرتفوی" in text
     assert "توصیهٔ مطمئن نیست" in text  # the gates have not passed in this document
     hold = dash.decide(_inst("ب"), doc, None)
     assert hold.holding is not None and "خرید تازه" in " ".join(hold.holding.lines)

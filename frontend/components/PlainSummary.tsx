@@ -1,28 +1,8 @@
 import type { InstrumentDashboard } from "@/lib/api";
-import { faNumber, faPercent } from "@/lib/format";
+import { faPercent } from "@/lib/format";
 import { NextCandles } from "@/components/entry/NextCandles";
 
 type D = InstrumentDashboard;
-
-/** Share of similar past cases that beat the market in six months, or null when unknown. */
-function pastWinRate(t: D["turning"]): { rate: number; base: number | null } | null {
-  const h = t?.state.horizons.find((x) => x.horizon_days === 120);
-  if (!t || !h || h.beat == null) return null;
-  const b = t.base.horizons.find((x) => x.horizon_days === 120);
-  return { rate: h.beat, base: b?.beat ?? null };
-}
-
-function Meter({ rate }: { rate: number }) {
-  const pct = Math.round(rate * 100);
-  return (
-    <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-line" aria-hidden>
-      <div
-        className={`h-full rounded-full ${rate >= 0.5 ? "bg-up" : "bg-hold"}`}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
 
 /** One word for how far the past evidence can be trusted (t is the statistical strength). */
 export function trustWord(t: number | null | undefined): string | null {
@@ -31,25 +11,13 @@ export function trustWord(t: number | null | undefined): string | null {
 }
 
 /** The plain answers under the decision: how sure, how deep the dip and the next
- * candles. The verdict itself lives in the decision card above; nothing is repeated here. */
+ * candles. How similar stocks did in six months is in the synthesis and the state card; the verdict itself lives in the decision card above; nothing is repeated here. */
 export function PlainFacts({ d }: { d: D }) {
   const v = d.decision.verdict;
-  const win = pastWinRate(d.turning);
   const t = d.turning;
-  const per100 = win ? Math.round(win.rate * 100) : null;
   return (
     <div data-testid="plain-summary" data-verdict={v}>
       <dl className="space-y-3">
-        {win && per100 != null && (
-          <div data-testid="plain-winrate">
-            <dt className="text-sm text-muted">چقدر می‌شود مطمئن بود؟</dt>
-            <dd className="mt-0.5">
-              از هر ۱۰۰ سهمِ هم‌وضعیت، <b>{faNumber(per100)}</b> تا در شش ماه بعد از بازار بهتر شدند
-              {win.base != null && <> (همهٔ سهم‌ها: {faNumber(Math.round(win.base * 100))})</>}.
-              <Meter rate={win.rate} />
-            </dd>
-          </div>
-        )}
         {t && t.state.mae60_median != null && (
           <div>
             <dt className="text-sm text-muted">اگر بخرم، چقدر ممکن است اول ضرر ببینم؟</dt>

@@ -8,6 +8,8 @@ export function lean(p: number | null | undefined): { text: string; cls: string 
   if (p == null) return { text: "نامشخص", cls: "text-muted" };
   if (p >= 0.8) return { text: "بیشتر از اغلب نمادها به سمت خریدار", cls: "text-up" };
   if (p <= 0.2) return { text: "بیشتر از اغلب نمادها به سمت فروشنده", cls: "text-down" };
+  if (p >= 0.65) return { text: "کمی به سمت خریدار", cls: "text-up" };
+  if (p <= 0.35) return { text: "کمی به سمت فروشنده", cls: "text-down" };
   return { text: "حدود میانهٔ نمادها", cls: "text-ink" };
 }
 
