@@ -126,6 +126,11 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         with session_scope() as session:
             return refresh_features(session, timeframes[0])
 
+    def adapt() -> Any:
+        from tmon.tools.adapt_cycle import run
+
+        return run()
+
     def publisher(timeframe: str) -> Callable[[], Any]:
         def publish() -> Any:
             from tmon.core.db import session_scope
@@ -152,6 +157,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         Step("macro", macro, required=False),
         Step("news", news, required=False),
         Step("features", features),
+        Step("adapt", adapt, required=False),
         *(
             Step(f"publish_and_resolve_outcomes_{tf}", publisher(tf), required=(i == 0))
             for i, tf in enumerate(timeframes)

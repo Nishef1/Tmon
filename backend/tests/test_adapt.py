@@ -189,3 +189,20 @@ def test_a_planted_edge_is_promoted_and_weights_follow_it() -> None:
     assert cell["production_expressible"] is True
     assert cell["live_scores"] is not None and len(cell["live_scores"]) == 60
     assert adapt.weights_for(state, 5)[BASE[0]] == pytest.approx(cell["weights"][BASE[0]], abs=1e-3)
+
+
+def test_the_daily_cycle_redoes_the_replay_only_when_it_is_old() -> None:
+    from tmon.tools.adapt_cycle import replay_is_stale
+
+    today = dt.date(2026, 11, 11)
+    assert replay_is_stale(None, today, 28)
+    assert replay_is_stale({"horizons": {}}, today, 28)
+    assert replay_is_stale({"replay": {"as_of": "2026-10-01"}}, today, 28)
+    assert not replay_is_stale({"replay": {"as_of": "2026-10-20"}}, today, 28)
+
+
+def test_the_adapt_step_is_in_the_daily_cycle_and_optional() -> None:
+    from tmon.tasks.cycle import default_steps
+
+    steps = {s.name: s for s in default_steps(("1d",))}
+    assert "adapt" in steps and steps["adapt"].required is False

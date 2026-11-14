@@ -186,5 +186,6 @@ adapt:
   switch_margin_t: 1.0          # a challenger must beat the sitting champion's t by this much
   history_keep: 240             # cycles kept in the state document
   replay_every_dates: 21        # replay: how often the gate is re-run on the past
+  replay_refresh_days: 28       # the daily cycle redoes the (slow) replay when it is older than this
   candidates: [ridge4_x60, ridge4_x120, ridge4_x250, icw_x250, hedge_k30, step6, ridgeall_x250, gbm]
 

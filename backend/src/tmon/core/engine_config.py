@@ -197,6 +197,7 @@ class AdaptCfg(_Frozen):
     switch_margin_t: float = Field(ge=0)
     history_keep: int = Field(ge=1)
     replay_every_dates: int = Field(ge=1)
+    replay_refresh_days: int = Field(default=28, ge=1)
     candidates: tuple[str, ...]
 
 

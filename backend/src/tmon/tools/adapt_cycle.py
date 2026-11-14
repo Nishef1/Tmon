@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import date
 from typing import Any
 
 from tmon.backtest.walkforward_study import Panel, build_panel
@@ -33,17 +34,47 @@ def load_state() -> dict[str, Any] | None:
     return doc
 
 
-def build_state(*, with_replay: bool = False) -> dict[str, Any]:
+def replay_is_stale(previous: dict[str, Any] | None, today: date, refresh_days: int) -> bool:
+    """No replay yet, or the last one is ``refresh_days`` or more older than the data."""
+    rep = (previous or {}).get("replay")
+    if not rep or not rep.get("as_of"):
+        return True
+    return (today - date.fromisoformat(rep["as_of"])).days >= refresh_days
+
+
+def build_state(*, with_replay: bool | None = None) -> dict[str, Any]:
+    """One cycle. ``with_replay`` None = redo the replay only when it is older than
+    ``adapt.replay_refresh_days``; the previous replay is carried over otherwise."""
     cfg = get_engine_config()
     panel = Panel(build_panel())
     with session_scope() as s:
         rules = RuleBook.from_session(s)
+    previous = load_state()
     cost = CostModel.from_rules(rules, panel.dates[-1], cfg.costs.slippage_fraction).round_trip
-    state = adapt.run_cycle(panel, cfg.adapt, cost, load_state())
+    state = adapt.run_cycle(panel, cfg.adapt, cost, previous)
+    if with_replay is None:
+        with_replay = replay_is_stale(previous, panel.dates[-1], cfg.adapt.replay_refresh_days)
     if with_replay:
         state["replay"] = adapt.replay(panel, cfg.adapt, cost)
         state["replay"]["as_of"] = state["as_of"]
     return state
+
+
+def store_state(state: dict[str, Any]) -> bytes:
+    data = json.dumps(state, ensure_ascii=False, separators=(",", ":")).encode("utf8")
+    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
+    return data
+
+
+def run() -> dict[str, Any]:
+    """The daily-cycle step: one cycle, stored; returns a short summary for the cycle log."""
+    state = build_state()
+    store_state(state)
+    return {
+        "as_of": state["as_of"],
+        "champions": {h: v["champion"] for h, v in state["horizons"].items()},
+        "replay": (state.get("replay") or {}).get("as_of"),
+    }
 
 
 def main() -> None:
@@ -51,9 +82,8 @@ def main() -> None:
     ap.add_argument("--replay", action="store_true", help="also replay the gate over the past")
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
-    state = build_state(with_replay=a.replay)
-    data = json.dumps(state, ensure_ascii=False, separators=(",", ":")).encode("utf8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
+    state = build_state(with_replay=True if a.replay else None)
+    data = store_state(state)
     if a.out:
         with open(a.out, "wb") as f:
             f.write(data)
