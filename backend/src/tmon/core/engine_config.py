@@ -190,6 +190,16 @@ class V2Cfg(_Frozen):
     gates: GatesCfg
 
 
+class AdaptCfg(_Frozen):
+    window_dates: int = Field(ge=100)
+    min_half_dates: int = Field(ge=20)
+    min_t: float = Field(ge=0)
+    switch_margin_t: float = Field(ge=0)
+    history_keep: int = Field(ge=1)
+    replay_every_dates: int = Field(ge=1)
+    candidates: tuple[str, ...]
+
+
 class EngineConfig(_Frozen):
     universe: UniverseCfg
     labeling: LabelingCfg
@@ -205,6 +215,7 @@ class EngineConfig(_Frozen):
     model: ModelCfg
     benchmarks: BenchmarksCfg
     v2: V2Cfg
+    adapt: AdaptCfg
     # Timeframes trained and published by the daily cycle, in order (D1 first: it is required).
     publish_timeframes: tuple[str, ...] = ("D1",)
 

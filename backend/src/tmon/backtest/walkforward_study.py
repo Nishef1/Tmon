@@ -120,6 +120,7 @@ class Panel:
 
     def __init__(self, df: pl.DataFrame):
         self.dates: list[Any] = []
+        self.ids: list[np.ndarray] = []
         self.X: list[np.ndarray] = []
         self.Y: list[np.ndarray] = []
         self.F: list[np.ndarray] = []
@@ -131,6 +132,7 @@ class Panel:
             if part.height < MIN_N:
                 continue
             self.dates.append(part["date"][0])
+            self.ids.append(part["instrument_id"].to_numpy())
             self.X.append(part.select(xc).to_numpy().astype(np.float64))
             self.Y.append(part.select(yc).to_numpy().astype(np.float64))
             self.F.append(part.select(fc).to_numpy().astype(np.float64))

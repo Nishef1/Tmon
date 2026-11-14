@@ -175,3 +175,16 @@ v2:
     robust_cost_multiplier: 1.5   # G5
     pbo_splits: 8
     survivorship_resolved: false  # G6: OQ 65 is open; flip only with an official source
+
+# Living ranking (docs/ROADMAP-live-and-deep.md): which way of weighting the signals the market
+# currently rewards. Candidates are tested on the latest `window_dates` out-of-sample dates and only
+# a candidate that beats the fixed equal weights in BOTH halves of that window is promoted.
+adapt:
+  window_dates: 500             # trailing dates with a known outcome the gate looks at
+  min_half_dates: 150           # each half needs this many valid dates, else no promotion
+  min_t: 2.0                    # paired t of the IC gain over equal weights
+  switch_margin_t: 1.0          # a challenger must beat the sitting champion's t by this much
+  history_keep: 240             # cycles kept in the state document
+  replay_every_dates: 21        # replay: how often the gate is re-run on the past
+  candidates: [ridge4_x60, ridge4_x120, ridge4_x250, icw_x250, hedge_k30, step6, ridgeall_x250, gbm]
+
