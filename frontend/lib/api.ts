@@ -70,12 +70,11 @@ export async function apiGet<T>(path: string, params: Params = {}): Promise<ApiR
 export type TaSignals = S["TaSignalsOut"];
 export type TaSignal = S["TaSignal"];
 
-/** The glossary signals' tested history (changes once a day). Kept for ten minutes so the
- *  glossary pages stay static; null when the API cannot be reached. */
+/** The glossary signals' tested history. Always read fresh; null when the API cannot be reached. */
 export async function taSignals(): Promise<TaSignals | null> {
   try {
     const res = await fetch(new URL("/research/ta-signals", API_BASE), {
-      next: { revalidate: 600 },
+      cache: "no-store",
     });
     return res.ok ? ((await res.json()) as TaSignals) : null;
   } catch (err) {
@@ -94,12 +93,12 @@ export type EntrySetup = S["EntrySetup"];
 export type EntryHorizon = S["EntryHorizon"];
 export type DashEntry = S["DashEntry"];
 
-/** After which candles the next ones were green, tested on the whole exchange history (changes
- *  once a day). Kept for ten minutes; null when the API cannot be reached. */
+/** After which candles the next ones were green, tested on the whole exchange history. Always read
+ *  fresh; null when the API cannot be reached. */
 export async function entryOdds(): Promise<EntryOdds | null> {
   try {
     const res = await fetch(new URL("/research/entry-odds", API_BASE), {
-      next: { revalidate: 600 },
+      cache: "no-store",
     });
     return res.ok ? ((await res.json()) as EntryOdds) : null;
   } catch (err) {
@@ -114,11 +113,11 @@ export type BookPoint = S["BookPoint"];
 export type InstrumentBook = S["InstrumentBookOut"];
 
 /** What the order book and the queues add to the score and what a realistic portfolio earned in
- *  the tested history (changes with each study run). Kept for ten minutes; null when unreachable. */
+ *  the tested history. Always read fresh; null when unreachable. */
 export async function orderbookResearch(): Promise<OrderbookResearch | null> {
   try {
     const res = await fetch(new URL("/research/orderbook-queue", API_BASE), {
-      next: { revalidate: 600 },
+      cache: "no-store",
     });
     return res.ok ? ((await res.json()) as OrderbookResearch) : null;
   } catch (err) {

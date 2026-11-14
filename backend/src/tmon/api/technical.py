@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from typing import Any
 
 from tmon.api.schemas import (
@@ -25,25 +24,31 @@ from tmon.storage.objectstore import get_object_store
 from tmon.tools.ta_signals import KEY
 
 log = logging.getLogger(__name__)
-CACHE_SECONDS = 300
-_cache: dict[str, tuple[float, dict[str, Any] | None]] = {}
+# key -> (object version, parsed document). A document is parsed once per version, never per
+# clock interval: every request first asks the store whether the object changed, so a rewritten
+# document is served on the very next request and an unchanged one is not parsed again.
+_cache: dict[str, tuple[str, dict[str, Any]]] = {}
 
 
 def load_doc(key: str) -> dict[str, Any] | None:
-    """A stored research document, parsed once every few minutes (they run to a few MB)."""
-    hit = _cache.get(key)
-    if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
-        return hit[1]
+    """The stored research document as it is right now; ``None`` when absent or unreadable."""
+    bucket = get_settings().minio_artifact_bucket
+    store = get_object_store()
     try:
-        doc: dict[str, Any] | None = json.loads(
-            get_object_store().get(get_settings().minio_artifact_bucket, key)
-        )
+        ver = store.version(bucket, key)
+        hit = _cache.get(key)
+        if hit is not None and hit[0] == ver:
+            return hit[1]
+        doc: dict[str, Any] = json.loads(store.get(bucket, key))
     except (FileNotFoundError, KeyError):
-        doc = None
-    except Exception:  # store unreachable: leave the card out instead of failing the page
-        log.warning("%s unreadable", key, exc_info=True)
-        doc = None
-    _cache[key] = (time.monotonic(), doc)
+        _cache.pop(key, None)
+        return None
+    except Exception as exc:  # store unreachable: no stale copy, the card is left out
+        _cache.pop(key, None)
+        if getattr(exc, "code", None) not in ("NoSuchKey", "NoSuchBucket"):
+            log.warning("%s unreadable", key, exc_info=True)
+        return None
+    _cache[key] = (ver, doc)
     return doc
 
 

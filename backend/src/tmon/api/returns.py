@@ -1,7 +1,8 @@
 """Period returns and 52-week range of every symbol, from split/dividend-adjusted closes.
 
 The screener shows one row per symbol, so these are computed for all symbols in one pass and
-kept per last-price-day: the first request after a new day pays the few seconds, the rest are free.
+kept while the bars behind them are unchanged: the first request after new data pays the few
+seconds, the rest are free.
 """
 
 from __future__ import annotations
@@ -12,11 +13,11 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 import polars as pl
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.features.adjustment import apply_adjustments
-from tmon.storage.models import PriceDaily
+from tmon.storage.models import PriceAdjustment, PriceDaily
 
 # a larger one-day move is a first listing day or a stale reference price after a long halt,
 # not a return anyone earned
@@ -45,19 +46,40 @@ class Period:
     year_low: float | None = None
 
 
-_cache: dict[dt.date, dict[int, Period]] = {}
+_cache: dict[tuple[object, ...], dict[int, Period]] = {}
 _lock = threading.Lock()
 
 
+def _fingerprint(session: Session, last: dt.date) -> tuple[object, ...]:
+    """What the table is computed from: any new, corrected or re-adjusted bar changes it."""
+    since = last - timedelta(days=HORIZONS["ret_year"] + 15)
+    bars = session.execute(
+        select(
+            func.count(),
+            func.max(PriceDaily.fetched_at),
+            func.sum(PriceDaily.close),
+            func.sum(PriceDaily.prev_close),
+        ).where(PriceDaily.date >= since, PriceDaily.date <= last)
+    ).one()
+    adj = session.execute(
+        select(func.count(), func.sum(PriceAdjustment.adj_factor)).where(
+            PriceAdjustment.date <= last
+        )
+    ).one()
+    return (last, *tuple(bars), *tuple(adj))
+
+
 def period_table(session: Session, last: dt.date) -> dict[int, Period]:
+    """Cached for exactly as long as the bars behind it are unchanged, never for a fixed time."""
+    key = _fingerprint(session, last)
     with _lock:
-        hit = _cache.get(last)
+        hit = _cache.get(key)
     if hit is not None:
         return hit
     table = _compute(session, last)
     with _lock:
-        _cache.clear()  # only the latest day is ever asked for
-        _cache[last] = table
+        _cache.clear()  # only the latest state is ever asked for
+        _cache[key] = table
     return table
 
 

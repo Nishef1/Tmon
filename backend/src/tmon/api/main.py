@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from collections.abc import Awaitable, Callable
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from tmon.api.routers import (
@@ -29,6 +31,15 @@ def create_app() -> FastAPI:
         allow_methods=["GET"],
         allow_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def never_cache(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        """Answers describe the market right now: no browser, proxy or framework may keep one."""
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     @app.get("/health", tags=["meta"])
     def health() -> dict[str, str]:

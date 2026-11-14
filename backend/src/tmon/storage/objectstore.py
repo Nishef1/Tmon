@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol
@@ -19,6 +20,9 @@ from tmon.storage.models import RawPayload
 class ObjectStore(Protocol):
     def put(self, bucket: str, key: str, data: bytes, content_type: str) -> None: ...
     def get(self, bucket: str, key: str) -> bytes: ...
+    def version(self, bucket: str, key: str) -> str:
+        """A token that changes whenever the object is rewritten (raises if it does not exist)."""
+        ...
 
 
 class MinioStore:
@@ -50,6 +54,10 @@ class MinioStore:
             resp.close()
             resp.release_conn()
 
+    def version(self, bucket: str, key: str) -> str:
+        st = self._client.stat_object(bucket, key)
+        return f"{st.etag}-{st.last_modified}"
+
 
 class MemoryStore:
     """In-memory store for tests and offline runs."""
@@ -62,6 +70,9 @@ class MemoryStore:
 
     def get(self, bucket: str, key: str) -> bytes:
         return self.objects[(bucket, key)]
+
+    def version(self, bucket: str, key: str) -> str:
+        return hashlib.sha256(self.objects[(bucket, key)]).hexdigest()
 
 
 class FileStore:
@@ -79,10 +90,18 @@ class FileStore:
     def put(self, bucket: str, key: str, data: bytes, content_type: str) -> None:
         p = self._path(bucket, key)
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(data)
+        # write beside, then swap: readers never see a half-written file, and every rewrite is a
+        # new file, so ``version`` changes even for a same-size rewrite within one clock tick
+        tmp = p.with_name(f".{p.name}.{os.getpid()}.tmp")
+        tmp.write_bytes(data)
+        os.replace(tmp, p)
 
     def get(self, bucket: str, key: str) -> bytes:
         return self._path(bucket, key).read_bytes()
+
+    def version(self, bucket: str, key: str) -> str:
+        st = self._path(bucket, key).stat()
+        return f"{st.st_ino}-{st.st_mtime_ns}-{st.st_size}"
 
 
 def get_object_store() -> ObjectStore:
