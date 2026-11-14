@@ -12,6 +12,7 @@ from tmon.api.routers import (
     market,
     metrics,
     picks,
+    portfolios,
     ranking,
     recommendations,
     research,
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
         market.router,
         ranking.router,
         research.router,
+        portfolios.router,
     ):
         app.include_router(r)
     return app

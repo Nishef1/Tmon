@@ -1,5 +1,5 @@
 """One command for the REAL thing, without Docker: live TSETMC data -> features -> model ->
-signals -> API + web UI, with intraday snapshots running in the background.
+signals -> API + web UI, with the portfolio monitor (intraday + exit alerts) in the background.
 
     backend/.venv/Scripts/python.exe backend/scripts/run_live.py [options]
 
@@ -116,9 +116,11 @@ def main() -> None:
     procs = [
         subprocess.Popen([sys.executable, "scripts/serve_demo.py", str(DB)], cwd=demo.BACKEND),
         subprocess.Popen([node, str(demo.NEXT), "start", "-p", "3000"], cwd=demo.FRONTEND),
+        # one market-watch poll feeds the intraday tables and every portfolio's exit alerts,
+        # plus Codal/news watching and the pre-open briefing (tmon.portfolio.monitor)
         subprocess.Popen(
-            [sys.executable, "-m", "tmon.ingest.tsetmc.cli", "intraday", "--follow"]
-            + (["--force", "--interval", "5"] if args.stand_in else []),
+            [sys.executable, "-m", "tmon.portfolio.monitor"]
+            + (["--force"] if args.stand_in else []),
             cwd=demo.BACKEND,
         ),
     ]

@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_model: str = "claude-opus-5-5"
     book_top_n: int = 15
+    # Portfolio monitor (tmon.portfolio.monitor): one market-watch poll feeds both the intraday
+    # tables and the exit alerts, so this replaces intraday_interval_seconds while it runs.
+    monitor_interval_seconds: float = 20.0
+    preopen_lead_minutes: int = 120  # pre-open briefing this long before the open
+    codal_watch_minutes: int = 5  # newest Codal letters during the session
+    news_watch_minutes: int = 30  # RSS feeds during the session (hourly outside it)
+    # Where the web UI is reachable, for links in pushed alerts (None: no link).
+    public_web_url: str | None = "http://localhost:3000"
     # Days the scheduler wakes the ingest jobs (scheduling only; whether a day was a trading day is
     # derived from data into trading_calendar). Celery day names.
     schedule_days: str = "sat,sun,mon,tue,wed"

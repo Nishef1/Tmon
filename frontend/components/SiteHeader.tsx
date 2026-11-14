@@ -11,6 +11,7 @@ const NAV = [
   { href: "/industries", label: "صنایع و نمادها" },
   { href: "/model", label: "شانس ورود و مدل" },
   { href: "/picks", label: "خریدهای من" },
+  { href: "/portfolios", label: "پرتفوی‌ها" },
   { href: "/compare", label: "مقایسه" },
   { href: "/glossary", label: "واژه‌نامه" },
 ];

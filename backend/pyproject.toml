@@ -28,6 +28,8 @@ dependencies = [
     "hazm>=0.12.1",
     "anthropic>=2.8.0",
     "iran-bourse-mcp>=0.5.0",
+    "arch>=9.0.0",
+    "apprise>=2.2.0",
 ]
 
 [project.optional-dependencies]

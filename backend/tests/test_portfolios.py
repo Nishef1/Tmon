@@ -1,0 +1,286 @@
+from __future__ import annotations
+
+import datetime as dt
+import json
+from collections.abc import Iterator
+
+import numpy as np
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from tmon.api.main import create_app
+from tmon.core.db import get_session
+from tmon.portfolio import advice as advice_mod
+from tmon.portfolio import alerts as alert_store
+from tmon.portfolio.briefing import rule_call
+from tmon.portfolio.forecast import Position, forecast
+from tmon.portfolio.keys import hash_key, matches, new_key
+from tmon.portfolio.notify import masked, parse_callback
+from tmon.portfolio.watch import (
+    URGENT,
+    WARN,
+    Finding,
+    HoldingView,
+    WatchState,
+    detect_holding,
+    parse_quote,
+    settings_for,
+)
+from tmon.storage.models import Instrument, PriceDaily
+from tmon.storage.objectstore import MemoryStore
+from tmon.tools.v2_ranking import KEY
+
+AT = dt.datetime(2026, 11, 14, 7, 0, tzinfo=dt.UTC)
+
+
+def _view(**over: object) -> HoldingView:
+    base: dict[str, object] = {
+        "holding_id": 1,
+        "portfolio_id": 1,
+        "instrument_id": 10,
+        "ins_code": "111",
+        "symbol": "خودرو",
+        "shares": 1000.0,
+        "avg_price": 3000.0,
+        "stop_price": None,
+        "avg_daily_volume": 1_000_000.0,
+    }
+    base.update(over)
+    return HoldingView(**base)  # type: ignore[arg-type]
+
+
+def _row(**over: object) -> dict[str, object]:
+    row: dict[str, object] = {
+        "insCode": "111",
+        "lVal18AFC": "خودرو",
+        "pDrCotVal": 2950.0,
+        "pClosing": 2960.0,
+        "priceYesterday": 3000.0,
+        "pMax": 3090.0,
+        "pMin": 2910.0,
+        "qTotTran5J": 100_000.0,
+        "qTotCap": 3e8,
+        "blDs": [{"n": 1, "pmd": 2940, "qmd": 5000, "pmo": 2950, "qmo": 4000}],
+    }
+    row.update(over)
+    return row
+
+
+# -- detectors ---------------------------------------------------------------------------------
+def test_a_big_sell_queue_is_urgent_and_asks_to_exit() -> None:
+    q = parse_quote(
+        _row(pDrCotVal=2910.0, blDs=[{"n": 1, "pmd": 0, "qmd": 0, "pmo": 2910, "qmo": 900_000}])
+    )
+    found = detect_holding(_view(), q, WatchState(), settings_for(None), AT, 210)
+    sq = next(f for f in found if f.kind == "sell_queue")
+    assert sq.severity == URGENT and sq.ask_exit
+    assert any(f.kind == "price_drop" for f in found)
+
+
+def test_a_sudden_volume_burst_while_falling_alerts() -> None:
+    """Iran Khodro at 10:00: a block is dumped within minutes."""
+    st = WatchState()
+    cfg = settings_for(None)
+    h = _view()
+    st.push(parse_quote(_row(qTotTran5J=100_000.0, pDrCotVal=3000.0)), AT)
+    later = AT + dt.timedelta(minutes=4)
+    q = parse_quote(_row(qTotTran5J=900_000.0, pDrCotVal=2900.0))
+    st.push(q, later)
+    found = detect_holding(h, q, st, cfg, later, 210)
+    surge = next(f for f in found if f.kind == "volume_surge")
+    assert surge.severity >= WARN and surge.ask_exit
+    assert surge.data["pace_x"] > cfg["volume_surge_x"]
+
+
+def test_the_owners_stop_price_fires() -> None:
+    q = parse_quote(_row(pDrCotVal=2700.0))
+    found = detect_holding(_view(stop_price=2800.0), q, WatchState(), settings_for(None), AT, 210)
+    assert any(f.kind == "stop_loss" and f.severity == URGENT for f in found)
+
+
+def test_a_quiet_stock_raises_nothing() -> None:
+    q = parse_quote(_row(pDrCotVal=3010.0))
+    assert detect_holding(_view(), q, WatchState(), settings_for(None), AT, 210) == []
+
+
+def test_custom_settings_are_merged_with_defaults() -> None:
+    cfg = settings_for({"drop_warn_pct": -1})
+    assert cfg["drop_warn_pct"] == -1 and cfg["drop_urgent_pct"] == -5
+
+
+# -- notify / keys -----------------------------------------------------------------------------
+def test_callback_data_round_trip() -> None:
+    assert parse_callback("a:42:exit") == (42, "exit")
+    assert parse_callback("a:x:exit") is None
+    assert parse_callback("a:1:sell_all") is None
+
+
+def test_secrets_are_masked() -> None:
+    m = masked({"type": "bale", "token": "123456789:abcdefgh", "chat_id": 5})
+    assert "abcdefgh" not in str(m) and m["chat_id"] == 5
+    assert masked({"type": "apprise", "url": "ntfy://secret-topic"})["url"] == "ntfy://…"
+
+
+def test_keys_hash_and_match() -> None:
+    k = new_key()
+    assert matches(k, hash_key(k)) and not matches(k + "x", hash_key(k))
+
+
+# -- alert store -------------------------------------------------------------------------------
+def test_an_alert_repeats_only_when_it_gets_worse(session: Session) -> None:
+    from tmon.storage.models import Portfolio
+
+    p = Portfolio(name="p", key_hash="h", cash=0, settings={}, channels=[], created_at=AT)
+    session.add(p)
+    session.flush()
+    f = Finding("price_drop", WARN, None, "t", "b", "k1")
+    assert len(alert_store.record(session, p.id, [f], AT)) == 1
+    assert alert_store.record(session, p.id, [f], AT) == []
+    worse = Finding("price_drop", URGENT, None, "t", "b", "k1")
+    assert len(alert_store.record(session, p.id, [worse], AT)) == 1
+
+
+# -- briefing rule -----------------------------------------------------------------------------
+def test_strong_negative_news_means_exit() -> None:
+    h = {"symbol": "خودرو", "verdict": "hold", "reasons": []}
+    ev = {"news": [{"title": "زیان سنگین", "direction": -1, "magnitude": 4}], "codal": []}
+    assert rule_call(h, ev).action == "exit"
+    assert rule_call(h, {"news": [], "codal": []}).action == "hold"
+
+
+# -- forecast ----------------------------------------------------------------------------------
+def test_forecast_bands_are_ordered_and_backtested() -> None:
+    rng = np.random.default_rng(1)
+    t, n = 700, 2
+    lr = rng.normal(0.0005, 0.02, size=(t, n))
+    closes = 1000 * np.exp(np.vstack([np.zeros((1, n)), np.cumsum(lr, axis=0)]))
+    dates = [dt.date(2023, 1, 1) + dt.timedelta(days=i) for i in range(t + 1)]
+    pos = [
+        Position(1, "الف", 100, float(closes[-1, 0]), 1000.0),
+        Position(2, "ب", 100, float(closes[-1, 1]), 1000.0),
+    ]
+    doc = forecast(pos, dates, closes)
+    assert doc["available"]
+    keys = [h["key"] for h in doc["horizons"]]
+    assert keys[0] == "week" and keys[-1] == "year"
+    for h in doc["horizons"]:
+        b = h["portfolio"]
+        assert b["q05"] <= b["q50"] <= b["q95"]
+        assert 0 <= b["p_gain"] <= 1
+        assert {s["symbol"] for s in h["symbols"]} == {"الف", "ب"}
+    week = doc["horizons"][0]["backtest"]
+    assert week["n"] > 0 and 0 <= week["coverage80"] <= 1
+
+
+# -- API ---------------------------------------------------------------------------------------
+@pytest.fixture
+def client(session: Session) -> Iterator[TestClient]:
+    app = create_app()
+    app.dependency_overrides[get_session] = lambda: session
+    with TestClient(app) as c:
+        yield c
+
+
+def _prices(session: Session, symbol: str, code: str, start: float, days: int = 300) -> int:
+    i = Instrument(ins_code=code, symbol_fa=symbol, name_fa=f"شرکت {symbol}", sector_code="34")
+    session.add(i)
+    session.flush()
+    rng = np.random.default_rng(int(code))
+    p = start
+    d0 = dt.date(2025, 9, 1)
+    for k in range(days):
+        p *= float(np.exp(rng.normal(0, 0.02)))
+        session.add(
+            PriceDaily(
+                instrument_id=i.id,
+                date=d0 + dt.timedelta(days=k),
+                open=p,
+                high=p,
+                low=p,
+                last=p,
+                close=p,
+                prev_close=p,
+                volume=1e6,
+                value=p * 1e6,
+                fetched_at=AT,
+            )
+        )
+    session.flush()
+    return i.id
+
+
+def test_portfolio_flow(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    weak = _prices(session, "ضعیف", "1001", 1000)
+    strong = _prices(session, "قوی", "1002", 2000)
+    store = MemoryStore()
+    doc = {
+        "as_of": "2026-11-14",
+        "recommendation_allowed": False,
+        "round_trip_cost": 0.017512,
+        "evidence": [{"horizon_days": 20, "top_excess": 0.06, "bottom_excess": -0.04}],
+        "universe": [
+            {"id": weak, "score": 0.1, "zone": "avoid", "queue_state": "none"},
+            {"id": strong, "score": 0.95, "zone": "buy", "queue_state": "none"},
+        ],
+    }
+    store.put("artifacts", KEY, json.dumps(doc).encode(), "application/json")
+    monkeypatch.setattr(advice_mod, "get_object_store", lambda: store)
+    monkeypatch.setattr(
+        advice_mod, "get_settings", lambda: type("S", (), {"minio_artifact_bucket": "artifacts"})
+    )
+
+    r = client.post("/portfolios", json={"name": "من", "cash": 50_000_000})
+    assert r.status_code == 201
+    pid, key = r.json()["id"], r.json()["key"]
+    hdr = {"X-Portfolio-Key": key}
+    assert client.get(f"/portfolios/{pid}").status_code == 404
+    assert client.get(f"/portfolios/{pid}", headers={"X-Portfolio-Key": "nope"}).status_code == 404
+
+    r = client.post(
+        f"/portfolios/{pid}/holdings",
+        json={"symbol": "ضعيف", "shares": 1000, "avg_price": 900},
+        headers=hdr,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["holdings"][0]["symbol"] == "ضعیف" and body["holdings"][0]["close"] is not None
+
+    adv = client.get(f"/portfolios/{pid}/advice", headers=hdr).json()
+    assert adv["holdings"][0]["verdict"] == "weak"
+    assert adv["switches"] and adv["switches"][0]["buy"]["symbol"] == "قوی"
+    assert adv["validated"] is False
+
+    fc = client.get(f"/portfolios/{pid}/forecast", headers=hdr).json()
+    assert fc["available"] and len(fc["horizons"]) == 5
+
+    r = client.patch(
+        f"/portfolios/{pid}",
+        json={"channels": [{"type": "bale", "token": "123456789:secretsecret", "chat_id": "9"}]},
+        headers=hdr,
+    )
+    assert r.status_code == 200 and "secretsecret" not in r.text
+    # sending the masked channel back keeps the stored token
+    r = client.patch(f"/portfolios/{pid}", json={"channels": r.json()["channels"]}, headers=hdr)
+    assert r.status_code == 200, r.text
+
+    from tmon.storage.models import Portfolio
+
+    p = session.get(Portfolio, pid)
+    assert p is not None and p.channels[0]["token"] == "123456789:secretsecret"
+    a = alert_store.record(
+        session, pid, [Finding("sell_queue", URGENT, weak, "صف فروش", "b", "x", ask_exit=True)], AT
+    )[0]
+    session.commit()
+    alerts = client.get(f"/portfolios/{pid}/alerts", headers=hdr).json()
+    assert alerts[0]["ask_exit"] and alerts[0]["symbol"] == "ضعیف"
+    r = client.post(f"/portfolios/{pid}/alerts/{a.id}/answer", json={"answer": "exit"}, headers=hdr)
+    assert r.json()["answer"] == "exit"
+    assert client.get(f"/portfolios/{pid}/alerts?after={a.id}", headers=hdr).json() == []
+
+    b = client.post(f"/portfolios/{pid}/briefing", headers=hdr)
+    assert b.status_code == 200, b.text
+    assert b.json()["method"] == "rules"
+    assert client.get(f"/portfolios/{pid}/briefing", headers=hdr).json()["id"] == b.json()["id"]

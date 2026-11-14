@@ -259,6 +259,199 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/portfolios": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create Portfolio */
+    post: operations["create_portfolio_portfolios_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Portfolio */
+    get: operations["get_portfolio_portfolios__portfolio_id__get"];
+    put?: never;
+    post?: never;
+    /** Delete Portfolio */
+    delete: operations["delete_portfolio_portfolios__portfolio_id__delete"];
+    options?: never;
+    head?: never;
+    /** Patch Portfolio */
+    patch: operations["patch_portfolio_portfolios__portfolio_id__patch"];
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/advice": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Advice
+     * @description Keep / weak / sell per holding, switches that beat the round-trip cost, buys for the cash.
+     */
+    get: operations["get_advice_portfolios__portfolio_id__advice_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/alerts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Alerts
+     * @description Newest first; ``after`` returns only alerts with a larger id (for polling).
+     */
+    get: operations["list_alerts_portfolios__portfolio_id__alerts_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/alerts/{alert_id}/answer": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Answer Alert */
+    post: operations["answer_alert_portfolios__portfolio_id__alerts__alert_id__answer_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/briefing": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Briefing */
+    get: operations["get_briefing_portfolios__portfolio_id__briefing_get"];
+    put?: never;
+    /**
+     * Run Briefing
+     * @description Run the review now (with the news and letters already collected) and push its alerts.
+     */
+    post: operations["run_briefing_portfolios__portfolio_id__briefing_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/forecast": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Forecast
+     * @description Return bands for a week to a year, for the portfolio and each holding, with the coverage
+     *     of those bands measured on the portfolio's own history.
+     */
+    get: operations["get_forecast_portfolios__portfolio_id__forecast_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/holdings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add Holding
+     * @description Adding a symbol already held averages the price in (a second buy).
+     */
+    post: operations["add_holding_portfolios__portfolio_id__holdings_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/holdings/{holding_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Holding */
+    delete: operations["delete_holding_portfolios__portfolio_id__holdings__holding_id__delete"];
+    options?: never;
+    head?: never;
+    /** Patch Holding */
+    patch: operations["patch_holding_portfolios__portfolio_id__holdings__holding_id__patch"];
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/notify-test": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Notify Test
+     * @description Send a test message (with the answer buttons) to every channel.
+     */
+    post: operations["notify_test_portfolios__portfolio_id__notify_test_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/recommendations": {
     parameters: {
       query?: never;
@@ -730,6 +923,50 @@ export interface components {
       /** Value */
       value: number;
     };
+    /** AlertOut */
+    AlertOut: {
+      /** Answer */
+      answer: string | null;
+      /** Answered At */
+      answered_at: string | null;
+      /** Ask Exit */
+      ask_exit: boolean;
+      /** Body */
+      body: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Data */
+      data: {
+        [key: string]: unknown;
+      };
+      /** Delivered */
+      delivered: {
+        [key: string]: unknown;
+      }[];
+      /** Id */
+      id: number;
+      /** Instrument Id */
+      instrument_id: number | null;
+      /** Kind */
+      kind: string;
+      /** Severity */
+      severity: number;
+      /** Symbol */
+      symbol: string | null;
+      /** Title */
+      title: string;
+    };
+    /** AnswerIn */
+    AnswerIn: {
+      /**
+       * Answer
+       * @enum {string}
+       */
+      answer: "exit" | "reduce" | "hold";
+    };
     /**
      * AutopilotDeep
      * @description How current the deep study is, and whether it is due again.
@@ -1025,6 +1262,24 @@ export interface components {
       /** T5 */
       t5: number;
     };
+    /** BriefingOut */
+    BriefingOut: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Doc */
+      doc: {
+        [key: string]: unknown;
+      };
+      /** Id */
+      id: number;
+      /** Kind */
+      kind: string;
+      /** Method */
+      method: string;
+    };
     /** CalibrationBlock */
     CalibrationBlock: {
       /** Auc */
@@ -1207,6 +1462,15 @@ export interface components {
       type: string;
       /** Url */
       url: string | null;
+    };
+    /** CreatedOut */
+    CreatedOut: {
+      /** Id */
+      id: number;
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
     };
     /**
      * DashDecision
@@ -2290,6 +2554,67 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** HoldingIn */
+    HoldingIn: {
+      /** Avg Price */
+      avg_price: number;
+      /** Bought On */
+      bought_on?: string | null;
+      /** Instrument Id */
+      instrument_id?: number | null;
+      /** Note */
+      note?: string | null;
+      /** Shares */
+      shares: number;
+      /** Stop Price */
+      stop_price?: number | null;
+      /** Symbol */
+      symbol?: string | null;
+    };
+    /** HoldingOut */
+    HoldingOut: {
+      /** Avg Price */
+      avg_price: number;
+      /** Bought On */
+      bought_on: string | null;
+      /** Close */
+      close: number | null;
+      /** Close Date */
+      close_date: string | null;
+      /** Cost */
+      cost: number;
+      /** Id */
+      id: number;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Market Value */
+      market_value: number;
+      /** Name */
+      name: string | null;
+      /** Note */
+      note: string | null;
+      /** Pnl */
+      pnl: number;
+      /** Pnl Pct */
+      pnl_pct: number | null;
+      /** Shares */
+      shares: number;
+      /** Stop Price */
+      stop_price: number | null;
+      /** Symbol */
+      symbol: string;
+    };
+    /** HoldingPatch */
+    HoldingPatch: {
+      /** Avg Price */
+      avg_price?: number | null;
+      /** Note */
+      note?: string | null;
+      /** Shares */
+      shares?: number | null;
+      /** Stop Price */
+      stop_price?: number | null;
+    };
     /** InflationOut */
     InflationOut: {
       /** Method */
@@ -2898,6 +3223,77 @@ export interface components {
       symbol: string;
       /** Verdicts */
       verdicts: components["schemas"]["VerdictCheck"][];
+    };
+    /** PortfolioCreate */
+    PortfolioCreate: {
+      /**
+       * Cash
+       * @default 0
+       */
+      cash: number;
+      /** Name */
+      name: string;
+      /** Owner */
+      owner?: string | null;
+    };
+    /** PortfolioOut */
+    PortfolioOut: {
+      /** Cash */
+      cash: number;
+      /** Channels */
+      channels: {
+        [key: string]: unknown;
+      }[];
+      /** Cost */
+      cost: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Defaults */
+      defaults: {
+        [key: string]: unknown;
+      };
+      /** Holdings */
+      holdings: components["schemas"]["HoldingOut"][];
+      /** Id */
+      id: number;
+      /** Market Value */
+      market_value: number;
+      /** Name */
+      name: string;
+      /** Owner */
+      owner: string | null;
+      /** Pnl */
+      pnl: number;
+      /** Pnl Pct */
+      pnl_pct: number | null;
+      /** Settings */
+      settings: {
+        [key: string]: unknown;
+      };
+      /** Total Value */
+      total_value: number;
+    };
+    /** PortfolioPatch */
+    PortfolioPatch: {
+      /** Cash */
+      cash?: number | null;
+      /** Channels */
+      channels?:
+        | {
+            [key: string]: unknown;
+          }[]
+        | null;
+      /** Name */
+      name?: string | null;
+      /** Owner */
+      owner?: string | null;
+      /** Settings */
+      settings?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** RankingBook */
     RankingBook: {
@@ -4015,6 +4411,494 @@ export interface operations {
           "application/json": {
             [key: string]: boolean;
           };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_portfolio_portfolios_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PortfolioCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CreatedOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_portfolio_portfolios__portfolio_id__get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_portfolio_portfolios__portfolio_id__delete: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  patch_portfolio_portfolios__portfolio_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PortfolioPatch"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_advice_portfolios__portfolio_id__advice_get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_alerts_portfolios__portfolio_id__alerts_get: {
+    parameters: {
+      query?: {
+        after?: number;
+        limit?: number;
+      };
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AlertOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  answer_alert_portfolios__portfolio_id__alerts__alert_id__answer_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+        alert_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AnswerIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AlertOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_briefing_portfolios__portfolio_id__briefing_get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BriefingOut"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  run_briefing_portfolios__portfolio_id__briefing_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BriefingOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_forecast_portfolios__portfolio_id__forecast_get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_holding_portfolios__portfolio_id__holdings_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HoldingIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_holding_portfolios__portfolio_id__holdings__holding_id__delete: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+        holding_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  patch_holding_portfolios__portfolio_id__holdings__holding_id__patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+        holding_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HoldingPatch"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  notify_test_portfolios__portfolio_id__notify_test_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          }[];
         };
       };
       /** @description Validation Error */

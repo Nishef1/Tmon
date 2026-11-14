@@ -535,3 +535,78 @@ class OrderBookDaily(Base, Provenance):
     frac_buy_queue: Mapped[float | None] = mapped_column(Float)  # share of session, ask side empty
     frac_sell_queue: Mapped[float | None] = mapped_column(Float)  # share of session, bid side empty
     peak_queue_volume: Mapped[float | None] = mapped_column(Float)  # largest one-sided queue
+
+
+class Portfolio(Base):
+    """One user's portfolio. Each portfolio is separate: its own holdings, alert thresholds,
+    notification channels and access key (only the SHA-256 of the key is stored)."""
+
+    __tablename__ = "portfolios"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(120))
+    owner: Mapped[str | None] = mapped_column(String(120))
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    cash: Mapped[float] = mapped_column(Float, default=0.0)  # rial available for new buys
+    settings: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict)  # alert thresholds
+    channels: Mapped[list[dict[str, Any]]] = mapped_column(JsonType, default=list)  # notify targets
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Holding(Base):
+    """A position of a portfolio: shares at an average price, with an optional stop."""
+
+    __tablename__ = "holdings"
+    __table_args__ = (UniqueConstraint("portfolio_id", "instrument_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    portfolio_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolios.id", ondelete="CASCADE"), index=True
+    )
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), index=True)
+    shares: Mapped[float] = mapped_column(Float)
+    avg_price: Mapped[float] = mapped_column(Float)  # rial per share
+    bought_on: Mapped[dt.date | None] = mapped_column(Date)
+    stop_price: Mapped[float | None] = mapped_column(Float)  # explicit stop, rial
+    note: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+
+
+class PortfolioAlert(Base):
+    """An alert sent to one portfolio. ``dedupe_key`` makes one condition alert once until it gets
+    worse; ``answer`` is the owner's reply (exit / hold / reduce) from the page or the messenger."""
+
+    __tablename__ = "portfolio_alerts"
+    __table_args__ = (Index("ix_portfolio_alerts_portfolio_created", "portfolio_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    portfolio_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolios.id", ondelete="CASCADE"), index=True
+    )
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"))
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    severity: Mapped[int] = mapped_column(Integer)  # 1 info, 2 warning, 3 urgent
+    title: Mapped[str] = mapped_column(Text)
+    body: Mapped[str] = mapped_column(Text)
+    data: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict)
+    dedupe_key: Mapped[str] = mapped_column(String(200), index=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), index=True)
+    delivered: Mapped[list[dict[str, Any]]] = mapped_column(JsonType, default=list)
+    answer: Mapped[str | None] = mapped_column(String(16))
+    answered_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PortfolioBriefing(Base):
+    """The pre-open (and hourly in-session) review of one portfolio: news, Codal, supervisor
+    messages, overnight macro and the model's readings, with a final verdict per holding."""
+
+    __tablename__ = "portfolio_briefings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    portfolio_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolios.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(16))  # preopen | hourly | manual
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), index=True)
+    method: Mapped[str] = mapped_column(String(64))  # LLM model name, or "rules"
+    doc: Mapped[dict[str, Any]] = mapped_column(JsonType)
