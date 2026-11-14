@@ -440,6 +440,7 @@ class RankingRow(ApiModel):
     zone: Literal["buy", "hold", "avoid", "excluded", "no_data"]
     queue_state: str | None = None
     median_value: float | None = None
+    in_basket: bool = True
     signals: dict[str, float | None]
     instrument_id: int | None = None
     close: float | None = None

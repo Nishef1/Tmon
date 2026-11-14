@@ -4,7 +4,8 @@ import type { Ranking, RankingRow } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 
 const isFund = (r: RankingRow) => (r.name ?? "").startsWith("صندوق");
-const inQueue = (r: RankingRow) => r.queue_state === "buy_queue" || r.queue_state === "sell_queue";
+// A buy queue is shown (tagged): the stock is strong, only a market order may not fill today.
+const inQueue = (r: RankingRow) => r.queue_state === "sell_queue";
 
 type Col = {
   zone: "buy" | "hold" | "avoid";
@@ -13,7 +14,7 @@ type Col = {
 };
 
 /** Today's three possible decisions over the liquid basket: buy, hold, sell. Only stocks an
- * ordinary buyer can place an order for today appear (no funds, none in a limit queue); what was
+ * ordinary buyer can place an order for today appear (no funds, none in a sell queue); what was
  * left out is counted and named. The ranking is only advice once the validation gates pass. */
 const ZONE = { buy: "buy", hold: "hold", avoid: "sell" } as const;
 
@@ -62,9 +63,10 @@ export function TradableRanking({ d }: { d: Ranking }) {
         ))}
       </div>
       <p className="text-xs text-muted">
-        کنار گذاشته‌شده: {faNumber(queued.length)} سهم در صف
+        کنار گذاشته‌شده: {faNumber(queued.length)} سهم در صف فروش
         {queued.length > 0 && ` (${queued.map((r) => r.symbol).join("، ")})`} و{" "}
-        {faNumber(funds.length)} صندوق
+        {faNumber(funds.length)} صندوق. نمادهای «صف خرید» نشان داده می‌شوند ولی ممکن است سفارش امروز
+        پر نشود؛ نماد خریدِ خارج از ۱۰۰ نماد پرمعامله با برچسب «کم‌معامله‌تر» آمده است
         {funds.length > 0 && ` (${funds.map((r) => r.symbol).join("، ")})`}.
       </p>
     </section>
@@ -83,7 +85,7 @@ function Column({ c, rows }: { c: Col; rows: RankingRow[] }) {
       </div>
       <p className="mt-2 text-xs text-muted">{c.why}</p>
       {rows.length === 0 ? (
-        <p className="mt-2 text-sm">امروز سهم عادیِ بدون صف در این ناحیه نیست.</p>
+        <p className="mt-2 text-sm">امروز سهم عادیِ بدون صف فروش در این ناحیه نیست.</p>
       ) : (
         <ul className="mt-2 flex flex-wrap gap-1.5 text-sm">
           {head.map((r) => (
@@ -118,6 +120,12 @@ function Chip({ r }: { r: RankingRow }) {
       >
         <span className="flex items-baseline gap-2">
           <span className="font-bold">{r.symbol}</span>
+          {r.queue_state === "buy_queue" && (
+            <span className="rounded bg-up-soft px-1 text-[10px] text-up">صف خرید</span>
+          )}
+          {r.in_basket === false && (
+            <span className="rounded bg-warn-soft px-1 text-[10px] text-warn">کم‌معامله‌تر</span>
+          )}
           {r.change_pct != null && (
             <span
               className={`text-xs font-semibold ${r.change_pct > 0 ? "text-up" : r.change_pct < 0 ? "text-down" : "text-muted"}`}

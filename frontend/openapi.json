@@ -8719,6 +8719,11 @@
             ],
             "title": "Close"
           },
+          "in_basket": {
+            "default": true,
+            "title": "In Basket",
+            "type": "boolean"
+          },
           "instrument_id": {
             "anyOf": [
               {
@@ -8828,6 +8833,7 @@
           "zone",
           "queue_state",
           "median_value",
+          "in_basket",
           "signals",
           "instrument_id",
           "close",

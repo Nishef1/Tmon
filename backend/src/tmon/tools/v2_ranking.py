@@ -52,6 +52,7 @@ KEY = "v2/ranking.json"
 REVIEW_HORIZON = 5  # the product reviews every 5 days, so the horizon-5 champion governs
 HORIZONS = (1, 5, 20, 60)  # trading days: next day, week, month, three months
 BASKET = 100
+EXTRA_MIN_VALUE = 1e10  # rial/day (1bn toman) for a buy-zone name outside the basket
 
 
 def _f(x: Any) -> float | None:
@@ -72,6 +73,14 @@ def rows_for(universe: list[dict[str, Any]], names: dict[int, Instrument]) -> li
     no hole in the basket."""
     pool = [u for u in universe if u["eligible"] and not u["halted"] and u["median_value"]]
     top = sorted(pool, key=lambda u: u["median_value"], reverse=True)[:BASKET]
+    core = {u["id"] for u in top}
+    # A buy-zone name just outside the 100 most traded still trades enough to buy; leaving it out
+    # made strong names drop off the page whenever their liquidity rank slipped for a day.
+    top += [
+        u
+        for u in pool
+        if u["id"] not in core and u["zone"] == "buy" and u["median_value"] >= EXTRA_MIN_VALUE
+    ]
     top.sort(key=lambda u: (u["score"] is None, -(u["score"] or 0.0)))
     out: list[dict[str, Any]] = []
     for u in top:
@@ -93,6 +102,7 @@ def rows_for(universe: list[dict[str, Any]], names: dict[int, Instrument]) -> li
                 "queue_state": u["queue_state"],
                 "median_value": u["median_value"],
                 "partial": u["partial"],
+                "in_basket": u["id"] in core,
                 "signals": {s: u["signals"].get(s) for s in SIGNALS},
             }
         )

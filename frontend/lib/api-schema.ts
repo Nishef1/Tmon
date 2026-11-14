@@ -3441,6 +3441,11 @@ export interface components {
       change_pct: number | null;
       /** Close */
       close: number | null;
+      /**
+       * In Basket
+       * @default true
+       */
+      in_basket: boolean;
       /** Instrument Id */
       instrument_id: number | null;
       /** Median Value */
