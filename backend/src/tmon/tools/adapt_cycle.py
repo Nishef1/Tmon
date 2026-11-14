@@ -14,12 +14,15 @@ import json
 from datetime import date
 from typing import Any
 
+from sqlalchemy import select
+
 from tmon.backtest.walkforward_study import Panel, build_panel
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import get_engine_config
 from tmon.domain.rules import CostModel, RuleBook
-from tmon.engine import adapt
+from tmon.engine import adapt, regime
+from tmon.storage.models import MarketIndexDaily
 from tmon.storage.objectstore import get_object_store
 
 KEY = "v2/adapt_state.json"
@@ -42,9 +45,36 @@ def replay_is_stale(previous: dict[str, Any] | None, today: date, refresh_days: 
     return (today - date.fromisoformat(rep["as_of"])).days >= refresh_days
 
 
+def load_regime() -> dict[str, Any] | None:
+    """The regime reading from the official TEDPIX series (``tmon.engine.regime``)."""
+    cfg = get_engine_config()
+    code = cfg.benchmarks.indices["tedpix"]
+    with session_scope() as s:
+        rows = s.execute(
+            select(MarketIndexDaily.date, MarketIndexDaily.close)
+            .where(MarketIndexDaily.index_code == code)
+            .order_by(MarketIndexDaily.date)
+        ).all()
+    return regime.summarize(
+        [r[0] for r in rows],
+        [r[1] for r in rows],
+        stress_days=cfg.adapt.stress_days,
+        stress_drawdown=cfg.adapt.stress_drawdown,
+    )
+
+
+def regime_changed(previous: dict[str, Any] | None, current: dict[str, Any] | None) -> bool:
+    """The stress flag flipped since the last cycle (or this is the first reading)."""
+    if current is None:
+        return False
+    before = (previous or {}).get("regime")
+    return before is None or bool(before.get("stress")) != bool(current["stress"])
+
+
 def build_state(*, with_replay: bool | None = None) -> dict[str, Any]:
     """One cycle. ``with_replay`` None = redo the replay only when it is older than
-    ``adapt.replay_refresh_days``; the previous replay is carried over otherwise."""
+    ``adapt.replay_refresh_days`` or the regime watch flipped; the previous replay is carried over
+    otherwise."""
     cfg = get_engine_config()
     panel = Panel(build_panel())
     with session_scope() as s:
@@ -52,8 +82,12 @@ def build_state(*, with_replay: bool | None = None) -> dict[str, Any]:
     previous = load_state()
     cost = CostModel.from_rules(rules, panel.dates[-1], cfg.costs.slippage_fraction).round_trip
     state = adapt.run_cycle(panel, cfg.adapt, cost, previous)
+    reading = load_regime()
+    state["regime"] = reading
     if with_replay is None:
-        with_replay = replay_is_stale(previous, panel.dates[-1], cfg.adapt.replay_refresh_days)
+        with_replay = regime_changed(previous, reading) or replay_is_stale(
+            previous, panel.dates[-1], cfg.adapt.replay_refresh_days
+        )
     if with_replay:
         state["replay"] = adapt.replay(panel, cfg.adapt, cost)
         state["replay"]["as_of"] = state["as_of"]

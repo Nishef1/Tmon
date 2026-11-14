@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import {
   adaptState,
   apiGet,
+  autopilotState,
   deepStudy,
   entryOdds,
   orderbookResearch,
@@ -33,12 +34,13 @@ type SP = { outcome?: string; offset?: string; timeframe?: string };
 /** Everything that says how far to trust the model, in one place: tests, calibration, live accuracy, history. */
 export default async function ModelPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [rank, odds, book, adapt, deep] = await Promise.all([
+  const [rank, odds, book, adapt, deep, autopilot] = await Promise.all([
     apiGet<Ranking>("/v2/ranking"),
     entryOdds(),
     orderbookResearch(),
     adaptState(),
     deepStudy(),
+    autopilotState(),
   ]);
   return (
     <main className="space-y-10">
@@ -74,7 +76,7 @@ export default async function ModelPage({ searchParams }: { searchParams: Promis
         </section>
       )}
       {adapt?.available ? (
-        <AdaptSection d={adapt} deep={deep} />
+        <AdaptSection d={adapt} deep={deep} autopilot={autopilot} />
       ) : (
         <section id="adapt" className="card text-sm text-muted">
           چرخهٔ الگوریتم زنده هنوز اجرا نشده یا در دسترس نیست.

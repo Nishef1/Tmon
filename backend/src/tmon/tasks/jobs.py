@@ -53,6 +53,25 @@ def daily_cycle_tick() -> str:
     )
 
 
+@app.task(name="tmon.tasks.jobs.deep_refresh")
+def deep_refresh() -> str:
+    """Redo the deep study when the autopilot says it is due (old, missing, or the regime flipped).
+    Hours on a GPU, so it has its own beat entry and a lock; a worker without torch only records
+    that the study is old."""
+    import redis
+
+    from tmon.core.config import get_settings
+    from tmon.tools.autopilot import DEEP_TIMEOUT_SECONDS, run
+
+    kv = redis.Redis.from_url(get_settings().redis_url, decode_responses=True)
+    if not kv.set("tmon:deep:lock", "1", nx=True, ex=DEEP_TIMEOUT_SECONDS + 600):
+        return "skip: running"
+    try:
+        return str(run(refresh_deep=True))
+    finally:
+        kv.delete("tmon:deep:lock")
+
+
 @app.task(name="tmon.tasks.jobs.snapshot_intraday")
 def snapshot_intraday() -> dict[str, int]:
     """One live poll (no-op outside trading hours); scheduled every minute by beat."""

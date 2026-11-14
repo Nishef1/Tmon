@@ -144,6 +144,8 @@ export async function adaptState(): Promise<Adapt | null> {
 }
 
 export type Deep = S["DeepOut"];
+export type Autopilot = S["AutopilotOut"];
+export type AutopilotEvent = S["AutopilotEvent"];
 export type DeepMethod = S["DeepMethod"];
 export type DeepHorizon = S["DeepHorizon"];
 
@@ -153,6 +155,18 @@ export async function deepStudy(): Promise<Deep | null> {
   try {
     const res = await fetch(new URL("/research/deep", API_BASE), { cache: "no-store" });
     return res.ok ? ((await res.json()) as Deep) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
+  }
+}
+
+/** What the autopilot saw at its last check: regime reading, deep-study freshness, events. Always
+ *  read fresh; null when unreachable. */
+export async function autopilotState(): Promise<Autopilot | null> {
+  try {
+    const res = await fetch(new URL("/research/autopilot", API_BASE), { cache: "no-store" });
+    return res.ok ? ((await res.json()) as Autopilot) : null;
   } catch (err) {
     unstable_rethrow(err);
     return null;

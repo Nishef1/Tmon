@@ -1410,3 +1410,52 @@ class DeepOut(ApiModel):
     min_t: float | None = None
     horizons: list[DeepHorizon] = []
     disclaimer: str = DISCLAIMER
+
+
+class AutopilotRegime(ApiModel):
+    """The regime reading of the official index (``tmon.engine.regime``)."""
+
+    as_of: dt.date
+    drawdown: float  # fall from the peak, 0.2 = 20%
+    return_recent: float  # index return over ``recent_days`` trading days
+    recent_days: int
+    windows: list[float]  # last non-overlapping 250-day returns, newest first
+    bear_windows: int  # how many of them ended at -10% or worse
+    bullish_only: bool  # none did: the data has not seen a nominal bear market
+    stress: bool
+    stress_drawdown: float
+
+
+class AutopilotDeep(ApiModel):
+    """How current the deep study is, and whether it is due again."""
+
+    present: bool
+    last: dt.date | None = None
+    age_days: int | None = None
+    refresh_days: int
+    due: bool
+    reason: str | None = None  # no_study | old | regime
+    can_run: bool  # this host has torch and can redo it
+    passed: list[str] = []  # method@horizon that passed the gate
+
+
+class AutopilotEvent(ApiModel):
+    at: dt.date
+    kind: str  # champion | regime | deep_refreshed | deep_passed | deep_lost | deep_skipped
+    horizon: int | None = None
+    before: str | None = None
+    after: str | None = None
+    methods: list[str] = []
+    passed: list[str] = []
+
+
+class AutopilotOut(ApiModel):
+    """What the system saw when it last checked itself, and what changed since the checks before."""
+
+    available: bool
+    checked_at: str | None = None
+    as_of: dt.date | None = None
+    regime: AutopilotRegime | None = None
+    deep: AutopilotDeep | None = None
+    events: list[AutopilotEvent] = []
+    disclaimer: str = DISCLAIMER

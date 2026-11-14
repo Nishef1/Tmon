@@ -37,6 +37,12 @@ app.conf.beat_schedule = {
         "task": "tmon.tasks.jobs.daily_cycle_tick",
         "schedule": crontab(minute="*/5", day_of_week=TRADING_DOW),
     },
+    # The deep study is redone when the autopilot finds it old or the regime flipped (a no-op
+    # otherwise; hours on a GPU, so late in the evening, long after the daily cycle).
+    "deep-study-refresh": {
+        "task": "tmon.tasks.jobs.deep_refresh",
+        "schedule": crontab(hour=20, minute=0, day_of_week=TRADING_DOW),
+    },
     # Newest page of every AGM / capital-increase letter code on Codal (docs/02: event-driven
     # source). Hourly on every day: companies also publish on non-trading days.
     "codal-events-hourly": {

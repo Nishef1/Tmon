@@ -131,6 +131,11 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
 
         return run()
 
+    def autopilot() -> Any:
+        from tmon.tools.autopilot import run
+
+        return run()
+
     def publisher(timeframe: str) -> Callable[[], Any]:
         def publish() -> Any:
             from tmon.core.db import session_scope
@@ -158,6 +163,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         Step("news", news, required=False),
         Step("features", features),
         Step("adapt", adapt, required=False),
+        Step("autopilot", autopilot, required=False),
         *(
             Step(f"publish_and_resolve_outcomes_{tf}", publisher(tf), required=(i == 0))
             for i, tf in enumerate(timeframes)

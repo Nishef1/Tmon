@@ -302,6 +302,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/research/autopilot": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Autopilot
+     * @description What the system saw when it last checked itself: the regime reading of the official index,
+     *     how current the deep study is, and the events since (a champion changed, the regime flipped, a
+     *     method passed or lost the gate). Read fresh from the stored document
+     *     (``python -m tmon.tools.autopilot``). The past, not advice.
+     */
+    get: operations["autopilot_research_autopilot_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/research/deep": {
     parameters: {
       query?: never;
@@ -706,6 +729,108 @@ export interface components {
       source: string;
       /** Value */
       value: number;
+    };
+    /**
+     * AutopilotDeep
+     * @description How current the deep study is, and whether it is due again.
+     */
+    AutopilotDeep: {
+      /** Age Days */
+      age_days: number | null;
+      /** Can Run */
+      can_run: boolean;
+      /** Due */
+      due: boolean;
+      /** Last */
+      last: string | null;
+      /**
+       * Passed
+       * @default []
+       */
+      passed: string[];
+      /** Present */
+      present: boolean;
+      /** Reason */
+      reason: string | null;
+      /** Refresh Days */
+      refresh_days: number;
+    };
+    /** AutopilotEvent */
+    AutopilotEvent: {
+      /** After */
+      after: string | null;
+      /**
+       * At
+       * Format: date
+       */
+      at: string;
+      /** Before */
+      before: string | null;
+      /** Horizon */
+      horizon: number | null;
+      /** Kind */
+      kind: string;
+      /**
+       * Methods
+       * @default []
+       */
+      methods: string[];
+      /**
+       * Passed
+       * @default []
+       */
+      passed: string[];
+    };
+    /**
+     * AutopilotOut
+     * @description What the system saw when it last checked itself, and what changed since the checks before.
+     */
+    AutopilotOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /** Checked At */
+      checked_at: string | null;
+      deep: components["schemas"]["AutopilotDeep"] | null;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /**
+       * Events
+       * @default []
+       */
+      events: components["schemas"]["AutopilotEvent"][];
+      regime: components["schemas"]["AutopilotRegime"] | null;
+    };
+    /**
+     * AutopilotRegime
+     * @description The regime reading of the official index (``tmon.engine.regime``).
+     */
+    AutopilotRegime: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Bear Windows */
+      bear_windows: number;
+      /** Bullish Only */
+      bullish_only: boolean;
+      /** Drawdown */
+      drawdown: number;
+      /** Recent Days */
+      recent_days: number;
+      /** Return Recent */
+      return_recent: number;
+      /** Stress */
+      stress: boolean;
+      /** Stress Drawdown */
+      stress_drawdown: number;
+      /** Windows */
+      windows: number[];
     };
     /** BookAssumptions */
     BookAssumptions: {
@@ -3951,6 +4076,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AdaptOut"];
+        };
+      };
+    };
+  };
+  autopilot_research_autopilot_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AutopilotOut"];
         };
       };
     };

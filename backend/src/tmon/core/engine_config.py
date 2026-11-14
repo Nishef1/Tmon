@@ -198,6 +198,9 @@ class AdaptCfg(_Frozen):
     history_keep: int = Field(ge=1)
     replay_every_dates: int = Field(ge=1)
     replay_refresh_days: int = Field(default=28, ge=1)
+    deep_refresh_days: int = Field(default=28, ge=1)
+    stress_days: int = Field(default=120, ge=20)
+    stress_drawdown: float = Field(default=0.2, gt=0, lt=1)
     candidates: tuple[str, ...]
 
 

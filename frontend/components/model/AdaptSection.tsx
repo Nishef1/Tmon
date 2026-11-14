@@ -1,7 +1,15 @@
 import Link from "next/link";
-import type { Adapt, AdaptCandidate, AdaptHorizon, AdaptReplayHorizon, Deep } from "@/lib/api";
+import type {
+  Adapt,
+  AdaptCandidate,
+  AdaptHorizon,
+  AdaptReplayHorizon,
+  Autopilot,
+  Deep,
+} from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { Num } from "@/components/Num";
+import { AutopilotStatus } from "@/components/model/AutopilotStatus";
 import { DeepStudy } from "@/components/model/DeepStudy";
 import { methodLabel } from "@/components/model/methods";
 
@@ -157,7 +165,15 @@ function HorizonCard({ h, d }: { h: AdaptHorizon; d: Adapt }) {
 
 /** The living ranking: champion per horizon behind the promotion gate, weights against equal
  *  weights, how the reference weights drift, the cycle history and the replay on the past. */
-export function AdaptSection({ d, deep }: { d: Adapt; deep?: Deep | null }) {
+export function AdaptSection({
+  d,
+  deep,
+  autopilot,
+}: {
+  d: Adapt;
+  deep?: Deep | null;
+  autopilot?: Autopilot | null;
+}) {
   const replay = d.replay;
   const allEqual = d.horizons.every((h) => h.champion === "equal");
   const h5 = d.horizons.find((h) => h.horizon_days === 5);
@@ -178,8 +194,9 @@ export function AdaptSection({ d, deep }: { d: Adapt; deep?: Deep | null }) {
           ما مشاور سرمایه‌گذاری دارای مجوز نیستیم.
         </p>
         <p className="alert-warn text-sm leading-7 text-ink" data-testid="adapt-caveat">
-          داده فقط یک رژیم صعودی را دارد و هر دو نیمهٔ آزمون در همان رژیم‌اند؛ برتری‌ای که اینجا
-          دیده شود تا بازار عوض نشود ثابت نشده است.
+          {autopilot?.regime && !autopilot.regime.bullish_only
+            ? "داده اکنون دورهٔ افت اسمی هم دارد؛ برتری‌ها را در هر دو نیمه با هم بخوانید."
+            : "داده فقط یک رژیم صعودی را دارد و هر دو نیمهٔ آزمون در همان رژیم‌اند؛ برتری‌ای که اینجا دیده شود تا بازار عوض نشود ثابت نشده است."}
           {allEqual && (
             <>
               {" "}
@@ -188,6 +205,8 @@ export function AdaptSection({ d, deep }: { d: Adapt; deep?: Deep | null }) {
           )}
         </p>
       </div>
+
+      {autopilot?.available && <AutopilotStatus a={autopilot} />}
 
       <div className="overflow-x-auto" data-testid="adapt-champions">
         <table className="tbl min-w-[44rem]">

@@ -623,6 +623,288 @@
         "title": "AgmInputOut",
         "type": "object"
       },
+      "AutopilotDeep": {
+        "description": "How current the deep study is, and whether it is due again.",
+        "properties": {
+          "age_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Days"
+          },
+          "can_run": {
+            "title": "Can Run",
+            "type": "boolean"
+          },
+          "due": {
+            "title": "Due",
+            "type": "boolean"
+          },
+          "last": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last"
+          },
+          "passed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Passed",
+            "type": "array"
+          },
+          "present": {
+            "title": "Present",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "refresh_days": {
+            "title": "Refresh Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "present",
+          "last",
+          "age_days",
+          "refresh_days",
+          "due",
+          "reason",
+          "can_run",
+          "passed"
+        ],
+        "title": "AutopilotDeep",
+        "type": "object"
+      },
+      "AutopilotEvent": {
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "at": {
+            "format": "date",
+            "title": "At",
+            "type": "string"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "horizon": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Horizon"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "methods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Methods",
+            "type": "array"
+          },
+          "passed": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Passed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "at",
+          "kind",
+          "horizon",
+          "before",
+          "after",
+          "methods",
+          "passed"
+        ],
+        "title": "AutopilotEvent",
+        "type": "object"
+      },
+      "AutopilotOut": {
+        "description": "What the system saw when it last checked itself, and what changed since the checks before.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "deep": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutopilotDeep"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutopilotEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "regime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutopilotRegime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "available",
+          "checked_at",
+          "as_of",
+          "regime",
+          "deep",
+          "events",
+          "disclaimer"
+        ],
+        "title": "AutopilotOut",
+        "type": "object"
+      },
+      "AutopilotRegime": {
+        "description": "The regime reading of the official index (``tmon.engine.regime``).",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "bear_windows": {
+            "title": "Bear Windows",
+            "type": "integer"
+          },
+          "bullish_only": {
+            "title": "Bullish Only",
+            "type": "boolean"
+          },
+          "drawdown": {
+            "title": "Drawdown",
+            "type": "number"
+          },
+          "recent_days": {
+            "title": "Recent Days",
+            "type": "integer"
+          },
+          "return_recent": {
+            "title": "Return Recent",
+            "type": "number"
+          },
+          "stress": {
+            "title": "Stress",
+            "type": "boolean"
+          },
+          "stress_drawdown": {
+            "title": "Stress Drawdown",
+            "type": "number"
+          },
+          "windows": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Windows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "drawdown",
+          "return_recent",
+          "recent_days",
+          "windows",
+          "bear_windows",
+          "bullish_only",
+          "stress",
+          "stress_drawdown"
+        ],
+        "title": "AutopilotRegime",
+        "type": "object"
+      },
       "BookAssumptions": {
         "properties": {
           "cost_per_side": {
@@ -10484,6 +10766,28 @@
           }
         },
         "summary": "Adapt",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/research/autopilot": {
+      "get": {
+        "description": "What the system saw when it last checked itself: the regime reading of the official index,\nhow current the deep study is, and the events since (a champion changed, the regime flipped, a\nmethod passed or lost the gate). Read fresh from the stored document\n(``python -m tmon.tools.autopilot``). The past, not advice.",
+        "operationId": "autopilot_research_autopilot_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutopilotOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Autopilot",
         "tags": [
           "research"
         ]

@@ -124,6 +124,7 @@ docker compose --env-file ../.env exec -T backend sh -c \
 | `ingest-instruments-daily` | ۰۷:۳۰ | تازه‌سازی فهرست نمادها |
 | `snapshot-intraday` | هر دقیقه، ساعت ۹ تا ۱۲ | یک دریافت لحظه‌ای |
 | `daily-cycle-tick` | هر ۵ دقیقه، روزهای `TMON_SCHEDULE_DAYS` | چرخهٔ پایان روز، فقط یک بار در هر روز |
+| `deep-study-refresh` | ۲۰:۰۰، روزهای `TMON_SCHEDULE_DAYS` | مطالعهٔ عمیق را فقط اگر «خودکار» بگوید موعدش رسیده دوباره انجام می‌دهد؛ بدون torch فقط ثبت می‌کند (`python -m tmon.tools.autopilot --deep` روی ماشین GPU) |
 
 زمان چرخهٔ پایان روز **ثابت نیست**: از `market_rules` خوانده می‌شود. پایان آخرین نشست (جلسهٔ پایانی `closing_session_tal`، وگرنه `trading_hours`) به‌علاوهٔ `TMON_EOD_DELAY_MINUTES` (پیش‌فرض ۳۰) = لحظهٔ آماده بودن. با قوانین فعلی ۱۳:۳۰. هر بار که tick اجرا می‌شود و چرخهٔ امروز آماده و ادعا‌نشده باشد، آن را در Redis (`tmon:cycle:<تاریخ>:lock`) ادعا می‌کند و به‌ترتیب اجرا می‌کند:
 
