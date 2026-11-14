@@ -60,6 +60,7 @@ EXTRA = [
     "mom_6_1",
 ]
 CANDS = BASE + EXTRA
+STATE = ["mkt_ret_ew_20d", "breadth", "mkt_ind_net_flow_ratio_5d"]  # market state per date
 MIN_N = 30
 WARMUP = 500  # dates before the first out-of-sample prediction
 REFIT = 21  # trading days between refits
@@ -87,7 +88,14 @@ def build_panel(horizons: tuple[int, ...] = HORIZONS) -> pl.DataFrame:
     )
     extra_in_feats = [e for e in EXTRA if e != "mom_6_1"]
     d = feats.filter(~pl.col("market_halt")).select(
-        *KEYS, "eligible", "queue_state", "ind_buy_power", "rv_20", "dist_high_52w", *extra_in_feats
+        *KEYS,
+        "eligible",
+        "queue_state",
+        "ind_buy_power",
+        "rv_20",
+        "dist_high_52w",
+        *extra_in_feats,
+        *STATE,
     )
     d = d.join(fwd, on=list(KEYS), how="left").join(mom6, on=list(KEYS), how="left")
     d = d.filter(
@@ -115,6 +123,7 @@ class Panel:
         self.X: list[np.ndarray] = []
         self.Y: list[np.ndarray] = []
         self.F: list[np.ndarray] = []
+        self.state_rows: list[list[float]] = []
         xc = [f"r_{s}" for s in CANDS]
         yc = [f"y_{h}" for h in HORIZONS]
         fc = [f"fwd_{h}" for h in HORIZONS]
@@ -125,7 +134,9 @@ class Panel:
             self.X.append(part.select(xc).to_numpy().astype(np.float64))
             self.Y.append(part.select(yc).to_numpy().astype(np.float64))
             self.F.append(part.select(fc).to_numpy().astype(np.float64))
+            self.state_rows.append([float(v or 0.0) for v in part.select(STATE).row(0)])
         self.D = len(self.dates)
+        self.state = np.nan_to_num(np.array(self.state_rows, dtype=np.float64))
         self.k = len(CANDS)
         self.H = len(HORIZONS)
         self._prep()
