@@ -15,6 +15,7 @@ import {
   type Portfolio,
 } from "@/lib/portfolio";
 import { signedPct, signTone } from "@/lib/ui";
+import { ForecastCandles } from "./ForecastCandles";
 
 const POLL_MS = 10_000;
 const SEV = {
@@ -371,6 +372,17 @@ function ForecastCard({ id, pkey, version }: { id: number; pkey: string; version
         همین سبد آزموده (اگر ۰٫۸ نباشد بازه اصلاح شده). نوسان سالانهٔ فعلی{" "}
         {faPercent(f.annual_vol_now ?? 0)}.
       </p>
+      <ForecastCandles
+        title="بازهٔ بازدهٔ پرتفوی در هر افق"
+        items={(f.horizons ?? []).map((h) => ({
+          key: h.key,
+          label: h.label,
+          band: Object.keys(h.calibrated).length
+            ? { ...h.portfolio, ...h.calibrated }
+            : h.portfolio,
+          sub: `سود ${faPercent(h.portfolio.p_gain_net, 0)}`,
+        }))}
+      />
       <div className="mt-2 overflow-x-auto">
         <table className="tbl w-full min-w-[40rem] text-sm">
           <thead>
@@ -419,6 +431,15 @@ function ForecastCard({ id, pkey, version }: { id: number; pkey: string; version
         .map((h) => (
           <div key={h.key} className="well mt-2 text-sm">
             <b>{h.label} — هر نماد</b>
+            <ForecastCandles
+              title={`بازهٔ بازدهٔ هر نماد در ${h.label}`}
+              items={h.symbols.map((s) => ({
+                key: String(s.instrument_id),
+                label: s.symbol,
+                band: s,
+                sub: `سود ${faPercent(s.p_gain, 0)}`,
+              }))}
+            />
             <ul className="mt-1 grid gap-1">
               {h.symbols.map((s) => (
                 <li key={s.instrument_id}>
@@ -470,8 +491,8 @@ function BriefingCard({ id, pkey }: { id: number; pkey: string }) {
         </button>
       </div>
       <p className="mt-1 text-sm text-muted">
-        دو ساعت پیش از گشایش و هر ساعت در جلسه خودکار اجرا می‌شود: اخبار، کدال، پیام ناظر و امتیاز
-        مدل.
+        دو ساعت پیش از گشایش و هر ساعت در جلسه خودکار اجرا می‌شود: اخبار داخلی و خارجی، کدال، دلار و
+        طلا و نفت و مس (با اثر اندازه‌گیری‌شده روی هر سهم) و امتیاز مدل.
       </p>
       {doc && (
         <>
@@ -496,9 +517,57 @@ function BriefingCard({ id, pkey }: { id: number; pkey: string }) {
                 </b>{" "}
                 <span className="text-muted">(اطمینان {faNumber(h.confidence * 100)}٪)</span>
                 {h.why.length > 0 && <p className="mt-1 text-muted">{h.why.join(" · ")}</p>}
+                {h.macro && Math.abs(h.macro.total) >= 0.005 && (
+                  <p className={`mt-1 ${signTone(h.macro.total)}`}>
+                    فشار دلار/کالا از آخرین معامله (اندازه‌گیری‌شده): {signedPct(h.macro.total)}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
+          {doc.macro && doc.macro.length > 0 && (
+            <div className="mt-3 overflow-x-auto">
+              <b className="text-sm">داخلی و خارجی از آخرین روز</b>
+              <table className="tbl mt-1 w-full min-w-[28rem] text-sm" data-testid="macro">
+                <thead>
+                  <tr>
+                    <th>شاخص</th>
+                    <th>تاریخ</th>
+                    <th>یک روز</th>
+                    <th>پنج روز</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doc.macro.map((m) => (
+                    <tr key={m.series}>
+                      <td>
+                        {m.label_fa}
+                        {m.domestic ? "" : " 🌐"}
+                      </td>
+                      <td className="text-muted">{jalali(m.date)}</td>
+                      <td className={signTone(m.change_1)}>{signedPct(m.change_1)}</td>
+                      <td className={signTone(m.change_5)}>{signedPct(m.change_5)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {doc.foreign && doc.foreign.length > 0 && (
+            <div className="mt-3 text-sm">
+              <b>خبرهای خارجی اثرگذار</b>
+              <ul className="mt-1 grid gap-1" dir="ltr">
+                {doc.foreign.map((n) => (
+                  <li key={n.url} className={n.iran ? "font-bold" : ""}>
+                    <a href={n.url} target="_blank" rel="noreferrer" className="hover:text-accent">
+                      {n.title}
+                    </a>{" "}
+                    <span className="text-xs text-muted">({n.source})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
       )}
     </section>

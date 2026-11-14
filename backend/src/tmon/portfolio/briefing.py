@@ -6,7 +6,10 @@ before the pre-open run):
 * news of the last day that name the holding (LLM-extracted ``news_events`` symbols, or the symbol
   in the title), plus heavy market-wide events (magnitude >= 4, no symbol: war, FX, rates, oil...);
 * Codal letters of the holding since the last day;
-* the advice of :mod:`tmon.portfolio.advice` (model score, zone, queue, stop, P&L).
+* the advice of :mod:`tmon.portfolio.advice` (model score, zone, queue, stop, P&L);
+* domestic and foreign highlights (:mod:`tmon.portfolio.macro`): dollar, coin, gold, Brent,
+  copper, the dollar index since the last session, the pressure each move historically put on the
+  holding (measured beta, only when significant), and the foreign headlines that can move Tehran.
 
 With ``TMON_LLM_API_KEY`` set the evidence is judged by Claude (structured output, one verdict per
 holding with confidence and reasons, in Persian). Without it a transparent rule does the same:
@@ -28,6 +31,7 @@ from sqlalchemy.orm import Session
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.timeutil import TEHRAN, utcnow
+from tmon.portfolio import macro
 from tmon.portfolio.advice import advise
 from tmon.portfolio.watch import INFO, URGENT, WARN, Finding
 from tmon.storage.models import (
@@ -65,8 +69,13 @@ SYSTEM = (
     "reduce, hold or add for today's session. Prefer protecting capital: material negative news "
     "(losses, halts, negative EPS revisions, large supply, sanctions on the sector) means exit "
     "or reduce. Do not invent facts; when evidence is thin, say hold with low confidence. Write "
-    "reasons in Persian, short and concrete, citing the evidence."
+    "reasons in Persian, short and concrete, citing the evidence. 'macro' gives the moves of the "
+    "dollar, coin, gold, oil, copper since the holding's last close and the measured pressure "
+    "(beta x move, with its t-statistic) they historically put on it; 'foreign' are foreign "
+    "headlines that can move Tehran. Weigh them, but a measured tendency is not a certainty."
 )
+WEAK_REDUCE = 0.2  # a held name in the model's bottom fifth: reduce even without bad news
+MACRO_HEADWIND = -0.02  # summed measured pressure at or below this counts as a strong headwind
 
 
 def _news(session: Session, since: dt.datetime) -> list[tuple[NewsRaw, NewsEvent | None]]:
@@ -128,14 +137,21 @@ def rule_call(h: dict[str, Any], ev: dict[str, Any]) -> HoldingCall:
     reasons = list(h.get("reasons") or [])
     reasons += [f"خبر منفی: {n['title']}" for n in neg[:3]]
     reasons += [f"اطلاعیهٔ کدال: {c['title']}" for c in bad_letters[:3]]
+    mac = ev.get("macro") or {"items": [], "total": 0.0}
+    headwind = mac["total"] <= MACRO_HEADWIND
+    for m in mac["items"][:3]:
+        reasons.append(
+            f"{m['label_fa']} {m['move'] * 100:+.1f}٪ از آخرین معامله؛ "
+            f"اثر تاریخی بر این سهم {m['impact'] * 100:+.1f}٪ (t={m['t']:.1f})"
+        )
     v = h["verdict"]
-    if v == "sell" or strong_neg or (bad_letters and v == "weak"):
+    if v == "sell" or strong_neg or (bad_letters and v == "weak") or (headwind and v == "weak"):
         return HoldingCall(symbol=h["symbol"], action="exit", confidence=0.7, reasons_fa=reasons)
-    if v == "weak" and (neg or bad_letters):
+    if (v == "weak" and (neg or bad_letters or (h.get("score") or 1) < WEAK_REDUCE)) or headwind:
         return HoldingCall(symbol=h["symbol"], action="reduce", confidence=0.6, reasons_fa=reasons)
     if bad_letters or neg:
         return HoldingCall(symbol=h["symbol"], action="hold", confidence=0.4, reasons_fa=reasons)
-    if v == "strong" and pos:
+    if v == "strong" and (pos or mac["total"] >= -MACRO_HEADWIND):
         reasons += [f"خبر مثبت: {n['title']}" for n in pos[:2]]
         return HoldingCall(symbol=h["symbol"], action="add", confidence=0.5, reasons_fa=reasons)
     return HoldingCall(symbol=h["symbol"], action="hold", confidence=0.5, reasons_fa=reasons)
@@ -170,6 +186,15 @@ def brief(
     adv = advise(session, p)
     since = now - LOOKBACK
     per, market = _evidence(session, adv["holdings"], since)
+    series = macro.load_series(session)
+    mv = macro.moves(series)
+    for h in adv["holdings"]:
+        last_day = dt.date.fromisoformat(h["close_date"]) if h.get("close_date") else None
+        per[int(h["instrument_id"])]["macro"] = macro.holding_pressure(
+            session, int(h["instrument_id"]), last_day, series, mv
+        )
+    summary = macro.market_summary(mv)
+    foreign = macro.foreign_headlines(session, since)
     calls: dict[str, HoldingCall] = {}
     method = "rules"
     market_fa = ""
@@ -179,6 +204,8 @@ def brief(
                 {
                     "kind": kind,
                     "market_news": market,
+                    "macro_moves": summary["moves"],
+                    "foreign": foreign,
                     "holdings": [
                         {
                             k: h[k]
@@ -217,6 +244,7 @@ def brief(
                 "why": c.reasons_fa,
                 "news": ev["news"],
                 "codal": ev["codal"],
+                "macro": ev["macro"],
             }
         )
     if not market_fa:
@@ -226,12 +254,23 @@ def brief(
             if market
             else "خبر کلان مهمی ثبت نشده است."
         )
+        moved = [
+            f"{m['label_fa']} {m['change_1'] * 100:+.1f}٪"
+            for m in summary["moves"]
+            if m["change_1"] is not None and abs(m["change_1"]) >= 0.01
+        ]
+        if moved:
+            market_fa += " حرکت‌های مهم از آخرین روز: " + "، ".join(moved) + "."
+        if any(f["iran"] for f in foreign):
+            market_fa += " خبرهای خارجی مربوط به ایران هم هست (پایین)."
     doc = {
         "kind": kind,
         "at": now.isoformat(),
         "method": method,
         "market_fa": market_fa,
         "market_news": market,
+        "macro": summary["moves"],
+        "foreign": foreign,
         "validated": adv["validated"],
         "note": adv["note"],
         "holdings": items,
@@ -258,14 +297,14 @@ def brief(
             )
         )
     if kind == "preopen" and items:
-        summary = "، ".join(f"{i['symbol']}: {i['action_fa']}" for i in items)
+        calls_fa = "، ".join(f"{i['symbol']}: {i['action_fa']}" for i in items)
         findings.append(
             Finding(
                 "briefing",
                 INFO,
                 None,
                 "بازبینی پیش از بازار",
-                f"{market_fa}\n{summary}",
+                f"{market_fa}\n{calls_fa}",
                 f"{p.id}:-:briefing_summary:{day}",
             )
         )

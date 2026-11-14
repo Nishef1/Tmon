@@ -66,49 +66,39 @@ def _zone(r: float, buy_top: float, hold_top: float) -> str:
     return "avoid"
 
 
-def rows_for(
-    feats: pl.DataFrame, panel: pl.DataFrame, names: dict[int, Instrument], cfg: EngineConfig
-) -> tuple[date, list[dict[str, Any]]]:
-    """Top ``BASKET`` eligible names by 20-day median traded value on the last day, with the
-    composite rank (percentile in the whole eligible universe, as the gates used it)."""
-    last = panel["date"].max()
-    assert isinstance(last, date)
-    today = feats.filter((pl.col("date") == last) & pl.col("eligible") & ~pl.col("market_halt"))
-    top = today.sort("median_value_20", descending=True).head(BASKET)
-    ranks = panel.filter(pl.col("date") == last).select(
-        "instrument_id",
-        "r_composite",
-        *[f"r_{s}" for s in SIGNALS],
-    )
-    j = top.select("instrument_id", "queue_state", "median_value_20").join(
-        ranks, on="instrument_id", how="left"
-    )
-    pc = cfg.v2.portfolio
+def rows_for(universe: list[dict[str, Any]], names: dict[int, Instrument]) -> list[dict[str, Any]]:
+    """Top ``BASKET`` eligible, not halted names by 20-day median traded value, ordered by the same
+    score the whole universe gets (:func:`universe_scores`), so a partly ingested last day leaves
+    no hole in the basket."""
+    pool = [u for u in universe if u["eligible"] and not u["halted"] and u["median_value"]]
+    top = sorted(pool, key=lambda u: u["median_value"], reverse=True)[:BASKET]
+    top.sort(key=lambda u: (u["score"] is None, -(u["score"] or 0.0)))
     out: list[dict[str, Any]] = []
-    for r in j.sort("r_composite", descending=True, nulls_last=True).iter_rows(named=True):
-        ins = names.get(r["instrument_id"])
+    for u in top:
+        ins = names.get(u["id"])
         if ins is None:
             continue
-        rc = r["r_composite"]
-        if rc is None:
-            zone = "excluded" if r["queue_state"] == "sell_queue" else "no_data"
-        else:
-            zone = _zone(float(rc), pc.buy_top_frac, pc.hold_top_frac)
+        zone = u["zone"]
+        if u["queue_state"] == "sell_queue":
+            zone = "excluded"
+        elif zone is None:
+            zone = "no_data"
         out.append(
             {
                 "symbol": ins.symbol_fa,
                 "name": ins.name_fa,
                 "sector_code": ins.sector_code,
-                "score": _f(rc),
+                "score": u["score"],
                 "zone": zone,
-                "queue_state": r["queue_state"],
-                "median_value": _f(r["median_value_20"]),
-                "signals": {s: _f(r[f"r_{s}"]) for s in SIGNALS},
+                "queue_state": u["queue_state"],
+                "median_value": u["median_value"],
+                "partial": u["partial"],
+                "signals": {s: u["signals"].get(s) for s in SIGNALS},
             }
         )
     for i, r in enumerate(out, 1):
         r["rank"] = i
-    return last, out
+    return out
 
 
 def _mid_rank(ref: np.ndarray, x: np.ndarray) -> np.ndarray:
@@ -119,6 +109,41 @@ def _mid_rank(ref: np.ndarray, x: np.ndarray) -> np.ndarray:
     return (left + right) / 2.0 / len(ref)
 
 
+STALE_DAYS = 10  # trading days a signal may be carried forward when its newest value is missing
+MIN_SIGNALS = 2  # fewer known signals than this: no score at all
+
+
+def latest_signals(
+    feats: pl.DataFrame, adj: pl.DataFrame, last: date, stale_days: int = STALE_DAYS
+) -> pl.DataFrame:
+    """One row per instrument seen in the last ``stale_days`` trading days: the state columns from
+    its newest row, and each signal's newest known value with the date it is from.
+
+    The newest day is often only partly ingested (client types arrive later than prices, and a
+    halted or untraded name has no row at all), so taking the signals of that one day only left
+    most of the market unscored."""
+    cols = list(SIGNALS)
+    mom = forward_returns(adj, (5,)).select(*KEYS, "mom_12_1")
+    days = feats.filter(pl.col("date") <= last).select("date").unique().sort("date")
+    window = days.tail(stale_days)["date"]
+    d = (
+        feats.filter(pl.col("date").is_in(window.implode()))
+        .select(*KEYS, "eligible", "market_halt", "queue_state", "median_value_20", *cols[:3])
+        .join(mom, on=list(KEYS), how="left")
+        .sort(*KEYS)
+    )
+    known = {c: pl.col(c).is_not_null() & pl.col(c).is_finite() for c in cols}
+    return d.group_by("instrument_id").agg(
+        pl.col("date").last().alias("seen"),
+        pl.col("eligible").last(),
+        pl.col("market_halt").last(),
+        pl.col("queue_state").last(),
+        pl.col("median_value_20").drop_nulls().last(),
+        *[pl.col(c).filter(known[c]).last() for c in cols],
+        *[pl.col("date").filter(known[c]).last().alias(f"{c}__at") for c in cols],
+    )
+
+
 def universe_scores(
     feats: pl.DataFrame,
     adj: pl.DataFrame,
@@ -126,56 +151,63 @@ def universe_scores(
     last: date,
     weights: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
-    """The composite score of every instrument traded on ``last``, not only the liquid basket.
+    """The composite score of every instrument traded in the last ``STALE_DAYS`` trading days, not
+    only the liquid basket.
 
-    The reference cross-section is the engine's own universe (eligible, not in a sell queue).
-    Instruments outside it (thin trading, short history) are placed inside that reference
-    distribution signal by signal, so their score is on the same 0-1 scale but is *not* validated
-    by the gates. Rows lacking a signal keep ``score`` None and name the missing signals."""
-    mom = forward_returns(adj, (5,)).select(*KEYS, "mom_12_1")
+    The reference cross-section is the engine's own universe (eligible, not halted, not in a sell
+    queue, all four signals known). Every instrument is placed inside that reference distribution
+    signal by signal, using each signal's newest known value (:func:`latest_signals`), so all
+    scores share the 0-1 scale; only the basket's is validated by the gates. A name with at least
+    ``MIN_SIGNALS`` known signals is scored from those (weights renormalised) and marked
+    ``partial``; ``signals_as_of`` is the oldest date any of its signals comes from."""
     cols = list(SIGNALS)
-    d = (
-        feats.filter(pl.col("date") == last)
-        .select(*KEYS, "eligible", "market_halt", "queue_state", "median_value_20", *cols[:3])
-        .join(mom, on=list(KEYS), how="left")
-    )
-    ok = pl.all_horizontal([pl.col(c).is_not_null() & pl.col(c).is_finite() for c in cols])
-    member = d.filter(
-        ok
-        & pl.col("eligible")
-        & ~pl.col("market_halt")
-        & ~pl.col("queue_state").is_in(cfg.universe.exclude_queue_states)
-    )
-    refs = {c: np.sort(member[c].to_numpy().astype(float)) for c in cols}
-
-    def signal_rank(c: str, x: np.ndarray) -> np.ndarray:
-        p = _mid_rank(refs[c], x)
-        return p if SIGNALS[c] > 0 else 1.0 - p
-
-    done = d.filter(ok)
-    ranks = {c: signal_rank(c, done[c].to_numpy().astype(float)) for c in cols}
-    # rounded so that exactly tied sums stay tied (float noise must not split them)
+    d = latest_signals(feats, adj, last)
     w = np.full(len(cols), 1.0 / len(cols))
     if weights is not None:
         w = np.array([weights.get(c, 0.0) for c in cols], dtype=float)
         w = w / np.abs(w).sum()
-    comp = np.round(np.sum([wi * ranks[c] for wi, c in zip(w, cols, strict=True)], axis=0), 12)
-    is_member = (
-        done["eligible"].to_numpy()
-        & ~done["market_halt"].to_numpy()
-        & ~done["queue_state"].is_in(cfg.universe.exclude_queue_states).to_numpy()
+    excluded = list(cfg.universe.exclude_queue_states)
+    member = d.filter(
+        pl.all_horizontal([pl.col(c).is_not_null() for c in cols])
+        & pl.col("eligible")
+        & ~pl.col("market_halt")
+        & ~pl.col("queue_state").is_in(excluded)
     )
-    comp_ref = np.sort(comp[is_member])
-    score = _mid_rank(comp_ref, comp)
-    scored = {
-        int(i): (float(score[k]), {c: float(ranks[c][k]) for c in cols})
-        for k, i in enumerate(done["instrument_id"].to_list())
-    }
+    refs = {c: np.sort(member[c].to_numpy().astype(float)) for c in cols}
+
+    def signal_rank(c: str, x: float) -> float:
+        p = float(_mid_rank(refs[c], np.array([x]))[0])
+        return p if SIGNALS[c] > 0 else 1.0 - p
+
+    def composite(r: dict[str, Any]) -> tuple[float, dict[str, float]] | None:
+        have = [k for k, c in enumerate(cols) if r[c] is not None]
+        if len(have) < MIN_SIGNALS:
+            return None
+        ranks = {cols[k]: signal_rank(cols[k], float(r[cols[k]])) for k in have}
+        ww = np.abs(w[have]).sum()
+        if ww == 0:
+            return None
+        # rounded so that exactly tied sums stay tied (float noise must not split them)
+        return round(sum(w[k] * ranks[cols[k]] for k in have) / ww, 12), ranks
+
+    rows = list(d.iter_rows(named=True))
+    comps = [composite(r) for r in rows]
+    full = [
+        c[0]
+        for r, c in zip(rows, comps, strict=True)
+        if c is not None
+        and len(c[1]) == len(cols)
+        and r["eligible"]
+        and not r["market_halt"]
+        and r["queue_state"] not in excluded
+    ]
+    comp_ref = np.sort(np.array(full, dtype=float))
     pc = cfg.v2.portfolio
     out: list[dict[str, Any]] = []
-    for r in d.iter_rows(named=True):
-        missing = [c for c in cols if r[c] is None or not np.isfinite(r[c])]
-        sc = scored.get(r["instrument_id"])
+    for r, c in zip(rows, comps, strict=True):
+        missing = [k for k in cols if r[k] is None]
+        score = float(_mid_rank(comp_ref, np.array([c[0]]))[0]) if c and len(comp_ref) else None
+        dates = [r[f"{k}__at"] for k in cols if r[f"{k}__at"] is not None]
         out.append(
             {
                 "id": r["instrument_id"],
@@ -184,9 +216,14 @@ def universe_scores(
                 "queue_state": r["queue_state"],
                 "median_value": _f(r["median_value_20"]),
                 "missing": missing,
-                "score": sc[0] if sc else None,
-                "zone": _zone(sc[0], pc.buy_top_frac, pc.hold_top_frac) if sc else None,
-                "signals": sc[1] if sc else {},
+                "partial": bool(missing) and score is not None,
+                "seen": str(r["seen"]),
+                "signals_as_of": str(min(dates)) if dates else None,
+                "score": score,
+                "zone": _zone(score, pc.buy_top_frac, pc.hold_top_frac)
+                if score is not None
+                else None,
+                "signals": c[1] if c else {},
             }
         )
     return out
@@ -230,7 +267,9 @@ def build_document() -> dict[str, Any]:
     if weights is not None:  # a gate-passing champion sets the score: the gates judge that score
         panel = build_panel(feats, adj, cfg, horizons=HORIZONS, weights=weights)
 
-    as_of, rows = rows_for(feats, panel, names, cfg)
+    as_of = day
+    universe = universe_scores(feats, adj, cfg, as_of, weights)
+    rows = rows_for(universe, names)
     evidence = []
     for h in HORIZONS:
         ic = summarize_ic(daily_ic(panel, "r_composite", h), h)
@@ -295,7 +334,7 @@ def build_document() -> dict[str, Any]:
         },
         "exposure_date": str(exp["date"]),
         "rows": rows,
-        "universe": universe_scores(feats, adj, cfg, as_of, weights),
+        "universe": universe,
         "weights": weights or {s: 1 / len(SIGNALS) for s in SIGNALS},
         "weights_champion": champion,
         "weights_note": note,

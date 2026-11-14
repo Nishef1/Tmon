@@ -147,4 +147,49 @@ def test_universe_scores_match_the_engine_for_members_and_extend_to_the_rest() -
     thin = got[35]
     assert thin["eligible"] is False and thin["score"] is not None and 0 <= thin["score"] <= 1
     assert thin["zone"] in ("buy", "hold", "avoid")
-    assert got[39]["score"] is None and got[39]["missing"] == ["rv_20"]
+    # one signal never known: scored from the other three and marked partial
+    assert got[39]["missing"] == ["rv_20"] and got[39]["partial"] is True
+    assert got[39]["score"] is not None and got[39]["signals_as_of"] == str(last)
+
+
+def test_a_partly_ingested_last_day_does_not_drop_scores() -> None:
+    """The newest day often has prices but not yet client types (ind_buy_power), or no row at all
+    for a halted name: each signal's newest known value is carried forward."""
+    import datetime as dt
+
+    import numpy as np
+    import polars as pl
+
+    from tmon.core.engine_config import get_engine_config
+    from tmon.tools.v2_ranking import universe_scores
+
+    cfg = get_engine_config()
+    rng = np.random.default_rng(3)
+    days = [dt.date(2025, 1, 1) + dt.timedelta(days=i) for i in range(300)]
+    adj_rows, feat_rows = [], []
+    for i in range(20):
+        px = 1000 * np.exp(np.cumsum(rng.normal(0, 0.02, len(days))))
+        for k, (d, p) in enumerate(zip(days, px, strict=True)):
+            adj_rows.append({"instrument_id": i, "date": d, "adj_close": float(p)})
+            if i == 19 and k >= len(days) - 2:
+                continue  # halted for the last two days: no rows
+            feat_rows.append(
+                {
+                    "instrument_id": i,
+                    "date": d,
+                    "eligible": True,
+                    "market_halt": False,
+                    "queue_state": "none",
+                    "median_value_20": 1e11,
+                    # the last day lacks client types for all but three names
+                    "ind_buy_power": None if k == len(days) - 1 and i > 2 else float(i + 1),
+                    "rv_20": float(rng.uniform(0.1, 0.8)),
+                    "dist_high_52w": float(rng.uniform(0.5, 1.0)),
+                }
+            )
+    feats = pl.DataFrame(feat_rows)
+    got = {r["id"]: r for r in universe_scores(feats, pl.DataFrame(adj_rows), cfg, days[-1])}
+    assert len(got) == 20 and all(r["score"] is not None for r in got.values())
+    assert all(not r["partial"] for r in got.values())
+    assert got[10]["signals_as_of"] == str(days[-2])
+    assert got[19]["seen"] == str(days[-3])

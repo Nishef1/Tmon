@@ -14,7 +14,13 @@ FEEDS: dict[str, str] = {
     "boursenews": "https://www.boursenews.ir/fa/rss/allnews",
     "irna": "https://www.irna.ir/rss",
     "donya": "https://www.donya-e-eqtesad.com/fa/rss/allnews",
+    # foreign highlights (English), checked from this machine on 2026-11-15
+    "oilprice": "https://oilprice.com/rss/main",
+    "cnbc_world": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362",
+    "investing_econ": "https://www.investing.com/rss/news_14.rss",
+    "investing_commod": "https://www.investing.com/rss/news_11.rss",
 }
+FOREIGN = frozenset({"oilprice", "cnbc_world", "investing_econ", "investing_commod"})
 
 
 @dataclass(frozen=True)
@@ -32,7 +38,11 @@ def _date(text: str | None) -> dt.datetime | None:
     try:
         d = parsedate_to_datetime(text.strip())
     except (TypeError, ValueError):
-        return None
+        try:  # Investing.com writes "2026-11-14 16:37:48" (GMT)
+            d = dt.datetime.fromisoformat(text.strip())
+            return d.astimezone(dt.UTC) if d.tzinfo else d.replace(tzinfo=dt.UTC)
+        except ValueError:
+            return None
     return d.astimezone(dt.UTC) if d.tzinfo else None
 
 

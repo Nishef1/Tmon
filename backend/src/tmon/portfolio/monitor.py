@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -37,6 +38,7 @@ from tmon.core.db import session_scope
 from tmon.core.timeutil import TEHRAN, utcnow
 from tmon.domain.rules import MissingRuleError, RuleBook
 from tmon.ingest.news import text as news_text
+from tmon.ingest.news.rss import FOREIGN
 from tmon.ingest.tsetmc.intraday import IntradayState, in_trading_hours, store_quotes
 from tmon.portfolio import alerts as alert_store
 from tmon.portfolio.notify import BOT_HOSTS, poll_answers
@@ -96,6 +98,33 @@ def codal_finding(p_id: int, letter: CodalLetter, symbol: str) -> Finding:
     )
 
 
+# Heavy market-wide news without the LLM step: foreign items about Iran with a shock word, and
+# domestic items with a war / sanctions / crash word. Market-wide warnings, never per holding.
+_IRAN = r"\b(?:iran\w*|tehran|hormuz)\b"
+_SHOCK = (
+    r"\b(?:war|strikes?|attack\w*|missiles?|mines?|blockade|sanction\w*|snapback|seiz\w*|"
+    r"fighting|escalat\w*)\b"
+)
+FOREIGN_SHOCK = re.compile(f"{_IRAN}.*{_SHOCK}|{_SHOCK}.*{_IRAN}", re.IGNORECASE)
+DOMESTIC_SHOCK = (
+    "جنگ",
+    "حمله",
+    "تحریم",
+    "اسنپ‌بک",
+    "اسنپ بک",
+    "مکانیسم ماشه",
+    "سقوط بورس",
+    "ریزش شاخص",
+    "بستن تنگه",
+)
+
+
+def shock(item: NewsRaw) -> bool:
+    if item.source in FOREIGN:
+        return bool(FOREIGN_SHOCK.search(f"{item.title} {item.summary or ''}"))
+    return any(w in item.title for w in DOMESTIC_SHOCK)
+
+
 def news_finding(
     p_id: int, item: NewsRaw, ev: NewsEvent | None, h: HoldingView | None
 ) -> Finding | None:
@@ -110,8 +139,10 @@ def news_finding(
         elif h is None:
             return None  # market-wide items only when they are heavy and negative
     elif h is None:
-        return None
-    who = h.symbol if h else "کل بازار"
+        if not shock(item):
+            return None
+        sev = WARN
+    who = h.symbol if h else ("کل بازار (خبر خارجی)" if item.source in FOREIGN else "کل بازار")
     body = (ev.summary_fa if ev and ev.summary_fa else item.title) + f"\n{item.url}"
     return Finding(
         "news",
@@ -360,6 +391,12 @@ class Monitor:
         if due is None:
             return
         self.briefed.add(mark)
+        try:  # dollar, coin, gold, oil, copper move between sessions: fresh before every review
+            from tmon.ingest.macro.pipeline import run_macro
+
+            await asyncio.to_thread(run_macro)
+        except Exception as exc:
+            log.warning("briefing macro refresh: %s", exc)
         if due == "preopen":  # fresh inputs first
             await self.news_tick({}, now)
             try:

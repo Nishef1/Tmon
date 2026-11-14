@@ -284,3 +284,83 @@ def test_portfolio_flow(
     assert b.status_code == 200, b.text
     assert b.json()["method"] == "rules"
     assert client.get(f"/portfolios/{pid}/briefing", headers=hdr).json()["id"] == b.json()["id"]
+
+
+# -- macro / foreign ---------------------------------------------------------------------------
+def test_a_measured_macro_sensitivity_becomes_pressure(session: Session) -> None:
+    from tmon.portfolio import macro
+    from tmon.storage.models import MacroSeries
+
+    rng = np.random.default_rng(5)
+    i = Instrument(ins_code="777", symbol_fa="مسی", name_fa="مس", sector_code="27")
+    session.add(i)
+    session.flush()
+    d0 = dt.date(2025, 1, 1)
+    cu = 4.0 * np.cumprod(1 + rng.normal(0, 0.015, 300))
+    px = 1000.0
+    for k in range(300):
+        day = d0 + dt.timedelta(days=k)
+        session.add(MacroSeries(series="copper_usd", source="t", ref_period=day, value=cu[k]))
+        # Tehran's session on day k prices copper's move between days k-2 and k-1, beta 1
+        move = cu[k - 1] / cu[k - 2] - 1 if k >= 2 else 0.0
+        prev = px
+        px *= 1 + move + float(rng.normal(0, 0.004))
+        session.add(
+            PriceDaily(
+                instrument_id=i.id,
+                date=day,
+                open=px,
+                high=px,
+                low=px,
+                last=px,
+                close=px,
+                prev_close=prev,
+                volume=1e6,
+                value=px * 1e6,
+                fetched_at=AT,
+            )
+        )
+    session.flush()
+    series = macro.load_series(session)
+    beta, t, n = macro.sensitivities(session, i.id, series)["copper_usd"]
+    assert 0.7 < beta < 1.3 and t > 5 and n > 200
+    # copper falls 5% after the stock's last close
+    last_day = d0 + dt.timedelta(days=299)
+    session.add(
+        MacroSeries(
+            series="copper_usd",
+            source="t",
+            ref_period=last_day + dt.timedelta(days=1),
+            value=cu[-1] * 0.95,
+        )
+    )
+    session.flush()
+    series = macro.load_series(session)
+    p = macro.holding_pressure(session, i.id, last_day, series, macro.moves(series))
+    assert p["items"][0]["series"] == "copper_usd" and p["total"] < -0.03
+    call = rule_call(
+        {"symbol": "مسی", "verdict": "hold", "reasons": []},
+        {"news": [], "codal": [], "macro": p},
+    )
+    assert call.action == "reduce" and any("مس" in r for r in call.reasons_fa)
+
+
+def test_only_real_shocks_raise_market_news() -> None:
+    from tmon.portfolio.monitor import FOREIGN_SHOCK, news_finding
+    from tmon.storage.models import NewsRaw
+
+    assert FOREIGN_SHOCK.search("Iran reports tanker fire after mine strike in Hormuz")
+    assert not FOREIGN_SHOCK.search("Iran braces for a budget without oil revenue")
+    assert not FOREIGN_SHOCK.search("Warning issued toward Iran budget")
+    item = NewsRaw(
+        id=1,
+        source="cnbc_world",
+        url="u",
+        title="US strikes on Iran resume",
+        title_norm="x",
+        summary=None,
+    )
+    f = news_finding(1, item, None, None)
+    assert f is not None and f.severity == WARN and not f.ask_exit
+    calm = NewsRaw(id=2, source="irna", url="u", title="افتتاح نمایشگاه", title_norm="x")
+    assert news_finding(1, calm, None, None) is None

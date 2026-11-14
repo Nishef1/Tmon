@@ -152,6 +152,33 @@ export type BriefingItem = AdviceHolding & {
   why: string[];
   news: { title: string; direction: number | null }[];
   codal: { title: string; url: string | null; bad: boolean }[];
+  macro?: {
+    total: number;
+    items: {
+      series: string;
+      label_fa: string;
+      move: number;
+      beta: number;
+      t: number;
+      impact: number;
+    }[];
+  };
+};
+export type MacroMove = {
+  series: string;
+  label_fa: string;
+  domestic: boolean;
+  last: number;
+  date: string;
+  change_1: number | null;
+  change_5: number | null;
+};
+export type ForeignHeadline = {
+  title: string;
+  source: string;
+  url: string;
+  iran: boolean;
+  tags: string[];
 };
 export type BriefingDoc = {
   kind: string;
@@ -160,6 +187,8 @@ export type BriefingDoc = {
   market_fa: string;
   note: string;
   holdings: BriefingItem[];
+  macro?: MacroMove[];
+  foreign?: ForeignHeadline[];
 };
 
 // -- reading the saved keys from React without effects ------------------------------------------

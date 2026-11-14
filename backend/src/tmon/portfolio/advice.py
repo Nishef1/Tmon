@@ -68,6 +68,8 @@ class Scored:
     queue_state: str
     halted: bool
     rank: int | None  # 1 = best among the scored
+    partial: bool = False  # scored from fewer than the four signals (short history)
+    signals_as_of: str | None = None
 
 
 def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
@@ -84,6 +86,8 @@ def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
             str(u.get("queue_state") or "none"),
             bool(u.get("halted")),
             rank.get(int(u["id"])),
+            bool(u.get("partial")),
+            u.get("signals_as_of"),
         )
         for u in uni
     }
@@ -110,6 +114,8 @@ def _holding_verdict(h: Holding, sc: Scored | None, close: float | None) -> tupl
     reasons.append(
         f"امتیاز مدل {sc.score:.2f} (رتبهٔ {sc.rank}) در ناحیهٔ «{ZONE_FA.get(sc.zone, sc.zone)}»."
     )
+    if sc.partial:
+        reasons.append("امتیاز از بخشی از نشانه‌ها ساخته شده (سابقهٔ کوتاه)؛ با احتیاط ببین.")
     if sc.queue_state == "sell_queue":
         reasons.append("در صف فروش است؛ فروش فوری ممکن نیست و خطر ادامهٔ ریزش هست.")
         return "sell", reasons
