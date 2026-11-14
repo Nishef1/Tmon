@@ -1138,3 +1138,135 @@ class SearchOut(ApiModel):
     query: str
     total: int
     hits: list[SearchHit]
+
+
+class BookPoint(ApiModel):
+    """One simulated portfolio: annual excess over the median stock after costs and its t value."""
+
+    excess: float
+    t: float
+    cagr: float | None = None
+    cagr_benchmark: float | None = None
+    early: float | None = None
+    late: float | None = None
+    turnover: float | None = None
+    n: int | None = None
+
+
+class BookLadderRow(ApiModel):
+    universe: Literal["all", "liquid100"]
+    review: int
+    ideal: BookPoint
+    locks: BookPoint
+    missed_buys: float | None = None
+
+
+class BookCapacityRow(ApiModel):
+    notional_rial: float
+    cells: dict[str, BookPoint]
+
+
+class BookRandom(ApiModel):
+    r5_zero_cost: float
+    r5_with_cost: float
+    r20_zero_cost: float
+    r20_with_cost: float
+    turnover: float
+
+
+class BookIc(ApiModel):
+    ic: float
+    t: float
+
+
+class BookFeature(ApiModel):
+    key: str
+    label: str
+    meaning: str
+    status: Literal["kept", "redundant", "dropped"]
+    alone_ic5: float
+    d1: float
+    t1: float
+    d5: float
+    t5: float
+    d20: float
+    t20: float
+    early5: float
+    late5: float
+
+
+class BookSelection(ApiModel):
+    chosen: list[str]
+    d1: float
+    d5: float
+    t5: float
+    d20: float
+    t20: float
+
+
+class BookScoreSim(ApiModel):
+    label: str
+    base: BookPoint
+    book: BookPoint
+
+
+class BookAssumptions(ApiModel):
+    cost_per_side: float
+    max_wait_buy: int
+    max_wait_sell: int
+    participation: float
+
+
+class OrderbookResearchOut(ApiModel):
+    available: bool
+    generated: dt.date | None = None
+    book_days: int | None = None
+    book_rows: int | None = None
+    split: dt.date | None = None
+    assumptions: BookAssumptions | None = None
+    ladder: list[BookLadderRow] = []
+    capacity: list[BookCapacityRow] = []
+    random: BookRandom | None = None
+    base_ic: dict[str, BookIc] = {}
+    features: list[BookFeature] = []
+    selection: dict[str, BookSelection] = {}
+    score_sim: list[BookScoreSim] = []
+    limits: list[str] = []
+    disclaimer: str = DISCLAIMER
+
+
+class BookDay(ApiModel):
+    date: dt.date
+    close_imbalance: float | None = None
+    open_imbalance: float | None = None
+    tw_imbalance: float | None = None
+    tw_size_ratio: float | None = None
+    frac_buy_queue: float | None = None
+    frac_sell_queue: float | None = None
+    peak_queue_volume: float | None = None
+    close_bid_volume: float | None = None
+    close_ask_volume: float | None = None
+    tw_spread: float | None = None
+    tw_depth_value: float | None = None
+    last_close_gap: float | None = None
+
+
+class BookFeatureRank(ApiModel):
+    """Where this symbol stood among the stocks with a stored book on the latest day."""
+
+    key: str
+    label: str
+    value: float | None = None
+    percentile: float | None = None  # 0..1, 1 = most buyer-leaning of the day
+
+
+class InstrumentBookOut(ApiModel):
+    instrument_id: int
+    available: bool
+    message: str | None = None
+    as_of: dt.date | None = None
+    universe_size: int | None = None
+    score_percentile: float | None = None  # mean percentile of the five features; 0..1
+    ranks: list[BookFeatureRank] = []
+    days: list[BookDay] = []
+    disclaimer: str = DISCLAIMER

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { apiGet, entryOdds, type Ranking } from "@/lib/api";
+import { apiGet, entryOdds, orderbookResearch, type Ranking } from "@/lib/api";
+import { BookResearch } from "@/components/book/BookResearch";
 import { EntryLab } from "@/components/entry/EntryLab";
 import { RankingTrust } from "@/components/model/RankingTrust";
 import { CalibrationSection } from "@/components/model/CalibrationSection";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 const PARTS = [
   ["entry", "آزمایشگاه ورود"],
   ["v2", "رتبه‌بندی و آزمون"],
+  ["book", "تابلو و صف"],
   ["calibration", "کالیبراسیون"],
   ["accuracy", "دقت زنده"],
   ["history", "سابقهٔ سیگنال‌ها"],
@@ -22,7 +24,11 @@ type SP = { outcome?: string; offset?: string; timeframe?: string };
 /** Everything that says how far to trust the model, in one place: tests, calibration, live accuracy, history. */
 export default async function ModelPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [rank, odds] = await Promise.all([apiGet<Ranking>("/v2/ranking"), entryOdds()]);
+  const [rank, odds, book] = await Promise.all([
+    apiGet<Ranking>("/v2/ranking"),
+    entryOdds(),
+    orderbookResearch(),
+  ]);
   return (
     <main className="space-y-10">
       <div>
@@ -49,6 +55,13 @@ export default async function ModelPage({ searchParams }: { searchParams: Promis
         </section>
       )}
       {rank.ok && rank.data.available && <RankingTrust d={rank.data} />}
+      {book?.available ? (
+        <BookResearch d={book} />
+      ) : (
+        <section id="book" className="card text-sm text-muted">
+          آزمون تابلو و صف هنوز ساخته نشده یا در دسترس نیست.
+        </section>
+      )}
       <CalibrationSection />
       <AccuracySection timeframe={sp.timeframe} />
       <HistorySection outcome={sp.outcome} offset={sp.offset} />

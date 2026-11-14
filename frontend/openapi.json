@@ -75,6 +75,394 @@
         "title": "AgmInputOut",
         "type": "object"
       },
+      "BookAssumptions": {
+        "properties": {
+          "cost_per_side": {
+            "title": "Cost Per Side",
+            "type": "number"
+          },
+          "max_wait_buy": {
+            "title": "Max Wait Buy",
+            "type": "integer"
+          },
+          "max_wait_sell": {
+            "title": "Max Wait Sell",
+            "type": "integer"
+          },
+          "participation": {
+            "title": "Participation",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cost_per_side",
+          "max_wait_buy",
+          "max_wait_sell",
+          "participation"
+        ],
+        "title": "BookAssumptions",
+        "type": "object"
+      },
+      "BookCapacityRow": {
+        "properties": {
+          "cells": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BookPoint"
+            },
+            "title": "Cells",
+            "type": "object"
+          },
+          "notional_rial": {
+            "title": "Notional Rial",
+            "type": "number"
+          }
+        },
+        "required": [
+          "notional_rial",
+          "cells"
+        ],
+        "title": "BookCapacityRow",
+        "type": "object"
+      },
+      "BookDay": {
+        "properties": {
+          "close_ask_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Ask Volume"
+          },
+          "close_bid_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Bid Volume"
+          },
+          "close_imbalance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Imbalance"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "frac_buy_queue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frac Buy Queue"
+          },
+          "frac_sell_queue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frac Sell Queue"
+          },
+          "last_close_gap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Close Gap"
+          },
+          "open_imbalance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Imbalance"
+          },
+          "peak_queue_volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Queue Volume"
+          },
+          "tw_depth_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tw Depth Value"
+          },
+          "tw_imbalance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tw Imbalance"
+          },
+          "tw_size_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tw Size Ratio"
+          },
+          "tw_spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tw Spread"
+          }
+        },
+        "required": [
+          "date",
+          "close_imbalance",
+          "open_imbalance",
+          "tw_imbalance",
+          "tw_size_ratio",
+          "frac_buy_queue",
+          "frac_sell_queue",
+          "peak_queue_volume",
+          "close_bid_volume",
+          "close_ask_volume",
+          "tw_spread",
+          "tw_depth_value",
+          "last_close_gap"
+        ],
+        "title": "BookDay",
+        "type": "object"
+      },
+      "BookFeature": {
+        "properties": {
+          "alone_ic5": {
+            "title": "Alone Ic5",
+            "type": "number"
+          },
+          "d1": {
+            "title": "D1",
+            "type": "number"
+          },
+          "d20": {
+            "title": "D20",
+            "type": "number"
+          },
+          "d5": {
+            "title": "D5",
+            "type": "number"
+          },
+          "early5": {
+            "title": "Early5",
+            "type": "number"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "late5": {
+            "title": "Late5",
+            "type": "number"
+          },
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "kept",
+              "redundant",
+              "dropped"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "t1": {
+            "title": "T1",
+            "type": "number"
+          },
+          "t20": {
+            "title": "T20",
+            "type": "number"
+          },
+          "t5": {
+            "title": "T5",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "meaning",
+          "status",
+          "alone_ic5",
+          "d1",
+          "t1",
+          "d5",
+          "t5",
+          "d20",
+          "t20",
+          "early5",
+          "late5"
+        ],
+        "title": "BookFeature",
+        "type": "object"
+      },
+      "BookFeatureRank": {
+        "description": "Where this symbol stood among the stocks with a stored book on the latest day.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentile"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "value",
+          "percentile"
+        ],
+        "title": "BookFeatureRank",
+        "type": "object"
+      },
+      "BookIc": {
+        "properties": {
+          "ic": {
+            "title": "Ic",
+            "type": "number"
+          },
+          "t": {
+            "title": "T",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ic",
+          "t"
+        ],
+        "title": "BookIc",
+        "type": "object"
+      },
+      "BookLadderRow": {
+        "properties": {
+          "ideal": {
+            "$ref": "#/components/schemas/BookPoint"
+          },
+          "locks": {
+            "$ref": "#/components/schemas/BookPoint"
+          },
+          "missed_buys": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missed Buys"
+          },
+          "review": {
+            "title": "Review",
+            "type": "integer"
+          },
+          "universe": {
+            "enum": [
+              "all",
+              "liquid100"
+            ],
+            "title": "Universe",
+            "type": "string"
+          }
+        },
+        "required": [
+          "universe",
+          "review",
+          "ideal",
+          "locks",
+          "missed_buys"
+        ],
+        "title": "BookLadderRow",
+        "type": "object"
+      },
       "BookLevelOut": {
         "properties": {
           "ask_count": {
@@ -116,6 +504,192 @@
           "ask_count"
         ],
         "title": "BookLevelOut",
+        "type": "object"
+      },
+      "BookPoint": {
+        "description": "One simulated portfolio: annual excess over the median stock after costs and its t value.",
+        "properties": {
+          "cagr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cagr"
+          },
+          "cagr_benchmark": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cagr Benchmark"
+          },
+          "early": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Early"
+          },
+          "excess": {
+            "title": "Excess",
+            "type": "number"
+          },
+          "late": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Late"
+          },
+          "n": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "N"
+          },
+          "t": {
+            "title": "T",
+            "type": "number"
+          },
+          "turnover": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turnover"
+          }
+        },
+        "required": [
+          "excess",
+          "t",
+          "cagr",
+          "cagr_benchmark",
+          "early",
+          "late",
+          "turnover",
+          "n"
+        ],
+        "title": "BookPoint",
+        "type": "object"
+      },
+      "BookRandom": {
+        "properties": {
+          "r20_with_cost": {
+            "title": "R20 With Cost",
+            "type": "number"
+          },
+          "r20_zero_cost": {
+            "title": "R20 Zero Cost",
+            "type": "number"
+          },
+          "r5_with_cost": {
+            "title": "R5 With Cost",
+            "type": "number"
+          },
+          "r5_zero_cost": {
+            "title": "R5 Zero Cost",
+            "type": "number"
+          },
+          "turnover": {
+            "title": "Turnover",
+            "type": "number"
+          }
+        },
+        "required": [
+          "r5_zero_cost",
+          "r5_with_cost",
+          "r20_zero_cost",
+          "r20_with_cost",
+          "turnover"
+        ],
+        "title": "BookRandom",
+        "type": "object"
+      },
+      "BookScoreSim": {
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/BookPoint"
+          },
+          "book": {
+            "$ref": "#/components/schemas/BookPoint"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "base",
+          "book"
+        ],
+        "title": "BookScoreSim",
+        "type": "object"
+      },
+      "BookSelection": {
+        "properties": {
+          "chosen": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chosen",
+            "type": "array"
+          },
+          "d1": {
+            "title": "D1",
+            "type": "number"
+          },
+          "d20": {
+            "title": "D20",
+            "type": "number"
+          },
+          "d5": {
+            "title": "D5",
+            "type": "number"
+          },
+          "t20": {
+            "title": "T20",
+            "type": "number"
+          },
+          "t5": {
+            "title": "T5",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chosen",
+          "d1",
+          "d5",
+          "t5",
+          "d20",
+          "t20"
+        ],
+        "title": "BookSelection",
         "type": "object"
       },
       "CalibrationBlock": {
@@ -4063,6 +4637,97 @@
         "title": "InflationReleaseOut",
         "type": "object"
       },
+      "InstrumentBookOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "days": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BookDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "ranks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BookFeatureRank"
+            },
+            "title": "Ranks",
+            "type": "array"
+          },
+          "score_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Percentile"
+          },
+          "universe_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Universe Size"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "available",
+          "message",
+          "as_of",
+          "universe_size",
+          "score_percentile",
+          "ranks",
+          "days",
+          "disclaimer"
+        ],
+        "title": "InstrumentBookOut",
+        "type": "object"
+      },
       "InstrumentDashboard": {
         "properties": {
           "base_volume": {
@@ -5266,6 +5931,160 @@
           "failed"
         ],
         "title": "NearMiss",
+        "type": "object"
+      },
+      "OrderbookResearchOut": {
+        "properties": {
+          "assumptions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookAssumptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "base_ic": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BookIc"
+            },
+            "default": {},
+            "title": "Base Ic",
+            "type": "object"
+          },
+          "book_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Days"
+          },
+          "book_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Rows"
+          },
+          "capacity": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BookCapacityRow"
+            },
+            "title": "Capacity",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "features": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BookFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "generated": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated"
+          },
+          "ladder": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BookLadderRow"
+            },
+            "title": "Ladder",
+            "type": "array"
+          },
+          "limits": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Limits",
+            "type": "array"
+          },
+          "random": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookRandom"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score_sim": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BookScoreSim"
+            },
+            "title": "Score Sim",
+            "type": "array"
+          },
+          "selection": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BookSelection"
+            },
+            "default": {},
+            "title": "Selection",
+            "type": "object"
+          },
+          "split": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Split"
+          }
+        },
+        "required": [
+          "available",
+          "generated",
+          "book_days",
+          "book_rows",
+          "split",
+          "assumptions",
+          "ladder",
+          "capacity",
+          "random",
+          "base_ic",
+          "features",
+          "selection",
+          "score_sim",
+          "limits",
+          "disclaimer"
+        ],
+        "title": "OrderbookResearchOut",
         "type": "object"
       },
       "OutsideRow": {
@@ -8331,6 +9150,49 @@
         ]
       }
     },
+    "/instruments/{instrument_id}/book": {
+      "get": {
+        "description": "Recent days of the reduced order book and where the symbol stood among the stocks with a\nstored book on the latest day. ``available=false`` for symbols outside the 100 most traded.",
+        "operationId": "instrument_book_instruments__instrument_id__book_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentBookOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Instrument Book",
+        "tags": [
+          "instruments"
+        ]
+      }
+    },
     "/instruments/{instrument_id}/dashboard": {
       "get": {
         "operationId": "dashboard_instruments__instrument_id__dashboard_get",
@@ -8756,6 +9618,28 @@
           }
         },
         "summary": "Entry Odds",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/research/orderbook-queue": {
+      "get": {
+        "description": "What the order book and the buy/sell queues add to the score and what a realistic portfolio\n(queue waits, 10% of the day's value, costs) earned in the tested history\n(``python -m tmon.tools.orderbook_research``). The past, not advice.",
+        "operationId": "orderbook_queue_research_orderbook_queue_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderbookResearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Orderbook Queue",
         "tags": [
           "research"
         ]

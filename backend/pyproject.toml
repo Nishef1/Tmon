@@ -72,6 +72,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 "src/tmon/backtest/report.py" = ["E501"]  # Persian report strings
 "src/tmon/backtest/exposure_eval.py" = ["E501"]  # Persian report strings
 "src/tmon/backtest/v2_gates.py" = ["E501"]  # Persian report strings
+"src/tmon/tools/orderbook_research.py" = ["E501"]  # Persian texts
 "src/tmon/backtest/runner.py" = ["E501"]
 "tests/**" = ["E501"]  # synthetic TSETMC payload fixtures are long single lines
 

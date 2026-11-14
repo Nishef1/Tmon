@@ -69,6 +69,10 @@
 - **حذف‌شده:** `tw_spread`، `rel_volume`، `queue_flip`، `tw_depth_value`، `depth_to_median`، `ind_net_flow_z`، `intraday_range_pos`، `frac_sell_queue`. **اضافی (همپوشان):** `early_imbalance`، `frac_buy_queue`، `peak_queue_volume`، `queue_to_median`، `days_in_queue`، `ret_1_norm`، `ind_net_flow_ratio`، `vol_to_base`.
 - جمع‌آوری روزانهٔ تابلو در چرخه فعال شد؛ هر ماه `book_study` دوباره اجرا شود و ویژگی‌ای که در هر دو نیمه نریخت حذف شود.
 
+## نمایش در رابط
+
+همین یافته‌ها در صفحهٔ «مدل» (بخش «تابلو و صف») و کارت «تابلو و صف» هر نماد دیده می‌شوند. سند آن را `python -m tmon.tools.orderbook_research` از فایل‌های `docs/data/` می‌سازد و در انبار آرتیفکت (`v2/orderbook_research.json`) می‌گذارد؛ پس از هر اجرای دوبارهٔ مطالعه همین دستور صفحه را تازه می‌کند.
+
 ## محدودیت‌ها
 
 - فقط ۳۰۰ روز و ۱۰۰ نماد پرمعامله؛ هر چه ویژگی بیشتر بیازماییم احتمال برندهٔ اتفاقی بالاتر است. اختلاف‌های کوچک (t<۳) را نباید باور کرد؛ t≈۶ تا ۸ در هر دو نیمه و در هر دو جهتِ انتخاب باورپذیرتر است.

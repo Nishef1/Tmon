@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from tmon.api.book import book_out
 from tmon.api.routers.recommendations import instrument_out, signal_out
 from tmon.api.schemas import (
     AgmDecisionOut,
@@ -17,6 +18,7 @@ from tmon.api.schemas import (
     CodalLetterOut,
     CorporateEventOut,
     FeatureValue,
+    InstrumentBookOut,
     InstrumentDetail,
     LiveOut,
     ShareholderOut,
@@ -309,6 +311,15 @@ def agm_decision(
 
 def _utc(ts: dt.datetime) -> dt.datetime:
     return ts if ts.tzinfo else ts.replace(tzinfo=dt.UTC)
+
+
+@router.get("/instruments/{instrument_id}/book", response_model=InstrumentBookOut)
+def instrument_book(instrument_id: int, session: SessionDep) -> InstrumentBookOut:
+    """Recent days of the reduced order book and where the symbol stood among the stocks with a
+    stored book on the latest day. ``available=false`` for symbols outside the 100 most traded."""
+    if session.get(Instrument, instrument_id) is None:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    return book_out(session, instrument_id)
 
 
 @router.get("/instruments/{instrument_id}/live", response_model=LiveOut)

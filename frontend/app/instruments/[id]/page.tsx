@@ -5,6 +5,7 @@ import {
   entryOdds,
   type AgmDecision,
   type DashEntry,
+  type InstrumentBook,
   type InstrumentDashboard,
   type InstrumentDetail,
 } from "@/lib/api";
@@ -13,6 +14,7 @@ import { signTone } from "@/lib/ui";
 import { SymbolDashboard } from "@/components/SymbolDashboard";
 import { LiveQuote } from "@/components/LiveQuote";
 import { CandleChart, type Level, type Mark } from "@/components/CandleChart";
+import { BookCard } from "@/components/book/BookCard";
 import { EntryOddsCard } from "@/components/entry/EntryOddsCard";
 import { labelColor } from "@/components/entry/EntryParts";
 import { ErrorState } from "@/components/ErrorState";
@@ -107,10 +109,11 @@ export default async function InstrumentPage({
   const { id } = await params;
   const q = await searchParams;
   if (!/^\d+$/.test(id)) notFound();
-  const [res, dash, odds] = await Promise.all([
+  const [res, dash, odds, book] = await Promise.all([
     apiGet<InstrumentDetail>(`/instruments/${id}`),
     apiGet<InstrumentDashboard>(`/instruments/${id}/dashboard`),
     entryOdds(),
+    apiGet<InstrumentBook>(`/instruments/${id}/book`),
   ]);
   if (!res.ok && res.status === 404) notFound();
   if (!res.ok) {
@@ -155,6 +158,8 @@ export default async function InstrumentPage({
       <LiveQuote instrumentId={d.instrument.id} />
 
       {entry && <EntryOddsCard e={entry} odds={odds} />}
+
+      {book.ok && <BookCard b={book.data} />}
 
       <section className="card">
         <h2 className="mb-2 font-bold">نمودار قیمت تعدیل‌شده</h2>

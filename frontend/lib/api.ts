@@ -107,3 +107,22 @@ export async function entryOdds(): Promise<EntryOdds | null> {
     return null;
   }
 }
+
+export type OrderbookResearch = S["OrderbookResearchOut"];
+export type BookFeatureRow = S["BookFeature"];
+export type BookPoint = S["BookPoint"];
+export type InstrumentBook = S["InstrumentBookOut"];
+
+/** What the order book and the queues add to the score and what a realistic portfolio earned in
+ *  the tested history (changes with each study run). Kept for ten minutes; null when unreachable. */
+export async function orderbookResearch(): Promise<OrderbookResearch | null> {
+  try {
+    const res = await fetch(new URL("/research/orderbook-queue", API_BASE), {
+      next: { revalidate: 600 },
+    });
+    return res.ok ? ((await res.json()) as OrderbookResearch) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
+  }
+}

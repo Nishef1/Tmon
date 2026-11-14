@@ -106,6 +106,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/instruments/{instrument_id}/book": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Instrument Book
+     * @description Recent days of the reduced order book and where the symbol stood among the stocks with a
+     *     stored book on the latest day. ``available=false`` for symbols outside the 100 most traded.
+     */
+    get: operations["instrument_book_instruments__instrument_id__book_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}/dashboard": {
     parameters: {
       query?: never;
@@ -280,6 +301,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/research/orderbook-queue": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Orderbook Queue
+     * @description What the order book and the buy/sell queues add to the score and what a realistic portfolio
+     *     (queue waits, 10% of the day's value, costs) earned in the tested history
+     *     (``python -m tmon.tools.orderbook_research``). The past, not advice.
+     */
+    get: operations["orderbook_queue_research_orderbook_queue_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/research/ta-signals": {
     parameters: {
       query?: never;
@@ -419,6 +462,125 @@ export interface components {
       /** Value */
       value: number;
     };
+    /** BookAssumptions */
+    BookAssumptions: {
+      /** Cost Per Side */
+      cost_per_side: number;
+      /** Max Wait Buy */
+      max_wait_buy: number;
+      /** Max Wait Sell */
+      max_wait_sell: number;
+      /** Participation */
+      participation: number;
+    };
+    /** BookCapacityRow */
+    BookCapacityRow: {
+      /** Cells */
+      cells: {
+        [key: string]: components["schemas"]["BookPoint"];
+      };
+      /** Notional Rial */
+      notional_rial: number;
+    };
+    /** BookDay */
+    BookDay: {
+      /** Close Ask Volume */
+      close_ask_volume: number | null;
+      /** Close Bid Volume */
+      close_bid_volume: number | null;
+      /** Close Imbalance */
+      close_imbalance: number | null;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Frac Buy Queue */
+      frac_buy_queue: number | null;
+      /** Frac Sell Queue */
+      frac_sell_queue: number | null;
+      /** Last Close Gap */
+      last_close_gap: number | null;
+      /** Open Imbalance */
+      open_imbalance: number | null;
+      /** Peak Queue Volume */
+      peak_queue_volume: number | null;
+      /** Tw Depth Value */
+      tw_depth_value: number | null;
+      /** Tw Imbalance */
+      tw_imbalance: number | null;
+      /** Tw Size Ratio */
+      tw_size_ratio: number | null;
+      /** Tw Spread */
+      tw_spread: number | null;
+    };
+    /** BookFeature */
+    BookFeature: {
+      /** Alone Ic5 */
+      alone_ic5: number;
+      /** D1 */
+      d1: number;
+      /** D20 */
+      d20: number;
+      /** D5 */
+      d5: number;
+      /** Early5 */
+      early5: number;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Late5 */
+      late5: number;
+      /** Meaning */
+      meaning: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "kept" | "redundant" | "dropped";
+      /** T1 */
+      t1: number;
+      /** T20 */
+      t20: number;
+      /** T5 */
+      t5: number;
+    };
+    /**
+     * BookFeatureRank
+     * @description Where this symbol stood among the stocks with a stored book on the latest day.
+     */
+    BookFeatureRank: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Percentile */
+      percentile: number | null;
+      /** Value */
+      value: number | null;
+    };
+    /** BookIc */
+    BookIc: {
+      /** Ic */
+      ic: number;
+      /** T */
+      t: number;
+    };
+    /** BookLadderRow */
+    BookLadderRow: {
+      ideal: components["schemas"]["BookPoint"];
+      locks: components["schemas"]["BookPoint"];
+      /** Missed Buys */
+      missed_buys: number | null;
+      /** Review */
+      review: number;
+      /**
+       * Universe
+       * @enum {string}
+       */
+      universe: "all" | "liquid100";
+    };
     /** BookLevelOut */
     BookLevelOut: {
       /** Ask Count */
@@ -435,6 +597,63 @@ export interface components {
       bid_volume: number;
       /** Row */
       row: number;
+    };
+    /**
+     * BookPoint
+     * @description One simulated portfolio: annual excess over the median stock after costs and its t value.
+     */
+    BookPoint: {
+      /** Cagr */
+      cagr: number | null;
+      /** Cagr Benchmark */
+      cagr_benchmark: number | null;
+      /** Early */
+      early: number | null;
+      /** Excess */
+      excess: number;
+      /** Late */
+      late: number | null;
+      /** N */
+      n: number | null;
+      /** T */
+      t: number;
+      /** Turnover */
+      turnover: number | null;
+    };
+    /** BookRandom */
+    BookRandom: {
+      /** R20 With Cost */
+      r20_with_cost: number;
+      /** R20 Zero Cost */
+      r20_zero_cost: number;
+      /** R5 With Cost */
+      r5_with_cost: number;
+      /** R5 Zero Cost */
+      r5_zero_cost: number;
+      /** Turnover */
+      turnover: number;
+    };
+    /** BookScoreSim */
+    BookScoreSim: {
+      base: components["schemas"]["BookPoint"];
+      book: components["schemas"]["BookPoint"];
+      /** Label */
+      label: string;
+    };
+    /** BookSelection */
+    BookSelection: {
+      /** Chosen */
+      chosen: string[];
+      /** D1 */
+      d1: number;
+      /** D20 */
+      d20: number;
+      /** D5 */
+      d5: number;
+      /** T20 */
+      t20: number;
+      /** T5 */
+      t5: number;
     };
     /** CalibrationBlock */
     CalibrationBlock: {
@@ -1649,6 +1868,36 @@ export interface components {
       /** Value */
       value: number;
     };
+    /** InstrumentBookOut */
+    InstrumentBookOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /**
+       * Days
+       * @default []
+       */
+      days: components["schemas"]["BookDay"][];
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Message */
+      message: string | null;
+      /**
+       * Ranks
+       * @default []
+       */
+      ranks: components["schemas"]["BookFeatureRank"][];
+      /** Score Percentile */
+      score_percentile: number | null;
+      /** Universe Size */
+      universe_size: number | null;
+    };
     /** InstrumentDashboard */
     InstrumentDashboard: {
       /** Base Volume */
@@ -2018,6 +2267,65 @@ export interface components {
       p_win: number;
       /** Shortfall */
       shortfall: number | null;
+    };
+    /** OrderbookResearchOut */
+    OrderbookResearchOut: {
+      assumptions: components["schemas"]["BookAssumptions"] | null;
+      /** Available */
+      available: boolean;
+      /**
+       * Base Ic
+       * @default {}
+       */
+      base_ic: {
+        [key: string]: components["schemas"]["BookIc"];
+      };
+      /** Book Days */
+      book_days: number | null;
+      /** Book Rows */
+      book_rows: number | null;
+      /**
+       * Capacity
+       * @default []
+       */
+      capacity: components["schemas"]["BookCapacityRow"][];
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /**
+       * Features
+       * @default []
+       */
+      features: components["schemas"]["BookFeature"][];
+      /** Generated */
+      generated: string | null;
+      /**
+       * Ladder
+       * @default []
+       */
+      ladder: components["schemas"]["BookLadderRow"][];
+      /**
+       * Limits
+       * @default []
+       */
+      limits: string[];
+      random: components["schemas"]["BookRandom"] | null;
+      /**
+       * Score Sim
+       * @default []
+       */
+      score_sim: components["schemas"]["BookScoreSim"][];
+      /**
+       * Selection
+       * @default {}
+       */
+      selection: {
+        [key: string]: components["schemas"]["BookSelection"];
+      };
+      /** Split */
+      split: string | null;
     };
     /**
      * OutsideRow
@@ -2984,6 +3292,37 @@ export interface operations {
       };
     };
   };
+  instrument_book_instruments__instrument_id__book_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstrumentBookOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   dashboard_instruments__instrument_id__dashboard_get: {
     parameters: {
       query?: never;
@@ -3273,6 +3612,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["EntryOddsOut"];
+        };
+      };
+    };
+  };
+  orderbook_queue_research_orderbook_queue_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OrderbookResearchOut"];
         };
       };
     };
