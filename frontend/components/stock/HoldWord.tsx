@@ -31,17 +31,23 @@ export function useHeld(instrumentId: number): Held[] | null {
   return held;
 }
 
-/** The verdict word: "hold" only makes sense for a stock you own; otherwise it means wait. */
+/** The verdict word: "hold" only makes sense for a stock you own; otherwise it means wait. A
+ *  "hold" that exists only because the past does not back a sell (`weak`: the score itself is
+ *  low) reads «نخرید» to someone who does not own the stock and «فروش را بسنجید» to an owner. */
 export function HoldWord({
   verdict,
   label,
   instrumentId,
+  weak = false,
 }: {
   verdict: string;
   label: string;
   instrumentId: number;
+  weak?: boolean;
 }) {
   const held = useHeld(instrumentId);
   if (verdict !== "hold") return <>{label}</>;
-  return <>{held && held.length > 0 ? "نگهداری" : "صبر"}</>;
+  const owned = !!held && held.length > 0;
+  if (weak) return <>{owned ? "فروش را بسنجید" : "نخرید"}</>;
+  return <>{owned ? "نگهداری" : "صبر"}</>;
 }

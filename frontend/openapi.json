@@ -2623,11 +2623,17 @@
             ],
             "title": "Verdict",
             "type": "string"
+          },
+          "weak": {
+            "default": false,
+            "title": "Weak",
+            "type": "boolean"
           }
         },
         "required": [
           "verdict",
           "label",
+          "weak",
           "advice_allowed",
           "headline",
           "reasons",
@@ -3487,6 +3493,11 @@
           "verdict_label": {
             "title": "Verdict Label",
             "type": "string"
+          },
+          "weak": {
+            "default": false,
+            "title": "Weak",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3495,6 +3506,7 @@
           "days",
           "verdict",
           "verdict_label",
+          "weak",
           "headline",
           "reasons",
           "top_excess",

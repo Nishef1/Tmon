@@ -1000,6 +1000,20 @@ function route(url) {
           summary: "وضعش متوسط‌رو‌به‌بالاست: اگر دارید نگه دارید.",
           horizons: [
             {
+              key: "W1",
+              label: "یک هفته (۵ روز معاملاتی)",
+              days: 5,
+              verdict: "hold",
+              verdict_label: "نگهداری",
+              weak: true,
+              headline:
+                "برای یک هفته (۵ روز معاملاتی): نخرید؛ امتیازش پایین است. اگر دارید فروش را بسنجید.",
+              reasons: [],
+              top_excess: 0.004,
+              cost: 0.017512,
+              net_excess: -0.0135,
+            },
+            {
               key: "D1",
               label: "فردا (۱ روز)",
               days: 1,

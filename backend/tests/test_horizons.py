@@ -47,7 +47,9 @@ def test_edge_below_cost_means_do_not_trade() -> None:
 
 def test_avoid_zone_is_sell_only_when_the_weak_group_lost_to_the_market() -> None:
     assert _horizon_decision(20, _ev(0.04, 4.5, -0.03), "avoid", COST, SIG, True).verdict == "sell"
-    assert _horizon_decision(20, _ev(0.04, 4.5, 0.0), "avoid", COST, SIG, True).verdict == "hold"
+    unproven = _horizon_decision(20, _ev(0.04, 4.5, 0.0), "avoid", COST, SIG, True)
+    assert unproven.verdict == "hold" and unproven.weak
+    assert not _horizon_decision(20, _ev(0.04, 4.5, 0.0), "hold", COST, SIG, True).weak
 
 
 def test_horizons_need_the_cost_in_the_document() -> None:

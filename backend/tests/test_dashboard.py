@@ -268,7 +268,10 @@ def test_headline_follows_the_tested_month_when_the_score_says_more() -> None:
     assert d.verdict == "hold" and d.label == "نگهداری"
     assert [h.verdict for h in d.horizons] == ["hold"]
     assert "دلیلی هم برای فروش نیست" in d.summary
+    # ...but it is flagged weak, so the page can say "don't buy" instead of a plain "wait"
+    assert d.weak and d.horizons[0].weak and "نخرید" in d.horizons[0].headline
     assert any("امتیاز به‌تنهایی «فروش»" in r for r in d.reasons)
     doc["evidence"][0]["bottom_excess"] = -0.03
     lag = dash.decide(_with_id(8, "رابع"), doc, 3e9)
     assert lag.verdict == "sell" and lag.horizons[0].verdict == "sell"
+    assert not lag.weak and not lag.horizons[0].weak

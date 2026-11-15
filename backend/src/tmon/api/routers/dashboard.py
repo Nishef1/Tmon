@@ -341,6 +341,7 @@ def _horizon_decision(
     t = ev.get("excess_t")
     net = None if top is None else top - cost
     reasons: list[str] = []
+    weak = False
     if top is not None and ev.get("n_days"):
         reasons.append(
             f"اعداد بالا از {ev.get('n_days')} روز معاملاتی گذشته آمده‌اند: هر روز ۱۰٪ سهم‌های "
@@ -396,12 +397,14 @@ def _horizon_decision(
             f"بازار عقب مانده‌اند ({_signed(bot)})."
         )
     else:
+        # a low score the past does not back up: not a sell, but not a "wait" either
         verdict = "hold"
+        weak = True
         head = (
-            f"برای {label}: امتیاز پایین است، اما در گذشته سهم‌های کم‌امتیاز در این مدت از بازار "
-            "عقب نمانده‌اند"
+            f"برای {label}: نخرید؛ امتیازش پایین است. اگر دارید فروش را بسنجید، ولی در گذشته "
+            "سهم‌های کم‌امتیاز در این مدت از بازار عقب نمانده‌اند"
             + (f" ({_signed(bot)})" if bot is not None else "")
-            + "؛ پس دلیلی برای فروش نیست."
+            + "؛ پس فروش قطعی لازم نیست."
         )
     return DashHorizon(
         key=key,
@@ -409,6 +412,7 @@ def _horizon_decision(
         days=h,
         verdict=verdict,
         verdict_label=LABEL[verdict],
+        weak=weak,
         headline=head,
         reasons=reasons,
         top_excess=top,
@@ -626,9 +630,14 @@ def decide(
             f"تصمیم بالا از آزمون بازهٔ یک ماه آمده است؛ امتیاز به‌تنهایی «{LABEL[verdict]}» می‌گفت.",
         )
         verdict = month.verdict
+    weak_score = zone == "avoid" and verdict == "hold"
     head = {
         "buy": "امتیازش در محدودهٔ خرید است.",
-        "hold": "امتیازش متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید.",
+        "hold": (
+            "امتیازش ضعیف است: نخرید؛ اگر دارید فروش را بسنجید."
+            if weak_score
+            else "امتیازش متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید."
+        ),
         "sell": "امتیازش ضعیف است: نخرید و اگر دارید فروش را بسنجید.",
     }[verdict]
     if softened and month is not None:
@@ -639,6 +648,7 @@ def decide(
     return DashDecision(
         verdict=verdict,
         label=LABEL[verdict],
+        weak=weak_score,
         advice_allowed=advice,
         headline=head,
         reasons=reasons,

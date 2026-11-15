@@ -162,12 +162,13 @@ function Verdict({
 }) {
   const verdict = h?.verdict ?? d.verdict;
   const label = h?.verdict_label ?? d.label;
+  const weak = h?.weak ?? d.weak ?? false;
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3" data-testid="verdict-head">
       <div className="min-w-[15rem] flex-1 space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <span className={`${verdictPill(verdict)} pill-lg`} data-testid="verdict-word">
-            <HoldWord verdict={verdict} label={label} instrumentId={id} />
+            <HoldWord verdict={verdict} label={label} instrumentId={id} weak={weak} />
           </span>
           {h && <span className="text-muted">برای {shortLabel(h.label)}</span>}
         </div>
@@ -241,7 +242,12 @@ function Decision({
             >
               {shortLabel(x.label)}
               <span className={`${verdictPill(x.verdict)} ms-2`}>
-                <HoldWord verdict={x.verdict} label={x.verdict_label} instrumentId={id} />
+                <HoldWord
+                  verdict={x.verdict}
+                  label={x.verdict_label}
+                  instrumentId={id}
+                  weak={x.weak}
+                />
               </span>
             </Link>
           ))}

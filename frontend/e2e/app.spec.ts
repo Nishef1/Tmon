@@ -93,6 +93,14 @@ test.describe("instrument page", () => {
     );
   });
 
+  test("a low score the past does not back up reads «don't buy», not a plain wait", async ({
+    page,
+  }) => {
+    await page.goto("/instruments/1?h=W1");
+    await expect(page.getByTestId("verdict-word")).toHaveText("نخرید");
+    await expect(page.getByTestId("horizon-W1")).toContainText("نخرید");
+  });
+
   test("shows one final decision with its reasons and the per-symbol numbers", async ({ page }) => {
     await page.goto("/instruments/1");
     const decision = page.getByTestId("symbol-decision");

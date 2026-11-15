@@ -736,6 +736,7 @@ class DashHorizon(ApiModel):
     days: int  # trading days
     verdict: Literal["buy", "hold", "sell", "none"]
     verdict_label: str
+    weak: bool = False  # hold only because the past does not back a sell; the score itself is low
     headline: str
     reasons: list[str] = []
     top_excess: float | None = None  # past gross excess return of the top group over the market
@@ -750,6 +751,7 @@ class DashDecision(ApiModel):
 
     verdict: Literal["buy", "hold", "sell", "none"]
     label: str
+    weak: bool = False  # low score, but not backed by the tested past enough to say sell
     advice_allowed: bool = False
     headline: str
     reasons: list[str] = []

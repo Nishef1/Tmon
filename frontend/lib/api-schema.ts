@@ -1762,6 +1762,11 @@ export interface components {
        * @enum {string}
        */
       verdict: "buy" | "hold" | "sell" | "none";
+      /**
+       * Weak
+       * @default false
+       */
+      weak: boolean;
     };
     /**
      * DashDrivers
@@ -2018,6 +2023,11 @@ export interface components {
       verdict: "buy" | "hold" | "sell" | "none";
       /** Verdict Label */
       verdict_label: string;
+      /**
+       * Weak
+       * @default false
+       */
+      weak: boolean;
     };
     /**
      * DashMeeting
