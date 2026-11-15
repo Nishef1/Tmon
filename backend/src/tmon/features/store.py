@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import math
 from datetime import date
+from typing import Any
 
 import polars as pl
 from sqlalchemy import Float, cast, select
@@ -30,6 +31,9 @@ from tmon.storage.models import (
 )
 from tmon.storage.objectstore import ObjectStore
 from tmon.storage.repositories import upsert
+
+READ_SLICE = 100_000  # database rows turned into a frame at a time
+WRITE_SLICE = 50_000  # feature rows turned into JSON documents at a time
 
 PRICE_FLOAT_COLS = (
     "open", "high", "low", "close", "last", "prev_close", "volume", "value", "base_volume",
@@ -55,6 +59,34 @@ def drop_placeholder_bars(prices: pl.DataFrame) -> pl.DataFrame:
     cross-sectional averages, poison the market features of every instrument
     (docs/reports/instrument-classification-audit.md)."""
     return prices.filter(~(pl.col("high") <= PLACEHOLDER_PRICE).fill_null(False))
+
+
+def _frame(session: Session, stmt: Any, schema: dict[str, Any]) -> pl.DataFrame:
+    """The rows of ``stmt`` as a frame, read from the driver a slice at a time. SQLAlchemy's
+    row objects for the whole history need several GB; a small server has 4."""
+    conn = session.connection()
+    sql = str(stmt.compile(dialect=conn.dialect, compile_kwargs={"literal_binds": True}))
+    cur = conn.connection.dbapi_connection.cursor()  # type: ignore[union-attr]
+    names = list(schema)
+    raw = {
+        k: (pl.Utf8 if v == pl.Date else pl.Float64 if v == pl.Boolean else v)
+        for k, v in schema.items()
+    }
+    parts: list[pl.DataFrame] = []
+    try:
+        cur.execute(sql)
+        while rows := cur.fetchmany(READ_SLICE):
+            parts.append(pl.DataFrame(rows, schema=raw, orient="row"))
+    finally:
+        cur.close()
+    out = pl.concat(parts) if parts else pl.DataFrame(schema=raw)
+    return out.with_columns(
+        [
+            pl.col(k).str.slice(0, 10).str.to_date() if v == pl.Date else pl.col(k).cast(v)
+            for k, v in schema.items()
+            if raw[k] != v
+        ]
+    ).select(names)
 
 
 def load_inputs(
@@ -86,23 +118,20 @@ def load_inputs(
     )
     tag_base = {r.id: (r.tags or {}).get("base_volume") for r in tradable}
 
-    price_rows = session.execute(
+    prices = _frame(
+        session,
         select(
             PriceDaily.instrument_id,
             PriceDaily.date,
             *[cast(getattr(PriceDaily, c), Float).label(c) for c in PRICE_FLOAT_COLS],
             PriceDaily.market_halt,
-        ).where(PriceDaily.instrument_id.in_(ids))
-    ).all()
-    prices = pl.DataFrame(
-        [tuple(r) for r in price_rows],
-        schema={
+        ).where(PriceDaily.instrument_id.in_(ids)),
+        {
             "instrument_id": pl.Int64,
             "date": pl.Date,
             **dict.fromkeys(PRICE_FLOAT_COLS, pl.Float64),
             "market_halt": pl.Boolean,
         },
-        orient="row",
     )
     # base volume: the daily column when present, else the instrument's last known value
     # (an approximation for history; see docs/OPEN_QUESTIONS.md)
@@ -120,21 +149,18 @@ def load_inputs(
     )
     prices = clean_prices(drop_placeholder_bars(prices))
 
-    client_rows = session.execute(
+    clients = _frame(
+        session,
         select(
             ClientTypeDaily.instrument_id,
             ClientTypeDaily.date,
             *[cast(getattr(ClientTypeDaily, c), Float).label(c) for c in CLIENT_COLS],
-        ).where(ClientTypeDaily.instrument_id.in_(ids))
-    ).all()
-    clients = pl.DataFrame(
-        [tuple(r) for r in client_rows],
-        schema={
+        ).where(ClientTypeDaily.instrument_id.in_(ids)),
+        {
             "instrument_id": pl.Int64,
             "date": pl.Date,
             **dict.fromkeys(CLIENT_COLS, pl.Float64),
         },
-        orient="row",
     )
     return prices, clean_clients(clients, prices), sectors
 
@@ -191,16 +217,20 @@ def write_features(
     if df.is_empty():
         return 0
     cols = list(fs.columns)
-    rows = [
-        {
-            "instrument_id": inst,
-            "date": d,
-            "feature_set_version": fs.key,
-            "values": {c: _clean(v) for c, v in zip(cols, vals, strict=True)},
-        }
-        for inst, d, *vals in df.select(*KEYS, *cols).iter_rows()
-    ]
-    return upsert(session, FeatureRow, rows)
+    written = 0
+    # a slice at a time: the documents of the whole history would not fit a small server
+    for part in df.select(*KEYS, *cols).iter_slices(WRITE_SLICE):
+        rows = [
+            {
+                "instrument_id": inst,
+                "date": d,
+                "feature_set_version": fs.key,
+                "values": {c: _clean(v) for c, v in zip(cols, vals, strict=True)},
+            }
+            for inst, d, *vals in part.iter_rows()
+        ]
+        written += upsert(session, FeatureRow, rows)
+    return written
 
 
 def read_features(
