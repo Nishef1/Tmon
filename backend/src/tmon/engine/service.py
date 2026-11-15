@@ -46,6 +46,11 @@ NO_DATA = "داده کافی برای آموزش مدل وجود ندارد؛ ت
 NO_CANDIDATE = (
     "امروز توصیه‌ای وجود ندارد: هیچ نماد از آستانه‌های احتمال و ارزش مورد انتظار عبور نکرد."
 )
+NO_SKILL = (
+    "امروز توصیه‌ای وجود ندارد: مدل این بازه روی دادهٔ آزمون از شانس بهتر نبود "
+    "(سطح زیر منحنی ROC کمتر از ۰٫۵۲)، پس سیگنالش منتشر نمی‌شود."
+)
+MIN_ES_AUC = 0.52  # below this the trees rank no better than chance on held-out days
 NO_PORTFOLIO = "امروز توصیه‌ای وجود ندارد: نمادهای واجد شرایط با محدودیت‌های پرتفوی حذف شدند."
 OUTCOMES = {"tp": "tp", "sl": "sl", "sl_same_day": "sl_same_day", "expiry": "expiry"}
 
@@ -326,6 +331,9 @@ def train_and_publish(
     pred = model.predict(today)
     res.defensive_mode = bool(pred["defensive"].any()) if "defensive" in pred.columns else False
     cand = pred.filter(pl.col("signal"))
+    skill_ok = float(model.info.get("es_auc") or 0.0) >= MIN_ES_AUC
+    if not skill_ok:
+        cand = cand.clear()
     res.n_candidates = cand.height
     res.scores_uri = write_scores(
         store, bucket, timeframe, as_of, today, pred, model, str(res.model_version)
@@ -348,7 +356,7 @@ def train_and_publish(
     by_reason = dict(dropped.group_by("reason").len().iter_rows()) if dropped.height else {}
     res.diagnosis = build_diagnosis(pred, c.thresholds, selected=sel.height, dropped_by=by_reason)
     if not sel.height:
-        res.message = NO_CANDIDATE if not cand.height else NO_PORTFOLIO
+        res.message = NO_PORTFOLIO if cand.height else (NO_CANDIDATE if skill_ok else NO_SKILL)
         _record_run(session, r=res)
         _write_model_run(session, res, run, model, uri, fs.key, train, c)
         return res
