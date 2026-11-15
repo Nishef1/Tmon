@@ -124,10 +124,11 @@ test.describe("instrument page", () => {
     await ha.click();
     await expect(ha).toHaveAttribute("aria-pressed", "false");
     await expect(page.getByTestId("chart-legend")).toContainText("قیمت واقعی");
+    // the long table is gone: the header and the flow bars carry the numbers, one line keeps the rest
     const facts = page.locator('[data-fold="facts"]');
-    await facts.getByTestId("facts-table").locator("summary").click();
-    await expect(facts.getByText("قدرت خریدار (امروز)")).toBeVisible();
-    await expect(facts.getByText("گروه صنعت")).toBeVisible();
+    await expect(facts.getByTestId("facts-table")).toHaveCount(0);
+    await expect(facts.getByTestId("facts-line")).toContainText("دامنهٔ مجاز نوسان");
+    await expect(facts.getByTestId("facts-line")).toContainText("میانگین حجم ۱۰ روزه");
   });
 
   test("lists the major shareholders with percent and change", async ({ page }) => {
@@ -171,12 +172,14 @@ test.describe("instrument page", () => {
     expect(errors).toEqual([]);
   });
 
-  test("shows the tested sell warning with both halves of its history", async ({ page }) => {
+  test("shows the tested sell warning once, in the technical card", async ({ page }) => {
     await page.goto("/instruments/1");
-    const w = page.getByTestId("turning-warning");
-    await expect(w).toContainText("حجم مشکوک با افت قیمت و خروج حقیقی");
-    await expect(w).toContainText("۴ روز معاملاتی پیش");
-    await expect(w).toContainText("به‌تنهایی برای فروش کافی نیست");
+    const w = page.getByTestId("ta-fired");
+    await expect(w).toContainText("حجم مشکوک با افت و خروج حقیقی");
+    await expect(w).toContainText("۴ روز پیش");
+    // the same warning is not repeated in the turning card beside it
+    await expect(page.getByTestId("turning-warning")).toHaveCount(0);
+    await expect(page.getByTestId("turning")).toBeVisible();
   });
 
   test("lists the Codal letters of the symbol", async ({ page }) => {
@@ -417,19 +420,18 @@ test.describe("entry odds and the chart", () => {
     await expect(box).toHaveAttribute("data-view", view!);
   });
 
-  test("symbol page says how the candles after its current state went", async ({ page }) => {
+  test("symbol page keeps the entry lab to one line when no state beat or trailed the market", async ({
+    page,
+  }) => {
     await page.goto("/instruments/1");
-    const card = page.getByTestId("entry-odds");
-    await expect(card).toContainText("در کل بورس");
-    await expect(card).toContainText("آمار گذشته‌اند، نه پیش‌بینی و نه توصیه");
-    await expect(card.getByTestId("entry-now").locator("> li")).toHaveCount(2);
-    await expect(card.locator('[data-key="r2"]')).toContainText("فرقی نداشته");
-    await card.locator('[data-key="r2"] summary').click();
-    await expect(card.getByTestId("entry-horizons").first().getByRole("row")).toHaveCount(6);
-    await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
+    // every state of today made no difference, so there is no card, only the one line
+    await expect(page.getByTestId("entry-odds")).toHaveCount(0);
+    await expect(page.getByTestId("entry-none")).toContainText("بهتر یا بدتر نبوده");
     // the price range is its own card, open by default, apart from the verdict
     const range = page.getByTestId("price-range");
-    await expect(range.getByTestId("candles-vs-verdict")).toContainText("از حکم بالا مستقل است");
+    await expect(range.getByTestId("candles-vs-verdict")).toContainText(
+      "از حکم «چه کنم؟» مستقل است",
+    );
     const next = range.getByTestId("next-candles");
     // this year is the default; each row is one plain range with one percentage
     await expect(next).toHaveAttribute("data-window", "year");

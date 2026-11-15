@@ -209,8 +209,9 @@ function Warning({ w }: { w: NonNullable<T["warning"]> }) {
   );
 }
 
-/** Where the symbol stands in its fall or run-up, and what happened to symbols in that place. */
-export function TurningCard({ t }: { t: T }) {
+/** Where the symbol stands in its fall or run-up, and what happened to symbols in that place.
+ *  `skipWarning` leaves out the sell warning when the technical card beside it already shows it. */
+export function TurningCard({ t, skipWarning = false }: { t: T; skipWarning?: boolean }) {
   const s = t.state;
   return (
     <section className="card" data-testid="turning" data-state={s.key} data-tone={s.tone}>
@@ -220,7 +221,7 @@ export function TurningCard({ t }: { t: T }) {
         <ToneLabel s={s} />
       </div>
       <p className="mb-3">{faDigits(s.meaning)}</p>
-      {t.warning && <Warning w={t.warning} />}
+      {t.warning && !skipWarning && <Warning w={t.warning} />}
       <Now t={t} />
       <div className="mt-4">
         <Answers t={t} />

@@ -109,6 +109,10 @@ export default async function InstrumentPage({
   const marks = entry ? entryMarks(entry) : [];
 
   const dd = dash.ok ? dash.data : null;
+  const firedHere = (dd?.technical?.fired.length ?? 0) > 0;
+  // the entry lab only earns a card when a state of today beat or trailed the rest of the market
+  const entryDecisive = !!entry?.now.some((s) => s.label === "better" || s.label === "worse");
+  const manySignals = d.signals.length > 2;
   const agmNear = !!dd?.meeting && dd.meeting.days_left >= 0 && dd.meeting.days_left <= 30;
 
   const jumps: JumpItem[] = [
@@ -117,12 +121,13 @@ export default async function InstrumentPage({
     ...(dd?.peers ? [{ id: "peers", label: "همگروه‌ها" }] : []),
     ...(dd ? [{ id: "facts", label: "پول و ارزش‌گذاری" }] : []),
     ...(book.ok ? [{ id: "book", label: "خریداران و فروشندگان" }] : []),
-    ...(dd && (dd.turning || dd.drivers) ? [{ id: "context", label: "چه چیزی حرکتش می‌دهد" }] : []),
-    ...(entry ? [{ id: "entry", label: "آزمایشگاه ورود" }] : []),
-    ...(dd?.technical ? [{ id: "technical", label: "تکنیکال" }] : []),
+    ...(entryDecisive ? [{ id: "entry", label: "آزمایشگاه ورود" }] : []),
+    ...(dd && (dd.technical || dd.turning || dd.drivers)
+      ? [{ id: "technical", label: "تکنیکال و محرک‌ها" }]
+      : []),
     { id: "agm", label: "مجمع" },
     { id: "holders", label: "سهامداران" },
-    ...(d.signals.length > 0 ? [{ id: "signals", label: "سیگنال‌ها" }] : []),
+    ...(manySignals ? [{ id: "signals", label: "سیگنال‌ها" }] : []),
     { id: "news", label: "کدال و خبر" },
   ];
 
@@ -175,6 +180,17 @@ export default async function InstrumentPage({
             </p>
           </>
         )}
+        {d.signals.length > 0 && !manySignals && (
+          <div
+            className="mt-3 border-t border-line pt-3 [&>.card]:rounded-none [&>.card]:border-0 [&>.card]:p-0 [&>.card]:shadow-none"
+            data-testid="chart-signals"
+          >
+            <h3 className="mb-1 text-sm font-bold">
+              {d.signals.length === 1 ? "سیگنال منتشرشده" : "سیگنال‌های منتشرشده"}
+            </h3>
+            <SignalTable items={d.signals} showSymbol={false} />
+          </div>
+        )}
       </section>
 
       {dd && <PriceRange d={dd} />}
@@ -201,28 +217,34 @@ export default async function InstrumentPage({
         </Fold>
       )}
 
-      {dd && (dd.turning || dd.drivers) && (
-        <Fold id="context" title="چه چیزی این سهم را حرکت می‌دهد؟" hint="حالت فعلی و عامل‌ها">
-          <div className="grid items-start gap-x-8 gap-y-4 lg:grid-cols-2">
-            {dd.turning && <TurningCard t={dd.turning} />}
-            {dd.drivers && <DriversCard d={dd.drivers} />}
-          </div>
-        </Fold>
-      )}
-
-      {entry && (
+      {entryDecisive && entry && (
         <Fold id="entry" title="آزمایشگاه ورود" hint="بعد از کندل‌هایی مثل امروز در گذشته چه شد">
           <EntryOddsCard e={entry} odds={odds} />
         </Fold>
       )}
 
-      {dd?.technical && (
+      {dd && (dd.technical || dd.turning || dd.drivers) && (
         <Fold
           id="technical"
-          title="تحلیل تکنیکال و ریسک"
-          hint="اندیکاتورها، سابقهٔ آزموده و بیشترین افت"
+          title="تکنیکال، ریسک و محرک‌ها"
+          hint="اندیکاتورها، جای سهم در ریزش و رشد، بیشترین افت"
         >
-          <SymbolTechnical d={dd} />
+          {dd.technical && <SymbolTechnical d={dd} />}
+          {(dd.turning || dd.drivers) && (
+            <div className="grid items-start gap-x-8 gap-y-4 lg:grid-cols-2">
+              {dd.turning && <TurningCard t={dd.turning} skipWarning={firedHere} />}
+              {dd.drivers && <DriversCard d={dd.drivers} />}
+            </div>
+          )}
+          {entry && !entryDecisive && (
+            <p className="text-sm text-muted" data-testid="entry-none">
+              حالت امروز این سهم در آزمون کل بورس از خریدن هر سهم دیگری بهتر یا بدتر نبوده؛{" "}
+              <Link href="/model#entry" className="underline">
+                آزمایشگاه ورود
+              </Link>{" "}
+              همهٔ حالت‌ها را نشان می‌دهد.
+            </p>
+          )}
         </Fold>
       )}
 
@@ -281,7 +303,7 @@ export default async function InstrumentPage({
         </section>
       </Fold>
 
-      {d.signals.length > 0 && (
+      {manySignals && (
         <Fold
           id="signals"
           title="سیگنال‌های منتشرشده"
