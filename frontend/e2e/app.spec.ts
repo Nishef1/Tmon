@@ -7,10 +7,9 @@ test.describe("recommendations", () => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("html")).toHaveAttribute("lang", "fa");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "توصیه‌های امروز بازار سهام",
-    );
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("امروز بازار چه شد؟");
     await expect(page.getByTestId("disclaimer").first()).toHaveText(DISCLAIMER);
+    await page.getByTestId("v1-details").locator("summary").click();
     const cards = page.getByTestId("signal-card");
     await expect(cards).toHaveCount(2);
     await expect(cards.first()).toContainText("فولاد");
@@ -27,6 +26,7 @@ test.describe("recommendations", () => {
 
   test("a number links to its glossary entry", async ({ page }) => {
     await page.goto("/");
+    await page.getByTestId("v1-details").locator("summary").click();
     await page.getByTestId("signal-card").first().locator('a[href="/glossary/p_win"]').click();
     await expect(page).toHaveURL(/\/glossary\/p_win$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("احتمال موفقیت");
@@ -37,6 +37,7 @@ test.describe("recommendations", () => {
     page,
   }) => {
     await page.goto("/");
+    await page.getByTestId("v1-details").locator("summary").click();
     for (const [tf, label] of [
       ["W1", "هفتگی (W1)"],
       ["M1", "ماهانه (M1)"],
@@ -278,12 +279,14 @@ test("home shows the full zone tables behind a fold and the old ranking address 
 
 test("home lists only tradable v2 stocks and says what was left out", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("zone-details").locator("summary").click();
   const t = page.getByTestId("tradable-ranking");
   await expect(t).toContainText("توصیه نیست");
   await expect(t).not.toContainText("شکام ۰"); // in a buy queue: counted as left out, not listed
   await expect(t).toContainText("وبانک");
   await expect(t).toContainText("کنار گذاشته‌شده");
   await expect(page.getByTestId("gate-note")).toContainText("توصیهٔ مطمئن نیست");
+  await expect(page.getByTestId("today-note")).toContainText("یک هفته");
   await expect(page.getByTestId("decision-hold")).toContainText("وبانک");
   await expect(page.getByTestId("decision-avoid")).toContainText("خودرو");
   await expect(page.getByTestId("decision-buy")).toContainText("امروز سهم عادیِ بدون صف");
@@ -423,4 +426,14 @@ test.describe("entry odds and the chart", () => {
     await expect(page).toHaveURL(/\/compare\?months=12/);
     await expect(sec).toContainText("نماد اضافه کنید");
   });
+});
+
+test("home opens on the market strip and a sortable stock table", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("market-strip")).toBeVisible();
+  const table = page.getByTestId("stock-table");
+  await expect(table).toContainText("وبانک");
+  await table.getByRole("tab", { name: /فروش/ }).click();
+  await expect(table).toContainText("خودرو");
+  await expect(table).not.toContainText("وبانک");
 });

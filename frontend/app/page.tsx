@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { apiGet, type Ranking, type Recommendations } from "@/lib/api";
+import { apiGet, type MarketOverview, type Ranking, type Recommendations } from "@/lib/api";
 import { jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
@@ -9,6 +9,9 @@ import { OutsideBasket } from "@/components/OutsideBasket";
 import { ExposureCard } from "@/components/ExposureCard";
 import { SignalCard } from "@/components/SignalCard";
 import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
+import { Heatmap } from "@/components/today/Heatmap";
+import { MarketStrip } from "@/components/today/MarketStrip";
+import { StockTable } from "@/components/today/StockTable";
 
 export const dynamic = "force-dynamic";
 
@@ -22,53 +25,79 @@ type Search = { tf?: string; date?: string };
 
 export default async function Home({ searchParams }: { searchParams: Promise<Search> }) {
   const { tf = "D1", date } = await searchParams;
-  const [res, rank] = await Promise.all([
+  const [res, rank, market] = await Promise.all([
     apiGet<Recommendations>("/recommendations", { timeframe: tf, date }),
     apiGet<Ranking>("/v2/ranking"),
+    apiGet<MarketOverview>("/market/overview"),
   ]);
+  const ranked = rank.ok && rank.data.available ? rank.data : null;
+  // what an ordinary buyer can act on: no funds, nothing stuck in a sell queue
+  const rows = ranked
+    ? ranked.rows.filter(
+        (r) => !(r.name ?? "").startsWith("صندوق") && r.queue_state !== "sell_queue",
+      )
+    : [];
 
   return (
     <main className="space-y-5">
       <div className="space-y-1">
-        <h1 className="page-title">توصیه‌های امروز بازار سهام</h1>
+        <h1 className="page-title">امروز بازار چه شد؟</h1>
         <p className="lead">
-          برای هر سهم فقط سه تصمیم ممکن است: خرید، نگهداری یا فروش، همراه دلیل. اغلب روزها دلیلِ
-          نبودِ توصیه با عدد گفته می‌شود.
+          خلاصهٔ بازار، نقشهٔ سهم‌های پرمعامله و رتبهٔ هر سهم. رتبه‌بندی فقط یک ابزار کمکی است و
+          توصیهٔ قطعی نیست.
         </p>
       </div>
 
-      <nav aria-label="تایم‌فریم" className="flex flex-wrap gap-2">
-        {TIMEFRAMES.map((t) => (
-          <Link
-            key={t.id}
-            href={`/?tf=${t.id}`}
-            aria-current={tf === t.id ? "page" : undefined}
-            className="tab tab-pill"
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      {market.ok && market.data.available && <MarketStrip m={market.data} />}
 
-      {rank.ok && rank.data.available && (
+      {ranked && (
         <>
-          <TradableRanking d={rank.data} />
-          <OutsideBasket d={rank.data} />
-          <ExposureCard d={rank.data} />
+          <Heatmap rows={rows} />
+          <StockTable rows={rows} />
+          <p className="text-xs leading-6 text-muted" data-testid="today-note">
+            رتبه‌بندی برای نگه‌داری حدود یک هفته یا بیشتر آزموده شده و برای یک روز، پس از کارمزد،
+            سودی ندارد. هنوز همهٔ آزمون‌های اعتبار نگذشته‌اند؛ دلیل هر سهم در صفحهٔ خودش است.{" "}
+            <Link href="/model#v2" className="text-accent underline">
+              نتیجهٔ آزمون‌ها
+            </Link>
+          </p>
           <details className="card" data-testid="zone-details">
             <summary className="cursor-pointer font-semibold">
-              جدول کامل هر ناحیه با امتیاز هر سیگنال
+              نمای ناحیه‌ها، خارج از سبد و میزان سرمایه در سهام
             </summary>
             <div className="mt-4 space-y-5">
-              <ZoneTables d={rank.data} />
+              <TradableRanking d={ranked} />
+              <OutsideBasket d={ranked} />
+              <ExposureCard d={ranked} />
+              <ZoneTables d={ranked} />
             </div>
           </details>
         </>
       )}
 
-      <h2 className="pt-2 text-lg font-bold">مدل احتمال v1 (آستانه‌های سود پس از هزینه؛ مکمل)</h2>
-
-      {!res.ok ? <ErrorState message={res.error} /> : <Body data={res.data} tf={tf} />}
+      <details className="card" data-testid="v1-details" open={tf !== "D1" || date != null}>
+        <summary className="cursor-pointer font-semibold">
+          مدل احتمال (آزمایشی): سیگنال روزانه، هفتگی و ماهانه
+        </summary>
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-muted">
+            این مدل هنوز از آزمون‌ها نگذشته؛ اغلب روزها هیچ سیگنالی نمی‌دهد و نباید مبنای خرید باشد.
+          </p>
+          <nav aria-label="تایم‌فریم" className="flex flex-wrap gap-2">
+            {TIMEFRAMES.map((t) => (
+              <Link
+                key={t.id}
+                href={`/?tf=${t.id}`}
+                aria-current={tf === t.id ? "page" : undefined}
+                className="tab tab-pill"
+              >
+                {t.label}
+              </Link>
+            ))}
+          </nav>
+          {!res.ok ? <ErrorState message={res.error} /> : <Body data={res.data} tf={tf} />}
+        </div>
+      </details>
     </main>
   );
 }
