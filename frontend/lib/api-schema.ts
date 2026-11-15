@@ -25,6 +25,44 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/data-health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Data Health */
+    get: operations["data_health_data_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/data-health/refill": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Refill
+     * @description Start the refill unless one is already running. The job is its own process; poll
+     *     ``GET /data-health`` for ``refill.state``.
+     */
+    post: operations["refill_data_health_refill_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/freshness": {
     parameters: {
       query?: never;
@@ -1637,6 +1675,36 @@ export interface components {
       /** Name */
       name: string;
     };
+    /** CycleOut */
+    CycleOut: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string;
+      /** Eod Mode */
+      eod_mode: string;
+      /**
+       * Finished At
+       * Format: date-time
+       */
+      finished_at: string;
+      /** Ok */
+      ok: boolean;
+      /** Steps */
+      steps: components["schemas"]["CycleStepOut"][];
+      /** Total Seconds */
+      total_seconds: number;
+    };
+    /** CycleStepOut */
+    CycleStepOut: {
+      /** Name */
+      name: string;
+      /** Ok */
+      ok: boolean;
+      /** Seconds */
+      seconds: number;
+    };
     /**
      * DashDecision
      * @description The single final answer per symbol: buy, hold, sell or none, with the reasons.
@@ -2295,6 +2363,26 @@ export interface components {
       triggers: components["schemas"]["TurningTrigger"][];
       warning: components["schemas"]["TurningWarning"] | null;
     };
+    /** DayOut */
+    DayOut: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Flow Ref */
+      flow_ref: number | null;
+      /** Flows */
+      flows: number;
+      /** Flows Ok */
+      flows_ok: boolean;
+      /** Price Ref */
+      price_ref: number | null;
+      /** Prices */
+      prices: number;
+      /** Prices Ok */
+      prices_ok: boolean;
+    };
     /** DeepGate */
     DeepGate: {
       /** Passed */
@@ -2701,6 +2789,24 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
+    /** HealthOut */
+    HealthOut: {
+      /**
+       * Checked At
+       * Format: date-time
+       */
+      checked_at: string;
+      /** Complete */
+      complete: boolean;
+      /** Days */
+      days: components["schemas"]["DayOut"][];
+      /** Issues */
+      issues: components["schemas"]["IssueOut"][];
+      last_cycle?: components["schemas"]["CycleOut"] | null;
+      /** Newest */
+      newest: string | null;
+      refill: components["schemas"]["RefillOut"] | null;
+    };
     /** HistoryOut */
     HistoryOut: {
       /**
@@ -2930,9 +3036,16 @@ export interface components {
       flow: components["schemas"]["DashFlow"] | null;
       fund: components["schemas"]["DashFund"] | null;
       fundamental: components["schemas"]["DashFundamental"] | null;
+      /**
+       * Idle Days
+       * @default 0
+       */
+      idle_days: number;
       instrument: components["schemas"]["InstrumentOut"];
       /** Isin */
       isin: string | null;
+      /** Last Trade Date */
+      last_trade_date: string | null;
       /** Market Cap */
       market_cap: number | null;
       meeting: components["schemas"]["DashMeeting"] | null;
@@ -2949,6 +3062,12 @@ export interface components {
       /** Shares */
       shares: number | null;
       technical: components["schemas"]["DashTechnical"] | null;
+      /**
+       * Trade State
+       * @default active
+       * @enum {string}
+       */
+      trade_state: "active" | "idle" | "halted";
       turning: components["schemas"]["DashTurning"] | null;
     };
     /** InstrumentDetail */
@@ -3004,6 +3123,22 @@ export interface components {
       sector_code: string | null;
       /** Symbol */
       symbol: string;
+    };
+    /** IssueOut */
+    IssueOut: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Expected */
+      expected: number | null;
+      /** First Seen */
+      first_seen?: string | null;
+      /** Have */
+      have: number | null;
+      /** Kind */
+      kind: string;
     };
     /** LiveAccuracyOut */
     LiveAccuracyOut: {
@@ -3841,6 +3976,27 @@ export interface components {
       /** Timeframe */
       timeframe: string;
     };
+    /** RefillOut */
+    RefillOut: {
+      /** Finished At */
+      finished_at?: string | null;
+      /**
+       * Message
+       * @default
+       */
+      message: string;
+      /** Open Gaps */
+      open_gaps?: number | null;
+      /** Started At */
+      started_at?: string | null;
+      /** State */
+      state: string;
+      /**
+       * Steps
+       * @default []
+       */
+      steps: components["schemas"]["StepOut"][];
+    };
     /** RunOut */
     RunOut: {
       /**
@@ -4004,15 +4160,28 @@ export interface components {
       eps: number | null;
       /** Gauge */
       gauge: number | null;
+      /**
+       * Idle Days
+       * @default 0
+       */
+      idle_days: number;
       instrument: components["schemas"]["InstrumentOut"];
       /** Kind */
       kind: string;
+      /** Last Trade Date */
+      last_trade_date: string | null;
       /** Pe */
       pe: number | null;
       /** Sector Name */
       sector_name: string | null;
       /** Sector Pe */
       sector_pe: number | null;
+      /**
+       * Trade State
+       * @default active
+       * @enum {string}
+       */
+      trade_state: "active" | "idle" | "halted";
       /**
        * Verdict
        * @default none
@@ -4094,6 +4263,15 @@ export interface components {
       timeframe: string;
       /** Top Reasons */
       top_reasons: components["schemas"]["Reason"][];
+    };
+    /** StepOut */
+    StepOut: {
+      /** Detail */
+      detail: string;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
     };
     /** SymbolNewsOut */
     SymbolNewsOut: {
@@ -4423,6 +4601,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  data_health_data_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HealthOut"];
+        };
+      };
+    };
+  };
+  refill_data_health_refill_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RefillOut"];
         };
       };
     };
@@ -5855,6 +6073,7 @@ export interface operations {
       query: {
         q: string;
         limit?: number;
+        active_only?: boolean;
       };
       header?: never;
       path?: never;

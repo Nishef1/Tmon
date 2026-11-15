@@ -598,7 +598,10 @@ function route(url) {
     const all = [
       { id: 1, symbol: "فولاد", name: "فولاد مبارکه" },
       { id: 2, symbol: "فملی", name: "ملی صنایع مس" },
-    ].filter((h) => h.symbol.includes(q) || h.name.includes(q) || "فلزات".includes(q));
+      { id: 3, symbol: "ایستا", name: "نماد متوقف نمونه", halted: true },
+    ]
+      .filter((h) => h.symbol.includes(q) || h.name.includes(q) || "فلزات".includes(q))
+      .filter((h) => !(url.searchParams.get("active_only") === "true" && h.halted));
     return [
       200,
       {
@@ -616,6 +619,9 @@ function route(url) {
           eps: 500,
           pe: 5,
           sector_pe: 8,
+          trade_state: h.halted ? "halted" : "active",
+          last_trade_date: h.halted ? "2026-11-03" : "2026-11-10",
+          idle_days: h.halted ? 5 : 0,
         })),
       },
     ];
@@ -814,6 +820,9 @@ function route(url) {
           verdict: "cheap",
           text: "هر سهم سالانه 500 ریال سود می‌سازد و قیمتش 5 برابر آن است.",
         },
+        trade_state: "active",
+        last_trade_date: "2026-11-10",
+        idle_days: 0,
         base_volume: 1,
         ranges: { week_min: 90, week_max: 110, year_min: 60, year_max: 130 },
         meeting: {

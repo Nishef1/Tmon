@@ -2422,6 +2422,72 @@
         "title": "CreatedOut",
         "type": "object"
       },
+      "CycleOut": {
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "eod_mode": {
+            "title": "Eod Mode",
+            "type": "string"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/CycleStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "total_seconds": {
+            "title": "Total Seconds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "day",
+          "ok",
+          "eod_mode",
+          "total_seconds",
+          "finished_at",
+          "steps"
+        ],
+        "title": "CycleOut",
+        "type": "object"
+      },
+      "CycleStepOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "ok",
+          "seconds"
+        ],
+        "title": "CycleStepOut",
+        "type": "object"
+      },
       "DashDecision": {
         "description": "The single final answer per symbol: buy, hold, sell or none, with the reasons.",
         "properties": {
@@ -4475,6 +4541,64 @@
         "title": "DashTurning",
         "type": "object"
       },
+      "DayOut": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "flow_ref": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Ref"
+          },
+          "flows": {
+            "title": "Flows",
+            "type": "integer"
+          },
+          "flows_ok": {
+            "title": "Flows Ok",
+            "type": "boolean"
+          },
+          "price_ref": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Ref"
+          },
+          "prices": {
+            "title": "Prices",
+            "type": "integer"
+          },
+          "prices_ok": {
+            "title": "Prices Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "prices",
+          "flows",
+          "price_ref",
+          "flow_ref",
+          "prices_ok",
+          "flows_ok"
+        ],
+        "title": "DayOut",
+        "type": "object"
+      },
       "DeepGate": {
         "properties": {
           "passed": {
@@ -5858,6 +5982,75 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HealthOut": {
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DayOut"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "last_cycle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CycleOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "newest": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Newest"
+          },
+          "refill": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefillOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checked_at",
+          "newest",
+          "complete",
+          "issues",
+          "days",
+          "refill"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
       "HistoryOut": {
         "properties": {
           "disclaimer": {
@@ -6577,6 +6770,11 @@
               }
             ]
           },
+          "idle_days": {
+            "default": 0,
+            "title": "Idle Days",
+            "type": "integer"
+          },
           "instrument": {
             "$ref": "#/components/schemas/InstrumentOut"
           },
@@ -6590,6 +6788,18 @@
               }
             ],
             "title": "Isin"
+          },
+          "last_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Trade Date"
           },
           "market_cap": {
             "anyOf": [
@@ -6682,6 +6892,16 @@
               }
             ]
           },
+          "trade_state": {
+            "default": "active",
+            "enum": [
+              "active",
+              "idle",
+              "halted"
+            ],
+            "title": "Trade State",
+            "type": "string"
+          },
           "turning": {
             "anyOf": [
               {
@@ -6695,6 +6915,9 @@
         },
         "required": [
           "instrument",
+          "trade_state",
+          "last_trade_date",
+          "idle_days",
           "isin",
           "sector_name",
           "board",
@@ -6880,6 +7103,61 @@
           "instrument_type"
         ],
         "title": "InstrumentOut",
+        "type": "object"
+      },
+      "IssueOut": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "first_seen": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Seen"
+          },
+          "have": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Have"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "date",
+          "have",
+          "expected"
+        ],
+        "title": "IssueOut",
         "type": "object"
       },
       "LiveAccuracyOut": {
@@ -9458,6 +9736,67 @@
         "title": "RecommendationsOut",
         "type": "object"
       },
+      "RefillOut": {
+        "properties": {
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "open_gaps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Gaps"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "steps": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "RefillOut",
+        "type": "object"
+      },
       "RunOut": {
         "properties": {
           "created_at": {
@@ -10172,12 +10511,29 @@
             ],
             "title": "Gauge"
           },
+          "idle_days": {
+            "default": 0,
+            "title": "Idle Days",
+            "type": "integer"
+          },
           "instrument": {
             "$ref": "#/components/schemas/InstrumentOut"
           },
           "kind": {
             "title": "Kind",
             "type": "string"
+          },
+          "last_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Trade Date"
           },
           "pe": {
             "anyOf": [
@@ -10212,6 +10568,16 @@
             ],
             "title": "Sector Pe"
           },
+          "trade_state": {
+            "default": "active",
+            "enum": [
+              "active",
+              "idle",
+              "halted"
+            ],
+            "title": "Trade State",
+            "type": "string"
+          },
           "verdict": {
             "default": "none",
             "enum": [
@@ -10240,7 +10606,10 @@
           "gauge",
           "eps",
           "pe",
-          "sector_pe"
+          "sector_pe",
+          "trade_state",
+          "last_trade_date",
+          "idle_days"
         ],
         "title": "SearchHit",
         "type": "object"
@@ -10453,6 +10822,29 @@
           "outcome_date"
         ],
         "title": "SignalOut",
+        "type": "object"
+      },
+      "StepOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "detail"
+        ],
+        "title": "StepOut",
         "type": "object"
       },
       "SymbolNewsOut": {
@@ -11434,6 +11826,49 @@
         "summary": "Compare",
         "tags": [
           "macro"
+        ]
+      }
+    },
+    "/data-health": {
+      "get": {
+        "operationId": "data_health_data_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Data Health",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/data-health/refill": {
+      "post": {
+        "description": "Start the refill unless one is already running. The job is its own process; poll\n``GET /data-health`` for ``refill.state``.",
+        "operationId": "refill_data_health_refill_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefillOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Refill",
+        "tags": [
+          "meta"
         ]
       }
     },
@@ -13928,6 +14363,16 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Active Only",
+              "type": "boolean"
             }
           }
         ],

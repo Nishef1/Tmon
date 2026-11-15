@@ -5,7 +5,7 @@ export function Fold({
   id,
   title,
   hint,
-  open,
+  open = true,
   children,
 }: {
   id: string;

@@ -42,6 +42,7 @@ from tmon.api.schemas import (
     TurningWarning,
 )
 from tmon.api.technical import ta_doc, technical_out
+from tmon.api.trade_state import market_days, trade_state
 from tmon.backtest.turning import STATE_BY_KEY
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
@@ -722,8 +723,12 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
     fa = None
     if inst.instrument_type == "stock":
         fa = fundamental_out(inst, close, sector.name if sector else None)
+    state, last_trade, idle_days = trade_state(session, instrument_id, market_days(session))
     return InstrumentDashboard(
         instrument=instrument_out(inst),
+        trade_state=state,
+        last_trade_date=last_trade,
+        idle_days=idle_days,
         isin=inst.isin,
         sector_name=sector.name if sector else None,
         board=inst.board,

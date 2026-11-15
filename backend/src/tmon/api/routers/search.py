@@ -13,6 +13,7 @@ from tmon.api.returns import day_change
 from tmon.api.routers.dashboard import _kind, _ranking_doc, decide, fundamental_out
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import SearchHit, SearchOut
+from tmon.api.trade_state import market_days, trade_state
 from tmon.core.db import get_session
 from tmon.ingest.tsetmc.parsers import normalize_fa
 from tmon.storage.models import Instrument, PriceDaily, SectorName
@@ -42,6 +43,7 @@ def search(
     session: SessionDep,
     q: Annotated[str, Query(min_length=1, max_length=64)],
     limit: Annotated[int, Query(ge=1, le=50)] = 12,
+    active_only: bool = False,
 ) -> SearchOut:
     needle = normalize_fa(q)
     sectors = {
@@ -73,6 +75,10 @@ def search(
         )
     head.sort(key=lambda t: (t[0], t[1], t[2].id not in traded, len(t[2].symbol_fa or ""), t[2].id))
     ranking = _ranking_doc()
+    days = market_days(session)
+    states = {t[2].id: trade_state(session, t[2].id, days) for t in head}
+    if active_only:
+        head = [t for t in head if states[t[2].id][0] != "halted"]
     hits: list[SearchHit] = []
     for _, _, inst, sec in head[:limit]:
         p = session.scalars(
@@ -98,6 +104,9 @@ def search(
                 eps=fa.eps if fa else None,
                 pe=fa.pe if fa else None,
                 sector_pe=fa.sector_pe if fa else None,
+                trade_state=states[inst.id][0],
+                last_trade_date=states[inst.id][1],
+                idle_days=states[inst.id][2],
             )
         )
     return SearchOut(query=q, total=len(found), hits=hits)

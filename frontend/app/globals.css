@@ -307,6 +307,41 @@ input[type="radio"] {
     line-height: 1.6;
   }
 
+  .alert-bad {
+    border: 1px solid color-mix(in srgb, var(--down) 40%, var(--line));
+    background: var(--down-soft);
+    color: var(--down);
+    border-radius: var(--r-md);
+    padding: 0.5rem 0.9rem;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  .alert-warn:has(> .btn),
+  .alert-warn[data-testid="meeting-alert"] {
+    font-size: var(--text-sm);
+    padding: 0.5rem 0.9rem;
+  }
+  /* the stock page's top card: a coloured edge shows the day's direction at a glance */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--surface) 55%, var(--accent-soft));
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 5px;
+    background: var(--hero-edge, var(--line-strong));
+  }
+  .hero[data-dir="up"] {
+    --hero-edge: var(--up);
+  }
+  .hero[data-dir="down"] {
+    --hero-edge: var(--down);
+  }
+
   /* ── controls ─────────────────────────────────────────── */
   .btn,
   .tab {

@@ -3,6 +3,7 @@ import type { InstrumentBook, InstrumentDashboard, InstrumentDetail } from "@/li
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import { PortfolioBadge } from "@/components/stock/PortfolioBadge";
+import { TradeBadge } from "@/components/TradeBadge";
 
 const QUEUE: Record<string, { text: string; cls: string }> = {
   buy_queue: { text: "صف خرید", cls: "bg-up-soft text-up" },
@@ -99,9 +100,10 @@ export function StockHeader({
   const chips = [dash?.sector_name, dash?.board].filter(Boolean);
   const buyTot =
     f && f.buy_volume_i != null && f.buy_volume_n != null ? f.buy_volume_i + f.buy_volume_n : null;
+  const dir = (p?.close_change ?? 0) > 0 ? "up" : (p?.close_change ?? 0) < 0 ? "down" : "flat";
   const realShare = f && buyTot ? (f.buy_volume_i ?? 0) / buyTot : null;
   return (
-    <header data-testid="stock-header" className="card space-y-3">
+    <header data-testid="stock-header" data-dir={dir} className="card hero space-y-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h1 className="text-2xl font-extrabold">{d.instrument.symbol}</h1>
         {d.instrument.name && (
@@ -112,6 +114,14 @@ export function StockHeader({
             {c}
           </span>
         ))}
+        {dash && dash.trade_state !== "active" && (
+          <TradeBadge
+            state={dash.trade_state}
+            idleDays={dash.idle_days}
+            lastTrade={dash.last_trade_date ?? undefined}
+            long
+          />
+        )}
         {q && (
           <span className={`chip ${q.cls}`} data-testid="header-queue">
             {q.text}
@@ -152,7 +162,7 @@ export function StockHeader({
         )}
         {p && (
           <Tile
-            k="حجم"
+            k="حجم معاملات (سهم)"
             sub={
               p.volume_ratio_30 == null ? undefined : `${faNumber(p.volume_ratio_30, 1)}× میانگین`
             }
@@ -164,7 +174,7 @@ export function StockHeader({
         {p && (
           <Tile
             k="ارزش معاملات"
-            sub={p.trades == null ? undefined : `${faNumber(p.trades)} معامله`}
+            sub={p.trades == null ? undefined : `${faNumber(p.trades)} تراکنش`}
           >
             {toman(p.value)}
           </Tile>

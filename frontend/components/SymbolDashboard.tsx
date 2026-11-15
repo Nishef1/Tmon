@@ -171,7 +171,7 @@ function Verdict({
           </span>
           {h && <span className="text-muted">برای {shortLabel(h.label)}</span>}
         </div>
-        <p className="text-lg font-semibold leading-8">
+        <p className="text-base font-semibold leading-8">
           {faDigits((h?.headline ?? (d.summary || d.headline)).replace(/^برای [^:]*:\s*/, ""))}
         </p>
         {h && verdict !== "buy" && d.gauge != null && d.gauge >= 90 && (
@@ -222,7 +222,7 @@ function Decision({
       data-verdict={verdict}
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-bold">چه کنم؟</h2>
+        <h2 className="text-lg font-extrabold">چه کنم؟</h2>
         <span className="text-xs text-muted">
           {d.as_of ? `بر پایهٔ دادهٔ ${jalali(d.as_of)}` : ""}
         </span>
@@ -259,11 +259,16 @@ function Decision({
         </p>
       )}
 
-      <div className="mt-4 border-t border-line pt-3">
-        <Checks d={dash} h={h} />
-      </div>
+      <details className="mt-3 border-t border-line pt-3" data-testid="checks-details">
+        <summary className="cursor-pointer select-none text-sm font-semibold text-accent">
+          چرا؟ چک‌لیست تصمیم
+        </summary>
+        <div className="mt-3">
+          <Checks d={dash} h={h} />
+        </div>
+      </details>
 
-      <div className="mt-4">
+      <div className="mt-3">
         <TrackBuyButton id={id} symbol={dash.instrument.symbol} />
       </div>
 
@@ -398,13 +403,12 @@ export function SymbolTechnical({ d }: { d: D }) {
   return d.technical ? <TechnicalCard t={d.technical} /> : null;
 }
 
+export function SymbolCompany({ d }: { d: D }) {
+  return <Company d={d} />;
+}
+
 export function SymbolValuation({ d }: { d: D }) {
-  return (
-    <>
-      {d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}
-      <Company d={d} />
-    </>
-  );
+  return <>{d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}</>;
 }
 
 /** Today's price, trades, real/legal money and the symbol's facts. */

@@ -135,7 +135,6 @@ test.describe("instrument page", () => {
 
   test("shows what moves the stock outside its chart", async ({ page }) => {
     await page.goto("/instruments/1");
-    await page.locator('[data-fold="context"] > summary').click();
     const box = page.getByTestId("drivers");
     await expect(box).toContainText("تندتر از بازار");
     await expect(box).toContainText("۳۷۰ ریال");
@@ -144,7 +143,6 @@ test.describe("instrument page", () => {
 
   test("technical card reads every indicator and the tested history", async ({ page }) => {
     await page.goto("/instruments/1");
-    await page.locator('[data-fold="technical"] > summary').click();
     const box = page.getByTestId("technical");
     await expect(box.getByTestId("ta-values")).toContainText("اشباع فروش");
     await expect(box.getByTestId("ta-fired")).toContainText("در گذشته کار کرده");
@@ -181,13 +179,37 @@ test.describe("instrument page", () => {
     await expect(box).toContainText("رکورد تولید ماهانه");
   });
 
-  test("shows the live price, five order-book levels and the data age", async ({ page }) => {
+  test("shows the live price, five order-book levels and the data age while the market is open", async ({
+    page,
+  }) => {
+    // Sunday 09:30 in Tehran: inside the session
+    await page.clock.setFixedTime(new Date("2026-11-15T09:30:00+03:30"));
     await page.goto("/instruments/1");
     const live = page.getByTestId("live-quote");
     await expect(live.getByTestId("order-book").getByRole("row")).toHaveCount(6); // head + 5
     await expect(live.getByText("۱٬۰۱۲").first()).toBeVisible();
     await expect(live.getByTestId("live-age")).toContainText("آخرین به‌روزرسانی");
     await expect(live.getByTestId("live-age")).not.toContainText("قدیمی");
+  });
+
+  test("hides the live price when the market is closed", async ({ page }) => {
+    // Friday: the exchange does not trade
+    await page.clock.setFixedTime(new Date("2026-11-20T10:00:00+03:30"));
+    await page.goto("/instruments/1");
+    await expect(page.getByTestId("stock-header")).toBeVisible();
+    await expect(page.getByTestId("live-quote")).toHaveCount(0);
+  });
+
+  test("puts the verdict before the chart and keeps the meeting and its calculator together", async ({
+    page,
+  }) => {
+    await page.goto("/instruments/1");
+    const verdict = await page.getByTestId("symbol-decision").boundingBox();
+    const chart = await page.getByTestId("chart-section").boundingBox();
+    expect(verdict && chart && verdict.y < chart.y).toBe(true);
+    const agm = page.locator('[data-fold="agm"]');
+    await expect(agm.getByTestId("company")).toContainText("مجمع بعدی");
+    await expect(agm.locator("form")).toBeVisible();
   });
 
   test("unknown instrument is a 404", async ({ page }) => {
@@ -327,6 +349,17 @@ test("header search finds a symbol by name or industry and opens its page", asyn
   await expect(page).toHaveURL(/\/instruments\/1$/);
 });
 
+test("search marks a stopped symbol and can hide stopped symbols", async ({ page }) => {
+  await page.goto("/industries");
+  const box = page.getByTestId("symbol-search");
+  await box.fill("متوقف");
+  const hits = page.getByTestId("search-hit");
+  await expect(hits).toHaveCount(1);
+  await expect(hits.first().getByTestId("trade-badge")).toContainText("متوقف");
+  await page.getByLabel(/فقط نمادهای در حال معامله/).check();
+  await expect(hits).toHaveCount(0);
+});
+
 test("market page shows breadth, flow and movers, and says what it cannot show", async ({
   page,
 }) => {
@@ -377,7 +410,6 @@ test.describe("entry odds and the chart", () => {
 
   test("symbol page says how the candles after its current state went", async ({ page }) => {
     await page.goto("/instruments/1");
-    await page.locator('[data-fold="entry"] > summary').click();
     const card = page.getByTestId("entry-odds");
     await expect(card).toContainText("در کل بورس");
     await expect(card).toContainText("آمار گذشته‌اند، نه پیش‌بینی و نه توصیه");

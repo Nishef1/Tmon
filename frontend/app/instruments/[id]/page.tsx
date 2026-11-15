@@ -13,6 +13,7 @@ import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import {
   SymbolDecision,
+  SymbolCompany,
   SymbolFacts,
   SymbolTechnical,
   SymbolValuation,
@@ -23,36 +24,17 @@ import { TurningCard } from "@/components/TurningCard";
 import { DriversCard } from "@/components/DriversCard";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { StockNews } from "@/components/stock/StockNews";
-import { LiveQuote } from "@/components/LiveQuote";
+import { LiveWhenOpen } from "@/components/stock/LiveWhenOpen";
+import { StockAlerts } from "@/components/stock/StockAlerts";
+import { AGM_FIELDS, AgmCalculator } from "@/components/stock/AgmCalculator";
 import { CandleChart, type Level, type Mark } from "@/components/CandleChart";
 import { BookCard } from "@/components/book/BookCard";
 import { EntryOddsCard } from "@/components/entry/EntryOddsCard";
 import { labelColor } from "@/components/entry/EntryParts";
 import { ErrorState } from "@/components/ErrorState";
-import { Num } from "@/components/Num";
 import { SignalTable } from "@/components/SignalTable";
 
 export const dynamic = "force-dynamic";
-
-const AGM_INPUT_LABEL: Record<string, string> = {
-  dps: "سود نقدی هر سهم (ریال)",
-  price_now: "قیمت فعلی (ریال)",
-  months_to_payment: "ماه تا دریافت سود (k)",
-  monthly_discount: "نرخ تنزیل ماهانه (r_m)",
-  alt_monthly_return: "بازده ماهانهٔ جایگزین (r_alt)",
-  months_alt: "ماه‌های سرمایه‌گذاری جایگزین (k′)",
-  round_trip_costs: "هزینهٔ رفت‌وبرگشت (ریال)",
-  expected_drop_after: "افت مورد انتظار پس از بازگشایی (ریال)",
-  dividend_tax: "مالیات سود (ریال)",
-};
-
-const AGM_FIELDS = [
-  "dps",
-  "months_to_payment",
-  "expected_drop_after",
-  "dividend_tax",
-  "months_alt",
-] as const;
 
 type Search = Partial<Record<(typeof AGM_FIELDS)[number] | "h", string>>;
 
@@ -123,47 +105,60 @@ export default async function InstrumentPage({
   const entry = dash.ok ? dash.data.entry : null;
   const marks = entry ? entryMarks(entry) : [];
 
+  const dd = dash.ok ? dash.data : null;
+  const agmNear = !!dd?.meeting && dd.meeting.days_left >= 0 && dd.meeting.days_left <= 30;
+
   return (
     <main className="space-y-4">
-      <StockHeader d={d} dash={dash.ok ? dash.data : null} book={book.ok ? book.data : null} />
+      <StockHeader d={d} dash={dd} book={book.ok ? book.data : null} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card min-w-0">
-          <h2 className="mb-2 font-bold">نمودار قیمت</h2>
-          {d.candles.length === 0 ? (
-            <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
-          ) : (
-            <>
-              <CandleChart candles={d.candles} levels={levels} marks={marks} />
-              <p className="mt-2 text-xs text-muted">
-                قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
-                <Link href="/glossary/adjusted_price" className="underline">
-                  تعدیل
-                </Link>{" "}
-                شده‌اند.
-                {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
-                {marks.length > 0 &&
-                  " پیکان سبز/قرمز: کندل ورودی که در گذشته بهتر/بدتر از بقیهٔ سهم‌ها بوده."}
-              </p>
-            </>
-          )}
-        </section>
-        <LiveQuote instrumentId={d.instrument.id} />
-      </div>
+      {dd && (
+        <StockAlerts
+          instrumentId={d.instrument.id}
+          halted={dd.trade_state === "halted"}
+          idleDays={dd.idle_days}
+          meeting={dd.meeting ?? null}
+          events={[
+            ...d.events.map((e) => ({
+              when: e.announced_at ?? "",
+              title: e.title ?? "نامهٔ کدال",
+            })),
+            ...d.letters.map((l) => ({ when: l.published_at ?? "", title: l.title })),
+          ].filter((x) => x.when)}
+        />
+      )}
 
-      {dash.ok && <SymbolDecision d={dash.data} id={d.instrument.id} horizon={q.h} />}
+      {dd && <SymbolDecision d={dd} id={d.instrument.id} horizon={q.h} />}
 
-      {dash.ok && dash.data.peers && <PeersCard p={dash.data.peers} />}
+      <LiveWhenOpen instrumentId={d.instrument.id} />
 
-      {dash.ok && (
-        <Fold
-          id="facts"
-          title="ارزش‌گذاری، شرکت و معاملات"
-          hint="P/E، مجمع، حقیقی و حقوقی، سرانه"
-          open
-        >
-          <SymbolValuation d={dash.data} />
-          <SymbolFacts d={dash.data} />
+      <section className="card min-w-0" data-testid="chart-section">
+        <h2 className="mb-2 text-lg font-extrabold">نمودار قیمت</h2>
+        {d.candles.length === 0 ? (
+          <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
+        ) : (
+          <>
+            <CandleChart candles={d.candles} levels={levels} marks={marks} />
+            <p className="mt-2 text-xs text-muted">
+              قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
+              <Link href="/glossary/adjusted_price" className="underline">
+                تعدیل
+              </Link>{" "}
+              شده‌اند.
+              {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
+              {marks.length > 0 &&
+                " پیکان سبز/قرمز: کندل ورودی که در گذشته بهتر/بدتر از بقیهٔ سهم‌ها بوده."}
+            </p>
+          </>
+        )}
+      </section>
+
+      {dd?.peers && <PeersCard p={dd.peers} />}
+
+      {dd && (
+        <Fold id="facts" title="ارزش‌گذاری و معاملات" hint="P/E، حقیقی و حقوقی، سرانه، قیمت">
+          <SymbolValuation d={dd} />
+          <SymbolFacts d={dd} />
         </Fold>
       )}
 
@@ -173,12 +168,10 @@ export default async function InstrumentPage({
         </Fold>
       )}
 
-      <StockNews d={d} />
-
-      {dash.ok && (dash.data.turning || dash.data.drivers) && (
+      {dd && (dd.turning || dd.drivers) && (
         <Fold id="context" title="چه چیزی این سهم را حرکت می‌دهد؟" hint="حالت فعلی و عامل‌ها">
-          {dash.data.turning && <TurningCard t={dash.data.turning} />}
-          {dash.data.drivers && <DriversCard d={dash.data.drivers} />}
+          {dd.turning && <TurningCard t={dd.turning} />}
+          {dd.drivers && <DriversCard d={dd.drivers} />}
         </Fold>
       )}
 
@@ -188,15 +181,29 @@ export default async function InstrumentPage({
         </Fold>
       )}
 
-      {dash.ok && dash.data.technical && (
+      {dd?.technical && (
         <Fold
           id="technical"
           title="تحلیل تکنیکال و ریسک"
           hint="اندیکاتورها، سابقهٔ آزموده و بیشترین افت"
         >
-          <SymbolTechnical d={dash.data} />
+          <SymbolTechnical d={dd} />
         </Fold>
       )}
+
+      <Fold
+        id="agm"
+        title="مجمع و سود نقدی"
+        hint={
+          dd?.meeting
+            ? `مجمع ${faNumber(dd.meeting.days_left)} روز دیگر`
+            : "تاریخ مجمع، حجم مبنا و ماشین‌حساب نگه‌داری یا فروش"
+        }
+        open={asked || agmNear || true}
+      >
+        {dd && <SymbolCompany d={dd} />}
+        <AgmCalculator q={q} agm={agm} />
+      </Fold>
 
       <Fold id="holders" title="سهامداران عمده" hint="دارندگان یک درصد یا بیشتر">
         <section data-testid="shareholders">
@@ -238,6 +245,7 @@ export default async function InstrumentPage({
           )}
         </section>
       </Fold>
+
       {d.signals.length > 0 && (
         <Fold
           id="signals"
@@ -250,108 +258,7 @@ export default async function InstrumentPage({
         </Fold>
       )}
 
-      <Fold id="agm" title="مجمع: نگه‌داشتن یا فروش" hint="ماشین‌حساب سود نقدی" open={asked}>
-        <section>
-          <h2 className="mb-1 font-bold">
-            <Link href="/glossary/agm_decision" className="hover:text-accent">
-              مجمع: نگه‌داشتن یا فروش
-            </Link>
-          </h2>
-          <p className="mb-3 text-xs text-muted">
-            قیمت، نرخ بدون ریسک و هزینهٔ معامله از پایگاه داده خوانده می‌شوند؛ سود نقدی و زمان
-            پرداخت را از اطلاعیهٔ مجمع وارد کنید.
-          </p>
-          <form
-            method="get"
-            action="#agm"
-            className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2"
-          >
-            {AGM_FIELDS.map((f) => (
-              <label key={f} className="flex flex-col gap-1">
-                <span>
-                  {AGM_INPUT_LABEL[f]}
-                  {(f === "dps" || f === "months_to_payment") && " *"}
-                </span>
-                <input
-                  name={f}
-                  type="number"
-                  step="any"
-                  min={f === "expected_drop_after" ? undefined : 0}
-                  required={f === "dps" || f === "months_to_payment"}
-                  defaultValue={q[f] ?? ""}
-                  dir="ltr"
-                  className="tile"
-                />
-              </label>
-            ))}
-            <div className="flex items-end">
-              <button type="submit" className="btn btn-primary">
-                محاسبه
-              </button>
-            </div>
-          </form>
-          {agm && !agm.ok && (
-            <div className="mt-3">
-              <ErrorState message={agm.error} />
-            </div>
-          )}
-          {agm?.ok && (
-            <div className="mt-4 space-y-3">
-              <p className="text-lg font-extrabold">
-                {agm.data.decision === "hold" ? "نگه‌داشتن تا مجمع" : "فروش پیش از مجمع"}
-              </p>
-              <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-                <div className="flex justify-between border-b border-line py-1.5">
-                  <dt>ارزش فعلی سود</dt>
-                  <dd className="font-semibold">
-                    <Num term="dps" value={agm.data.pv_dividend} kind="price" />
-                  </dd>
-                </div>
-                <div className="flex justify-between border-b border-line py-1.5">
-                  <dt>NetHold</dt>
-                  <dd className="font-semibold">
-                    <Num term="agm_decision" value={agm.data.net_hold} kind="price" />
-                  </dd>
-                </div>
-                <div className="flex justify-between border-b border-line py-1.5">
-                  <dt>NetSell</dt>
-                  <dd className="font-semibold">
-                    <Num term="agm_decision" value={agm.data.net_sell} kind="price" />
-                  </dd>
-                </div>
-              </dl>
-              <div className="overflow-x-auto">
-                <table className="tbl">
-                  <thead>
-                    <tr className="text-muted">
-                      <th>ورودی</th>
-                      <th>مقدار</th>
-                      <th>منبع</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {agm.data.inputs.map((x) => (
-                      <tr key={x.name} className="border-t border-line">
-                        <td className="py-1.5">{AGM_INPUT_LABEL[x.name] ?? x.name}</td>
-                        <td className="py-1.5">
-                          <Num
-                            term="agm_decision"
-                            value={x.value}
-                            digits={x.value !== 0 && Math.abs(x.value) < 1 ? 4 : 0}
-                          />
-                        </td>
-                        <td className="py-1.5 text-xs text-muted" dir="ltr">
-                          {x.source}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </section>
-      </Fold>
+      <StockNews d={d} />
     </main>
   );
 }

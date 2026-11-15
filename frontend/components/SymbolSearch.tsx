@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { SearchHit, SymbolSearch as Result } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
 import { verdictPill } from "@/lib/ui";
+import { TradeBadge } from "@/components/TradeBadge";
 
 /** Search box in the header: symbol, company name or industry group, with a one-line summary. */
 export function SymbolSearch() {
@@ -16,10 +17,11 @@ export function SymbolSearch() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState(-1);
+  const [activeOnly, setActiveOnly] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const seq = useRef(0);
 
-  function change(value: string) {
+  function change(value: string, only = activeOnly) {
     setQ(value);
     setActive(-1);
     clearTimeout(timer.current);
@@ -36,7 +38,9 @@ export function SymbolSearch() {
     timer.current = setTimeout(async () => {
       const mine = ++seq.current;
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(text)}${only ? "&active=1" : ""}`,
+        );
         if (!res.ok) throw new Error(String(res.status));
         const data = (await res.json()) as Result;
         if (mine !== seq.current) return; // a newer keystroke already asked again
@@ -107,6 +111,17 @@ export function SymbolSearch() {
           data-testid="search-results"
           className="absolute inset-x-0 top-full z-20 mt-1 max-h-[70vh] overflow-y-auto popover sm:inset-x-auto sm:left-0 sm:w-[34rem] sm:max-w-[calc(100vw-2rem)]"
         >
+          <label className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={activeOnly}
+              onChange={(e) => {
+                setActiveOnly(e.target.checked);
+                change(q, e.target.checked);
+              }}
+            />
+            فقط نمادهای در حال معامله (بدون متوقف‌ها)
+          </label>
           {busy && hits.length === 0 && (
             <p className="px-3 py-2 text-sm text-muted">در حال جست‌وجو…</p>
           )}
@@ -126,7 +141,7 @@ export function SymbolSearch() {
               onClick={() => go(h)}
               className={`flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-start hover:bg-accent-soft sm:flex-nowrap ${
                 i === active ? "bg-accent-soft" : ""
-              }`}
+              } ${h.trade_state === "halted" ? "opacity-70" : ""}`}
               data-testid="search-hit"
             >
               <span className="min-w-0 basis-full sm:basis-0 sm:flex-1">
@@ -134,6 +149,15 @@ export function SymbolSearch() {
                   {h.instrument.symbol}{" "}
                   <span className="text-sm font-normal text-muted">{h.instrument.name}</span>
                 </span>
+                {h.trade_state !== "active" && (
+                  <span className="block">
+                    <TradeBadge
+                      state={h.trade_state}
+                      idleDays={h.idle_days}
+                      lastTrade={h.last_trade_date}
+                    />
+                  </span>
+                )}
                 <span className="block truncate text-sm text-muted">
                   {h.kind}
                   {h.sector_name ? ` · ${h.sector_name}` : ""}

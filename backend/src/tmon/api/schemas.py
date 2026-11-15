@@ -1131,6 +1131,9 @@ class DashEntry(ApiModel):
 
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
+    trade_state: Literal["active", "idle", "halted"] = "active"
+    last_trade_date: dt.date | None = None
+    idle_days: int = 0
     isin: str | None = None
     sector_name: str | None = None
     board: str | None = None
@@ -1165,6 +1168,9 @@ class SearchHit(ApiModel):
     eps: float | None = None
     pe: float | None = None
     sector_pe: float | None = None
+    trade_state: Literal["active", "idle", "halted"] = "active"
+    last_trade_date: dt.date | None = None
+    idle_days: int = 0
 
 
 class SearchOut(ApiModel):
