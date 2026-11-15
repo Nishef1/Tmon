@@ -165,3 +165,54 @@ def test_reclassify_backfills_type_code_from_stored_info_payloads(session):
     assert out["changed"] == 2
     got = dict(session.execute(select(Instrument.ins_code, Instrument.instrument_type)).all())
     assert got["901"] == T.ETF_FIXED_INCOME and got["902"] == T.ETF_COMMODITY
+
+
+ALL_TODAY = (
+    '{"clientTypeAllDto":[{"insCode":"111","buy_I_Volume":800.0,"buy_N_Volume":200.0,'
+    '"buy_DDD_Volume":0.0,"buy_CountI":40,"buy_CountN":1,"buy_CountDDD":0,'
+    '"sell_I_Volume":300.0,"sell_N_Volume":700.0,"sell_CountI":10,"sell_CountN":2},'
+    '{"insCode":"112","buy_I_Volume":5.0,"buy_N_Volume":0.0,"buy_DDD_Volume":0.0,'
+    '"buy_CountI":1,"buy_CountN":0,"buy_CountDDD":0,"sell_I_Volume":5.0,"sell_N_Volume":0.0,'
+    '"sell_CountI":1,"sell_CountN":0}]}'
+)
+
+
+def test_today_client_types_fill_only_missing_rows(session):
+    """The evening run must not score today on yesterday's flow: instruments that traded today
+    but whose history lacks today get today's split from the market-wide endpoint; rows that
+    already exist are left alone."""
+    from tmon.ingest.tsetmc.pipeline import fill_today_client_types
+
+    _run(session)
+    day = date(2026, 5, 19)
+    a, b = (
+        session.scalar(select(Instrument).where(Instrument.ins_code == c)) for c in ("111", "112")
+    )
+    session.add(ClientTypeDaily(instrument_id=b.id, date=day, buy_count_i=9, source_url="x"))
+    session.flush()
+
+    async def go():
+        client = PoliteClient(
+            limiter=DomainRateLimiter(0.0),
+            retry=RetryPolicy(max_retries=0, jitter=0.0),
+            client=httpx.AsyncClient(),
+        )
+        try:
+            return await fill_today_client_types(
+                Ctx(session, client, MemoryStore(), load_classifier()), today=day
+            )
+        finally:
+            await client.aclose()
+
+    with respx.mock:
+        respx.get(endpoints.CLIENT_TYPES_ALL).mock(return_value=httpx.Response(200, text=ALL_TODAY))
+        n = asyncio.run(go())
+    assert n == 1  # 111 filled; 112 already had a row; others are absent from the payload
+    got = session.get(ClientTypeDaily, (a.id, day))
+    assert (got.buy_volume_i, got.sell_volume_n, got.buy_count_i, got.buy_value_i) == (
+        800,
+        700,
+        40,
+        None,
+    )
+    assert session.get(ClientTypeDaily, (b.id, day)).buy_count_i == 9

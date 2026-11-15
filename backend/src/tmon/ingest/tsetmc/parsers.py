@@ -325,6 +325,32 @@ class ClientTypeRow:
     sell_value_n: float | None = None
 
 
+def parse_client_types_all(text: str, day: date) -> dict[str, ClientTypeRow]:
+    """``GetClientTypeAll``: today's counts and volumes of every instrument (no values; the
+    feature builder estimates them from the day's average price), keyed by ``insCode``."""
+    try:
+        items = json.loads(text)["clientTypeAllDto"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ParseError(f"bad client-type-all payload: {exc}") from exc
+    out: dict[str, ClientTypeRow] = {}
+    for it in items or []:
+        try:
+            out[str(it["insCode"])] = ClientTypeRow(
+                date=day,
+                buy_count_i=int(it["buy_CountI"]),
+                buy_count_n=int(it["buy_CountN"]),
+                sell_count_i=int(it["sell_CountI"]),
+                sell_count_n=int(it["sell_CountN"]),
+                buy_volume_i=float(it["buy_I_Volume"]),
+                buy_volume_n=float(it["buy_N_Volume"]),
+                sell_volume_i=float(it["sell_I_Volume"]),
+                sell_volume_n=float(it["sell_N_Volume"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ParseError(f"bad client-type-all item {it!r}: {exc}") from exc
+    return out
+
+
 def parse_client_types(text: str) -> list[ClientTypeRow]:
     """Rows separated by ``;``; fields by ``,``:
     date, buy_count I, N, sell_count I, N, buy_vol I, N, sell_vol I, N, then (optional)

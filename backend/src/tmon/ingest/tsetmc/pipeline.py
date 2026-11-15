@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
-from tmon.core.timeutil import utcnow
+from tmon.core.timeutil import to_tehran, utcnow
 from tmon.domain.calendar import build_calendar, halt_windows
 from tmon.domain.enums import InstrumentType
 from tmon.domain.rules import RuleBook
@@ -291,6 +291,44 @@ async def ingest_history(
     return stats
 
 
+async def fill_today_client_types(ctx: Ctx, today: date | None = None) -> int:
+    """Today's real/legal split for every instrument that traded today but whose history does
+    not carry today yet. Individual buying power is the strongest signal of the ranking, so
+    without this the evening ranking scored most symbols on an older day's flow. Only today:
+    the market-wide endpoint always describes the current session. The next run's history
+    fetch overwrites these rows with TSETMC's published ones (values included)."""
+    day = today or to_tehran(utcnow()).date()
+    traded = dict(
+        ctx.session.execute(
+            select(Instrument.ins_code, Instrument.id)
+            .join(PriceDaily, PriceDaily.instrument_id == Instrument.id)
+            .where(PriceDaily.date == day, PriceDaily.volume > 0)
+        ).all()
+    )
+    if not traded:
+        return 0
+    have = set(
+        ctx.session.scalars(
+            select(ClientTypeDaily.instrument_id).where(ClientTypeDaily.date == day)
+        )
+    )
+    missing = {code: iid for code, iid in traded.items() if iid not in have}
+    if not missing:
+        return 0
+    url = endpoints.CLIENT_TYPES_ALL
+    text, fetched_at = await ctx.fetch_text(url, ext="json")
+    rows = parsers.parse_client_types_all(text, day)
+    out: list[dict[str, object]] = []
+    for code, iid in missing.items():
+        r = rows.get(code)
+        if r is not None and r.buy_volume_i + r.buy_volume_n > 0:
+            out.extend(_client_rows(iid, [r], url, fetched_at, None))
+    n = upsert(ctx.session, ClientTypeDaily, out) if out else 0
+    ctx.session.flush()
+    log.info("today's client types: %d of %d missing filled", n, len(missing))
+    return n
+
+
 # --------------------------------------------------------------------------- #
 # Halts and calendar
 # --------------------------------------------------------------------------- #
@@ -465,6 +503,10 @@ async def end_of_day(ctx: Ctx) -> dict[str, int]:
         except (FetchError, parsers.ParseError) as exc:
             totals["failed"] += 1
             log.error("EOD failed for %s: %s", ins.symbol_fa, exc)
+    try:
+        totals["client_rows_today"] = await fill_today_client_types(ctx)
+    except (FetchError, parsers.ParseError) as exc:
+        log.error("today's client types failed: %s", exc)
     flag_market_halts(ctx.session)
     refresh_trading_calendar(ctx.session)
     return totals

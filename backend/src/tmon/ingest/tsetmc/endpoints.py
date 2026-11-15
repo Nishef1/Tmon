@@ -15,6 +15,9 @@ CDN = get_settings().tsetmc_cdn_url.rstrip("/")
 MARKET_WATCH_INIT = f"{OLD}/tsev2/data/MarketWatchInit.aspx?h=0&r=0"
 DAILY_HISTORY = f"{OLD}/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={{ins_code}}"
 CLIENT_TYPES = f"{OLD}/tsev2/data/clienttype.aspx?i={{ins_code}}"
+# today's real/legal split of every instrument in one call; the per-symbol history above only
+# carries a day once TSETMC publishes it, which is often hours after the close
+CLIENT_TYPES_ALL = f"{CDN}/api/ClientType/GetClientTypeAll"
 INSTRUMENT_INFO = f"{CDN}/api/Instrument/GetInstrumentInfo/{{ins_code}}"
 SHAREHOLDERS = f"{CDN}/api/Shareholder/GetInstrumentShareHolderLast/{{ins_code}}"
 BEST_LIMITS = f"{CDN}/api/BestLimits/{{ins_code}}/{{date}}"
