@@ -131,7 +131,7 @@ nginx -t
 
 # firewall + brute-force protection (SSH port left open; see SECURITY NOTES in docs/15-deploy.md)
 ufw default deny incoming; ufw default allow outgoing
-ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp
+ufw allow 1415/tcp; ufw allow 80/tcp; ufw allow 443/tcp
 ufw --force enable
 cat > /etc/fail2ban/jail.d/tmon.local <<'F2B'
 [sshd]

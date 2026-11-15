@@ -18,3 +18,4 @@
 - Node از nodesource (۲۶ یا ۲۴)، pnpm با npm؛ `corepack` در Node جدید نیست. وب روی سرور بیلد می‌شود.
 - `libgomp1` برای lightgbm لازم است.
 - ورود SSH با رمز بسته و فقط کلید مجاز است (`/etc/ssh/sshd_config.d/00-tmon.conf`).
+- پورت SSH روی **1415** است (۲۲ بسته). اتصال: `ssh -p 1415 -i ~/.ssh/tmon_vps root@185.7.172.67`. در Ubuntu 24.04 باید `ssh.socket` خاموش باشد تا پورت sshd_config اعمال شود.
