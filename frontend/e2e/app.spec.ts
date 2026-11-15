@@ -82,7 +82,7 @@ test.describe("instrument page", () => {
     const hz = page.getByTestId("horizons");
     await expect(hz).toHaveAttribute("data-horizon", "M1");
     await expect(hz).toHaveAttribute("data-verdict", "buy");
-    await expect(hz.getByTestId("horizon-evidence")).toContainText("سود اضافهٔ واقعی پس از کارمزد");
+    await expect(hz.getByTestId("horizon-evidence")).toContainText("بعد از کم کردن کارمزد");
     await page.getByTestId("horizon-D1").click();
     await expect(page).toHaveURL(/h=D1/);
     await expect(hz).toHaveAttribute("data-horizon", "D1");

@@ -49,9 +49,11 @@ export function PortfolioBadge({ instrumentId }: { instrumentId: number }) {
           data-testid="portfolio-badge"
           data-held="true"
         >
-          در «{portfolio}»: {faNumber(h.shares)} سهم
+          شما در پرتفوی «{portfolio}» {faNumber(h.shares)} سهم دارید
           {h.pnl_pct != null && (
-            <span className={`ms-1 ${signTone(h.pnl_pct)}`}>{faPercent(h.pnl_pct, 1, true)}</span>
+            <span className={`ms-1 ${signTone(h.pnl_pct)}`}>
+              ، سود/زیان تا الان {faPercent(h.pnl_pct, 1, true)}
+            </span>
           )}
         </Link>
       ))}

@@ -22,7 +22,9 @@ export function Synthesis({ d }: { d: D }) {
   const r = regime(d);
   const worse = r != null && r.rate < r.base - 0.03;
   const better = r != null && r.rate > r.base + 0.03;
-  const rec = r ? ` (${per100(r.rate)} از ۱۰۰ در برابر ${per100(r.base)} برای همهٔ سهم‌ها)` : "";
+  const rec = r
+    ? ` (سهم‌های هم‌حالت در گذشته ${per100(r.rate)} بار از هر ۱۰۰ بار در شش ماه از بازار جلو زدند؛ میانگین همهٔ سهم‌ها ${per100(r.base)} بار)`
+    : "";
   const state = d.turning ? ` («${d.turning.state.title}»)` : "";
   let head: string | null = null;
   let tone = "bg-accent-soft";

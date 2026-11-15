@@ -230,7 +230,10 @@ function Queue({ l }: { l: Live }) {
       data-testid="live-queue"
     >
       {buyQueue ? "صف خرید" : "صف فروش"}: {faNumber(vol)} سهم از {faNumber(n)} سفارش
-      {traded > 0 && ` (${faNumber(Math.round((vol / traded) * 100) / 100)} برابر حجم امروز)`}
+      {traded > 0 &&
+        (vol >= traded
+          ? ` (بیشتر از کل معاملات امروز؛ صف سنگین است)`
+          : ` (حدود ${faNumber(Math.round((vol / traded) * 100))}٪ معاملات امروز)`)}
     </p>
   );
 }
@@ -281,7 +284,13 @@ function Flow({ f }: { f: NonNullable<Live["flow"]> }) {
       <div>
         <div className="text-xs text-muted">قدرت خریدار حقیقی</div>
         <span className={power && power > 1 ? "text-up" : power && power < 1 ? "text-down" : ""}>
-          {power ? faNumber(Math.round(power * 100) / 100) : "—"}
+          {power
+            ? power > 1.05
+              ? "خریداران قوی‌ترند"
+              : power < 0.95
+                ? "فروشندگان قوی‌ترند"
+                : "برابر"
+            : "—"}
         </span>
       </div>
     </div>

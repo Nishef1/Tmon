@@ -229,31 +229,32 @@ function Decision({
           data-verdict={h.verdict}
         >
           {h.top_excess != null && (
-            <dl className="tile" data-testid="horizon-evidence">
-              <Row
-                k="سود اضافهٔ سهم‌های پرامتیاز نسبت به بازار (در گذشته)"
-                v={signedPct(h.top_excess)}
-                tone={signTone(h.top_excess)}
-              />
-              <Row k="کارمزد و مالیات خرید و فروش" v={faPercent(h.cost ?? 0, 2)} />
-              <Row
-                k="سود اضافهٔ واقعی پس از کارمزد"
-                v={signedPct(h.net_excess)}
-                tone={signTone(h.net_excess)}
-              />
+            <p className="tile text-sm leading-7" data-testid="horizon-evidence">
+              در گذشته اگر هر روز پرامتیازترین سهم‌ها (۱۰٪ بالای فهرست) را می‌خریدید و {h.label} نگه
+              می‌داشتید، بعد از کم کردن کارمزد و مالیات ({faPercent(h.cost ?? 0, 2)}) به‌طور میانگین{" "}
+              <b className={signTone(h.net_excess)}>
+                {h.net_excess != null && h.net_excess >= 0
+                  ? `${signedPct(h.net_excess)} بیشتر از بازار`
+                  : `${signedPct(h.net_excess)} یعنی کمتر از بازار`}
+              </b>{" "}
+              سود می‌کردید.
               {trust && (
-                <Row
-                  k="اطمینان به این آمار"
-                  v={`${trust}${h.ic_t != null ? ` (t ${faNumber(h.ic_t, 1)})` : ""}`}
-                />
+                <> این نتیجه {trust === "زیاد" ? "قابل اعتماد است" : `اطمینان ${trust} دارد`}.</>
               )}
-            </dl>
+            </p>
           )}
-          <ul className="mt-3 list-inside list-disc space-y-1.5">
-            {h.reasons.map((r) => (
-              <li key={r}>{faDigits(r)}</li>
-            ))}
-          </ul>
+          {h.reasons.length > 0 && (
+            <details className="mt-2 text-sm">
+              <summary className="cursor-pointer text-muted">
+                هر کدام از چهار سنجه چقدر در گذشته کمک کرده؟ (برای کارشناس)
+              </summary>
+              <ul className="mt-2 list-inside list-disc space-y-1.5">
+                {h.reasons.map((r) => (
+                  <li key={r}>{faDigits(r)}</li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
 

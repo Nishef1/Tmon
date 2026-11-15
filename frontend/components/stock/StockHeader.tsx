@@ -23,9 +23,9 @@ export function StockHeader({
   const p = dash?.price ?? null;
   const q = dash?.decision.queue_state ? QUEUE[dash.decision.queue_state] : null;
   const dates = [
-    { k: "قیمت", v: p?.date ?? null },
-    { k: "حقیقی/حقوقی", v: dash?.flow?.date ?? null },
-    { k: "رفتار خریداران", v: book?.available ? (book.as_of ?? null) : null },
+    { k: "آخرین قیمت پایانی", v: p?.date ?? null },
+    { k: "آمار حقیقی/حقوقی", v: dash?.flow?.date ?? null },
+    { k: "صف‌ها و عمق روزانه", v: book?.available ? (book.as_of ?? null) : null },
   ].filter((x): x is { k: string; v: string } => x.v != null);
   const mixed = new Set(dates.map((x) => x.v.slice(0, 10))).size > 1;
   return (
@@ -61,7 +61,8 @@ export function StockHeader({
           data-testid="data-dates"
         >
           {dates.map((x) => `${x.k}: ${jalali(x.v, "short")}`).join(" · ")}
-          {mixed && " — داده‌ها از یک روز نیستند؛ عددهای هر بخش مال روز خودشان است."}
+          {mixed &&
+            " — همهٔ این داده‌ها هنوز برای یک روز نیامده‌اند؛ هر بخش با تاریخ خودش حساب شده. قیمت لحظه‌ای پایین همیشه تازه است."}
         </p>
       )}
     </header>
