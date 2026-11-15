@@ -74,15 +74,14 @@ def verdict_sentence(s: dict[str, Any], cost: float) -> str:
         x = s[f"h{h}"]
         better = "بهتر" if x["excess_mean"] > 0 else "بدتر"
         return (
-            f"در گذشته جواب داده: {h} روز بعد به‌طور میانگین {_abs_pct(x['excess_mean'])} {better} "
-            "از "
-            f"بازار بوده و در هر دو نیمهٔ تاریخچه بیش از کارمزد ({_abs_pct(cost)}). "
-            f"نشانهٔ {word} قابل اعتنا."
+            f"در گذشته جواب داده است: {h} روز بعد به‌طور میانگین {_abs_pct(x['excess_mean'])} "
+            f"{better} از بازار بوده است و این اختلاف در هر دو نیمهٔ تاریخچه از کارمزد "
+            f"({_abs_pct(cost)}) بیشتر بوده است. این نشانهٔ {word} قابل اعتناست."
         )
     if label == "backfires":
         return (
-            f"برعکس کتاب عمل کرده: بعد از این نشانهٔ {word}، سهم در هر دو نیمهٔ تاریخچه بیش از "
-            "کارمزد خلاف جهت رفته."
+            f"برخلاف تفسیر رایج عمل کرده است: بعد از این نشانهٔ {word}، سهم در هر دو نیمهٔ "
+            "تاریخچه و با اختلافی بیش از کارمزد، خلاف جهت انتظار رفته است."
         )
     if label == "direction_only":
         h = s["direction_horizons"][0]
@@ -90,19 +89,22 @@ def verdict_sentence(s: dict[str, Any], cost: float) -> str:
         up, base = (x["up"], x["up_all"]) if sign == 1 else (1 - x["up"], 1 - x["up_all"])
         move = "بالا" if sign == 1 else "پایین"
         return (
-            f"جهت {h} روز بعد را کمی بیشتر از معمول درست گفته ({round(up * 100)} از ۱۰۰ بار "
+            f"جهت {h} روز بعد را کمی بیشتر از معمول درست گفته است ({round(up * 100)} از ۱۰۰ بار "
             f"{move} رفته، در برابر {round(base * 100)} برای همهٔ سهم‌ها)، ولی سودش به کارمزد "
-            "نمی‌رسد. فقط برای زمان‌بندی، نه دلیل خرید یا فروش."
+            "نمی‌رسد. فقط برای انتخاب زمان خرید یا فروش به کار می‌آید، نه به‌عنوان دلیل آن."
         )
     if label == "reverse_small":
         x = s["h20"]
         return (
-            f"در هر دو نیمهٔ تاریخچه خلاف کتاب رفته ({_pct(x['excess_mean'])} نسبت به بازار در "
-            "۲۰ روز)، ولی کمتر از کارمزد. به آن تکیه نکنید."
+            f"در هر دو نیمهٔ تاریخچه برخلاف تفسیر رایج رفته است ({_pct(x['excess_mean'])} نسبت به "
+            "بازار در ۲۰ روز)، ولی کمتر از کارمزد. به آن تکیه نکنید."
         )
     if label == "too_few":
-        return "موارد کافی برای داوری نیست."
-    return "در تاریخچهٔ بورس تهران نه سود روشنی داشته نه جهت را بهتر از شانس گفته."
+        return "تعداد موارد برای داوری کافی نیست."
+    return (
+        "در تاریخچهٔ بورس تهران نه سود روشنی داشته است و نه جهت قیمت را بهتر از شانس "
+        "پیش‌بینی کرده است."
+    )
 
 
 def _horizons(s: dict[str, Any], hs: list[int]) -> list[TaHorizon]:
@@ -237,9 +239,9 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
         up, dn = v["bb_up"], v["bb_dn"]
         pos = (c - dn) / (up - dn) if up > dn else 0.5
         txt = (
-            "بالای باند بالا"
+            "بالاتر از باند بالایی"
             if c > up
-            else "زیر باند پایین"
+            else "پایین‌تر از باند پایینی"
             if c < dn
             else (f"داخل باندها ({round(pos * 100)}٪ از پایین تا بالا)")
         )
@@ -288,7 +290,9 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
             "مقاومت ۲۰ روزه (بالاترین)",
             v["hi20"],
             "price",
-            f"{(v['hi20'] / c - 1) * 100:.1f}٪ بالاتر از قیمت" if c <= v["hi20"] else "شکسته شده",
+            f"{(v['hi20'] / c - 1) * 100:.1f}٪ بالاتر از قیمت"
+            if c <= v["hi20"]
+            else "شکسته شده است",
             "buy" if c > v["hi20"] else "neutral",
         )
         add(
@@ -297,7 +301,9 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
             "حمایت ۲۰ روزه (پایین‌ترین)",
             v["lo20"],
             "price",
-            f"{(1 - v['lo20'] / c) * 100:.1f}٪ پایین‌تر از قیمت" if c >= v["lo20"] else "شکسته شده",
+            f"{(1 - v['lo20'] / c) * 100:.1f}٪ پایین‌تر از قیمت"
+            if c >= v["lo20"]
+            else "شکسته شده است",
             "sell" if c < v["lo20"] else "neutral",
         )
     if c is not None and v.get("hi250") and v.get("lo250"):
@@ -307,7 +313,9 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
             "سقف ۵۲ هفته",
             v["hi250"],
             "price",
-            f"قیمت {(1 - c / v['hi250']) * 100:.0f}٪ زیر سقف" if c <= v["hi250"] else "سقف تازه",
+            f"قیمت {(1 - c / v['hi250']) * 100:.0f}٪ زیر سقف است"
+            if c <= v["hi250"]
+            else "سقف جدید ثبت شده است",
             "neutral",
         )
         add(
@@ -363,7 +371,7 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
         )
         add("vr", "rel_volume", "حجم امروز به میانگین ۲۰ روز", vr, "x", txt, "neutral")
     if (p5 := v.get("power5")) is not None:
-        txt = "خریداران حقیقی درشت‌تر" if p5 > 1 else "فروشندگان حقیقی درشت‌تر"
+        txt = "سرانهٔ خرید حقیقی‌ها بیشتر است" if p5 > 1 else "سرانهٔ فروش حقیقی‌ها بیشتر است"
         add(
             "power5",
             "per_capita_buy",
@@ -377,7 +385,7 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
         add(
             "net5",
             "net_flow",
-            "ورود پول حقیقی (۵ روز، سهم از ارزش)",
+            "ورود پول حقیقی (میانگین ۵ روز، نسبت به ارزش معاملات)",
             n5,
             "pct",
             "ورود" if n5 > 0 else "خروج",
@@ -431,12 +439,13 @@ def technical_out(
     lines = []
     if works:
         for f in works:
-            when = "در آخرین روز معامله" if f.ago == 0 else f"{f.ago} روز معاملاتی پیش"
+            when = "در آخرین روز معاملاتی" if f.ago == 0 else f"{f.ago} روز معاملاتی پیش"
             lines.append(f"«{f.title}» {when} دیده شد. {f.verdict}")
     else:
         lines.append(
             f"از {len(fired)} نشانهٔ کلاسیکی که این سهم در {doc['recent_days']} روز اخیر داده، "
-            "هیچ‌کدام در تاریخچهٔ بورس تهران سودی بیش از کارمزد نداشته؛ تصمیم را بر آن‌ها نگذارید."
+            "هیچ‌کدام در تاریخچهٔ بورس تهران سودی بیش از کارمزد نداشته‌اند؛ تصمیم خود را بر پایهٔ "
+            "آن‌ها نگیرید."
             if fired
             else f"در {doc['recent_days']} روز اخیر نشانهٔ کلاسیکی دیده نشد."
         )

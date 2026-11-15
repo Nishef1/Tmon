@@ -49,12 +49,12 @@ def fundamental(
             "نسبت قیمت به سود (P/E) برایش معنا ندارد.",
         )
     if not close or close <= 0:
-        return Fundamental(eps, None, sp, None, "unknown", "قیمت این نماد برای محاسبهٔ P/E نیست.")
+        return Fundamental(eps, None, sp, None, "unknown", "قیمتی برای محاسبهٔ P/E در دسترس نیست.")
     pe = close / eps
     head = (
-        f"هر سهم طبق برآورد ناشر سالانه {_fmt(eps, 0)} ریال سود می‌سازد و قیمتش {_fmt(pe)} برابر "
-        f"آن است؛ یعنی اگر سود ثابت بماند حدود {_fmt(pe, 0)} سال طول می‌کشد تا سود شرکت پول سهم "
-        "را برگرداند."
+        f"هر سهم طبق برآورد ناشر سالانه {_fmt(eps, 0)} ریال سود ایجاد می‌کند و قیمتش "
+        f"{_fmt(pe)} برابر آن است؛ یعنی اگر سود ثابت بماند، حدود {_fmt(pe, 0)} سال طول "
+        "می‌کشد تا سود شرکت پول سهم را برگرداند."
     )
     if sp is None:
         return Fundamental(eps, pe, None, None, "unknown", head + " P/E گروه در بورس ثبت نشده است.")

@@ -4,7 +4,7 @@
 const CHART = "نمودار شمعی صفحهٔ نماد";
 const OVER = `${CHART}، دکمه‌های «روی قیمت»`;
 const PANE = `${CHART}، دکمه‌های «زیر نمودار»`;
-const TA = "کارت «تابلوی تکنیکال» صفحهٔ نماد";
+const TA = "کارت «تحلیل تکنیکال» صفحهٔ نماد";
 const RISK = `${TA}، بخش ریسک`;
 
 export const SHOWN_ON: Record<string, readonly string[]> = {
@@ -14,8 +14,8 @@ export const SHOWN_ON: Record<string, readonly string[]> = {
   bollinger: [`${OVER}: «باند بولینگر»`, TA],
   ichimoku: [`${OVER}: «ایچیموکو»`, TA],
   vwap: [`${OVER}: «VWAP ۲۰ روزه»`, TA],
-  support_resistance: [`${OVER}: «حمایت، مقاومت، پیوت و فیبو»`, TA],
-  fibonacci: [`${OVER}: «حمایت، مقاومت، پیوت و فیبو»`, TA],
+  support_resistance: [`${OVER}: «حمایت، مقاومت، پیوت و فیبوناچی»`, TA],
+  fibonacci: [`${OVER}: «حمایت، مقاومت، پیوت و فیبوناچی»`, TA],
   fvg: [`${OVER}: «FVG و iFVG»`, TA],
   ifvg: [`${OVER}: «FVG و iFVG»`, TA],
   elliott: [`${OVER}: «امواج الیوت»`, TA],
@@ -24,7 +24,7 @@ export const SHOWN_ON: Record<string, readonly string[]> = {
   stochastic: [`${PANE}: استوکاستیک`, TA],
   mfi: [`${PANE}: MFI`, TA],
   adx: [`${PANE}: ADX`, TA],
-  atr: [`${PANE}: ATR٪`, TA],
+  atr: [`${PANE}: ATR (درصد)`, TA],
   obv: [`${PANE}: OBV`, TA],
   divergence: [`${PANE}: RSI یا OBV (قله‌ها و کف‌های قیمت و اندیکاتور را مقایسه کنید)`, TA],
   gap_fill: [CHART, TA],

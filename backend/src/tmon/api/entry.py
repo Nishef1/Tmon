@@ -35,21 +35,24 @@ def verdict(s: dict[str, Any]) -> str:
     """One plain sentence on how the candles after this setup went, from its stored numbers."""
     label = s["label"]
     if label == "too_few":
-        return f"نمونه کم است ({s['n']} بار)؛ حکمی نمی‌شود داد."
+        return f"تعداد نمونه کم است ({s['n']} بار) و دربارهٔ آن نمی‌توان قضاوت کرد."
     if label in ("better", "worse"):
         h = s["best_h"]
         x = s[f"h{h}"]
         word = "بیشتر" if label == "better" else "کمتر"
         return (
-            f"{h} کندل بعد از خرید، {_n(x['up'])} بار از ۱۰۰ بالاتر از قیمت خرید بوده؛ "
-            f"{word} از بقیهٔ سهم‌ها در همان روزها ({_n(x['up_all'])} از ۱۰۰)، "
-            "و در هر دو نیمهٔ تاریخچه همین‌طور."
+            f"در {_n(x['up'])} مورد از هر ۱۰۰ مورد، {h} کندل پس از خرید قیمت بالاتر از قیمت خرید "
+            f"بوده است؛ این رقم برای بقیهٔ سهم‌ها در همان روزها {_n(x['up_all'])} بوده، یعنی "
+            f"این حالت {word} از بقیهٔ سهم‌ها بوده است و در هر دو نیمهٔ تاریخچه هم همین "
+            "الگو دیده شده است."
         )
     x = s.get("h5") or s.get("h1") or {}
     tail = f" ({x and _n(x['up'])} در برابر {x and _n(x['up_all'])} از ۱۰۰ در ۵ کندل)" if x else ""
     if label == "mixed":
-        return "در بعضی بازه‌ها بهتر و در بعضی بدتر از بقیهٔ سهم‌ها بوده؛ قابل اتکا نیست" + tail + "."
-    return "تفاوت قابل اعتنایی با خریدن هر سهم دیگری در همان روزها نداشته" + tail + "."
+        return (
+            "در بعضی بازه‌ها بهتر و در بعضی بدتر از بقیهٔ سهم‌ها بوده است؛ قابل اتکا نیست" + tail + "."
+        )
+    return "تفاوت قابل اعتنایی با خرید هر سهم دیگری در همان روزها نداشته است" + tail + "."
 
 
 def _setup(key: str, s: dict[str, Any], horizons: list[int]) -> EntrySetup:
@@ -146,9 +149,15 @@ def forecast(own: list[OwnOdds], now: list[EntrySetup], window: str = "year") ->
         if x.h not in (1, 5, 20):
             continue
         when = "کندل بعد" if x.h == 1 else f"{x.h} کندل بعد"
-        line = f"{when}: شانس بالاتر بودن از قیمت خرید {_n(x.up)}٪ (همهٔ سهم‌ها {_n(x.up_all or 0)}٪)"
+        line = (
+            f"{when}: احتمال بالاتر بودن از قیمت خرید {_n(x.up)}٪ بوده است "
+            f"(برای همهٔ سهم‌ها {_n(x.up_all or 0)}٪)"
+        )
         if x.q10 is not None and x.q90 is not None:
-            line += f"؛ ۸ بار از ۱۰ تغییر قیمت بین {_signed_pct(x.q10)} و {_signed_pct(x.q90)} بوده"
+            line += (
+                f"؛ در ۸ مورد از هر ۱۰ مورد، تغییر قیمت بین {_signed_pct(x.q10)} و "
+                f"{_signed_pct(x.q90)} بوده است"
+            )
         out.append(line + ".")
     if own:
         x = next((o for o in own if o.h == 5), own[0])
@@ -156,10 +165,13 @@ def forecast(own: list[OwnOdds], now: list[EntrySetup], window: str = "year") ->
             out.append("در این سابقه ۵ کندل بعد بیشتر بالا رفته تا پایین، ولی نه همیشه.")
         elif x.hi < 0.5:
             out.append(
-                "در این سابقه بیشتر پایین آمده تا بالا؛ کندل‌های سبز بعدی را نمی‌شود انتظار داشت."
+                "در این سابقه بیشتر پایین آمده تا بالا؛ پس نمی‌توان انتظار کندل‌های سبز بعدی را داشت."
             )
         else:
-            out.append("یعنی جهت ۵ کندل بعد در سابقهٔ خود این سهم تقریباً شیر یا خط بوده است.")
+            out.append(
+                "یعنی جهت ۵ کندل بعد در سابقهٔ خود این سهم تقریباً مثل پرتاب سکه (شیر یا خط) بوده "
+                "است."
+            )
     if own:
         out.append(
             (
@@ -211,8 +223,8 @@ def entry_out(doc: dict[str, Any] | None, instrument_id: int) -> DashEntry | Non
             lines.append(f"آخرین {me[k]} شمع پشت سر هم {word} بوده است.")
     if me["in_base"]:
         lines.append(
-            f"سهم در کف چندماهه است: {_pct(me['dd'] or 0)} زیر سقف ۵۲ هفته و ۶۰ روز اخیر در "
-            f"دامنهٔ {_pct(me['rng60'] or 0)}."
+            f"سهم در کف چندماهه است: {_pct(me['dd'] or 0)} زیر سقف ۵۲ هفته قرار دارد و در ۶۰ روز "
+            f"اخیر بالاترین قیمت پایانی فقط {_pct(me['rng60'] or 0)} بیشتر از پایین‌ترین بوده است."
         )
     mine = me.get("own") or {}
     windows = []

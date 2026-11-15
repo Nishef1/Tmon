@@ -111,7 +111,7 @@ def _setup(label: str, **kw) -> dict:
 
 def test_readings_follow_the_numbers() -> None:
     assert "۵۲" not in verdict(_setup("better"))  # digits stay Latin; the page converts them
-    assert "52 بار از ۱۰۰" in verdict(_setup("better"))
+    assert "52 مورد از هر ۱۰۰" in verdict(_setup("better"))
     assert "بیشتر از بقیهٔ سهم‌ها" in verdict(_setup("better"))
     assert "نمونه کم" in verdict(_setup("too_few"))
     doc = {
@@ -148,7 +148,7 @@ def test_forecast_reads_the_symbols_own_record() -> None:
 
     coin = OwnOdds(h=5, n=700, eff=140, up=0.5, lo=0.42, hi=0.58, up_all=0.47, q10=-0.06, q90=0.09)
     lines = forecast([coin], [])
-    assert "شانس بالاتر بودن از قیمت خرید 50٪" in lines[0] and "42" not in lines[0]
+    assert "احتمال بالاتر بودن از قیمت خرید 50٪" in lines[0] and "42" not in lines[0]
     assert "−6٪" in lines[0] and "+9٪" in lines[0]
     assert "شیر یا خط" in lines[1]
     up = coin.model_copy(update={"up": 0.6, "lo": 0.55, "hi": 0.65})

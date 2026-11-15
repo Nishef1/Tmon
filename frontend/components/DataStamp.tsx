@@ -40,7 +40,7 @@ export async function DataStamp() {
         {r.data.items.map((i) => (
           <li key={i.kind}>
             {KIND[i.kind] ?? i.kind}: داده تا {i.date ? jalali(i.date) : "—"}
-            {i.fetched_at ? `، گرفته‌شده ${moment(i.fetched_at)}` : ""}
+            {i.fetched_at ? `، دریافت‌شده ${moment(i.fetched_at)}` : ""}
           </li>
         ))}
       </ul>

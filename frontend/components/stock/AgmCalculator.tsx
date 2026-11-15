@@ -6,10 +6,10 @@ import { Num } from "@/components/Num";
 export const AGM_INPUT_LABEL: Record<string, string> = {
   dps: "سود نقدی هر سهم (ریال)",
   price_now: "قیمت فعلی (ریال)",
-  months_to_payment: "ماه تا دریافت سود (k)",
-  monthly_discount: "نرخ تنزیل ماهانه (r_m)",
-  alt_monthly_return: "بازده ماهانهٔ جایگزین (r_alt)",
-  months_alt: "ماه‌های سرمایه‌گذاری جایگزین (k′)",
+  months_to_payment: "فاصلهٔ تا دریافت سود (ماه)",
+  monthly_discount: "نرخ تنزیل ماهانه (بازدهی بدون ریسک ماهانه)",
+  alt_monthly_return: "بازده ماهانهٔ سرمایه‌گذاری جایگزین",
+  months_alt: "مدت سرمایه‌گذاری جایگزین (ماه)",
   round_trip_costs: "هزینهٔ رفت‌وبرگشت (ریال)",
   expected_drop_after: "افت مورد انتظار پس از بازگشایی (ریال)",
   dividend_tax: "مالیات سود (ریال)",
@@ -41,8 +41,9 @@ export function AgmCalculator({
         </Link>
       </h2>
       <p className="mb-3 text-xs text-muted">
-        قیمت، نرخ بدون ریسک و هزینهٔ معامله از پایگاه داده خوانده می‌شوند؛ سود نقدی و زمان پرداخت را
-        از اطلاعیهٔ مجمع وارد کنید.
+        قیمت، نرخ بدون ریسک (بازدهی اوراق خزانه) و هزینهٔ معامله از پایگاه داده خوانده می‌شوند؛ سود
+        نقدی و زمان پرداخت را از اطلاعیهٔ مجمع وارد کنید. «مدت سرمایه‌گذاری جایگزین» یعنی اگر سهم را
+        بفروشید، پولش تا زمان دریافت سود چند ماه در جای دیگر کار می‌کند.
       </p>
       <form method="get" action="#agm" className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         {AGM_FIELDS.map((f) => (
@@ -81,19 +82,19 @@ export function AgmCalculator({
           </p>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
             <div className="flex justify-between border-b border-line py-1.5">
-              <dt>ارزش فعلی سود</dt>
+              <dt>ارزش امروز سود نقدی</dt>
               <dd className="font-semibold">
                 <Num term="dps" value={agm.data.pv_dividend} kind="price" />
               </dd>
             </div>
             <div className="flex justify-between border-b border-line py-1.5">
-              <dt>NetHold</dt>
+              <dt>خالص نگه داشتن (NetHold)</dt>
               <dd className="font-semibold">
                 <Num term="agm_decision" value={agm.data.net_hold} kind="price" />
               </dd>
             </div>
             <div className="flex justify-between border-b border-line py-1.5">
-              <dt>NetSell</dt>
+              <dt>خالص فروش (NetSell)</dt>
               <dd className="font-semibold">
                 <Num term="agm_decision" value={agm.data.net_sell} kind="price" />
               </dd>

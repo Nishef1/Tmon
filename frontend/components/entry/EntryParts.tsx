@@ -4,9 +4,9 @@ import { faNumber, faPercent } from "@/lib/format";
 export const LABEL_FA: Record<EntrySetup["label"], string> = {
   better: "بهتر از بقیهٔ سهم‌ها",
   worse: "بدتر از بقیهٔ سهم‌ها",
-  same: "فرقی نداشته",
+  same: "تفاوت روشنی ندارد",
   mixed: "ناپایدار",
-  too_few: "نمونهٔ کم",
+  too_few: "نمونه کم است",
 };
 
 const LABEL_CLS: Record<EntrySetup["label"], string> = {
@@ -126,18 +126,23 @@ export function PathRisk({
 }) {
   const rows: [string, number | null | undefined, number | null | undefined, boolean][] = [
     [
-      `در ${faNumber(within)} کندل بعد، پایانی ${pct(Math.abs(dip))} زیر قیمت خرید رفته`,
+      `در ${faNumber(within)} کندل بعد، قیمت پایانی دست‌کم ${pct(Math.abs(dip))} زیر قیمت خرید رفته`,
       s.dip_hit,
       s.dip_hit_all,
       false,
     ],
     [
-      `در ${faNumber(path)} کندل، اول ${pct(win)} سود رسیده (پیش از ${pct(Math.abs(loss))} ضرر)`,
+      `در ${faNumber(path)} کندل، اول به ${pct(win)} سود رسیده (پیش از رسیدن به ${pct(Math.abs(loss))} زیان)`,
       s.win,
       s.win_all,
       true,
     ],
-    [`در ${faNumber(path)} کندل، اول ${pct(Math.abs(loss))} ضرر رسیده`, s.loss, s.loss_all, false],
+    [
+      `در ${faNumber(path)} کندل، اول به ${pct(Math.abs(loss))} زیان رسیده (پیش از رسیدن به ${pct(win)} سود)`,
+      s.loss,
+      s.loss_all,
+      false,
+    ],
   ];
   return (
     <ul className="space-y-1 text-xs" data-testid="entry-path">
@@ -192,8 +197,9 @@ export function YearStrip({ s, h }: { s: EntrySetup; h: number }) {
       <p className="text-xs text-muted">
         سال به سال ({hh === 1 ? "کندل بعد" : `${faNumber(hh)} کندل بعد`}): از{" "}
         {faNumber(counted.length)} سال، <b className="text-up">{faNumber(better)}</b> سال بهتر و{" "}
-        <b className="text-down">{faNumber(worse)}</b> سال بدتر از بقیهٔ سهم‌ها؛ بقیه فرقی نداشته.
-        از {faNumber(ys[0].year)} تا {faNumber(ys[ys.length - 1].year)}.
+        <b className="text-down">{faNumber(worse)}</b> سال بدتر از بقیهٔ سهم‌ها بوده است؛ در بقیهٔ
+        سال‌ها تفاوت روشنی دیده نشد. از {faNumber(ys[0].year)} تا {faNumber(ys[ys.length - 1].year)}
+        .
       </p>
     </div>
   );

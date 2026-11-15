@@ -9,12 +9,12 @@ type F = T["fired"][number];
 const TONE: Record<V["tone"], string> = { buy: "text-up", sell: "text-down", neutral: "" };
 
 const LABEL_FA: Record<F["label"], string> = {
-  works: "در گذشته کار کرده",
-  direction_only: "فقط جهت را درست گفته",
-  reverse_small: "کمی برعکس عمل کرده",
-  backfires: "برعکس عمل کرده",
-  no_edge: "برتری نداشته",
-  too_few: "نمونهٔ کم",
+  works: "در گذشته جواب داده است",
+  direction_only: "فقط جهت را درست گفته است",
+  reverse_small: "کمی برعکس عمل کرده است",
+  backfires: "برعکس عمل کرده است",
+  no_edge: "برتری نداشته است",
+  too_few: "نمونه کم است",
 };
 
 function value(v: V): string {
@@ -51,15 +51,17 @@ function Risk({ r }: { r: NonNullable<T["risk"]> }) {
         ))}
       </dl>
       <p className="mt-1 text-xs text-muted">
-        روی {faNumber(r.days)} روز معاملاتی از {jalali(r.from_date, "short")} با قیمت تعدیل‌شده.
+        این ارقام از {faNumber(r.days)} روز معاملاتی (از {jalali(r.from_date, "short")}) و با قیمت
+        تعدیل‌شده به دست آمده‌اند.
         {r.rf_annual != null &&
           ` شارپ و سورتینو با نرخ بدون ریسک ${faPercent(r.rf_annual, 1)} (بازده اوراق خزانه) حساب شده‌اند.`}{" "}
-        VaR یعنی در ۹۵ از ۱۰۰ روز ضرر یک روز از این بیشتر نبوده است.
+        VaR (ارزش در معرض ریسک) یعنی در ۹۵ روز از هر ۱۰۰ روز، زیان یک‌روزهٔ سهم از این مقدار بیشتر
+        نبوده است.
       </p>
       {r.ret_1y != null && r.ret_1y > 1 && (
         <p className="mt-1 rounded-lg bg-warn-soft p-2 text-xs" data-testid="risk-runup">
-          بازده این دوره بیش از دو برابر بوده؛ شارپ و سورتینو بالا فقط همین جهش را نشان می‌دهند و
-          برای آینده عدد قابل اتکایی نیستند.
+          بازده این دوره بیش از دو برابر بوده است؛ شارپ و سورتینوی بالا فقط همین جهش را نشان می‌دهند
+          و برای آینده معیار قابل اتکایی نیستند.
         </p>
       )}
     </div>
@@ -71,7 +73,9 @@ function Risk({ r }: { r: NonNullable<T["risk"]> }) {
 export function TechnicalCard({ t }: { t: T }) {
   return (
     <section className="card" data-testid="technical">
-      <h2 className="mb-1 font-bold">تابلوی تکنیکال: اندیکاتورها چه می‌گویند و در گذشته چه شد؟</h2>
+      <h2 className="mb-1 font-bold">
+        تحلیل تکنیکال: اندیکاتورها چه می‌گویند و در گذشته چه نتیجه‌ای داشته‌اند؟
+      </h2>
       <ul className="list-disc space-y-1.5 ps-5">
         {t.lines.map((l) => (
           <li key={l}>{faDigits(l)}</li>
@@ -129,7 +133,7 @@ export function TechnicalCard({ t }: { t: T }) {
                 اندیکاتور ({jalali(t.as_of, "short")})
               </th>
               <th className="py-1 font-normal">مقدار</th>
-              <th className="py-1 text-start font-normal">خوانش کتابی</th>
+              <th className="py-1 text-start font-normal">تفسیر رایج</th>
             </tr>
           </thead>
           <tbody>
@@ -151,10 +155,10 @@ export function TechnicalCard({ t }: { t: T }) {
       </div>
       {t.risk && <Risk r={t.risk} />}
       <p className="mt-3 text-xs text-muted">
-        «خوانش کتابی» همان چیزی است که کتاب‌های تحلیل تکنیکال می‌گویند، نه نتیجهٔ آزمون ما. آزمون هر
-        خوانش روی همهٔ نمادهای بورس تهران، ۱ تا ۶۰ روز بعد، پس از کارمزد رفت‌وبرگشت{" "}
-        {faPercent(t.round_trip_cost, 1)} و بدون روزهای صف در صفحهٔ هر واژه در واژه‌نامه آمده است.
-        این‌ها توصیه نیستند.
+        «تفسیر رایج» همان چیزی است که کتاب‌های تحلیل تکنیکال می‌گویند، نه نتیجهٔ آزمون ما. هر تفسیر
+        را روی همهٔ نمادهای بورس تهران، از ۱ تا ۶۰ روز بعد، با کسر کارمزد رفت‌وبرگشت{" "}
+        {faPercent(t.round_trip_cost, 1)} و بدون احتساب روزهای صف آزموده‌ایم؛ نتیجه در صفحهٔ هر واژه
+        در واژه‌نامه آمده است. این‌ها توصیهٔ خرید یا فروش نیستند.
       </p>
     </section>
   );

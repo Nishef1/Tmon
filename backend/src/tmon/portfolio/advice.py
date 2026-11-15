@@ -115,7 +115,7 @@ def _holding_verdict(h: Holding, sc: Scored | None, close: float | None) -> tupl
         f"امتیاز مدل {sc.score:.2f} (رتبهٔ {sc.rank}) در ناحیهٔ «{ZONE_FA.get(sc.zone, sc.zone)}»."
     )
     if sc.partial:
-        reasons.append("امتیاز از بخشی از نشانه‌ها ساخته شده (سابقهٔ کوتاه)؛ با احتیاط ببین.")
+        reasons.append("امتیاز از بخشی از نشانه‌ها ساخته شده (سابقهٔ کوتاه)؛ با احتیاط بخوانید.")
     if sc.queue_state == "sell_queue":
         reasons.append("در صف فروش است؛ فروش فوری ممکن نیست و خطر ادامهٔ ریزش هست.")
         return "sell", reasons
@@ -131,7 +131,7 @@ def _holding_verdict(h: Holding, sc: Scored | None, close: float | None) -> tupl
 VERDICT_FA = {
     "strong": "قوی — نگه دار",
     "hold": "متوسط — نگه دار",
-    "weak": "ضعیف — جایگزین بهتر را ببین",
+    "weak": "ضعیف — جایگزین بهتری بیابید",
     "sell": "فروش",
     "watch": "زیر نظر",
 }

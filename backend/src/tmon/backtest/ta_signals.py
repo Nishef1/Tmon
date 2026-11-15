@@ -558,7 +558,7 @@ SIGNALS: dict[str, tuple[str, str, str, pl.Expr]] = {
     "smart_money_combo": (
         "smart_money",
         "buy",
-        "ترکیب پول هوشمند (قدرت، حجم، بالای میانگین)",
+        "پول هوشمند: قدرت خریدار بیش از ۱٫۵، حجم دو برابر میانگین، بالای میانگین ۲۰ روزه",
         turns_on((C("power") > 1.5) & (C("vr") > 2) & (cl > C("sma20")) & (C("ret1") > 0)),
     ),
     "drop_5d_10pct": (

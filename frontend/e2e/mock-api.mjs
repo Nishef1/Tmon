@@ -1118,7 +1118,7 @@ function route(url) {
         change_pct: null,
         book_as_of: null,
         book: [],
-        message: "هنوز داده‌ٔ لحظه‌ای برای این نماد ذخیره نشده است.",
+        message: "هنوز دادهٔ لحظه‌ای برای این نماد ذخیره نشده است.",
         disclaimer: DISCLAIMER,
       },
     ];

@@ -32,7 +32,7 @@ export function PortfolioBadge({ instrumentId }: { instrumentId: number }) {
           شما در پرتفوی «{portfolio}» {faNumber(h.shares)} سهم دارید
           {h.pnl_pct != null && (
             <span className={`ms-1 ${signTone(h.pnl_pct)}`}>
-              ، سود/زیان تا الان {faPercent(h.pnl_pct, 1, true)}
+              ، سود یا زیان تا امروز {faPercent(h.pnl_pct, 1, true)}
             </span>
           )}
         </Link>

@@ -3,10 +3,10 @@ import type { InstrumentDetail } from "@/lib/api";
 import { jalali } from "@/lib/format";
 
 const STAGE_LABEL: Record<string, string> = {
-  invitation: "دعوت",
-  decisions: "تصمیمات",
-  decisions_summary: "خلاصهٔ تصمیمات",
-  decisions_registered: "ثبت تصمیمات",
+  invitation: "دعوت به مجمع",
+  decisions: "تصمیمات مجمع",
+  decisions_summary: "خلاصهٔ تصمیمات مجمع",
+  decisions_registered: "ثبت تصمیمات مجمع",
   dividend_schedule: "زمان‌بندی پرداخت سود",
   dividend_schedule_prior_years: "زمان‌بندی سود سال‌های قبل",
   ordinary_extraordinary_invitation: "دعوت مجمع عادی به‌طور فوق‌العاده",
@@ -15,10 +15,10 @@ const STAGE_LABEL: Record<string, string> = {
   egm_invitation: "دعوت مجمع فوق‌العاده",
   egm_decisions: "تصمیمات مجمع فوق‌العاده",
   meeting_cancelled: "لغو جلسه",
-  board_proposal: "پیشنهاد هیئت‌مدیره",
+  board_proposal: "پیشنهاد هیئت‌مدیره به مجمع",
   auditor_opinion: "نظر حسابرس",
-  documents: "مدارک",
-  registered: "ثبت",
+  documents: "مدارک و پیوست‌ها",
+  registered: "ثبت شد",
   board_decision_delegated: "تصمیم هیئت‌مدیره (تفویض)",
   board_meeting_scheduled: "زمان جلسهٔ هیئت‌مدیره",
   board_decision: "تصمیم هیئت‌مدیره",
@@ -94,8 +94,8 @@ export function StockNews({ d }: { d: InstrumentDetail }) {
         </Link>
       </h2>
       <p className="mb-2 text-xs text-muted">
-        تازه‌ترین اطلاعیه‌های ناشر در کدال و خبرهایی که نام نماد در تیترشان آمده، به ترتیب تاریخ؛ با
-        کلیک، متن اصلی باز می‌شود.
+        در این بخش تازه‌ترین اطلاعیه‌های ناشر در کدال و خبرهایی را می‌بینید که نام نماد در تیترشان
+        آمده است؛ به ترتیب تاریخ. با کلیک روی هر مورد، متن اصلی باز می‌شود.
       </p>
       {shown.length === 0 ? (
         <p className="text-sm text-muted" data-testid="news-empty">

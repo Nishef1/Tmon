@@ -21,8 +21,9 @@ export function PriceRange({ d }: { d: D }) {
         <span className="ms-2 text-sm text-muted">فقط آمار گذشتهٔ همین سهم؛ سیگنال نیست</span>
       </summary>
       <p className="mt-3 rounded-lg bg-warn-soft p-2 text-sm" data-testid="candles-vs-verdict">
-        فقط تکرار حرکت‌های گذشتهٔ خودِ سهم است و از حکم «چه کنم؟» مستقل است؛ بعد از یک صعود، این
-        جدول تقریباً همیشه سبز می‌شود.
+        این جدول فقط حرکت‌های گذشتهٔ خودِ همین سهم را تکرار می‌کند و از حکم «چه کنم؟» مستقل است. بعد
+        از هر صعود، قیمت‌های بالاتر در این جدول تقریباً همیشه محتمل‌تر دیده می‌شوند؛ پس آن را نشانهٔ
+        خرید نگیرید.
       </p>
       <div className="mt-3">
         <NextCandles e={d.entry} />

@@ -176,7 +176,7 @@ export default async function InstrumentPage({
               شده‌اند.
               {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
               {marks.length > 0 &&
-                " پیکان سبز/قرمز: کندل ورودی که در گذشته بهتر/بدتر از بقیهٔ سهم‌ها بوده."}
+                " پیکان سبز یعنی ورود در آن کندل در گذشته بهتر از بقیهٔ سهم‌ها بوده است و پیکان قرمز یعنی بدتر."}
             </p>
           </>
         )}
@@ -238,7 +238,7 @@ export default async function InstrumentPage({
           )}
           {entry && !entryDecisive && (
             <p className="text-sm text-muted" data-testid="entry-none">
-              حالت امروز این سهم در آزمون کل بورس از خریدن هر سهم دیگری بهتر یا بدتر نبوده؛{" "}
+              حالت امروز این سهم در آزمون کل بورس از خریدن هر سهم دیگری بهتر یا بدتر نبوده است؛{" "}
               <Link href="/model#entry" className="underline">
                 آزمایشگاه ورود
               </Link>{" "}
@@ -254,7 +254,7 @@ export default async function InstrumentPage({
         hint={
           dd?.meeting
             ? `مجمع ${faNumber(dd.meeting.days_left)} روز دیگر`
-            : "تاریخ مجمع، حجم مبنا و ماشین‌حساب نگه‌داری یا فروش"
+            : "تاریخ مجمع، حجم مبنا و ماشین‌حساب «نگه داشتن یا فروش»"
         }
         open={asked || agmNear || true}
       >

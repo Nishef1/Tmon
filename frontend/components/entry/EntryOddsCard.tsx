@@ -80,10 +80,10 @@ export function EntryOddsCard({ e, odds }: { e: DashEntry; odds: EntryOdds | nul
                   </div>
                 </details>
                 <p className="mt-2 text-xs text-muted">
-                  {faNumber(s.n)} بار در {faNumber(s.symbols)} نماد
+                  این حالت {faNumber(s.n)} بار در {faNumber(s.symbols)} نماد پیش آمده است
                   {s.locked_share != null &&
                     s.locked_share > 0.05 &&
-                    `؛ ${faPercent(s.locked_share, 0)} از دفعه‌ها چون روز خرید صف بوده کنار گذاشته شده`}
+                    `؛ ${faPercent(s.locked_share, 0)} از موارد به‌دلیل صف بودن روز خرید کنار گذاشته شد`}
                   .
                 </p>
               </li>

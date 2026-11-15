@@ -243,7 +243,7 @@ def detect_holding(
                 h.instrument_id,
                 f"صف فروش در {sym}",
                 f"{sym} در صف فروش است: {size} در قیمت کف دامنه برای فروش گذاشته شده و "
-                "خریداری در سمت تقاضا نیست. می‌خواهی خارج شوی؟",
+                "خریداری در سمت تقاضا نیست. آیا می‌خواهید از سهم خارج شوید؟",
                 f"{base}:sell_queue:{day}",
                 {"ask_volume": top.ask_volume, "queue_days": days, "price": top.ask_price},
                 ask_exit=True,
@@ -426,7 +426,7 @@ def detect_state(
             h.instrument_id,
             f"نماد {h.symbol} متوقف شد",
             f"معاملات {h.symbol} وسط بازار متوقف شد. توقف معمولاً پیش از یک خبر یا افشای مهم است؛ "
-            "کدال و پیام ناظر را ببین. بعد از بازگشایی تصمیم می‌گیری چه کنی؟",
+            "کدال و پیام ناظر را ببینید. بعد از بازگشایی تصمیم می‌گیرید چه کنید؟",
             f"{h.portfolio_id}:{h.instrument_id}:halt:{_bucket(at, 60)}",
             {"from": before, "to": code},
             ask_exit=True,

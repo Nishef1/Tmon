@@ -155,7 +155,7 @@ test.describe("instrument page", () => {
     await page.goto("/instruments/1");
     const box = page.getByTestId("technical");
     await expect(box.getByTestId("ta-values")).toContainText("اشباع فروش");
-    await expect(box.getByTestId("ta-fired")).toContainText("در گذشته کار کرده");
+    await expect(box.getByTestId("ta-fired")).toContainText("در گذشته جواب داده است");
     await expect(box.getByTestId("ta-risk")).toContainText("۱٫۲۵");
     await expect(box.locator('a[href="/glossary/rsi"]')).toBeVisible();
   });
@@ -274,7 +274,7 @@ test("a bought symbol is checked against the candles after it", async ({ page })
 
 test("a chart term's glossary entry shows where it is and how it tested", async ({ page }) => {
   await page.goto("/glossary/gap_fill");
-  await expect(page.getByTestId("term-shown-on")).toContainText("تابلوی تکنیکال");
+  await expect(page.getByTestId("term-shown-on")).toContainText("تحلیل تکنیکال");
   const t = page.getByTestId("term-tests");
   await expect(t).toContainText("گشایش با شکاف منفی ۳٪");
   await expect(t).toContainText("کمی برعکس");

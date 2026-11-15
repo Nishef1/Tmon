@@ -38,14 +38,17 @@ function Tile({
   children,
   sub,
   tone,
+  hint,
 }: {
   k: string;
   children: ReactNode;
   sub?: ReactNode;
   tone?: string;
+  /** One plain sentence saying what the figure is; shown on hover or long press. */
+  hint?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg bg-surface-2 px-3 py-2">
+    <div className="min-w-0 rounded-lg bg-surface-2 px-3 py-2" title={hint}>
       <dt className="truncate text-xs text-muted">{k}</dt>
       <dd className={`truncate text-base font-bold ${tone ?? ""}`}>{children}</dd>
       {sub != null && <div className="truncate text-xs text-muted">{sub}</div>}
@@ -188,6 +191,7 @@ export function StockHeader({
         {f && (
           <Tile
             k="ورود پول حقیقی"
+            hint="ارزش خرید حقیقی‌ها منهای ارزش فروش حقیقی‌ها در امروز؛ مثبت یعنی پول حقیقی وارد سهم شده است"
             tone={(f.net_real_value ?? 0) >= 0 ? "text-up" : "text-down"}
             sub={realShare == null ? undefined : `${faPercent(realShare, 0)} خرید حقیقی`}
           >
@@ -197,6 +201,7 @@ export function StockHeader({
         {f && (
           <Tile
             k="قدرت خریدار"
+            hint="سرانهٔ خرید حقیقی‌ها تقسیم بر سرانهٔ فروش آن‌ها؛ بالای ۱ یعنی هر خریدار به‌طور متوسط بیشتر از هر فروشنده معامله کرده است"
             tone={f.power != null ? (f.power >= 1 ? "text-up" : "text-down") : ""}
             sub={f.avg10_power == null ? undefined : `میانگین ۱۰ روز ${faNumber(f.avg10_power, 2)}`}
           >

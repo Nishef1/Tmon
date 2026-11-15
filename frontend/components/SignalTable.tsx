@@ -5,11 +5,11 @@ import { Num } from "./Num";
 import { TierBadge } from "./TierBadge";
 
 export const OUTCOME_LABEL: Record<string, string> = {
-  pending: "باز",
-  tp: "رسید به حد سود",
-  sl: "رسید به حد ضرر",
-  sl_same_day: "حد ضرر (همان روز)",
-  expiry: "پایان افق",
+  pending: "هنوز باز است",
+  tp: "به حد سود رسید",
+  sl: "به حد ضرر رسید",
+  sl_same_day: "به حد ضرر رسید (همان روز)",
+  expiry: "پایان بازهٔ نگهداری",
 };
 
 export function SignalTable({
@@ -27,8 +27,8 @@ export function SignalTable({
           <tr className="border-b border-line">
             <th scope="col">تاریخ</th>
             {showSymbol && <th scope="col">نماد</th>}
-            <th scope="col">رده</th>
-            <th scope="col">احتمال</th>
+            <th scope="col">سطح اطمینان</th>
+            <th scope="col">احتمال سود</th>
             <th scope="col">نتیجه</th>
             <th scope="col">بازده ناخالص</th>
           </tr>

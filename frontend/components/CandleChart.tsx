@@ -159,7 +159,7 @@ const overlays = (c: Cfg): [Overlay, string, string, string][] => [
   ["bb", "باند بولینگر", "var(--muted)", "bollinger"],
   ["ichi", "ایچیموکو", "var(--series-3)", "ichimoku"],
   ["vwap", `VWAP ${fa(c.vwapN)} روزه`, "var(--accent)", "vwap"],
-  ["lv", "حمایت، مقاومت، پیوت و فیبو", "var(--ref)", "support_resistance"],
+  ["lv", "حمایت، مقاومت، پیوت و فیبوناچی", "var(--ref)", "support_resistance"],
   ["fvg", "FVG و iFVG", "var(--series-4)", "fvg"],
   ["ew", "امواج الیوت", "var(--series-3)", "elliott"],
   ["reg", "رنگ روند (صعودی، نزولی، خنثی)", "var(--hold)", "sma"],
@@ -186,19 +186,19 @@ const PANES: [Pane, string, string][] = [
   ["stoch", "استوکاستیک", "stochastic"],
   ["mfi", "MFI", "mfi"],
   ["adx", "ADX", "adx"],
-  ["atr", "ATR٪", "atr"],
+  ["atr", "ATR (درصد)", "atr"],
   ["obv", "OBV", "obv"],
 ];
 
 const paneNote = (c: Cfg): Record<Pane, string> => ({
   none: "",
-  rsi: `RSI ${fa(c.rsiN)} روزه. خط‌چین‌ها ۳۰ و ۷۰اند: زیر ۳۰ را «اشباع فروش» و بالای ۷۰ را «اشباع خرید» می‌خوانند.`,
-  macd: `خط مکدی (EMA${fa(c.macdF)} − EMA${fa(c.macdS)})، خط سیگنال (EMA${fa(c.macdG)} مکدی) و ستون‌ها فاصلهٔ آن دو.`,
+  rsi: `RSI ${fa(c.rsiN)} روزه. خط‌چین‌ها روی ۳۰ و ۷۰ هستند: عدد زیر ۳۰ را «اشباع فروش» و بالای ۷۰ را «اشباع خرید» می‌نامند؛ این سطح‌ها به‌تنهایی سیگنال خرید یا فروش نیستند.`,
+  macd: `خط مکدی (EMA${fa(c.macdF)} منهای EMA${fa(c.macdS)})، خط سیگنال (EMA${fa(c.macdG)} از خط مکدی) و ستون‌ها که فاصلهٔ این دو خط را نشان می‌دهند.`,
   stoch: `%K ${fa(c.stochN)} روزه و %D (میانگین ${fa(c.stochD)} روزهٔ آن)؛ زیر ۲۰ اشباع فروش و بالای ۸۰ اشباع خرید.`,
   mfi: `MFI ${fa(c.mfiN)} روزه، RSI با وزن حجم؛ زیر ۲۰ اشباع فروش و بالای ۸۰ اشباع خرید.`,
-  adx: `ADX ${fa(c.adxN)} روزه قدرت روند است (بالای ۲۵ روند دار)؛ +DI و −DI جهت آن را نشان می‌دهند.`,
-  atr: `میانگین دامنهٔ واقعی ${fa(c.atrN)} روزه به درصد قیمت: اندازهٔ نوسان عادی یک روز.`,
-  obv: "حجم روزهای مثبت جمع و روزهای منفی کم می‌شود؛ جهت خط مهم است نه عدد آن.",
+  adx: `ADX ${fa(c.adxN)} روزه قدرت روند را نشان می‌دهد، نه جهت آن (بالای ۲۵ یعنی روند معنادار است)؛ جهت را خطوط +DI و −DI نشان می‌دهند.`,
+  atr: `میانگین دامنهٔ واقعی ${fa(c.atrN)} روزه به درصد قیمت؛ یعنی نوسان عادی یک روز چند درصد است.`,
+  obv: "OBV (حجم تجمعی): حجم روزهای با قیمت پایانی بالاتر به آن اضافه و حجم روزهای با قیمت پایانی پایین‌تر از آن کم می‌شود. جهت خط مهم است، نه خود عدد.",
 });
 
 // the on/off switches kept in the saved settings
@@ -592,7 +592,7 @@ export function CandleChart({
         addLine(
           atrPct(real, cfg.atrN).map((q) => ({ ...q, value: 100 * q.value })),
           "var(--series-2)",
-          "ATR٪",
+          "ATR (درصد)",
           1,
           Solid,
           2,
@@ -617,7 +617,7 @@ export function CandleChart({
             },
             {
               time: w.known,
-              text: `${w.text} معلوم شد`,
+              text: `${w.text} (از اینجا مشخص بود)`,
               color: "var(--series-3)",
               above: !w.top,
               shape: "circle" as const,
@@ -1126,16 +1126,16 @@ function Params({ cfg, set }: { cfg: Cfg; set: (p: Partial<Cfg>) => void }) {
           {field("ma1", "میانگین ۱")}
           {field("ma2", "میانگین ۲")}
           {field("ma3", "میانگین ۳")}
-          {field("emaF", "EMA تند")}
+          {field("emaF", "EMA سریع")}
           {field("emaS", "EMA کند")}
         </>,
       )}
       {group(
         "باند و VWAP",
         <>
-          {field("bbN", "بولینگر روز")}
-          {field("bbK", "ضریب انحراف")}
-          {field("vwapN", "VWAP روز")}
+          {field("bbN", "تعداد روز بولینگر")}
+          {field("bbK", "ضریب انحراف معیار")}
+          {field("vwapN", "تعداد روز VWAP")}
         </>,
       )}
       {group(
@@ -1150,9 +1150,9 @@ function Params({ cfg, set }: { cfg: Cfg; set: (p: Partial<Cfg>) => void }) {
       {group(
         "MACD",
         <>
-          {field("macdF", "تند")}
-          {field("macdS", "کند")}
-          {field("macdG", "سیگنال")}
+          {field("macdF", "EMA سریع")}
+          {field("macdS", "EMA کند")}
+          {field("macdG", "خط سیگنال")}
         </>,
       )}
       {group(
@@ -1168,7 +1168,7 @@ function Params({ cfg, set }: { cfg: Cfg; set: (p: Partial<Cfg>) => void }) {
           className="tab tab-sm"
           onClick={() => set({ ...DEFAULT, kind: cfg.kind, on: cfg.on, pane: cfg.pane })}
         >
-          بازگشت به عددهای کتابی
+          بازگشت به مقادیر پیش‌فرض
         </button>
       </div>
     </div>

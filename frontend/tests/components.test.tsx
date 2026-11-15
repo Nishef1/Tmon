@@ -126,8 +126,8 @@ describe("SignalTable", () => {
     );
     const rows = screen.getAllByRole("row");
     expect(rows).toHaveLength(3);
-    expect(within(rows[1]).getByText("باز")).toBeInTheDocument();
-    expect(within(rows[2]).getByText("رسید به حد سود")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("هنوز باز است")).toBeInTheDocument();
+    expect(within(rows[2]).getByText("به حد سود رسید")).toBeInTheDocument();
     expect(within(rows[2]).getByText(text("+۶٫۰٪"))).toBeInTheDocument();
   });
 });

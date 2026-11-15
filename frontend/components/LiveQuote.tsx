@@ -98,7 +98,7 @@ function Body({ state }: { state: State }) {
   if (!l.available) {
     return (
       <p className="text-sm text-muted" data-testid="live-unavailable">
-        {l.message ?? "داده‌ٔ لحظه‌ای برای این نماد ذخیره نشده است."}
+        {l.message ?? "دادهٔ لحظه‌ای برای این نماد ذخیره نشده است."}
       </p>
     );
   }
@@ -108,7 +108,7 @@ function Body({ state }: { state: State }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
         <div>
-          <div className="text-xs text-muted">آخرین قیمت</div>
+          <div className="text-xs text-muted">آخرین معامله</div>
           <div className="text-2xl font-extrabold">
             <Num term="last_price" value={l.last_price} kind="price" />
           </div>
@@ -125,7 +125,7 @@ function Body({ state }: { state: State }) {
         </div>
         {l.low_allowed != null && l.high_allowed != null && (
           <div>
-            <div className="text-xs text-muted">دامنهٔ مجاز امروز</div>
+            <div className="text-xs text-muted">دامنهٔ مجاز نوسان امروز</div>
             <span>
               {faNumber(l.low_allowed)} تا {faNumber(l.high_allowed)}
             </span>
@@ -133,7 +133,7 @@ function Body({ state }: { state: State }) {
         )}
         {l.day_low != null && l.day_high != null && (
           <div>
-            <div className="text-xs text-muted">کمترین و بیشترین معامله</div>
+            <div className="text-xs text-muted">کمترین و بیشترین قیمت امروز</div>
             <span>
               {faNumber(l.day_low)} تا {faNumber(l.day_high)}
             </span>
@@ -147,7 +147,7 @@ function Body({ state }: { state: State }) {
         <table className="w-full text-center text-sm" data-testid="order-book">
           <caption className="mb-1 text-start text-xs text-muted">
             <Link href="/glossary/order_book" className="underline">
-              صف‌های خرید و فروش
+              سفارش‌های خرید و فروش (۵ ردیف برتر)
             </Link>
           </caption>
           <thead>
@@ -196,7 +196,7 @@ function Body({ state }: { state: State }) {
       >
         آخرین به‌روزرسانی: {l.as_of ? clock.format(new Date(l.as_of)) : "—"} (
         {ageText(l.age_seconds)})
-        {l.stale && " — داده قدیمی است (خارج از ساعت معاملات یا قطع دریافت)."}
+        {l.stale && " — این داده قدیمی است (بازار بسته است یا دریافت داده قطع شده است)."}
       </p>
     </div>
   );
@@ -232,8 +232,8 @@ function Queue({ l }: { l: Live }) {
       {buyQueue ? "صف خرید" : "صف فروش"}: {faNumber(vol)} سهم از {faNumber(n)} سفارش
       {traded > 0 &&
         (vol >= traded
-          ? ` (بیشتر از کل معاملات امروز؛ صف سنگین است)`
-          : ` (حدود ${faNumber(Math.round((vol / traded) * 100))}٪ معاملات امروز)`)}
+          ? ` (بیشتر از کل حجم معاملات امروز؛ صف سنگین است)`
+          : ` (برابر ${faNumber(Math.round((vol / traded) * 100))}٪ حجم معاملات امروز)`)}
     </p>
   );
 }

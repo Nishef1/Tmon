@@ -2,12 +2,12 @@ import type { TaSignal, TaSignals } from "@/lib/api";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 
 const LABEL_FA: Record<TaSignal["label"], string> = {
-  works: "کار کرده",
-  direction_only: "فقط جهت را درست گفته",
-  reverse_small: "کمی برعکس",
-  backfires: "برعکس",
-  no_edge: "برتری نداشته",
-  too_few: "نمونهٔ کم",
+  works: "در گذشته جواب داده است",
+  direction_only: "فقط جهت را درست گفته است",
+  reverse_small: "کمی برعکس عمل کرده است",
+  backfires: "برعکس عمل کرده است",
+  no_edge: "برتری نداشته است",
+  too_few: "نمونه کم است",
 };
 
 const pct = (x: number | null | undefined, d = 1) => (x == null ? "—" : faPercent(x, d, true));
@@ -29,8 +29,8 @@ function One({ s, cost }: { s: TaSignal; cost: number }) {
               <th className="py-1 text-start font-normal">چند کندل بعد</th>
               <th className="py-1 font-normal">بازده نسبت به بقیهٔ سهم‌ها</th>
               <th className="py-1 font-normal">نیمهٔ اول / دوم تاریخچه</th>
-              <th className="py-1 font-normal">بالا رفته (بقیه)</th>
-              <th className="py-1 font-normal">سال‌های درست</th>
+              <th className="py-1 font-normal">قیمت بالا رفته (بقیهٔ سهم‌ها)</th>
+              <th className="py-1 font-normal">سال‌هایی که درست بوده</th>
             </tr>
           </thead>
           <tbody>
@@ -60,8 +60,8 @@ function One({ s, cost }: { s: TaSignal; cost: number }) {
         {faNumber(s.n)} بار در {faNumber(s.symbols)} نماد. کارمزد رفت‌وبرگشت {faPercent(cost, 1)}{" "}
         است؛{" "}
         {s.side === "buy"
-          ? "بازدهِ اضافهٔ کمتر از آن یعنی بعد از کارمزد سودی نمانده."
-          : "فروختن و بعد دوباره خریدن فقط وقتی می‌ارزد که سهم بیش از این مقدار عقب بماند."}
+          ? "بازدهٔ اضافهٔ کمتر از آن یعنی بعد از کسر کارمزد سودی باقی نمی‌ماند."
+          : "فروش و خرید دوبارهٔ سهم فقط وقتی می‌ارزد که سهم بیش از این مقدار از بقیه عقب بماند."}
         {s.locked_share != null &&
           s.locked_share > 0.05 &&
           ` ${faNumber(100 * s.locked_share)} از ۱۰۰ بار فردای نشانه سهم در صف بود و قابل معامله نبود؛ آن روزها کنار گذاشته شده‌اند` +
@@ -82,17 +82,18 @@ export function TermTests({ term, doc }: { term: string; doc: TaSignals | null }
     <section className="space-y-3" data-testid="term-tests">
       <h2 className="font-bold">در آزمون ما: کی خرید، کی فروش، چند کندل بعد؟</h2>
       <p className="text-sm leading-7 text-muted">
-        هر خوانش کتابی روی همهٔ نمادهای پرمعاملهٔ بورس تهران از {jalali(doc.history_first)} تا{" "}
-        {jalali(doc.history_last)} با قیمت تعدیل‌شده آزموده شده: ورود با پایانی فردای نشانه، و
-        مقایسه با بقیهٔ سهم‌هایی که همان روز قابل خرید بودند. نیمهٔ اول تا {jalali(doc.split_date)}{" "}
-        است؛ نتیجه‌ای که فقط در یک نیمه دیده شود به حساب نمی‌آید.
+        هر تفسیر رایج روی همهٔ نمادهای پرمعاملهٔ بورس تهران از {jalali(doc.history_first)} تا{" "}
+        {jalali(doc.history_last)} و با قیمت تعدیل‌شده آزموده شده است. ورود را با قیمت پایانی فردای
+        نشانه حساب کرده‌ایم و نتیجه را با بقیهٔ سهم‌هایی سنجیده‌ایم که همان روز قابل خرید بودند.
+        نیمهٔ اول تاریخچه تا {jalali(doc.split_date)} است؛ نتیجه‌ای که فقط در یک نیمه دیده شود معتبر
+        شمرده نمی‌شود.
       </p>
       {sigs.map((s) => (
         <One key={s.key} s={s} cost={cost} />
       ))}
       <p className="text-xs text-muted">
-        این شرح گذشته است، نه پیش‌بینی و نه توصیه. برای فروش، بازده منفی نسبت به بقیه یعنی نشانه
-        درست گفته است.
+        این شرح گذشته است، نه پیش‌بینی و نه توصیه. برای نشانهٔ فروش، بازدهٔ منفی نسبت به بقیهٔ
+        سهم‌ها یعنی نشانه درست بوده است.
       </p>
     </section>
   );

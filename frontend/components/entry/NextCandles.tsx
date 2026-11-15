@@ -103,8 +103,8 @@ export function NextCandles({ e }: { e: DashEntry }) {
         ))}
       </div>
       <p className="text-sm">
-        قیمت امروز <b>{faNumber(Math.round(close))}</b>. در ۸ مورد از هر ۱۰ مورد گذشته، قیمت در این
-        بازه ماند:
+        قیمت امروز <b>{faNumber(Math.round(close))}</b> ریال است. در ۸ مورد از هر ۱۰ مورد گذشته،
+        قیمت در این بازه‌ها ماند:
       </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[22rem] text-sm">
@@ -112,7 +112,7 @@ export function NextCandles({ e }: { e: DashEntry }) {
             <tr className="border-b border-line">
               <th className="py-1 text-start font-normal">چه زمانی</th>
               <th className="py-1 text-start font-normal">۸ از ۱۰ بار بین</th>
-              <th className="py-1 text-start font-normal">حالت میانه</th>
+              <th className="py-1 text-start font-normal">مقدار میانه (وسط همهٔ موارد)</th>
             </tr>
           </thead>
           <tbody>
@@ -143,8 +143,8 @@ export function NextCandles({ e }: { e: DashEntry }) {
       </div>
       <Cone own={own} close={close} />
       <p className="text-xs text-muted">
-        از سابقهٔ همین سهم از {jalali(w.since)} تا امروز: در ۸ بار از هر ۱۰ بار قیمت در این بازه
-        مانده، ۱ بار پایین‌تر و ۱ بار بالاتر رفته. آمار گذشته است، نه تضمین و نه توصیه.
+        بر پایهٔ سابقهٔ همین سهم از {jalali(w.since)} تا امروز: از هر ۱۰ بار، ۸ بار قیمت در این بازه
+        مانده است، ۱ بار پایین‌تر رفته و ۱ بار بالاتر. این آمار گذشته است، نه تضمین و نه توصیه.
       </p>
     </div>
   );

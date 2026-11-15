@@ -125,7 +125,7 @@ function Verdict({
           <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
             چرا با امتیاز بالا «<HoldWord verdict={verdict} label={label} instrumentId={id} />
             »؟ خودِ سهم قوی است، ولی برای {shortLabel(h.label)} سودِ اضافهٔ گذشته
-            {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده.
+            {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده است.
             بازهٔ دیگری را در بالا انتخاب کنید.
           </p>
         )}
@@ -306,7 +306,7 @@ function Company({ d }: { d: D }) {
           }
         />
         {m && <Row k="نوع مجمع" v={m.kind} />}
-        <Row k="حجم مبنا" v={baseVol ? faNumber(baseVol) : "ثبت نشده (۱ یا خالی)"} />
+        <Row k="حجم مبنا" v={baseVol && baseVol > 1 ? faNumber(baseVol) : "ندارد"} />
         {r?.week_min != null && r.week_max != null && (
           <Row k="بازهٔ یک هفته" v={`${faNumber(r.week_min)} تا ${faNumber(r.week_max)}`} />
         )}
@@ -323,8 +323,9 @@ function Company({ d }: { d: D }) {
       </dl>
       <p className="mt-2 text-sm text-muted">
         منبع: بورس تهران و کدال. روز مجمع از متن آگهی دعوت خوانده می‌شود؛ اگر آگهی روز را ننوشته
-        باشد یا هنوز خوانده نشده باشد، نمایش داده نمی‌شود. حجم مبنا همان عددی است که بورس ثبت کرده و
-        برای بیشتر سهم‌ها ۱ است.
+        باشد یا هنوز خوانده نشده باشد، نمایش داده نمی‌شود. حجم مبنا کمترین حجم معامله‌ای است که باید
+        انجام شود تا دامنهٔ مجاز نوسان روز بعد کامل اعمال شود؛ بورس آن را ثبت می‌کند و برای بیشتر
+        سهم‌ها وجود ندارد (عدد ۱ یا خالی).
       </p>
     </section>
   );
@@ -471,9 +472,9 @@ export function SymbolFacts({ d }: { d: D }) {
       </bdi>,
     ]);
   if (d.fund) {
-    rows.push(["ارزش ابطال (NAV)", faNumber(d.fund.nav)]);
+    rows.push(["ارزش خالص دارایی (NAV ابطال)", faNumber(d.fund.nav)]);
     if (d.fund.bubble != null) {
-      rows.push(["حباب صندوق", faPercent(d.fund.bubble, 2, true)]);
+      rows.push(["حباب صندوق (قیمت بازار نسبت به NAV)", faPercent(d.fund.bubble, 2, true)]);
     }
   }
   if (rows.length === 0) return null;

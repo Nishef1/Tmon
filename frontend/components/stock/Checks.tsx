@@ -119,12 +119,12 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       answer: above ? (
         <>
           اگر قیمت پایانی زیر <b>{faNumber(Math.round(sma))}</b> (میانگین ۲۰ روزه) بسته شود، روند
-          کوتاه‌مدت شکسته است. قیمت الان {faPercent(close / sma - 1, 0)} بالای آن است؛ تا آن سطح
+          کوتاه‌مدت شکسته است. قیمت امروز {faPercent(close / sma - 1, 0)} بالای آن است؛ تا آن سطح
           حدود {faPercent(1 - sma / close, 0)} افت جا دارد.
         </>
       ) : (
         <>
-          قیمت الان زیر میانگین ۲۰ روزه (<b>{faNumber(Math.round(sma))}</b>) است؛ روند کوتاه‌مدت
+          قیمت امروز زیر میانگین ۲۰ روزه (<b>{faNumber(Math.round(sma))}</b>) است؛ روند کوتاه‌مدت
           ضعیف است.
         </>
       ),
