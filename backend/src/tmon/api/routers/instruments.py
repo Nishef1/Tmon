@@ -21,6 +21,7 @@ from tmon.api.schemas import (
     FeatureValue,
     InstrumentBookOut,
     InstrumentDetail,
+    LiveFlowOut,
     LiveOut,
     ShareholderOut,
     SymbolNewsOut,
@@ -331,14 +332,30 @@ def instrument_book(instrument_id: int, session: SessionDep) -> InstrumentBookOu
 def instrument_live(instrument_id: int, session: SessionDep) -> LiveOut:
     """The latest stored intraday snapshot and 5-level order book. ``available=false`` is a normal
     state (market closed, or the live poller is not running)."""
-    if session.get(Instrument, instrument_id) is None:
+    inst = session.get(Instrument, instrument_id)
+    if inst is None:
         raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    if (live := _mofid_live(session, inst)) is not None:
+        return live
+    tsetmc_book = _tsetmc_book(inst)
     snap = session.scalars(
         select(IntradaySnapshot)
         .where(IntradaySnapshot.instrument_id == instrument_id)
         .order_by(IntradaySnapshot.ts.desc())
         .limit(1)
     ).first()
+    if snap is None and tsetmc_book:
+        return LiveOut(
+            instrument_id=instrument_id,
+            available=True,
+            source="tsetmc",
+            as_of=utcnow(),
+            age_seconds=0,
+            stale=False,
+            reference_price=_prev_close(session, instrument_id),
+            book_as_of=utcnow(),
+            book=tsetmc_book,
+        )
     if snap is None:
         return LiveOut(
             instrument_id=instrument_id,
@@ -372,9 +389,78 @@ def instrument_live(instrument_id: int, session: SessionDep) -> LiveOut:
         cum_volume=None if snap.cum_volume is None else float(snap.cum_volume),
         reference_price=ref,
         change_pct=(last / ref - 1.0) if last and ref else None,
-        book_as_of=_utc(book_row.ts) if book_row else None,
-        book=[BookLevelOut(**lv) for lv in book_row.levels] if book_row else [],
+        book_as_of=utcnow() if tsetmc_book else _utc(book_row.ts) if book_row else None,
+        book=tsetmc_book or ([BookLevelOut(**lv) for lv in book_row.levels] if book_row else []),
+        source="tsetmc" if tsetmc_book else "stored",
     )
+
+
+def _prev_close(session: Session, instrument_id: int) -> float | None:
+    day = utcnow().astimezone(TEHRAN).date()
+    v = session.scalars(
+        select(PriceDaily.close)
+        .where(PriceDaily.instrument_id == instrument_id, PriceDaily.date < day)
+        .order_by(PriceDaily.date.desc())
+        .limit(1)
+    ).first()
+    return None if v is None else float(v)
+
+
+def _mofid_live(session: Session, inst: Instrument) -> LiveOut | None:
+    """Pushed live by Mofid's server when an account is linked; None otherwise."""
+    from tmon.portfolio import mofid_live
+
+    snap = mofid_live.snapshot(session, inst.isin)
+    if not snap:
+        return None
+    sym, book, flow = snap.get("symbol") or {}, snap["book"], snap.get("flow")
+    last = sym.get("last_trade_price")
+    ref = sym.get("prev_closing_price") or _prev_close(session, inst.id)
+    heard = snap["heard_at"]
+    age = max(0, int((utcnow() - heard).total_seconds()))
+    return LiveOut(
+        instrument_id=inst.id,
+        available=True,
+        source="mofid",
+        as_of=heard,
+        age_seconds=age,
+        stale=not snap["alive"],
+        last_price=last,
+        cum_volume=sym.get("total_number_of_shares_traded"),
+        reference_price=ref,
+        change_pct=(last / ref - 1.0) if last and ref else None,
+        high_allowed=sym.get("max_daily_price"),
+        low_allowed=sym.get("min_daily_price"),
+        day_high=sym.get("max_daily_traded_price"),
+        day_low=sym.get("min_daily_traded_price"),
+        trade_value=sym.get("total_trade_value"),
+        trades=sym.get("total_number_of_trades"),
+        book_as_of=book.get("as_of") or heard,
+        book=[BookLevelOut(**lv) for lv in book["levels"]],
+        flow=LiveFlowOut(**{k: v for k, v in flow.items() if k in LiveFlowOut.model_fields})
+        if flow
+        else None,
+    )
+
+
+def _tsetmc_book(inst: Instrument) -> list[BookLevelOut]:
+    """The current book straight from TSETMC (fetched now, nothing kept); [] when it fails."""
+    import httpx
+
+    from tmon.ingest.tsetmc.endpoints import BEST_LIMITS_LIVE
+    from tmon.ingest.tsetmc.parsers import ParseError, parse_best_limits
+
+    try:
+        r = httpx.get(
+            BEST_LIMITS_LIVE.format(ins_code=inst.ins_code),
+            headers={"User-Agent": "Mozilla/5.0", "Cache-Control": "no-store"},
+            timeout=4,
+        )
+        r.raise_for_status()
+        levels = parse_best_limits(r.text)
+    except (httpx.HTTPError, ParseError, ValueError):
+        return []
+    return [BookLevelOut(**lv.as_dict()) for lv in levels if lv.bid_volume or lv.ask_volume]
 
 
 NEWS_DAYS = 45

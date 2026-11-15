@@ -26,6 +26,14 @@ const base: Live = {
   })),
   message: null,
   disclaimer: "x",
+  source: "stored",
+  high_allowed: null,
+  low_allowed: null,
+  day_high: null,
+  day_low: null,
+  trade_value: null,
+  trades: null,
+  flow: null,
 };
 
 function mockFetch(body: Live | null, ok = true) {

@@ -271,12 +271,32 @@ class BookLevelOut(ApiModel):
     ask_count: int
 
 
+class LiveFlowOut(ApiModel):
+    """Today's buying and selling by individuals (حقیقی) and institutions (حقوقی)."""
+
+    buy_volume_person: float | None = None
+    buy_volume_legal: float | None = None
+    sell_volume_person: float | None = None
+    sell_volume_legal: float | None = None
+    buy_count_person: float | None = None
+    sell_count_person: float | None = None
+
+
 class LiveOut(ApiModel):
-    """Latest stored intraday snapshot and order book of one instrument (what the poller last
-    wrote, not a direct pass-through of the exchange)."""
+    """Price and 5-level order book of one instrument. ``source``: ``mofid`` (pushed live by
+    Mofid's server, needs a linked account), ``tsetmc`` (fetched from TSETMC for this request) or
+    ``stored`` (what the intraday poller last wrote)."""
 
     instrument_id: int
     available: bool
+    source: str = "stored"
+    high_allowed: float | None = None  # today's price limits
+    low_allowed: float | None = None
+    day_high: float | None = None
+    day_low: float | None = None
+    trade_value: float | None = None
+    trades: float | None = None
+    flow: LiveFlowOut | None = None
     as_of: dt.datetime | None = None
     age_seconds: int | None = None
     stale: bool = True

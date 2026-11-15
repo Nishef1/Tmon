@@ -28,3 +28,11 @@ def _no_real_object_store(monkeypatch: pytest.MonkeyPatch) -> None:
     from tmon.storage.objectstore import MemoryStore
 
     monkeypatch.setattr(dashboard, "get_object_store", lambda: MemoryStore())
+
+
+@pytest.fixture(autouse=True)
+def _no_live_tsetmc(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The live endpoint asks TSETMC for the current book; tests stay offline."""
+    from tmon.api.routers import instruments
+
+    monkeypatch.setattr(instruments, "_tsetmc_book", lambda inst: [])

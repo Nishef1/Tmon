@@ -6978,8 +6978,89 @@
         "title": "LiveDayOut",
         "type": "object"
       },
+      "LiveFlowOut": {
+        "description": "Today's buying and selling by individuals (حقیقی) and institutions (حقوقی).",
+        "properties": {
+          "buy_count_person": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Count Person"
+          },
+          "buy_volume_legal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Volume Legal"
+          },
+          "buy_volume_person": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Volume Person"
+          },
+          "sell_count_person": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Count Person"
+          },
+          "sell_volume_legal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Volume Legal"
+          },
+          "sell_volume_person": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Volume Person"
+          }
+        },
+        "required": [
+          "buy_volume_person",
+          "buy_volume_legal",
+          "sell_volume_person",
+          "sell_volume_legal",
+          "buy_count_person",
+          "sell_count_person"
+        ],
+        "title": "LiveFlowOut",
+        "type": "object"
+      },
       "LiveOut": {
-        "description": "Latest stored intraday snapshot and order book of one instrument (what the poller last\nwrote, not a direct pass-through of the exchange).",
+        "description": "Price and 5-level order book of one instrument. ``source``: ``mofid`` (pushed live by\nMofid's server, needs a linked account), ``tsetmc`` (fetched from TSETMC for this request) or\n``stored`` (what the intraday poller last wrote).",
         "properties": {
           "age_seconds": {
             "anyOf": [
@@ -7050,10 +7131,53 @@
             ],
             "title": "Cum Volume"
           },
+          "day_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day High"
+          },
+          "day_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Low"
+          },
           "disclaimer": {
             "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
             "title": "Disclaimer",
             "type": "string"
+          },
+          "flow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveFlowOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "high_allowed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High Allowed"
           },
           "instrument_id": {
             "title": "Instrument Id",
@@ -7069,6 +7193,17 @@
               }
             ],
             "title": "Last Price"
+          },
+          "low_allowed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Allowed"
           },
           "message": {
             "anyOf": [
@@ -7092,15 +7227,50 @@
             ],
             "title": "Reference Price"
           },
+          "source": {
+            "default": "stored",
+            "title": "Source",
+            "type": "string"
+          },
           "stale": {
             "default": true,
             "title": "Stale",
             "type": "boolean"
+          },
+          "trade_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trade Value"
+          },
+          "trades": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trades"
           }
         },
         "required": [
           "instrument_id",
           "available",
+          "source",
+          "high_allowed",
+          "low_allowed",
+          "day_high",
+          "day_low",
+          "trade_value",
+          "trades",
+          "flow",
           "as_of",
           "age_seconds",
           "stale",

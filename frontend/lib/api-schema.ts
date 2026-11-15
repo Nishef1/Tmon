@@ -3025,9 +3025,28 @@ export interface components {
       n: number;
     };
     /**
+     * LiveFlowOut
+     * @description Today's buying and selling by individuals (حقیقی) and institutions (حقوقی).
+     */
+    LiveFlowOut: {
+      /** Buy Count Person */
+      buy_count_person: number | null;
+      /** Buy Volume Legal */
+      buy_volume_legal: number | null;
+      /** Buy Volume Person */
+      buy_volume_person: number | null;
+      /** Sell Count Person */
+      sell_count_person: number | null;
+      /** Sell Volume Legal */
+      sell_volume_legal: number | null;
+      /** Sell Volume Person */
+      sell_volume_person: number | null;
+    };
+    /**
      * LiveOut
-     * @description Latest stored intraday snapshot and order book of one instrument (what the poller last
-     *     wrote, not a direct pass-through of the exchange).
+     * @description Price and 5-level order book of one instrument. ``source``: ``mofid`` (pushed live by
+     *     Mofid's server, needs a linked account), ``tsetmc`` (fetched from TSETMC for this request) or
+     *     ``stored`` (what the intraday poller last wrote).
      */
     LiveOut: {
       /** Age Seconds */
@@ -3047,24 +3066,42 @@ export interface components {
       change_pct: number | null;
       /** Cum Volume */
       cum_volume: number | null;
+      /** Day High */
+      day_high: number | null;
+      /** Day Low */
+      day_low: number | null;
       /**
        * Disclaimer
        * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
        */
       disclaimer: string;
+      flow: components["schemas"]["LiveFlowOut"] | null;
+      /** High Allowed */
+      high_allowed: number | null;
       /** Instrument Id */
       instrument_id: number;
       /** Last Price */
       last_price: number | null;
+      /** Low Allowed */
+      low_allowed: number | null;
       /** Message */
       message: string | null;
       /** Reference Price */
       reference_price: number | null;
       /**
+       * Source
+       * @default stored
+       */
+      source: string;
+      /**
        * Stale
        * @default true
        */
       stale: boolean;
+      /** Trade Value */
+      trade_value: number | null;
+      /** Trades */
+      trades: number | null;
     };
     /** MarketBand */
     MarketBand: {
