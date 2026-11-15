@@ -181,6 +181,12 @@ function Decision({
           <p className="text-center text-sm text-muted">
             {d.gauge == null ? "امتیازی محاسبه نشده" : "امتیاز ترکیبی (۱۰۰ = بهترین)"}
           </p>
+          {d.gauge != null && (
+            <p className="mt-1 text-center text-xs text-muted" data-testid="gauge-meaning">
+              جایگاه امروزِ سهم نسبت به بقیهٔ سهم‌ها است، نه پیش‌بینی قیمت. «خرید» فقط وقتی داده
+              می‌شود که چنین جایگاهی در گذشته، پس از کارمزد، از بازار جلو زده باشد.
+            </p>
+          )}
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <h2 className="font-bold">چه کنم؟</h2>
