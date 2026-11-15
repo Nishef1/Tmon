@@ -18,6 +18,7 @@ learn from labels that were already known at t.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import sys
@@ -683,7 +684,12 @@ def build_panel() -> pl.DataFrame:
     p = p.join(clients.select(G, "date", *cols), on=[G, "date"], how="left")
     p = p.select(G, "date", "open", "high", "low", "close", "volume", "value", *cols)
     days = p["date"].unique().sort()
-    evald = pd.to_datetime(pd.Series(days.gather_every(STEP).to_list()))
+    # ZOO_DAILY_FROM=YYYY-MM-DD: every trading day from then on (the adapt gate needs daily dates)
+    daily_from = os.environ.get("ZOO_DAILY_FROM")
+    picked = set(days.gather_every(STEP).to_list())
+    if daily_from:
+        picked |= {d for d in days.to_list() if d >= dt.date.fromisoformat(daily_from)}
+    evald = pd.to_datetime(pd.Series(sorted(picked)))
     out = []
     t0 = time.time()
     groups = p.partition_by(G, as_dict=True)
