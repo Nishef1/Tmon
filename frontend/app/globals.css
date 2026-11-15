@@ -54,44 +54,47 @@
   --r-lg: 1rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14150f;
-    --surface: #1c1d17;
-    --surface-2: #23241d;
-    --ink: #ece9df;
-    --muted: #a7a395;
-    --faint: #7f7b6e;
-    --line-soft: #2a2b22;
-    --line: #34352b;
-    --line-strong: #4a4b3e;
-    --accent: #6fc3c6;
-    --accent-hover: #8ad3d6;
-    --accent-soft: #1b3030;
-    --on-accent: #0b1f20;
-    --warn: #e7bd6a;
-    --warn-soft: #2e2512;
-    --warn-line: #4d3c18;
-    --up: #6fcf9a;
-    --up-soft: #17301f;
-    --down: #ee8a8a;
-    --down-soft: #3a1c1c;
-    --good: #2a8a57;
-    --bad: #c24444;
-    --hold: #a87614;
-    --neutral: #6b6859;
-    --series-1: #e0a93a;
-    --series-2: #6f9be0;
-    --series-3: #b98ae0;
-    --series-4: #4fc29d;
-    --ref: #9a968a;
-    --shadow-color: 0 0 0;
-    --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);
-    --elev-2: 0 4px 14px rgb(0 0 0 / 0.45);
-    --elev-3: 0 14px 36px rgb(0 0 0 / 0.6);
-  }
+:root {
+  color-scheme: light;
 }
 
+/* dark is opt-in (the header toggle sets data-theme); the site is light by default */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14150f;
+  --surface: #1c1d17;
+  --surface-2: #23241d;
+  --ink: #ece9df;
+  --muted: #a7a395;
+  --faint: #7f7b6e;
+  --line-soft: #2a2b22;
+  --line: #34352b;
+  --line-strong: #4a4b3e;
+  --accent: #6fc3c6;
+  --accent-hover: #8ad3d6;
+  --accent-soft: #1b3030;
+  --on-accent: #0b1f20;
+  --warn: #e7bd6a;
+  --warn-soft: #2e2512;
+  --warn-line: #4d3c18;
+  --up: #6fcf9a;
+  --up-soft: #17301f;
+  --down: #ee8a8a;
+  --down-soft: #3a1c1c;
+  --good: #2a8a57;
+  --bad: #c24444;
+  --hold: #a87614;
+  --neutral: #6b6859;
+  --series-1: #e0a93a;
+  --series-2: #6f9be0;
+  --series-3: #b98ae0;
+  --series-4: #4fc29d;
+  --ref: #9a968a;
+  --shadow-color: 0 0 0;
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --elev-2: 0 4px 14px rgb(0 0 0 / 0.45);
+  --elev-3: 0 14px 36px rgb(0 0 0 / 0.6);
+}
 @theme {
   /* type scale (size / line-height) */
   --text-xs: 0.78rem;

@@ -567,7 +567,40 @@ class Holding(Base):
     shares: Mapped[float] = mapped_column(Float)
     avg_price: Mapped[float] = mapped_column(Float)  # rial per share
     bought_on: Mapped[dt.date | None] = mapped_column(Date)
-    stop_price: Mapped[float | None] = mapped_column(Float)  # explicit stop, rial
+    stop_price: Mapped[float | None] = mapped_column(Float)  # stop at today's price basis, rial
+    note: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+    # The stop as the owner typed it and the day they typed it: a capital increase or a dividend
+    # after that day lowers the price basis, and ``stop_price`` is moved down with it.
+    stop_raw: Mapped[float | None] = mapped_column(Float)
+    stop_set_on: Mapped[dt.date | None] = mapped_column(Date)
+
+
+class PortfolioTrade(Base):
+    """One line of a portfolio's ledger. Holdings are rebuilt from these lines plus the market's
+    capital increases and dividends, so a sale has a realized profit and the cash moves with it.
+
+    ``shares`` or ``price`` may be missing: the price is then the close of ``date`` and the size
+    is ``amount / price`` (or an equal share of the portfolio), and the holding is flagged as
+    estimated. ``fee`` is None when the standard rate for the instrument type applies."""
+
+    __tablename__ = "portfolio_trades"
+    __table_args__ = (Index("ix_portfolio_trades_portfolio_date", "portfolio_id", "date"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    portfolio_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolios.id", ondelete="CASCADE"), index=True
+    )
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), index=True)
+    side: Mapped[str] = mapped_column(String(8))  # buy | sell
+    date: Mapped[dt.date] = mapped_column(Date)
+    shares: Mapped[float | None] = mapped_column(Float)
+    price: Mapped[float | None] = mapped_column(Float)  # rial per share
+    amount: Mapped[float | None] = mapped_column(Float)  # rial, when only the money is known
+    fee: Mapped[float | None] = mapped_column(Float)  # rial, actual fee when known
+    cash_delta: Mapped[float] = mapped_column(Float, default=0.0)  # what it did to ``cash``
+    source: Mapped[str] = mapped_column(String(16), default="manual")  # manual|import|mofid|legacy
+    external_id: Mapped[str | None] = mapped_column(String(80), index=True)  # import dedupe
     note: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
 

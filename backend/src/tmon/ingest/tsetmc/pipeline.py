@@ -28,6 +28,7 @@ from tmon.ingest.tsetmc import endpoints, parsers
 from tmon.ingest.tsetmc.classify import Classifier, get_classifier
 from tmon.storage.models import (
     ClientTypeDaily,
+    Holding,
     Instrument,
     PriceAdjustment,
     PriceDaily,
@@ -363,6 +364,15 @@ def _tradable_instruments(session: Session, classifier: Classifier) -> list[Inst
     return [i for i in rows if classifier.is_tradable(i.instrument_type)]
 
 
+def _held_extra(session: Session, classifier: Classifier) -> list[Instrument]:
+    """Instruments someone holds in a portfolio that the market-wide run skips (rights, bonds,
+    options): their prices are still needed to value the portfolio."""
+    rows = session.scalars(
+        select(Instrument).where(Instrument.id.in_(select(Holding.instrument_id).distinct()))
+    ).all()
+    return [i for i in rows if not classifier.is_tradable(i.instrument_type)]
+
+
 async def backfill(
     ctx: Ctx,
     *,
@@ -438,9 +448,13 @@ async def end_of_day(ctx: Ctx) -> dict[str, int]:
     await sync_instruments(ctx)
     ctx.session.flush()
     totals = {"instruments": 0, "bars": 0, "client_rows": 0, "failed": 0}
-    for ins in _tradable_instruments(ctx.session, ctx.classifier):
+    held = _held_extra(ctx.session, ctx.classifier)
+    for ins in [*_tradable_instruments(ctx.session, ctx.classifier), *held]:
         try:
-            s = await ingest_history(ctx, ins, since=since)
+            first = ins in held and ctx.session.scalar(
+                select(PriceDaily.date).where(PriceDaily.instrument_id == ins.id).limit(1)
+            ) is None
+            s = await ingest_history(ctx, ins, since=None if first else since)
             totals["bars"] += s["bars"]
             totals["client_rows"] += s["client_rows"]
             totals["instruments"] += 1

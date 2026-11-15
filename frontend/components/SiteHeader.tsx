@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { SymbolSearch } from "@/components/SymbolSearch";
 
 const NAV = [
@@ -89,19 +90,38 @@ export function SiteHeader() {
           <SymbolSearch />
         </div>
 
+        <ThemeToggle />
+
         <button
           type="button"
-          aria-label="منو"
+          aria-label={menu ? "بستن منو" : "باز کردن منو"}
           aria-expanded={menu}
+          aria-controls="mobile-menu"
           onClick={() => setMenu(!menu)}
-          className="btn size-10 text-xl lg:hidden"
+          className="btn size-10 shrink-0 p-0 lg:hidden"
+          data-testid="menu-button"
         >
-          {menu ? "✕" : "☰"}
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            {menu ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+          </svg>
         </button>
       </div>
 
       {menu && (
-        <nav aria-label="منوی موبایل" className="border-t border-line bg-surface lg:hidden">
+        <nav
+          id="mobile-menu"
+          aria-label="منوی موبایل"
+          className="border-t border-line bg-surface lg:hidden"
+        >
           <ul className="mx-auto grid max-w-6xl gap-1 px-4 py-3 sm:grid-cols-2">
             {NAV.map((n) => (
               <li key={n.href}>
