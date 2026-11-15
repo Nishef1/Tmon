@@ -29,10 +29,12 @@ const moment = (iso: string) =>
 export async function DataStamp() {
   const r = await apiGet<Freshness>("/freshness");
   if (!r.ok || !r.data.updated_at) return null;
+  const prices = r.data.items.find((i) => i.kind === "prices");
   return (
     <details className="mb-4 text-xs text-muted">
       <summary className="cursor-pointer select-none">
-        آخرین به‌روزرسانی داده‌ها: {moment(r.data.updated_at)} (ساعت تهران)
+        {prices?.date ? `قیمت‌ها تا ${jalali(prices.date)}` : "قیمت‌ها: نامشخص"}
+        {" · "}آخرین دریافت از هر منبعی: {moment(r.data.updated_at)} (ساعت تهران)
       </summary>
       <ul className="mt-2 grid gap-1 sm:grid-cols-2">
         {r.data.items.map((i) => (
