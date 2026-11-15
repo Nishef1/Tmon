@@ -5,13 +5,13 @@ import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
 import { DriversCard } from "@/components/DriversCard";
 import { PeersCard } from "@/components/PeersCard";
-import { PlainFacts, trustWord } from "@/components/PlainSummary";
+import { PriceRange } from "@/components/PlainSummary";
 import { TrackBuyButton } from "@/components/TrackBuyButton";
 import { TurningCard } from "@/components/TurningCard";
 import { TechnicalCard } from "@/components/TechnicalCard";
-import { Synthesis } from "@/components/stock/Synthesis";
+import { Checks, shortLabel } from "@/components/stock/Checks";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
-import { signedPct, signTone, verdictPill, verdictTone } from "@/lib/ui";
+import { signedPct, verdictPill, verdictTone } from "@/lib/ui";
 
 type D = InstrumentDashboard;
 
@@ -106,9 +106,9 @@ const barTone = (pct: number) => (pct >= 66 ? "bg-up" : pct >= 33 ? "bg-hold" : 
 function SignalBars({ signals }: { signals: D["decision"]["signals"] }) {
   if (!signals.length) return null;
   return (
-    <div className="mt-4" data-testid="signal-bars">
-      <h3 className="mb-1 font-bold">چرا این امتیاز را گرفته؟</h3>
-      <p className="mb-2 text-sm text-muted">
+    <details data-testid="signal-bars">
+      <summary className="cursor-pointer font-semibold">چرا این امتیاز را گرفته؟</summary>
+      <p className="mb-2 mt-2 text-muted">
         مدل چهار چیز را می‌سنجد و هر کدام را با همهٔ سهم‌های بازار مقایسه می‌کند. نوار پرتر یعنی
         بهتر از سهم‌های بیشتری است.
       </p>
@@ -129,26 +129,74 @@ function SignalBars({ signals }: { signals: D["decision"]["signals"] }) {
           </li>
         ))}
       </ul>
-    </div>
+    </details>
   );
 }
 
 function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
   return (
-    <div className="tile mt-4" data-testid="holding">
-      <h3 className="mb-1 font-bold">اگر بخرم، تا کی نگه دارم و کی بفروشم؟</h3>
-      <ul className="list-inside list-disc space-y-1.5">
+    <details data-testid="holding">
+      <summary className="cursor-pointer font-semibold">
+        اگر بخرم، تا کی نگه دارم و کی بفروشم؟
+      </summary>
+      <ul className="mt-2 list-inside list-disc space-y-1.5 text-muted">
         {h.lines.map((l) => (
           <li key={l}>{faDigits(l)}</li>
         ))}
       </ul>
-    </div>
+    </details>
   );
 }
 
 export const DEFAULT_HORIZON = "M1";
-/** One card for the whole decision: the holding period (tabs), its verdict and reasons, then the
- * plain answers (how sure, how deep a dip, place in the group) and the model's evidence. */
+
+/** The verdict for one holding period, with the small gauge beside it. */
+function Verdict({
+  d,
+  h,
+  id,
+}: {
+  d: D["decision"];
+  h: NonNullable<D["decision"]["horizons"][number]> | undefined;
+  id: number;
+}) {
+  const verdict = h?.verdict ?? d.verdict;
+  const label = h?.verdict_label ?? d.label;
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3" data-testid="verdict-head">
+      <div className="min-w-[15rem] flex-1 space-y-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`${verdictPill(verdict)} pill-lg`} data-testid="verdict-word">
+            <HoldWord verdict={verdict} label={label} instrumentId={id} />
+          </span>
+          {h && <span className="text-muted">برای {shortLabel(h.label)}</span>}
+        </div>
+        <p className="text-lg font-semibold leading-8">
+          {faDigits((h?.headline ?? (d.summary || d.headline)).replace(/^برای [^:]*:\s*/, ""))}
+        </p>
+        {h && verdict !== "buy" && d.gauge != null && d.gauge >= 90 && (
+          <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
+            چرا با امتیاز بالا «<HoldWord verdict={verdict} label={label} instrumentId={id} />
+            »؟ خودِ سهم قوی است، ولی برای {shortLabel(h.label)} سودِ اضافهٔ گذشته
+            {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده.
+            بازهٔ دیگری را در بالا انتخاب کنید.
+          </p>
+        )}
+      </div>
+      <div className="w-36 shrink-0" data-testid="gauge-box">
+        <Gauge value={d.gauge} label="جایگاه امروز در بازار" />
+        <p className="text-center text-xs text-muted">
+          {d.gauge == null
+            ? "امتیازی محاسبه نشده"
+            : `جایگاه امروز در بازار${d.rank != null ? ` · رتبهٔ ${faNumber(d.rank)}` : ""}`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** One card for the whole decision, in reading order: the holding period (tabs), its verdict,
+ *  the questions behind it with a mark each, the bottom line, and the long explanations closed. */
 function Decision({
   d,
   dash,
@@ -166,133 +214,73 @@ function Decision({
     items.find((x) => x.key === DEFAULT_HORIZON) ??
     items[0];
   const verdict = h?.verdict ?? d.verdict;
-  const label = h?.verdict_label ?? d.label;
-  const trust = trustWord(h?.ic_t);
-  const [first, ...rest] = d.reasons;
+  const more = [...(h?.reasons ?? []), ...d.reasons.slice(1)];
   return (
     <section
       className={`card ${verdictTone(verdict)}`}
       data-testid="symbol-decision"
       data-verdict={verdict}
     >
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="w-44 shrink-0">
-          <Gauge value={d.gauge} label="امتیاز ترکیبی مدل" />
-          <p className="text-center text-sm text-muted">
-            {d.gauge == null ? "امتیازی محاسبه نشده" : "امتیاز ترکیبی (۱۰۰ = بهترین)"}
-          </p>
-          {d.gauge != null && (
-            <p className="mt-1 text-center text-xs text-muted" data-testid="gauge-meaning">
-              جایگاه امروزِ سهم نسبت به بقیهٔ سهم‌ها است، نه پیش‌بینی قیمت. «خرید» فقط وقتی داده
-              می‌شود که چنین جایگاهی در گذشته، پس از کارمزد، از بازار جلو زده باشد.
-            </p>
-          )}
-        </div>
-        <div className="min-w-0 flex-1 space-y-2">
-          <h2 className="font-bold">چه کنم؟</h2>
-          {items.length > 0 && (
-            <nav className="flex flex-wrap gap-2" aria-label="بازهٔ نگهداری">
-              {items.map((x) => (
-                <Link
-                  key={x.key}
-                  href={`/instruments/${id}?h=${x.key}#horizon`}
-                  scroll={false}
-                  className="tab tab-pill"
-                  aria-current={x.key === h?.key ? "page" : undefined}
-                  data-testid={`horizon-${x.key}`}
-                >
-                  {x.label}
-                  <span className={`${verdictPill(x.verdict)} ms-2`}>
-                    <HoldWord verdict={x.verdict} label={x.verdict_label} instrumentId={id} />
-                  </span>
-                </Link>
-              ))}
-            </nav>
-          )}
-          <span className={`${verdictPill(verdict)} pill-lg`}>
-            <HoldWord verdict={verdict} label={label} instrumentId={id} />
-          </span>
-          <p className="text-lg font-semibold">
-            {faDigits(h?.headline ?? (d.summary || d.headline))}
-          </p>
-          {first && <p className="text-sm text-muted">{faDigits(first)}</p>}
-          {h && verdict !== "buy" && d.gauge != null && d.gauge >= 90 && (
-            <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
-              چرا با امتیاز بالا «<HoldWord verdict={verdict} label={label} instrumentId={id} />
-              »؟ خودِ سهم قوی است (نوارهای سبز پایین)، ولی برای این بازه سودِ اضافهٔ گذشته
-              {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده.
-              بازهٔ بلندتر را در تب‌ها ببینید.
-            </p>
-          )}
-        </div>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-bold">چه کنم؟</h2>
+        <span className="text-xs text-muted">
+          {d.as_of ? `بر پایهٔ دادهٔ ${jalali(d.as_of)}` : ""}
+        </span>
+      </div>
+      {items.length > 0 && (
+        <nav className="mb-3 flex flex-wrap gap-2" aria-label="بازهٔ نگهداری" id="horizon">
+          <span className="self-center text-sm text-muted">تا کی نگه می‌دارید؟</span>
+          {items.map((x) => (
+            <Link
+              key={x.key}
+              href={`/instruments/${id}?h=${x.key}#horizon`}
+              scroll={false}
+              className="tab tab-pill tab-sm"
+              aria-current={x.key === h?.key ? "page" : undefined}
+              data-testid={`horizon-${x.key}`}
+            >
+              {shortLabel(x.label)}
+              <span className={`${verdictPill(x.verdict)} ms-2`}>
+                <HoldWord verdict={x.verdict} label={x.verdict_label} instrumentId={id} />
+              </span>
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      <div data-testid="horizons" data-horizon={h?.key} data-verdict={h?.verdict}>
+        <Verdict d={d} h={h} id={id} />
       </div>
 
-      <div className="mt-4">
-        <Synthesis d={dash} />
-      </div>
-
-      {h && (
-        <div
-          className="mt-4"
-          id="horizon"
-          data-testid="horizons"
-          data-horizon={h.key}
-          data-verdict={h.verdict}
-        >
-          {h.top_excess != null && (
-            <p className="tile text-sm leading-7" data-testid="horizon-evidence">
-              در گذشته اگر هر روز پرامتیازترین سهم‌ها (۱۰٪ بالای فهرست) را می‌خریدید و {h.label} نگه
-              می‌داشتید، بعد از کم کردن کارمزد و مالیات ({faPercent(h.cost ?? 0, 2)}) به‌طور میانگین{" "}
-              <b className={signTone(h.net_excess)}>
-                {h.net_excess != null && h.net_excess >= 0
-                  ? `${signedPct(h.net_excess)} بیشتر از بازار`
-                  : `${signedPct(h.net_excess)} یعنی کمتر از بازار`}
-              </b>{" "}
-              سود می‌کردید.
-              {trust && (
-                <> این نتیجه {trust === "زیاد" ? "قابل اعتماد است" : `اطمینان ${trust} دارد`}.</>
-              )}
-            </p>
-          )}
-          {h.reasons.length > 0 && (
-            <details className="mt-2 text-sm">
-              <summary className="cursor-pointer text-muted">
-                هر کدام از چهار سنجه چقدر در گذشته کمک کرده؟ (برای کارشناس)
-              </summary>
-              <ul className="mt-2 list-inside list-disc space-y-1.5">
-                {h.reasons.map((r) => (
-                  <li key={r}>{faDigits(r)}</li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </div>
+      {!d.advice_allowed && (
+        <p className="mt-3 text-xs text-muted" data-testid="not-advice">
+          ⚠ این یک رتبه‌بندی آماری است، نه توصیهٔ سرمایه‌گذاری؛ آزمون‌های اعتبار مدل هنوز کامل
+          نشده‌اند.
+        </p>
       )}
 
       <div className="mt-4 border-t border-line pt-3">
-        <PlainFacts d={dash} />
+        <Checks d={dash} h={h} />
       </div>
+
       <div className="mt-4">
         <TrackBuyButton id={id} symbol={dash.instrument.symbol} />
       </div>
-      <SignalBars signals={d.signals} />
-      {d.holding && <Holding h={d.holding} />}
-      {rest.length > 0 && (
-        <details className="mt-3">
-          <summary className="cursor-pointer font-semibold">جزئیات بیشتر و محدودیت‌ها</summary>
-          <ul className="mt-2 list-inside list-disc space-y-1.5">
-            {rest.map((r) => (
-              <li key={r}>{faDigits(r)}</li>
-            ))}
-          </ul>
-        </details>
-      )}
-      <p className="mt-3 text-sm text-muted">
-        {d.advice_allowed
-          ? "همهٔ آزمون‌های اعتبار مدل گذشته‌اند."
-          : "خروجی مدل، تصمیم قطعی نیست و توصیهٔ سرمایه‌گذاری محسوب نمی‌شود."}
-        {d.as_of && ` · بر پایهٔ دادهٔ ${jalali(d.as_of)}`}
-      </p>
+
+      <div className="mt-4 space-y-2 text-sm">
+        <SignalBars signals={d.signals} />
+        {d.holding && <Holding h={d.holding} />}
+        {more.length > 0 && (
+          <details>
+            <summary className="cursor-pointer font-semibold">جزئیات برای کارشناس</summary>
+            <ul className="mt-2 list-inside list-disc space-y-1.5 text-muted">
+              {more.map((r) => (
+                <li key={r}>{faDigits(r)}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
     </section>
   );
 }
@@ -390,6 +378,7 @@ export function SymbolDecision({ d, id, horizon }: { d: D; id: number; horizon?:
   return (
     <div className="space-y-4" data-testid="symbol-dashboard">
       <Decision d={d.decision} dash={d} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
+      <PriceRange d={d} />
     </div>
   );
 }

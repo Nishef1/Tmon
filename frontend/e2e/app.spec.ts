@@ -82,7 +82,7 @@ test.describe("instrument page", () => {
     const hz = page.getByTestId("horizons");
     await expect(hz).toHaveAttribute("data-horizon", "M1");
     await expect(hz).toHaveAttribute("data-verdict", "buy");
-    await expect(hz.getByTestId("horizon-evidence")).toContainText("بعد از کم کردن کارمزد");
+    await expect(page.getByTestId("checks")).toContainText("بعد از کارمزد و مالیات");
     await page.getByTestId("horizon-D1").click();
     await expect(page).toHaveURL(/h=D1/);
     await expect(hz).toHaveAttribute("data-horizon", "D1");
@@ -97,7 +97,7 @@ test.describe("instrument page", () => {
     const decision = page.getByTestId("symbol-decision");
     await expect(decision).toHaveAttribute("data-verdict", "buy");
     await expect(decision).toContainText("خرید");
-    await expect(decision).toContainText("رتبهٔ ۲۰ از ۱۰۰");
+    await expect(decision).toContainText("رتبهٔ ۲۰");
     await expect(decision.getByTestId("gauge")).toHaveAttribute("data-value", "81.0");
     await expect(decision.getByTestId("signal-bars")).toContainText("قدرت خریدار حقیقی");
     await expect(decision.getByTestId("holding")).toContainText("نه برای خرید و فروش در همان روز");
@@ -383,12 +383,15 @@ test.describe("entry odds and the chart", () => {
     await card.locator('[data-key="r2"] summary').click();
     await expect(card.getByTestId("entry-horizons").first().getByRole("row")).toHaveCount(6);
     await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
-    // the plain answer sits in the summary at the top, with its interval and range
-    const next = page.getByTestId("plain-summary").getByTestId("next-candles");
+    // the price range is its own card, closed until opened, apart from the verdict
+    const range = page.getByTestId("price-range");
+    await range.locator("> summary").click();
+    await expect(range.getByTestId("candles-vs-verdict")).toContainText("از حکم بالا مستقل است");
+    const next = range.getByTestId("next-candles");
     // this year is the default; each row is one plain range with one percentage
     await expect(next).toHaveAttribute("data-window", "year");
     await expect(next.locator('tr[data-h="5"]')).toContainText("۹۴۰ تا ۱٬۰۹۰");
-    await expect(next).toContainText("با ۸۰٪ احتمال");
+    await expect(next).toContainText("۸ مورد از هر ۱۰ مورد گذشته");
     await expect(next).not.toContainText("بالاتر از قیمت خرید");
     await next.getByRole("button", { name: "۳ سال" }).click();
     await expect(next).toHaveAttribute("data-window", "y3");

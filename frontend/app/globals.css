@@ -401,6 +401,41 @@ input[type="radio"] {
     border-color: transparent;
   }
 
+  /* one question and its answer, with a ✓ / ! / ✕ mark at the start */
+  .check {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr;
+    gap: 0.7rem;
+    padding-block: 0.7rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .check:last-child {
+    border-bottom: 0;
+  }
+  .check-ico {
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    font-size: var(--text-sm);
+    font-weight: 800;
+    background: var(--surface-2);
+    color: var(--muted);
+  }
+  .check-ok .check-ico {
+    background: var(--up-soft);
+    color: var(--up);
+  }
+  .check-warn .check-ico {
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+  .check-bad .check-ico {
+    background: var(--down-soft);
+    color: var(--down);
+  }
+
   .tab-pill {
     border-radius: 999px;
     padding-inline: 1rem;

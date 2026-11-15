@@ -103,15 +103,16 @@ export function NextCandles({ e }: { e: DashEntry }) {
         ))}
       </div>
       <p className="text-sm">
-        قیمت امروز <b>{faNumber(Math.round(close))}</b>. با ۸۰٪ احتمال، قیمت در این بازه خواهد بود:
+        قیمت امروز <b>{faNumber(Math.round(close))}</b>. در ۸ مورد از هر ۱۰ مورد گذشته، قیمت در این
+        بازه ماند:
       </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[22rem] text-sm">
           <thead className="text-xs text-muted">
             <tr className="border-b border-line">
               <th className="py-1 text-start font-normal">چه زمانی</th>
-              <th className="py-1 text-start font-normal">۸۰٪ احتمال بین</th>
-              <th className="py-1 text-start font-normal">محتمل‌ترین قیمت</th>
+              <th className="py-1 text-start font-normal">۸ از ۱۰ بار بین</th>
+              <th className="py-1 text-start font-normal">حالت میانه</th>
             </tr>
           </thead>
           <tbody>
