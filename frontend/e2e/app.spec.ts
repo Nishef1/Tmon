@@ -125,6 +125,7 @@ test.describe("instrument page", () => {
     await expect(ha).toHaveAttribute("aria-pressed", "false");
     await expect(page.getByTestId("chart-legend")).toContainText("قیمت واقعی");
     const facts = page.locator('[data-fold="facts"]');
+    await facts.getByTestId("facts-table").locator("summary").click();
     await expect(facts.getByText("قدرت خریدار (امروز)")).toBeVisible();
     await expect(facts.getByText("گروه صنعت")).toBeVisible();
   });

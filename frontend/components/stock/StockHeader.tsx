@@ -3,6 +3,7 @@ import type { InstrumentBook, InstrumentDashboard, InstrumentDetail } from "@/li
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import { PortfolioBadge } from "@/components/stock/PortfolioBadge";
+import { Sparkline } from "@/components/stock/Sparkline";
 import { TradeBadge } from "@/components/TradeBadge";
 
 const QUEUE: Record<string, { text: string; cls: string }> = {
@@ -48,6 +49,16 @@ function Tile({
       <dt className="truncate text-xs text-muted">{k}</dt>
       <dd className={`truncate text-base font-bold ${tone ?? ""}`}>{children}</dd>
       {sub != null && <div className="truncate text-xs text-muted">{sub}</div>}
+    </div>
+  );
+}
+
+/** A secondary figure: a label and its value on one line. */
+function Mini({ k, children }: { k: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <dt className="text-muted">{k}</dt>
+      <dd className="font-semibold">{children}</dd>
     </div>
   );
 }
@@ -133,28 +144,31 @@ export function StockHeader({
       </div>
 
       {p?.close != null && (
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <span className="text-3xl font-extrabold" data-testid="header-close">
-            {faNumber(p.close)}
-          </span>
-          {p.close_change != null && (
-            <span className={`text-xl font-bold ${signTone(p.close_change)}`}>
-              {faPercent(p.close_change, 2, true)}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <span
+              className="text-4xl font-extrabold tracking-tight sm:text-5xl"
+              data-testid="header-close"
+            >
+              {faNumber(p.close)}
             </span>
-          )}
-          <span className="text-xs text-muted">ریال</span>
-          {mixed && p.date && (
-            <span className="text-xs text-warn" data-testid="header-close-date">
-              قیمت پایانی {jalali(p.date, "short")}
-            </span>
-          )}
+            {p.close_change != null && (
+              <span className={`text-xl font-bold ${signTone(p.close_change)}`}>
+                {faPercent(p.close_change, 2, true)}
+              </span>
+            )}
+            <span className="text-xs text-muted">ریال</span>
+            {mixed && p.date && (
+              <span className="text-xs text-warn" data-testid="header-close-date">
+                قیمت پایانی {jalali(p.date, "short")}
+              </span>
+            )}
+          </div>
+          <Sparkline candles={d.candles} />
         </div>
       )}
 
-      <dl
-        className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7"
-        data-testid="stock-stats"
-      >
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="stock-stats">
         {p?.low != null && p.high != null && p.high > p.low && (
           <Tile k="بازهٔ امروز">
             <Range lo={p.low ?? null} hi={p.high ?? null} v={p.close ?? null} />
@@ -169,14 +183,6 @@ export function StockHeader({
             tone={p.volume_ratio_30 != null && p.volume_ratio_30 >= 1.5 ? "text-up" : ""}
           >
             {qty(p.volume)}
-          </Tile>
-        )}
-        {p && (
-          <Tile
-            k="ارزش معاملات"
-            sub={p.trades == null ? undefined : `${faNumber(p.trades)} تراکنش`}
-          >
-            {toman(p.value)}
           </Tile>
         )}
         {f && (
@@ -197,15 +203,27 @@ export function StockHeader({
             {f.power == null ? "—" : faNumber(f.power, 2)}
           </Tile>
         )}
-        {fu?.pe != null && (
-          <Tile
-            k="P/E"
-            sub={fu.sector_pe == null ? undefined : `گروه ${faNumber(fu.sector_pe, 1)}`}
-          >
-            {faNumber(fu.pe, 1)}
-          </Tile>
+      </dl>
+
+      <dl
+        className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-2 text-sm"
+        data-testid="stock-stats-more"
+      >
+        {p && (
+          <Mini k="ارزش معاملات">
+            {toman(p.value)}
+            {p.trades != null && <span className="text-muted"> · {faNumber(p.trades)} تراکنش</span>}
+          </Mini>
         )}
-        {dash?.market_cap != null && <Tile k="ارزش بازار">{toman(dash.market_cap)}</Tile>}
+        {fu?.pe != null && (
+          <Mini k="P/E">
+            {faNumber(fu.pe, 1)}
+            {fu.sector_pe != null && (
+              <span className="text-muted"> · گروه {faNumber(fu.sector_pe, 1)}</span>
+            )}
+          </Mini>
+        )}
+        {dash?.market_cap != null && <Mini k="ارزش بازار">{toman(dash.market_cap)}</Mini>}
       </dl>
     </header>
   );

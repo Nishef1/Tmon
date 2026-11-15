@@ -15,7 +15,7 @@ export function Fold({
   children: ReactNode;
 }) {
   return (
-    <details className="group card p-0" data-fold={id} id={id} open={open}>
+    <details className="group card scroll-mt-28 p-0" data-fold={id} id={id} open={open}>
       <summary className="flex cursor-pointer list-none items-baseline gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <span aria-hidden className="text-muted transition-transform group-open:-rotate-90">
           ‹

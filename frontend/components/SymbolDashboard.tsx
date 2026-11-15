@@ -5,7 +5,6 @@ import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
 import { DriversCard } from "@/components/DriversCard";
 import { PeersCard } from "@/components/PeersCard";
-import { PriceRange } from "@/components/PlainSummary";
 import { TrackBuyButton } from "@/components/TrackBuyButton";
 import { TurningCard } from "@/components/TurningCard";
 import { TechnicalCard } from "@/components/TechnicalCard";
@@ -387,9 +386,8 @@ function shareOf(part: number | null, whole: number | null): string {
 /** The decision card: verdict per holding period, the synthesis and the plain answers. */
 export function SymbolDecision({ d, id, horizon }: { d: D; id: number; horizon?: string }) {
   return (
-    <div className="space-y-4" data-testid="symbol-dashboard">
+    <div data-testid="symbol-dashboard">
       <Decision d={d.decision} dash={d} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
-      <PriceRange d={d} />
     </div>
   );
 }
@@ -417,7 +415,79 @@ export function SymbolValuation({ d }: { d: D }) {
   return <>{d.fundamental && <Fundamental f={d.fundamental} sector={d.sector_name} />}</>;
 }
 
-/** Today's price, trades, real/legal money and the symbol's facts. */
+function Split({
+  title,
+  real,
+  legal,
+}: {
+  title: string;
+  real: number | null | undefined;
+  legal: number | null | undefined;
+}) {
+  if (real == null || legal == null || real + legal <= 0) return null;
+  const tot = real + legal;
+  const r = real / tot;
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
+        <span className="font-semibold">{title}</span>
+        <span className="text-muted">
+          حقیقی {faPercent(r, 0)} · حقوقی {faPercent(1 - r, 0)}
+        </span>
+      </div>
+      <div
+        className="flex h-3 gap-0.5 overflow-hidden rounded-full"
+        role="img"
+        aria-label={`${title}: حقیقی ${faPercent(r, 0)}، حقوقی ${faPercent(1 - r, 0)}`}
+      >
+        <span className="bg-accent" style={{ width: `${r * 100}%` }} />
+        <span style={{ width: `${(1 - r) * 100}%`, background: "var(--series-1)" }} />
+      </div>
+    </div>
+  );
+}
+
+/** Who is buying and selling today, as two bars (real people against institutions) and the
+ *  per-capita line; the full table of numbers sits closed under it. */
+export function SymbolFlow({ d }: { d: D }) {
+  const f = d.flow;
+  if (!f) return null;
+  return (
+    <section className="space-y-3" data-testid="flow-summary">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-bold">خریدار و فروشنده امروز چه کسانی‌اند؟</h2>
+        <span className="flex gap-3 text-xs text-muted">
+          <span className="flex items-center gap-1">
+            <i className="inline-block size-2.5 rounded-sm bg-accent" aria-hidden />
+            حقیقی
+          </span>
+          <span className="flex items-center gap-1">
+            <i
+              className="inline-block size-2.5 rounded-sm"
+              style={{ background: "var(--series-1)" }}
+              aria-hidden
+            />
+            حقوقی
+          </span>
+        </span>
+      </div>
+      <Split title="خرید" real={f.buy_volume_i} legal={f.buy_volume_n} />
+      <Split title="فروش" real={f.sell_volume_i} legal={f.sell_volume_n} />
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <Row k="سرانهٔ خرید حقیقی" v={toman(f.per_capita_buy)} />
+        <Row k="سرانهٔ فروش حقیقی" v={toman(f.per_capita_sell)} />
+        <Row
+          k="قدرت خریدار"
+          v={f.power == null ? "—" : faNumber(f.power, 2)}
+          tone={f.power != null ? (f.power >= 1 ? "text-up" : "text-down") : ""}
+        />
+        <Row k="خالص ورود پول حقیقی" v={toman(f.net_real_value)} tone={sign(f.net_real_value)} />
+      </dl>
+    </section>
+  );
+}
+
+/** Today's price, trades, real/legal money and the symbol's facts: the long table, closed. */
 export function SymbolFacts({ d }: { d: D }) {
   const p = d.price;
   const f = d.flow;
@@ -428,8 +498,11 @@ export function SymbolFacts({ d }: { d: D }) {
       ? f.sell_volume_i + f.sell_volume_n
       : null;
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <details data-testid="facts-table">
+      <summary className="cursor-pointer select-none text-sm font-semibold text-accent">
+        همهٔ عددها: قیمت، معاملات، پول حقیقی و حقوقی، سرانه، اطلاعات نماد
+      </summary>
+      <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
         {p && (
           <Card title="قیمت" note={`روز ${jalali(p.date)}`}>
             <Row k="قیمت پایانی" v={p.close == null ? "—" : faNumber(p.close)} />
@@ -550,6 +623,6 @@ export function SymbolFacts({ d }: { d: D }) {
           )}
         </Card>
       </div>
-    </div>
+    </details>
   );
 }

@@ -15,6 +15,7 @@ import {
   SymbolDecision,
   SymbolCompany,
   SymbolFacts,
+  SymbolFlow,
   SymbolTechnical,
   SymbolValuation,
 } from "@/components/SymbolDashboard";
@@ -23,6 +24,8 @@ import { PeersCard } from "@/components/PeersCard";
 import { TurningCard } from "@/components/TurningCard";
 import { DriversCard } from "@/components/DriversCard";
 import { StockHeader } from "@/components/stock/StockHeader";
+import { JumpNav, type JumpItem } from "@/components/stock/JumpNav";
+import { PriceRange } from "@/components/PlainSummary";
 import { StockNews } from "@/components/stock/StockNews";
 import { LiveWhenOpen } from "@/components/stock/LiveWhenOpen";
 import { StockAlerts } from "@/components/stock/StockAlerts";
@@ -108,6 +111,21 @@ export default async function InstrumentPage({
   const dd = dash.ok ? dash.data : null;
   const agmNear = !!dd?.meeting && dd.meeting.days_left >= 0 && dd.meeting.days_left <= 30;
 
+  const jumps: JumpItem[] = [
+    ...(dd ? [{ id: "decision", label: "چه کنم؟" }] : []),
+    ...(d.candles.length > 0 ? [{ id: "chart", label: "نمودار" }] : []),
+    ...(dd?.peers ? [{ id: "peers", label: "همگروه‌ها" }] : []),
+    ...(dd ? [{ id: "facts", label: "پول و ارزش‌گذاری" }] : []),
+    ...(book.ok ? [{ id: "book", label: "خریداران و فروشندگان" }] : []),
+    ...(dd && (dd.turning || dd.drivers) ? [{ id: "context", label: "چه چیزی حرکتش می‌دهد" }] : []),
+    ...(entry ? [{ id: "entry", label: "آزمایشگاه ورود" }] : []),
+    ...(dd?.technical ? [{ id: "technical", label: "تکنیکال" }] : []),
+    { id: "agm", label: "مجمع" },
+    { id: "holders", label: "سهامداران" },
+    ...(d.signals.length > 0 ? [{ id: "signals", label: "سیگنال‌ها" }] : []),
+    { id: "news", label: "کدال و خبر" },
+  ];
+
   return (
     <main className="space-y-4">
       <StockHeader d={d} dash={dd} book={book.ok ? book.data : null} />
@@ -128,11 +146,17 @@ export default async function InstrumentPage({
         />
       )}
 
-      {dd && <SymbolDecision d={dd} id={d.instrument.id} horizon={q.h} />}
+      <JumpNav items={jumps} />
+
+      {dd && (
+        <div id="decision" className="scroll-mt-28">
+          <SymbolDecision d={dd} id={d.instrument.id} horizon={q.h} />
+        </div>
+      )}
 
       <LiveWhenOpen instrumentId={d.instrument.id} />
 
-      <section className="card min-w-0" data-testid="chart-section">
+      <section className="card min-w-0 scroll-mt-28" data-testid="chart-section" id="chart">
         <h2 className="mb-2 text-lg font-extrabold">نمودار قیمت</h2>
         {d.candles.length === 0 ? (
           <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
@@ -153,11 +177,20 @@ export default async function InstrumentPage({
         )}
       </section>
 
-      {dd?.peers && <PeersCard p={dd.peers} />}
+      {dd && <PriceRange d={dd} />}
+
+      {dd?.peers && (
+        <div id="peers" className="scroll-mt-28">
+          <PeersCard p={dd.peers} />
+        </div>
+      )}
 
       {dd && (
-        <Fold id="facts" title="ارزش‌گذاری و معاملات" hint="P/E، حقیقی و حقوقی، سرانه، قیمت">
-          <SymbolValuation d={dd} />
+        <Fold id="facts" title="پول و ارزش‌گذاری" hint="حقیقی و حقوقی، سرانه، P/E">
+          <div className="grid items-start gap-x-8 gap-y-4 lg:grid-cols-2">
+            <SymbolFlow d={dd} />
+            <SymbolValuation d={dd} />
+          </div>
           <SymbolFacts d={dd} />
         </Fold>
       )}
@@ -170,8 +203,10 @@ export default async function InstrumentPage({
 
       {dd && (dd.turning || dd.drivers) && (
         <Fold id="context" title="چه چیزی این سهم را حرکت می‌دهد؟" hint="حالت فعلی و عامل‌ها">
-          {dd.turning && <TurningCard t={dd.turning} />}
-          {dd.drivers && <DriversCard d={dd.drivers} />}
+          <div className="grid items-start gap-x-8 gap-y-4 lg:grid-cols-2">
+            {dd.turning && <TurningCard t={dd.turning} />}
+            {dd.drivers && <DriversCard d={dd.drivers} />}
+          </div>
         </Fold>
       )}
 

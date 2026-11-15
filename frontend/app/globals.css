@@ -335,6 +335,14 @@ input[type="radio"] {
     width: 5px;
     background: var(--hero-edge, var(--line-strong));
   }
+  /* a section already has its frame: cards placed inside it drop theirs, so a section is one box
+     with headings and dividers, not boxes inside a box */
+  [data-fold] > div .card:not([class*="tone-"]) {
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+  }
   .hero[data-dir="up"] {
     --hero-edge: var(--up);
   }

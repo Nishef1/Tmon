@@ -86,7 +86,7 @@ export function StockNews({ d }: { d: InstrumentDetail }) {
   items.sort((a, b) => (b.when ?? "").localeCompare(a.when ?? ""));
   const shown = items.slice(0, SHOWN);
   return (
-    <section className="card" data-testid="codal-letters" id="news">
+    <section className="card scroll-mt-28" data-testid="codal-letters" id="news">
       <h2 className="mb-1 font-bold">
         خبرها و{" "}
         <Link href="/glossary/codal_event" className="hover:text-accent">
