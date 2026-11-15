@@ -372,11 +372,13 @@ def symbol_features(g: pd.DataFrame, eval_idx: A) -> dict[str, A]:
     E = np.errstate(divide="ignore", invalid="ignore")
     E.__enter__()
 
-    # baseline-like signals of the live ranking (approximations, for the partial IC)
+    # the four signals of the live ranking, as tmon.features computes them: one day's buy power,
+    # std of 20 log returns, close over the 250-day high of highs (half the window required),
+    # and the 12-1 momentum. (The live ranking also carries a stale value forward a few days.)
     pw = (bvi / bci) / (svi / sci)
-    f["b_power"] = sma(np.log(pw), 20)
-    f["b_rv20"] = -rstd(r1, 20)
-    f["b_dist52"] = c / rmax(c, 250) - 1
+    f["b_power"] = np.log(pw)
+    f["b_rv20"] = -pd.Series(np.log(c / pc)).rolling(20, min_periods=20).std(ddof=1).to_numpy()
+    f["b_dist52"] = c / pd.Series(h).rolling(250, min_periods=125).max().to_numpy() - 1
     f["b_mom121"] = shift(c, 21) / shift(c, 252) - 1
 
     # ---- moving averages (distance of close from the average)

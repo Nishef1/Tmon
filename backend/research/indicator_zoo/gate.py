@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,18 +27,91 @@ import numpy as np
 import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent))
-from checks import locked_next  # noqa: E402
 from study import build_panel  # noqa: E402
 
 from tmon.core.db import session_scope  # noqa: E402
+from tmon.features.store import load_inputs  # noqa: E402
 from tmon.core.engine_config import get_engine_config  # noqa: E402
 from tmon.domain.rules import CostModel, RuleBook  # noqa: E402
 from tmon.engine.adapt import gate  # noqa: E402
 
 SP = Path(sys.argv[1])
 C = pl.col
+G = "instrument_id"
 BASE = ["b_power", "b_rv20", "b_dist52", "b_mom121"]
 H = (5, 20, 60)
+
+
+def entry_facts() -> pl.DataFrame:
+    """Per (symbol, signal day t), from the raw prices:
+
+    * ``pos``: t's index in the market's trading calendar (for a purge in trading days);
+    * ``clean``: the entry row t+1 is the very next market day (the symbol was not halted) and
+      each outcome window ends within ``1.25 h + 2`` market days of the entry (no long halt
+      inside the 'h days'); one flag per horizon, ``clean{h}``;
+    * ``blocked``: on the entry day the last trade was at the day's upper limit (a buy queue at
+      the close, so a buy at the close would usually not fill). The limit is the stored
+      ``limit_up`` where known, else the day's market-wide band, read as the 99th percentile of
+      high / prev_close - 1 over all symbols that day (the band changed over the years).
+    * rows near bad data are not clean either: with ``ZOO_AUDIT`` = the dir of
+      research/data_audit.py's output, a sample is dropped when any of its symbol's rows from
+      t-20 to t+h+1 failed a hard check there (bad prices, copied days, bad adjustments, flows
+      that do not add up).
+    """
+    with session_scope() as s:
+        prices, _, _ = load_inputs(s)
+    if "limit_up" not in prices.columns:  # not loaded by load_inputs; read it from the table
+        with session_scope() as s:
+            lim = pl.read_database(
+                "select instrument_id, date, limit_up from prices_daily where limit_up is not null",
+                s.connection(),
+            ).with_columns(C("date").str.slice(0, 10).str.to_date(), C("limit_up").cast(pl.Float64))
+        prices = prices.join(lim, on=[G, "date"], how="left")
+    p = prices.filter(~C("market_halt") & (C("close") > 0) & (C("prev_close") > 0))
+    cal = p["date"].unique().sort()
+    p = p.join(pl.DataFrame({"date": cal, "pos": pl.Series(range(cal.len()))}), on="date")
+    last = pl.coalesce(C("last"), C("close"))
+    band = (C("high") / C("prev_close") - 1).quantile(0.99).over("date")
+    lim_pct = C("limit_up") / C("prev_close") - 1  # some stored limits are bad: keep 0.5%..10%
+    has_lim = C("limit_up").is_not_null() & lim_pct.is_between(0.005, 0.10)
+    at_top = (
+        pl.when(has_lim)
+        .then(last >= C("limit_up") * 0.999)
+        .otherwise((last / C("prev_close") - 1 >= band - 0.002) & (band > 0.01))
+    )
+    p = p.sort(G, "date").with_columns(
+        at_top=at_top & (last >= C("high") * 0.999) & (last > C("prev_close"))
+    )
+    audit = os.environ.get("ZOO_AUDIT")
+    if audit:
+        bad = pl.read_parquet(Path(audit) / "data_audit_rows.parquet").filter(C("bad"))
+        p = p.join(bad.select(G, "date", bad_row=pl.lit(1)), on=[G, "date"], how="left")
+    else:
+        p = p.with_columns(bad_row=pl.lit(None, pl.Int32))
+    p = p.with_columns(C("bad_row").fill_null(0).cast(pl.Int32))
+    back = C("bad_row").rolling_max(21, min_samples=1).over(G) > 0  # t-20 .. t
+    nxt = C("pos").shift(-1).over(G)
+
+    def fwd_bad(h: int) -> pl.Expr:  # t .. t+h+1
+        return (
+            C("bad_row").rolling_max(h + 2, min_samples=1).shift(-(h + 1)).over(G).fill_null(1) > 0
+        )
+
+    cols = [
+        C("at_top").shift(-1).over(G).fill_null(True).alias("blocked"),
+        *[
+            (
+                (nxt == C("pos") + 1)
+                & (C("pos").shift(-(1 + h)).over(G) - nxt <= 1.25 * h + 2)
+                & ~back
+                & ~fwd_bad(h)
+            )
+            .fill_null(False)
+            .alias(f"clean{h}")
+            for h in H
+        ],
+    ]
+    return p.with_columns(cols).select(G, "date", "pos", "blocked", *[f"clean{h}" for h in H])
 
 
 def daily(p: pl.DataFrame, y: str) -> pl.DataFrame:
@@ -79,8 +153,12 @@ def main() -> None:
         rules, d["date"].max(), get_engine_config().costs.slippage_fraction
     ).round_trip
     print("round trip", cost, "rows", d.height, flush=True)
-    d = d.join(locked_next(), on=["instrument_id", "date"], how="left").with_columns(
-        tradable=~(C("lock_next").fill_null(False) & C("up_next").fill_null(False))
+    d = d.join(entry_facts(), on=[G, "date"], how="inner").with_columns(tradable=~C("blocked"))
+    print(
+        "blocked share",
+        float(d["blocked"].mean()),
+        {h: float(d[f"clean{h}"].mean()) for h in H},
+        flush=True,
     )
     feats = list(info) + BASE
     d = d.with_columns(*[((C(f).rank() - 0.5) / C(f).count()).over("date").alias(f) for f in feats])
@@ -88,14 +166,21 @@ def main() -> None:
     out: dict = {"round_trip": cost, "config": cfg.model_dump(mode="json"), "h": {}}
     for h in H:
         y = f"x{h}"
-        dh = d.filter(C(y).is_not_null()).with_columns(
-            ry=((C(y).rank() - 0.5) / C(y).count()).over("date")
+        # clean rows only, and the excess re-measured against the clean rows of the same day
+        dh = (
+            d.filter(C(f"fwd{h}").is_not_null() & C(f"clean{h}"))
+            .with_columns((C(f"fwd{h}") - C(f"fwd{h}").mean().over("date")).alias(y))
+            .with_columns(ry=((C(y).rank() - 0.5) / C(y).count()).over("date"))
         )
+        purge = int(np.ceil(1.25 * h)) + 3  # trading days: an outcome is known by then
         parts = []
         for yr in range(2010, int(dh["year"].max()) + 1):
-            cut = dt.date(yr, 1, 1) - dt.timedelta(days=90)
-            tr, te = dh.filter(C("date") < cut), dh.filter(C("year") == yr)
-            if tr.height < 20000 or te.height == 0:
+            te = dh.filter(C("year") == yr)
+            if te.height == 0:
+                continue
+            first = int(te["pos"].min())
+            tr = dh.filter(C("pos") + purge < first)
+            if tr.height < 20000:
                 continue
             m = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=31,
                                   min_child_samples=300, subsample=0.7, subsample_freq=1,
@@ -116,10 +201,18 @@ def main() -> None:
             res[name] = {"latest": verdict(dense.tail(cfg.window_dates), h, cfg, cost)}
             roll = []
             for end in range(cfg.window_dates, dense.height + 1, 125):
-                roll.append(verdict(dense.slice(end - cfg.window_dates, cfg.window_dates), h, cfg, cost))
+                roll.append(
+                    verdict(dense.slice(end - cfg.window_dates, cfg.window_dates), h, cfg, cost)
+                )
             res[name]["rolling"] = roll
             res[name]["rolling_pass"] = f"{sum(r['passed'] for r in roll)}/{len(roll)}"
-            print(h, name, json.dumps(res[name]["latest"], ensure_ascii=False), res[name]["rolling_pass"], flush=True)
+            print(
+                h,
+                name,
+                json.dumps(res[name]["latest"], ensure_ascii=False),
+                res[name]["rolling_pass"],
+                flush=True,
+            )
         out["h"][h] = res
     (SP / "zoo_gate.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
 
