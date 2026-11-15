@@ -385,7 +385,7 @@ def _horizon_decision(
     elif zone == "hold":
         verdict = "hold"
         head = (
-            f"برای {label}: نگهداری؛ امتیاز این سهم نه جزو بهترین‌هاست نه جزو "
+            f"برای {label}: اگر ندارید صبر کنید؛ امتیاز این سهم نه جزو بهترین‌هاست نه جزو "
             "بدترین‌ها. اگر دارید، نگه دارید."
         )
     elif bot is not None and bot < -cost / 2:

@@ -1,37 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { call, useSaved, type Holding, type Portfolio } from "@/lib/portfolio";
+import { useSaved } from "@/lib/portfolio";
+import { useHeld } from "@/components/stock/HoldWord";
 import { faNumber, faPercent } from "@/lib/format";
 import { signTone } from "@/lib/ui";
-
-type Held = { portfolio: string; h: Holding };
 
 /** Whether this browser's portfolios hold the symbol, with the position's profit or loss. */
 export function PortfolioBadge({ instrumentId }: { instrumentId: number }) {
   const saved = useSaved();
-  const [held, setHeld] = useState<Held[] | null>(null);
-  useEffect(() => {
-    if (!saved || saved.length === 0) return;
-    let live = true;
-    Promise.all(
-      saved.map((s) =>
-        call<Portfolio>(`/${s.id}`, s.key)
-          .then((p) =>
-            p.holdings
-              .filter((h) => h.instrument_id === instrumentId)
-              .map((h) => ({ portfolio: p.name, h })),
-          )
-          .catch(() => [] as Held[]),
-      ),
-    ).then((all) => live && setHeld(all.flat()));
-    return () => {
-      live = false;
-    };
-  }, [saved, instrumentId]);
+  const held = useHeld(instrumentId);
   if (!saved) return null;
-  if (saved.length === 0 || (held && held.length === 0)) {
+  if (held && held.length === 0) {
     return (
       <Link href="/portfolios" className="chip" data-testid="portfolio-badge" data-held="false">
         در پرتفوی شما نیست · افزودن برای هشدار خروج

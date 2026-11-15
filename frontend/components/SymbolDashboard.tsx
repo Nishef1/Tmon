@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HoldWord } from "@/components/stock/HoldWord";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
@@ -195,20 +196,24 @@ function Decision({
                   data-testid={`horizon-${x.key}`}
                 >
                   {x.label}
-                  <span className={`${verdictPill(x.verdict)} ms-2`}>{x.verdict_label}</span>
+                  <span className={`${verdictPill(x.verdict)} ms-2`}>
+                    <HoldWord verdict={x.verdict} label={x.verdict_label} instrumentId={id} />
+                  </span>
                 </Link>
               ))}
             </nav>
           )}
-          <span className={`${verdictPill(verdict)} pill-lg`}>{label}</span>
+          <span className={`${verdictPill(verdict)} pill-lg`}>
+            <HoldWord verdict={verdict} label={label} instrumentId={id} />
+          </span>
           <p className="text-lg font-semibold">
             {faDigits(h?.headline ?? (d.summary || d.headline))}
           </p>
           {first && <p className="text-sm text-muted">{faDigits(first)}</p>}
           {h && verdict !== "buy" && d.gauge != null && d.gauge >= 90 && (
             <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
-              چرا با امتیاز بالا «{label}»؟ خودِ سهم قوی است (نوارهای سبز پایین)، ولی برای این بازه
-              سودِ اضافهٔ گذشته
+              چرا با امتیاز بالا «<HoldWord verdict={verdict} label={label} instrumentId={id} />
+              »؟ خودِ سهم قوی است (نوارهای سبز پایین)، ولی برای این بازه سودِ اضافهٔ گذشته
               {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده.
               بازهٔ بلندتر را در تب‌ها ببینید.
             </p>
