@@ -54,9 +54,9 @@ delta_sync() {
   zstd -19 -T0 -q "$OUT/delta.sqlite3" -o "$OUT/delta.sqlite3.zst"
   ls -lh "$OUT/delta.sqlite3.zst"
   "${SCP[@]}" "$OUT/delta.sqlite3.zst" "$HOST:/root/"
-  "${SSH[@]}" 'zstd -d -q -f /root/delta.sqlite3.zst -o /root/delta.sqlite3 && chmod 644 /root/delta.sqlite3' || return 1
-  if "${SSH[@]}" "runuser -u tmon -- python3 - apply $SRV_DB /root/delta.sqlite3" < deploy/syncdb.py; then
-    "${SSH[@]}" 'rm -f /root/delta.sqlite3 /root/delta.sqlite3.zst'
+  "${SSH[@]}" 'zstd -d -q -f /root/delta.sqlite3.zst -o /var/lib/tmon/delta.sqlite3 && chmod 644 /var/lib/tmon/delta.sqlite3' || return 1
+  if "${SSH[@]}" "runuser -u tmon -- python3 - apply $SRV_DB /var/lib/tmon/delta.sqlite3" < deploy/syncdb.py; then
+    "${SSH[@]}" 'rm -f /var/lib/tmon/delta.sqlite3 /root/delta.sqlite3.zst'
     return 0
   fi
   echo "the server did not match the PC after applying the delta"
