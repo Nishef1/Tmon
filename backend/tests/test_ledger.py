@@ -246,3 +246,20 @@ def test_a_mofid_average_that_could_not_have_been_paid_is_not_used(session: Sess
     mofid.set_cost(session, p, "IRTKLOTF0001", 500_000_000)
     assert ledger.replay(session, p)[a].cost == pytest.approx(500_000_000)
     assert mofid.status(session, p.id)["last_result"]["positions"][0]["cost_source"] == "owner"
+
+
+def test_a_deleted_line_is_not_brought_back_from_the_old_holdings(session: Session) -> None:
+    from sqlalchemy import delete
+
+    from tmon.storage.models import Holding
+
+    a = _stock(session, "الف", [1000.0] * 5)
+    p = _portfolio(session)
+    session.add(
+        Holding(portfolio_id=p.id, instrument_id=a, shares=10, avg_price=1000, created_at=AT)
+    )
+    session.flush()
+    assert ledger.rebuild(session, p)[a].shares == 10  # migrated once
+    session.execute(delete(PortfolioTrade).where(PortfolioTrade.portfolio_id == p.id))
+    session.flush()
+    assert a not in ledger.rebuild(session, p)

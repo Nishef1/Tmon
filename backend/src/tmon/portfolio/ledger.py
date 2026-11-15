@@ -86,7 +86,11 @@ def ensure_schema(session: Session) -> None:
 
 
 def migrate_legacy(session: Session, p: Portfolio) -> None:
-    """A holding typed in before the ledger existed becomes one opening buy line."""
+    """A holding typed in before the ledger existed becomes one opening buy line. Runs once per
+    portfolio: afterwards the ledger is the record, so a deleted line stays deleted."""
+    if (p.settings or {}).get("ledger_migrated"):
+        return
+    p.settings = {**(p.settings or {}), "ledger_migrated": True}
     have = set(
         session.scalars(
             select(PortfolioTrade.instrument_id).where(PortfolioTrade.portfolio_id == p.id)
