@@ -9,13 +9,13 @@ export function trustWord(t: number | null | undefined): string | null {
   return t >= 3 ? "زیاد" : t >= 2 ? "متوسط" : "کم";
 }
 
-/** The stock's own price history replayed forward. It is a separate card, closed by default: it
+/** The stock's own price history replayed forward. It is a separate card, open by default: it
  *  comes from a different source than the verdict (the stock's own past moves, not the model),
  *  so putting it beside the verdict made the two look like they disagreed. */
 export function PriceRange({ d }: { d: D }) {
   if (!d.entry || d.entry.own.length === 0) return null;
   return (
-    <details className="card" data-testid="price-range">
+    <details className="card" data-testid="price-range" open>
       <summary className="cursor-pointer select-none">
         <span className="font-bold">اگر قیمت مثل گذشتهٔ خودش حرکت کند، کجا می‌رسد؟</span>
         <span className="ms-2 text-sm text-muted">فقط آمار گذشتهٔ همین سهم؛ سیگنال نیست</span>

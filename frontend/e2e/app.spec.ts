@@ -418,9 +418,8 @@ test.describe("entry odds and the chart", () => {
     await card.locator('[data-key="r2"] summary').click();
     await expect(card.getByTestId("entry-horizons").first().getByRole("row")).toHaveCount(6);
     await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
-    // the price range is its own card, closed until opened, apart from the verdict
+    // the price range is its own card, open by default, apart from the verdict
     const range = page.getByTestId("price-range");
-    await range.locator("> summary").click();
     await expect(range.getByTestId("candles-vs-verdict")).toContainText("از حکم بالا مستقل است");
     const next = range.getByTestId("next-candles");
     // this year is the default; each row is one plain range with one percentage
