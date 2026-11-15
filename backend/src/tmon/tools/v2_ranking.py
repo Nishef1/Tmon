@@ -71,7 +71,11 @@ def rows_for(universe: list[dict[str, Any]], names: dict[int, Instrument]) -> li
     """Top ``BASKET`` eligible, not halted names by 20-day median traded value, ordered by the same
     score the whole universe gets (:func:`universe_scores`), so a partly ingested last day leaves
     no hole in the basket."""
-    pool = [u for u in universe if u["eligible"] and not u["halted"] and u["median_value"]]
+    pool = [
+        u
+        for u in universe
+        if u["eligible"] and not u["halted"] and u["median_value"] and not u.get("too_new")
+    ]
     top = sorted(pool, key=lambda u: u["median_value"], reverse=True)[:BASKET]
     core = {u["id"] for u in top}
     # A buy-zone name just outside the 100 most traded still trades enough to buy; leaving it out
@@ -121,6 +125,12 @@ def _mid_rank(ref: np.ndarray, x: np.ndarray) -> np.ndarray:
 
 STALE_DAYS = 10  # trading days a signal may be carried forward when its newest value is missing
 MIN_SIGNALS = 2  # fewer known signals than this: no score at all
+# A name needs about a year of trading days before it is scored: the 12-1 month momentum looks 252
+# days back, the 52-week high needs the same, and the validated score is only meaningful against
+# names that have all four signals. A fresh listing (or one that just resumed after a long
+# suspension) has too little history and is left out of the ranking instead of getting a
+# score built from the two or three signals it happens to have.
+MIN_RANK_DAYS = 253
 
 
 def latest_signals(
@@ -172,6 +182,17 @@ def universe_scores(
     ``partial``; ``signals_as_of`` is the oldest date any of its signals comes from."""
     cols = list(SIGNALS)
     d = latest_signals(feats, adj, last)
+    days = dict(
+        adj.filter(pl.col("date") <= last)
+        .group_by("instrument_id")
+        .len()
+        .iter_rows()  # (instrument_id, trading days on record)
+    )
+    d = d.with_columns(
+        pl.col("instrument_id")
+        .replace_strict(days, default=0, return_dtype=pl.Int64)
+        .alias("history_days")
+    ).with_columns((pl.col("history_days") < MIN_RANK_DAYS).alias("too_new"))
     w = np.full(len(cols), 1.0 / len(cols))
     if weights is not None:
         w = np.array([weights.get(c, 0.0) for c in cols], dtype=float)
@@ -179,6 +200,7 @@ def universe_scores(
     excluded = list(cfg.universe.exclude_queue_states)
     member = d.filter(
         pl.all_horizontal([pl.col(c).is_not_null() for c in cols])
+        & ~pl.col("too_new")
         & pl.col("eligible")
         & ~pl.col("market_halt")
         & ~pl.col("queue_state").is_in(excluded)
@@ -201,7 +223,7 @@ def universe_scores(
         return round(sum(w[k] * ranks[cols[k]] for k in have) / ww, 12), ranks
 
     rows = list(d.iter_rows(named=True))
-    comps = [composite(r) for r in rows]
+    comps = [None if r["too_new"] else composite(r) for r in rows]
     full = [
         c[0]
         for r, c in zip(rows, comps, strict=True)
@@ -227,6 +249,8 @@ def universe_scores(
                 "median_value": _f(r["median_value_20"]),
                 "missing": missing,
                 "partial": bool(missing) and score is not None,
+                "too_new": bool(r["too_new"]),
+                "history_days": int(r["history_days"]),
                 "seen": str(r["seen"]),
                 "signals_as_of": str(min(dates)) if dates else None,
                 "score": score,

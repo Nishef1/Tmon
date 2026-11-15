@@ -193,3 +193,52 @@ def test_a_partly_ingested_last_day_does_not_drop_scores() -> None:
     assert all(not r["partial"] for r in got.values())
     assert got[10]["signals_as_of"] == str(days[-2])
     assert got[19]["seen"] == str(days[-3])
+
+
+def test_a_fresh_listing_gets_no_score_and_does_not_shape_the_ranking() -> None:
+    """A name with fewer than MIN_RANK_DAYS trading days is not scored (not even partially), is not
+    part of the reference every other score is placed in, and never enters the basket."""
+    import datetime as dt
+
+    import numpy as np
+    import polars as pl
+
+    from tmon.core.engine_config import get_engine_config
+    from tmon.tools.v2_ranking import MIN_RANK_DAYS, rows_for, universe_scores
+
+    cfg = get_engine_config()
+    rng = np.random.default_rng(11)
+    days = [dt.date(2025, 1, 1) + dt.timedelta(days=i) for i in range(300)]
+    adj_rows, feat_rows = [], []
+    for i in range(21):
+        young = i == 20  # listed 100 days before the last day, very liquid and very strong
+        first = len(days) - 100 if young else 0
+        px = 1000 * np.exp(np.cumsum(rng.normal(0.01 if young else 0, 0.02, len(days) - first)))
+        for d, p in zip(days[first:], px, strict=True):
+            adj_rows.append({"instrument_id": i, "date": d, "adj_close": float(p)})
+            feat_rows.append(
+                {
+                    "instrument_id": i,
+                    "date": d,
+                    "eligible": True,
+                    "market_halt": False,
+                    "queue_state": "none",
+                    "median_value_20": 1e13 if young else 1e11,
+                    "ind_buy_power": 100.0 if young else float(rng.uniform(0.2, 3)),
+                    "rv_20": 0.01 if young else float(rng.uniform(0.1, 0.8)),
+                    "dist_high_52w": 1.0 if young else float(rng.uniform(0.5, 1.0)),
+                }
+            )
+    feats, adj = pl.DataFrame(feat_rows), pl.DataFrame(adj_rows)
+    got = universe_scores(feats, adj, cfg, days[-1])
+    by_id = {r["id"]: r for r in got}
+    new = by_id[20]
+    assert new["too_new"] is True and new["history_days"] == 100 < MIN_RANK_DAYS
+    assert new["score"] is None and new["zone"] is None
+    assert all(not by_id[i]["too_new"] and by_id[i]["score"] is not None for i in range(20))
+    names = {
+        i: type("I", (), {"symbol_fa": f"s{i}", "name_fa": f"n{i}", "sector_code": None})()
+        for i in range(21)
+    }
+    assert 20 not in {r["symbol"] for r in rows_for(got, names)} | set()  # symbols are s<i>
+    assert "s20" not in {r["symbol"] for r in rows_for(got, names)}

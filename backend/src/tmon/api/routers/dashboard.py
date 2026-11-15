@@ -60,7 +60,7 @@ from tmon.storage.models import (
 from tmon.storage.objectstore import get_object_store
 from tmon.tools.stock_drivers import KEY as DRIVERS_KEY
 from tmon.tools.turning_points import KEY as TURNING_KEY
-from tmon.tools.v2_ranking import KEY
+from tmon.tools.v2_ranking import KEY, MIN_RANK_DAYS
 
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["instruments"])
@@ -511,6 +511,18 @@ def decide(
             basket_size=size,
         )
     if row is None and uni is not None and uni.get("score") is None:
+        if uni.get("too_new"):
+            n, need = int(uni.get("history_days") or 0), MIN_RANK_DAYS
+            return _none(
+                f"امتیازی برای این نماد محاسبه نشد: نماد تازه‌وارد است و فقط {n} روز معامله دارد.",
+                [
+                    f"مدل دست‌کم {need} روز معاملاتی (حدود یک سال) سابقه می‌خواهد؛ روند ۱۲ ماهه و "
+                    "فاصله از سقف یک‌ساله بدون آن معنا ندارند و رتبه‌بندی با دادهٔ ناقص "
+                    "گمراه‌کننده است.",
+                ],
+                as_of=as_of,
+                basket_size=size,
+            )
         if uni.get("halted"):
             why = "امروز متوقف بوده است."
         else:
