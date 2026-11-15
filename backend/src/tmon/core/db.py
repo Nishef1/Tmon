@@ -23,6 +23,10 @@ def get_engine() -> Engine:
             cur = dbapi_conn.cursor()
             cur.execute("PRAGMA journal_mode=WAL")
             cur.execute("PRAGMA busy_timeout=120000")
+            # reads go through the OS page cache (no copy per connection); 64 MB page cache
+            cur.execute("PRAGMA mmap_size=2147483648")
+            cur.execute("PRAGMA cache_size=-65536")
+            cur.execute("PRAGMA temp_store=MEMORY")
             cur.close()
 
     return engine
