@@ -1,0 +1,161 @@
+"""deploy/syncdb.py: ship only the days that differ, refuse a delta when it is not safe."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+_spec = importlib.util.spec_from_file_location(
+    "syncdb", Path(__file__).resolve().parents[2] / "deploy" / "syncdb.py"
+)
+assert _spec and _spec.loader
+sd = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(sd)
+
+SCHEMA = """
+create table prices_daily (instrument_id int, date date, close real, volume real, high real,
+  source_url text, fetched_at text, primary key (instrument_id, date));
+create table features (instrument_id int, date date, feature_set_version text, "values" text,
+  primary key (instrument_id, date, feature_set_version));
+create table instruments (id int primary key, symbol text, fetched_at text);
+create table alembic_version (version_num text);
+"""
+
+
+def _make(path: Path, days: int, symbols: str = "ab") -> sqlite3.Connection:
+    db = sqlite3.connect(path)
+    db.executescript(SCHEMA)
+    db.execute("insert into alembic_version values ('x')")
+    for i, s in enumerate(symbols):
+        db.execute("insert into instruments values (?,?,?)", (i, s, "t0"))
+    for d in range(days):
+        day = f"2026-10-{d + 1:02d}"
+        for i in range(2):
+            db.execute(
+                "insert into prices_daily values (?,?,?,?,?,?,?)",
+                (i, day, 100.0 + d, 10.0, 101.0, "u", "t0"),
+            )
+            db.execute("insert into features values (?,?,?,?)", (i, day, "v1", "{}"))
+    db.commit()
+    return db
+
+
+def _run(pc: Path, srv: Path, out: Path) -> dict:
+    cut = sd.deep_from(sqlite3.connect(pc))
+    srv_fp = sd.fingerprint(sqlite3.connect(srv), cut)
+    return sd.delta(str(pc), json.loads(json.dumps(srv_fp)), str(out))
+
+
+def test_a_new_day_and_a_revised_day_are_shipped_and_nothing_else(tmp_path: Path) -> None:
+    _make(tmp_path / "pc.db", 40)
+    _make(tmp_path / "srv.db", 40)
+    pc_db = sqlite3.connect(tmp_path / "pc.db")
+    pc_db.execute("insert into prices_daily values (0,'2026-11-01',150,10,151,'u','t1')")
+    pc_db.execute("insert into prices_daily values (1,'2026-11-01',150,10,151,'u','t1')")
+    pc_db.execute(
+        "update prices_daily set close = 999 where date = '2026-10-40'"
+    ) if False else None
+    pc_db.execute("update prices_daily set close = 999 where date = '2026-10-39'")
+    pc_db.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert res["full"] is False
+    assert res["parts"]["prices_daily"] == ["2026-10-39", "2026-11-01"]
+    assert "features" not in res["parts"] and res["whole"] == []
+    assert res["rows"] == 4
+    out = sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "delta.db"))
+    assert out["mismatch"] == []
+    got = sqlite3.connect(tmp_path / "srv.db")
+    assert got.execute("select count(*) from prices_daily").fetchone()[0] == 82
+    assert (
+        got.execute("select close from prices_daily where date='2026-10-39'").fetchone()[0] == 999
+    )
+
+
+def test_a_day_the_pc_no_longer_has_is_removed_from_the_server(tmp_path: Path) -> None:
+    _make(tmp_path / "pc.db", 10)
+    _make(tmp_path / "srv.db", 10)
+    sqlite3.connect(tmp_path / "srv.db").execute(
+        "insert into prices_daily values (0,'2026-12-01',1,1,1,'u','t')"
+    ).connection.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert res["drop"] == {"prices_daily": ["2026-12-01"]}
+    assert sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "delta.db"))["mismatch"] == []
+    assert (
+        sqlite3.connect(tmp_path / "srv.db")
+        .execute("select count(*) from prices_daily where date='2026-12-01'")
+        .fetchone()[0]
+        == 0
+    )
+
+
+def test_server_features_older_than_the_window_are_pruned(tmp_path: Path) -> None:
+    _make(tmp_path / "pc.db", 5)
+    srv = _make(tmp_path / "srv.db", 5)
+    for d in range(70):  # the PC keeps 5 days, the server also holds 70 older ones
+        srv.execute(
+            "insert into features values (0,?,'v1','{}')",
+            (f"2026-07-{d + 1:02d}" if d < 31 else f"2026-08-{d - 30:02d}",),
+        )
+    srv.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert not res["full"]
+    sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "delta.db"))
+    assert (
+        sqlite3.connect(tmp_path / "srv.db")
+        .execute("select count(distinct date) from features")
+        .fetchone()[0]
+        == 5
+    )
+
+
+def test_whole_tables_compare_content_not_fetch_times(tmp_path: Path) -> None:
+    pc = _make(tmp_path / "pc.db", 3)
+    _make(tmp_path / "srv.db", 3)
+    pc.execute("update instruments set fetched_at = 'later'")  # only provenance moved
+    pc.commit()
+    assert _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "d1.db")["whole"] == []
+    pc.execute("update instruments set symbol = 'z' where id = 0")
+    pc.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "d2.db")
+    assert res["whole"] == ["instruments"]
+    assert sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "d2.db"))["mismatch"] == []
+    assert (
+        sqlite3.connect(tmp_path / "srv.db")
+        .execute("select symbol from instruments where id=0")
+        .fetchone()[0]
+        == "z"
+    )
+
+
+@pytest.mark.parametrize("case", ["no_server", "other_layout", "too_much"])
+def test_full_copy_is_chosen_when_a_delta_is_not_safe(tmp_path: Path, case: str) -> None:
+    _make(tmp_path / "pc.db", 10)
+    out = tmp_path / "delta.db"
+    if case == "no_server":
+        assert sd.delta(str(tmp_path / "pc.db"), None, str(out))["full"] is True
+        return
+    srv = _make(tmp_path / "srv.db", 10 if case == "other_layout" else 1)
+    if case == "other_layout":
+        srv.execute("alter table instruments add column extra text")
+        srv.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", out)
+    assert res["full"] is True and res["reason"]
+
+
+def test_urls_of_batch_downloads_are_shortened_in_the_delta(tmp_path: Path) -> None:
+    pc = _make(tmp_path / "pc.db", 10)
+    _make(tmp_path / "srv.db", 10)
+    long = "https://x/y?t=ClosingPrices&a=" + "1," * 400
+    pc.execute("insert into prices_daily values (0,'2026-11-01',1,1,1,?,'t')", (long,))
+    pc.commit()
+    _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    url = (
+        sqlite3.connect(tmp_path / "delta.db")
+        .execute("select source_url from prices_daily")
+        .fetchone()[0]
+    )
+    assert url.endswith("&a=...") and len(url) < 60
