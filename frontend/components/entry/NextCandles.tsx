@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { DashEntry } from "@/lib/api";
-import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
+import { faNumber, faPercent, jalali } from "@/lib/format";
 
 type Own = DashEntry["own"][number];
 
@@ -74,21 +74,18 @@ function Cone({ own, close }: { own: Own[]; close: number }) {
   );
 }
 
-/** The plain answer to "what will the next candles do": for each candle count, the chance the
- *  price was above the price paid, and the price band 8 in 10 outcomes fell in, from this
- *  symbol's own record since this year's spring. */
+/** The plain answer to "what will the next candles do": for each candle count, the price band
+ *  8 in 10 past outcomes fell in and the most likely price, from this symbol's own record.
+ *  One percentage per line, nothing compared with anything. */
 export function NextCandles({ e }: { e: DashEntry }) {
-  // Default to about three years of history: "this year" alone mostly replays a recent run-up
-  // (a stock that rose 10x shows a 100% "chance" of rising), "all" mixes very old regimes.
-  const pick = e.windows.find((x) => x.key === "y3") ?? e.windows[e.windows.length - 1];
+  const pick = e.windows.find((x) => x.key === "year") ?? e.windows[0];
   const [key, setKey] = useState(pick?.key ?? "");
   const w = e.windows.find((x) => x.key === key) ?? e.windows[0];
   if (!w || w.odds.length === 0) return null;
-  const own = w.odds;
   const close = e.own_close;
-  // the entry-state line ("این سهم الان در حالت «...»") is shown in the entry card below
-  const readings = w.forecast.filter((l) => !/کندل بعد:/.test(l) && !l.includes("الان در حالت"));
-  const extreme = own.some((x) => x.up >= 0.95 || x.up <= 0.05);
+  const own = w.odds.filter((x) => x.q10 != null && x.q90 != null);
+  if (close == null || own.length === 0) return null;
+  const at = (q: number) => faNumber(Math.round(close * (1 + q)));
   return (
     <div className="space-y-3" data-testid="next-candles" data-window={w.key}>
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="بازهٔ سابقه">
@@ -105,80 +102,48 @@ export function NextCandles({ e }: { e: DashEntry }) {
           </button>
         ))}
       </div>
+      <p className="text-sm">
+        قیمت امروز <b>{faNumber(Math.round(close))}</b>. با ۸۰٪ احتمال، قیمت در این بازه خواهد بود:
+      </p>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[26rem] text-sm">
+        <table className="w-full min-w-[22rem] text-sm">
           <thead className="text-xs text-muted">
             <tr className="border-b border-line">
-              <th className="py-1 text-start font-normal">بعد از</th>
-              <th className="py-1 text-start font-normal">شانس بالاتر از قیمت خرید</th>
-              <th className="py-1 text-start font-normal">۸ بار از ۱۰، قیمت بین</th>
-              <th className="py-1 text-start font-normal">قیمت وسط</th>
+              <th className="py-1 text-start font-normal">چه زمانی</th>
+              <th className="py-1 text-start font-normal">۸۰٪ احتمال بین</th>
+              <th className="py-1 text-start font-normal">محتمل‌ترین قیمت</th>
             </tr>
           </thead>
           <tbody>
-            {own.map((x) => {
-              const tone = x.up >= 0.55 ? "text-up" : x.up <= 0.45 ? "text-down" : "";
-              return (
-                <tr key={x.h} className="border-b border-line last:border-0" data-h={x.h}>
-                  <td className="py-1.5">{when(x.h)}</td>
-                  <td className="py-1.5">
-                    <b className={`text-base ${tone}`}>
-                      {x.up >= 0.95
-                        ? "بیش از ۹۵٪"
-                        : x.up <= 0.05
-                          ? "کمتر از ۵٪"
-                          : faPercent(x.up, 0)}
-                    </b>
-                    {x.up_all != null && (
-                      <span className="ms-2 text-xs text-muted">
-                        همهٔ سهم‌ها {faPercent(x.up_all, 0)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-1.5">
-                    {x.q10 != null && x.q90 != null ? (
-                      <>
-                        {close != null && (
-                          <span>
-                            {faNumber(Math.round(close * (1 + x.q10)))} تا{" "}
-                            {faNumber(Math.round(close * (1 + x.q90)))}{" "}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted">
-                          ({faPercent(x.q10, 0, true)} تا {faPercent(x.q90, 0, true)})
-                        </span>
-                      </>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="py-1.5">
-                    {x.q50 != null && close != null
-                      ? faNumber(Math.round(close * (1 + x.q50)))
-                      : "—"}
-                  </td>
-                </tr>
-              );
-            })}
+            {own.map((x) => (
+              <tr key={x.h} className="border-b border-line last:border-0" data-h={x.h}>
+                <td className="py-1.5">{when(x.h)}</td>
+                <td className="py-1.5">
+                  <b className="text-down">{at(x.q10!)}</b> تا{" "}
+                  <b className="text-up">{at(x.q90!)}</b>
+                  <span className="ms-2 text-xs text-muted">
+                    ({faPercent(x.q10!, 0, true)} تا {faPercent(x.q90!, 0, true)})
+                  </span>
+                </td>
+                <td className="py-1.5">
+                  {x.q50 != null ? (
+                    <>
+                      {at(x.q50)}{" "}
+                      <span className="text-xs text-muted">({faPercent(x.q50, 0, true)})</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
-      {extreme && (
-        <p className="rounded-lg bg-warn-soft p-2 text-xs" data-testid="candles-extreme">
-          شانس نزدیک صفر یا صد معمولاً یعنی این بازه فقط یک روند تند را دیده است، نه اینکه نتیجه
-          قطعی باشد. بازهٔ بلندتر را هم ببینید.
-        </p>
-      )}
-      {close != null && <Cone own={own} close={close} />}
-      {readings.map((l, i) => (
-        <p key={l} className={i === 0 ? "font-semibold" : "text-xs text-muted"}>
-          {faDigits(l)}
-        </p>
-      ))}
+      <Cone own={own} close={close} />
       <p className="text-xs text-muted">
-        از سابقهٔ همین سهم: اگر در هر روزِ قابل‌معامله از {jalali(w.since)} تا امروز با قیمت پایانی
-        خریده بودید. قیمت‌ها از آخرین پایانی تعدیل‌شده حساب شده‌اند. آمار گذشته است، نه پیش‌بینی و
-        نه توصیه.
+        از سابقهٔ همین سهم از {jalali(w.since)} تا امروز: در ۸ بار از هر ۱۰ بار قیمت در این بازه
+        مانده، ۱ بار پایین‌تر و ۱ بار بالاتر رفته. آمار گذشته است، نه تضمین و نه توصیه.
       </p>
     </div>
   );

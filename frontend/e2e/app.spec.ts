@@ -385,16 +385,13 @@ test.describe("entry odds and the chart", () => {
     await expect(card.getByTestId("entry-path").first()).toContainText("زیر قیمت خرید");
     // the plain answer sits in the summary at the top, with its interval and range
     const next = page.getByTestId("plain-summary").getByTestId("next-candles");
-    // three years is the default window; "this year" alone mostly replays a recent run
-    await expect(next).toHaveAttribute("data-window", "y3");
-    await expect(next.locator('tr[data-h="5"]')).toContainText("۶۰٪");
-    await expect(next.locator("tr[data-h]")).toHaveCount(1);
-    await next.getByRole("button", { name: "امسال" }).click();
+    // this year is the default; each row is one plain range with one percentage
     await expect(next).toHaveAttribute("data-window", "year");
-    await expect(next.locator("tr[data-h]")).toHaveCount(2);
-    await expect(next.locator('tr[data-h="5"]')).toContainText("۵۰٪");
     await expect(next.locator('tr[data-h="5"]')).toContainText("۹۴۰ تا ۱٬۰۹۰");
-    await expect(next).toContainText("شیر یا خط");
+    await expect(next).toContainText("با ۸۰٪ احتمال");
+    await expect(next).not.toContainText("بالاتر از قیمت خرید");
+    await next.getByRole("button", { name: "۳ سال" }).click();
+    await expect(next).toHaveAttribute("data-window", "y3");
   });
 
   test("model page leads with the entry lab", async ({ page }) => {
