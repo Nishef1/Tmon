@@ -36,7 +36,10 @@ def main() -> None:
     bf.add_argument(
         "--missing-only", action="store_true", help="skip instruments that already have prices"
     )
-    sub.add_parser("eod", help="incremental end-of-day refresh")
+    eod = sub.add_parser("eod", help="end-of-day refresh (fast: batched prices, market-wide flows)")
+    eod.add_argument(
+        "--full", action="store_true", help="every instrument one by one (about an hour)"
+    )
     adj = sub.add_parser("adjustment-check", help="compare our price adjustment with TSETMC's")
     adj.add_argument("--out", default="docs/reports/adjustment-check.md")
     sub.add_parser("info", help="refresh EPS and group P/E of stocks that traded lately")
@@ -86,7 +89,7 @@ def main() -> None:
     result = (
         run_backfill(since=args.since, limit=args.limit, missing_only=args.missing_only)
         if args.cmd == "backfill"
-        else ingest_end_of_day()
+        else ingest_end_of_day(full=args.full)
     )
     print(result)
 

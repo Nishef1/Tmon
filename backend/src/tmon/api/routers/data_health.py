@@ -49,6 +49,21 @@ class RefillOut(BaseModel):
     open_gaps: int | None = None
 
 
+class CycleStepOut(BaseModel):
+    name: str
+    ok: bool
+    seconds: float
+
+
+class CycleOut(BaseModel):
+    day: dt.date
+    ok: bool
+    eod_mode: str
+    total_seconds: float
+    finished_at: dt.datetime
+    steps: list[CycleStepOut]
+
+
 class HealthOut(BaseModel):
     checked_at: dt.datetime
     newest: dt.date | None
@@ -56,6 +71,7 @@ class HealthOut(BaseModel):
     issues: list[IssueOut]
     days: list[DayOut]
     refill: RefillOut | None
+    last_cycle: CycleOut | None = None
 
 
 def _refill() -> RefillOut | None:
@@ -84,6 +100,7 @@ def data_health(session: SessionDep) -> HealthOut:
         issues=issues,
         days=[DayOut(**d.__dict__) for d in r["days"]],
         refill=_refill(),
+        last_cycle=CycleOut(**cycles[0]) if (cycles := dh.read_timings()) else None,
     )
 
 

@@ -216,3 +216,65 @@ def test_today_client_types_fill_only_missing_rows(session):
         None,
     )
     assert session.get(ClientTypeDaily, (b.id, day)).buy_count_i == 9
+
+
+def _closing_reply(request: httpx.Request, day: date) -> httpx.Response:
+    """A ClosingPrices answer: one block per requested item, one bar of ``day`` in each."""
+    items = request.url.params["a"].split(";")
+    row = f"x,{day:%Y%m%d},1100,1090,30,2000,2200000,1050,1120,1000,1010"
+    return httpx.Response(200, text="@".join(row for _ in items))
+
+
+def test_fast_end_of_day_batches_prices_and_heals_only_missing_flows(session):
+    """The default daily update reads prices 50 instruments per request (no per-instrument
+    history call: none is mocked), and fetches flows one by one only for days that lack them."""
+    from datetime import timedelta
+
+    from tmon.core.timeutil import to_tehran, utcnow
+    from tmon.ingest.tsetmc.pipeline import end_of_day
+
+    _run(session)
+    day = to_tehran(utcnow()).date() - timedelta(days=2)
+    flows_asked: list[str] = []
+
+    def client_reply(request: httpx.Request) -> httpx.Response:
+        flows_asked.append(str(request.url))
+        return httpx.Response(
+            200, text=f"{day:%Y%m%d},10,2,8,3,1000,200,900,300,5000,1000,4500,1500"
+        )
+
+    async def go():
+        async def nosleep(_: float) -> None:
+            return None
+
+        client = PoliteClient(
+            limiter=DomainRateLimiter(0.0),
+            retry=RetryPolicy(max_retries=0, jitter=0.0),
+            client=httpx.AsyncClient(),
+            sleep=nosleep,
+        )
+        try:
+            return await end_of_day(Ctx(session, client, MemoryStore(), load_classifier()))
+        finally:
+            await client.aclose()
+
+    with respx.mock:
+        respx.get(endpoints.MARKET_WATCH_INIT).mock(return_value=httpx.Response(200, text=WATCH))
+        batch = respx.get(url__startswith=endpoints.SERVICE).mock(
+            side_effect=lambda r: _closing_reply(r, day)
+        )
+        for code in STOCK_CODES:
+            respx.get(endpoints.client_types_url(code)).mock(side_effect=client_reply)
+        respx.get(endpoints.CLIENT_TYPES_ALL).mock(
+            return_value=httpx.Response(200, text='{"clientTypeAllDto":[]}')
+        )
+        first = asyncio.run(go())
+        asked_first = len(flows_asked)
+        asyncio.run(go())  # nothing is missing any more: no flow is fetched again
+    assert batch.call_count == 2  # six instruments fit one request per run
+    assert first["failed"] == 0 and first["instruments"] == len(STOCK_CODES)
+    assert asked_first == len(STOCK_CODES) and len(flows_asked) == asked_first
+    for code in STOCK_CODES:
+        iid = session.scalar(select(Instrument.id).where(Instrument.ins_code == code))
+        assert session.get(PriceDaily, (iid, day)).volume == 2000
+        assert session.get(ClientTypeDaily, (iid, day)).buy_count_i == 10

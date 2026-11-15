@@ -55,7 +55,8 @@ backend/.venv/Scripts/python.exe backend/scripts/run_live.py
 cd backend
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli probe
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli backfill --since 2021-01-01 --limit 20
-.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod          # سریع: قیمت دسته‌ای و حقیقی/حقوقی سراسری
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod --full   # همهٔ نمادها یکی‌یکی (حدود یک ساعت)
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli intraday --once --force
 ```
 

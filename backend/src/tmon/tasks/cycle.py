@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from typing import Any, Protocol
 
@@ -56,9 +56,12 @@ class CycleFailedError(RuntimeError):
     """A required step of the cycle failed; the claim is released so a later tick can retry."""
 
 
-def run_cycle(day: date, steps: Sequence[Step]) -> list[StepResult]:
+def run_cycle(
+    day: date, steps: Sequence[Step], on_result: Callable[[StepResult], None] | None = None
+) -> list[StepResult]:
     """Run the steps in order. A failing optional step is logged and skipped; a failing required
-    step stops the cycle with :class:`CycleFailedError`."""
+    step stops the cycle with :class:`CycleFailedError`. ``on_result`` sees every finished step,
+    failed ones included, so a caller can keep the timings of a cycle that did not complete."""
     results: list[StepResult] = []
     for step in steps:
         log.info("cycle day=%s step=%s status=start", day, step.name)
@@ -68,14 +71,31 @@ def run_cycle(day: date, steps: Sequence[Step]) -> list[StepResult]:
         except Exception as exc:
             secs = time.monotonic() - t0
             results.append(StepResult(step.name, False, secs, repr(exc)))
+            if on_result:
+                on_result(results[-1])
             log.exception("cycle day=%s step=%s status=failed seconds=%.1f", day, step.name, secs)
             if step.required:
                 raise CycleFailedError(f"{step.name}: {exc!r}") from exc
             continue
         secs = time.monotonic() - t0
         results.append(StepResult(step.name, True, secs, str(out)[:300]))
+        if on_result:
+            on_result(results[-1])
         log.info("cycle day=%s step=%s status=ok seconds=%.1f result=%s", day, step.name, secs, out)
     return results
+
+
+FULL_EOD_WEEKDAY = 2  # Wednesday, the last trading day of the week (Monday=0)
+
+
+def eod_full_today(now: datetime | None = None) -> bool:
+    """The weekly full refresh (every instrument one by one, about an hour) runs on the last
+    trading day of the week; ``TMON_EOD_FULL=1`` forces it any day."""
+    import os
+
+    if os.environ.get("TMON_EOD_FULL") == "1":
+        return True
+    return (now or utcnow()).astimezone(TEHRAN).weekday() == FULL_EOD_WEEKDAY
 
 
 def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
@@ -92,7 +112,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
     def ingest() -> Any:
         from tmon.ingest.tsetmc.pipeline import ingest_end_of_day
 
-        return ingest_end_of_day()
+        return ingest_end_of_day(full=eod_full_today())
 
     def indices() -> Any:
         from tmon.ingest.tsetmc.pipeline import run_indices
@@ -241,17 +261,28 @@ def main() -> None:
     from tmon.core.logging import configure_logging
 
     configure_logging()
-    from tmon.tools.data_health import mark_cycle
+    from tmon.tools.data_health import mark_cycle, record_timings
 
-    day = utcnow().astimezone(TEHRAN).date()
+    started = utcnow()
+    day = started.astimezone(TEHRAN).date()
+    seen: list[StepResult] = []
+    ok = False
     mark_cycle(True)
     try:
-        results = run_cycle(day, default_steps())
+        results = run_cycle(day, default_steps(), seen.append)
+        ok = True
     except CycleFailedError as exc:
         print(f"cycle {day} failed: {exc}")
         sys.exit(1)
     finally:
         mark_cycle(False)
+        record_timings(
+            day,
+            [asdict(r) for r in seen],
+            ok=ok,
+            full=eod_full_today(started),
+            started_at=started,
+        )
     for r in results:
         print(f"{'ok ' if r.ok else 'ERR'} {r.name} {r.seconds:.0f}s {r.detail[:120]}")
 

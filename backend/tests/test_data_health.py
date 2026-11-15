@@ -172,3 +172,56 @@ def test_refill_waits_while_the_daily_cycle_runs(session: Session) -> None:
     stale = utcnow() - dt.timedelta(hours=dh.CYCLE_MAX_HOURS + 1)
     dh._write(store, dh.CYCLE_KEY, {"running": True, "at": stale.isoformat()})
     assert not dh.cycle_running(store)  # a crashed cycle must not block forever
+
+
+def test_cycle_timings_keep_the_last_cycles_newest_first() -> None:
+    from tmon.tasks.cycle import Step, run_cycle
+
+    store = MemoryStore()
+    seen = []
+
+    def boom() -> None:
+        raise ValueError("x")
+
+    steps = [Step("a", lambda: 1), Step("b", boom, required=False), Step("c", lambda: 2)]
+    run_cycle(dt.date(2026, 11, 15), steps, seen.append)
+    assert [(r.name, r.ok) for r in seen] == [("a", True), ("b", False), ("c", True)]
+
+    started = dt.datetime(2026, 11, 15, 16, 0, tzinfo=dt.UTC)
+    rows = [{"name": r.name, "ok": r.ok, "seconds": r.seconds, "detail": r.detail} for r in seen]
+    for n in range(dh.TIMINGS_KEEP + 3):
+        day = dt.date(2026, 10, 1) + dt.timedelta(days=n)
+        dh.record_timings(day, rows, ok=True, full=n % 7 == 0, started_at=started, store=store)
+    dh.record_timings(
+        dt.date(2026, 10, 1), rows, ok=False, full=False, started_at=started, store=store
+    )
+
+    cycles = dh.read_timings(store)
+    assert len(cycles) == dh.TIMINGS_KEEP
+    assert (
+        cycles[0]["day"] == "2026-10-01" and cycles[0]["ok"] is False
+    )  # a re-run replaces its day
+    assert cycles[1]["day"] == "2026-11-02"
+    assert [s["name"] for s in cycles[0]["steps"]] == ["a", "b", "c"]
+    assert cycles[0]["eod_mode"] == "fast"
+
+
+def test_timings_never_raise_when_the_store_is_broken() -> None:
+    class Broken(MemoryStore):
+        def put(self, *a, **k):  # type: ignore[no-untyped-def]
+            raise OSError("disk full")
+
+    dh.record_timings(
+        dt.date(2026, 11, 15), [], ok=True, full=False, started_at=utcnow(), store=Broken()
+    )
+
+
+def test_full_refresh_runs_on_wednesday_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    from tmon.tasks.cycle import eod_full_today
+
+    monkeypatch.delenv("TMON_EOD_FULL", raising=False)
+    wed = dt.datetime(2026, 11, 18, 16, 0, tzinfo=dt.UTC)  # Wednesday 19:30 Tehran
+    assert eod_full_today(wed)
+    assert not eod_full_today(wed + dt.timedelta(days=-1))
+    monkeypatch.setenv("TMON_EOD_FULL", "1")
+    assert eod_full_today(wed + dt.timedelta(days=-1))

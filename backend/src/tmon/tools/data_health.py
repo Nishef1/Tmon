@@ -39,6 +39,8 @@ STALE_RUN_MINUTES = 45  # a "running" refill older than this is a dead one
 NOTE_KEY = "data-health/gaps.json"
 REFILL_KEY = "data-health/refill.json"
 CYCLE_KEY = "data-health/cycle.json"
+TIMINGS_KEY = "data-health/cycle-timings.json"
+TIMINGS_KEEP = 30  # cycles kept in the timing record
 CYCLE_MAX_HOURS = 4  # a cycle marker older than this is a crashed one
 # Iran trades Saturday..Wednesday (Python: Monday=0).
 TRADING_WEEKDAYS = {5, 6, 0, 1, 2}
@@ -242,6 +244,48 @@ def mark_cycle(running: bool, store: ObjectStore | None = None) -> None:
         log.warning("could not write the cycle marker", exc_info=True)
 
 
+def record_timings(
+    day: date,
+    steps: list[dict[str, Any]],
+    *,
+    ok: bool,
+    full: bool,
+    started_at: datetime,
+    store: ObjectStore | None = None,
+) -> None:
+    """Keep how long every step of a cycle took (newest first, the last ``TIMINGS_KEEP`` cycles),
+    so a slow night can be compared with the usual one. A courtesy like the marker: it never
+    raises. ``steps`` are ``{name, ok, seconds, detail}`` of the steps that finished."""
+    try:
+        st = store or get_object_store()
+        old = (_read(st, TIMINGS_KEY) or {}).get("cycles", [])
+        entry = {
+            "day": day.isoformat(),
+            "started_at": started_at.isoformat(),
+            "finished_at": utcnow().isoformat(),
+            "ok": ok,
+            "eod_mode": "full" if full else "fast",
+            "total_seconds": round(sum(float(s["seconds"]) for s in steps), 1),
+            "steps": [
+                {
+                    "name": s["name"],
+                    "ok": s["ok"],
+                    "seconds": round(float(s["seconds"]), 1),
+                    "detail": str(s.get("detail", ""))[:200],
+                }
+                for s in steps
+            ],
+        }
+        kept = [c for c in old if c.get("day") != entry["day"]]
+        _write(st, TIMINGS_KEY, {"cycles": [entry, *kept][:TIMINGS_KEEP]})
+    except Exception:
+        log.warning("could not write the cycle timings", exc_info=True)
+
+
+def read_timings(store: ObjectStore | None = None) -> list[dict[str, Any]]:
+    return (_read(store or get_object_store(), TIMINGS_KEY) or {}).get("cycles", [])  # type: ignore[no-any-return]
+
+
 def cycle_running(store: ObjectStore | None = None, now: datetime | None = None) -> bool:
     doc = _read(store or get_object_store(), CYCLE_KEY)
     if not doc or not doc.get("running"):
@@ -367,6 +411,14 @@ def main() -> None:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
     if cmd == "refill":
         print(json.dumps(run_refill(), ensure_ascii=False, indent=2))
+    elif cmd == "timings":
+        for c in read_timings():
+            slow = max(c["steps"], key=lambda s: s["seconds"], default=None)
+            print(
+                f"{c['day']} {c['eod_mode']:4} {'ok ' if c['ok'] else 'ERR'} "
+                f"{c['total_seconds'] / 60:6.1f} min"
+                + (f"  slowest: {slow['name']} {slow['seconds'] / 60:.1f} min" if slow else "")
+            )
     elif cmd == "note":
         from tmon.core.db import session_scope
 

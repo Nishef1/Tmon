@@ -481,12 +481,31 @@ def reclassify_instruments(session: Session, classifier: Classifier) -> dict[str
     return {"changed": changed, **{str(k): int(v) for k, v in counts.items()}}
 
 
-async def end_of_day(ctx: Ctx) -> dict[str, int]:
+async def end_of_day(ctx: Ctx, *, full: bool = False) -> dict[str, int]:
+    """Daily update. Default (fast): prices of the last ``REFETCH_OVERLAP_DAYS`` for all
+    instruments in batches of 50 (service.tsetmc.com), today's real/legal flows from the one
+    market-wide call, and a per-instrument flow fetch only for days that still miss flows.
+    ``full=True`` re-reads every instrument's whole history and flows one by one (about an hour);
+    run it weekly so TSETMC's published flows replace the same-day market-wide ones."""
     since = utcnow().date() - timedelta(days=REFETCH_OVERLAP_DAYS)
     await sync_instruments(ctx)
     ctx.session.flush()
-    totals = {"instruments": 0, "bars": 0, "client_rows": 0, "failed": 0}
     held = _held_extra(ctx.session, ctx.classifier)
+    if full:
+        totals = await _end_of_day_full(ctx, since, held)
+    else:
+        totals = await _end_of_day_fast(ctx, since, held)
+    try:
+        totals["client_rows_today"] = await fill_today_client_types(ctx)
+    except (FetchError, parsers.ParseError) as exc:
+        log.error("today's client types failed: %s", exc)
+    flag_market_halts(ctx.session)
+    refresh_trading_calendar(ctx.session)
+    return totals
+
+
+async def _end_of_day_full(ctx: Ctx, since: date, held: list[Instrument]) -> dict[str, int]:
+    totals = {"instruments": 0, "bars": 0, "client_rows": 0, "failed": 0}
     for ins in [*_tradable_instruments(ctx.session, ctx.classifier), *held]:
         try:
             first = (
@@ -503,13 +522,64 @@ async def end_of_day(ctx: Ctx) -> dict[str, int]:
         except (FetchError, parsers.ParseError) as exc:
             totals["failed"] += 1
             log.error("EOD failed for %s: %s", ins.symbol_fa, exc)
-    try:
-        totals["client_rows_today"] = await fill_today_client_types(ctx)
-    except (FetchError, parsers.ParseError) as exc:
-        log.error("today's client types failed: %s", exc)
-    flag_market_halts(ctx.session)
-    refresh_trading_calendar(ctx.session)
     return totals
+
+
+async def _end_of_day_fast(ctx: Ctx, since: date, held: list[Instrument]) -> dict[str, int]:
+    from tmon.ingest.tsetmc.bulk import load_full_history  # bulk imports this module
+
+    totals = {"instruments": 0, "bars": 0, "client_rows": 0, "failed": 0}
+    everyone = [*_tradable_instruments(ctx.session, ctx.classifier), *held]
+    has_bars = set(ctx.session.scalars(select(PriceDaily.instrument_id).distinct()))
+    new = [i for i in held if i.id not in has_bars]  # never fetched: whole history, not a week
+    recent = [i for i in everyone if i not in new]
+    start = int(since.strftime("%Y%m%d"))
+    for group, begin in ((recent, start), (new, endpoints.FIRST_POSSIBLE_DEVEN)):
+        if not group:
+            continue
+        s = await load_full_history(ctx, group, start_deven=begin)
+        totals["bars"] += s["bars"]
+        totals["instruments"] += s["instruments"]
+        totals["failed"] += s["failed"]
+    ctx.session.commit()
+    for ins in _missing_flows(ctx.session, everyone, since):
+        try:
+            c_url = endpoints.client_types_url(ins.ins_code)
+            c_text, c_fetched = await ctx.fetch_text(c_url)
+            c_rows = parsers.parse_client_types(c_text)
+            totals["client_rows"] += upsert(
+                ctx.session, ClientTypeDaily, _client_rows(ins.id, c_rows, c_url, c_fetched, since)
+            )
+        except (FetchError, parsers.ParseError) as exc:
+            log.warning("client types failed for %s: %s", ins.symbol_fa, exc)
+    ctx.session.flush()
+    return totals
+
+
+def _missing_flows(
+    session: Session, instruments: list[Instrument], since: date
+) -> list[Instrument]:
+    """Instruments that traded on a day since ``since`` (before today, which the market-wide call
+    covers) but have no real/legal row for that day."""
+    today = to_tehran(utcnow()).date()
+    traded = {
+        (iid, d)
+        for iid, d in session.execute(
+            select(PriceDaily.instrument_id, PriceDaily.date).where(
+                PriceDaily.date >= since, PriceDaily.date < today, PriceDaily.volume > 0
+            )
+        )
+    }
+    have = {
+        (iid, d)
+        for iid, d in session.execute(
+            select(ClientTypeDaily.instrument_id, ClientTypeDaily.date).where(
+                ClientTypeDaily.date >= since
+            )
+        )
+    }
+    ids = {iid for iid, _ in traded - have}
+    return [i for i in instruments if i.id in ids]
 
 
 # --------------------------------------------------------------------------- #
@@ -527,7 +597,7 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
             if fn_name == "info":
                 return await refresh_info(ctx)
             if fn_name == "eod":
-                return await end_of_day(ctx)
+                return await end_of_day(ctx, full=bool(kwargs.get("full")))
             if fn_name == "risk_free":
                 from tmon.ingest.tsetmc.risk_free import compute_risk_free, ingest_treasury_bills
 
@@ -557,8 +627,8 @@ def refresh_instrument_list() -> int:
     return asyncio.run(_run("instruments"))["instruments"]
 
 
-def ingest_end_of_day() -> dict[str, int]:
-    return asyncio.run(_run("eod"))
+def ingest_end_of_day(full: bool = False) -> dict[str, int]:
+    return asyncio.run(_run("eod", full=full))
 
 
 def run_info_refresh() -> dict[str, int]:
