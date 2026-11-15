@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { DataHealth } from "@/components/DataHealth";
 import { DataStamp } from "@/components/DataStamp";
 import { Disclaimer } from "@/components/Disclaimer";
 import { THEME_INIT } from "@/components/ThemeToggle";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <div className="mx-auto max-w-6xl px-4 py-6">
           <DataStamp />
+          <DataHealth />
           {children}
         </div>
         <footer className="mx-auto max-w-6xl px-4 pb-10">

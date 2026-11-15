@@ -99,6 +99,14 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
 
         return run_indices()
 
+    def gaps() -> Any:
+        from tmon.core.db import session_scope
+        from tmon.tools.data_health import record
+
+        with session_scope() as session:
+            note = record(session)
+        return {"open": sum(1 for g in note["gaps"] if g["closed_on"] is None)}
+
     def order_book() -> Any:
         from tmon.ingest.tsetmc.book_history import run_daily
 
@@ -157,6 +165,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
     return [
         Step("ingest_eod", ingest),
         Step("indices", indices, required=False),
+        Step("gaps", gaps, required=False),
         Step("order_book", order_book, required=False),
         Step("risk_free", risk_free, required=False),
         Step("macro", macro, required=False),
@@ -232,12 +241,17 @@ def main() -> None:
     from tmon.core.logging import configure_logging
 
     configure_logging()
+    from tmon.tools.data_health import mark_cycle
+
     day = utcnow().astimezone(TEHRAN).date()
+    mark_cycle(True)
     try:
         results = run_cycle(day, default_steps())
     except CycleFailedError as exc:
         print(f"cycle {day} failed: {exc}")
         sys.exit(1)
+    finally:
+        mark_cycle(False)
     for r in results:
         print(f"{'ok ' if r.ok else 'ERR'} {r.name} {r.seconds:.0f}s {r.detail[:120]}")
 
