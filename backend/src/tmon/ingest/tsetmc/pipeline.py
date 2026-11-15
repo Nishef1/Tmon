@@ -451,9 +451,13 @@ async def end_of_day(ctx: Ctx) -> dict[str, int]:
     held = _held_extra(ctx.session, ctx.classifier)
     for ins in [*_tradable_instruments(ctx.session, ctx.classifier), *held]:
         try:
-            first = ins in held and ctx.session.scalar(
-                select(PriceDaily.date).where(PriceDaily.instrument_id == ins.id).limit(1)
-            ) is None
+            first = (
+                ins in held
+                and ctx.session.scalar(
+                    select(PriceDaily.date).where(PriceDaily.instrument_id == ins.id).limit(1)
+                )
+                is None
+            )
             s = await ingest_history(ctx, ins, since=None if first else since)
             totals["bars"] += s["bars"]
             totals["client_rows"] += s["client_rows"]

@@ -394,6 +394,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/portfolios/{portfolio_id}/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get History
+     * @description Daily value and time-weighted return next to the total index.
+     */
+    get: operations["get_history_portfolios__portfolio_id__history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/portfolios/{portfolio_id}/holdings": {
     parameters: {
       query?: never;
@@ -405,7 +425,8 @@ export interface paths {
     put?: never;
     /**
      * Add Holding
-     * @description Adding a symbol already held averages the price in (a second buy).
+     * @description A position already owned: an opening buy that does not touch the cash. A second one for
+     *     the same symbol averages in.
      */
     post: operations["add_holding_portfolios__portfolio_id__holdings_post"];
     delete?: never;
@@ -424,12 +445,81 @@ export interface paths {
     get?: never;
     put?: never;
     post?: never;
-    /** Delete Holding */
+    /**
+     * Delete Holding
+     * @description Remove a symbol with its whole ledger (a mistake, not a sale: a sale is a trade).
+     */
     delete: operations["delete_holding_portfolios__portfolio_id__holdings__holding_id__delete"];
     options?: never;
     head?: never;
-    /** Patch Holding */
+    /**
+     * Patch Holding
+     * @description Stop and note in place. A new share count or average price replaces the symbol's ledger
+     *     with one opening line (record a sale as a trade instead, so its profit is kept).
+     */
     patch: operations["patch_holding_portfolios__portfolio_id__holdings__holding_id__patch"];
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/mofid": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Mofid Status
+     * @description The Mofid link: status, token expiry and the last sync (never the token itself).
+     */
+    get: operations["mofid_status_portfolios__portfolio_id__mofid_get"];
+    put?: never;
+    post?: never;
+    /** Mofid Unlink */
+    delete: operations["mofid_unlink_portfolios__portfolio_id__mofid_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/mofid/connect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mofid Connect
+     * @description Open Chrome on this portfolio's own profile for the owner to log in to Mofid (a saved
+     *     login is used without a window), then sync. Runs in the background: poll ``GET mofid``.
+     */
+    post: operations["mofid_connect_portfolios__portfolio_id__mofid_connect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/mofid/sync": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mofid Sync
+     * @description Copy Mofid's positions and buying power into this portfolio now.
+     */
+    post: operations["mofid_sync_portfolios__portfolio_id__mofid_sync_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/portfolios/{portfolio_id}/notify-test": {
@@ -447,6 +537,44 @@ export interface paths {
      */
     post: operations["notify_test_portfolios__portfolio_id__notify_test_post"];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/trades": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Trades */
+    get: operations["list_trades_portfolios__portfolio_id__trades_get"];
+    put?: never;
+    /**
+     * Post Trade
+     * @description A buy or a sale. A sale books its realized profit; with cash tracking the money moves.
+     */
+    post: operations["post_trade_portfolios__portfolio_id__trades_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/trades/{trade_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Trade */
+    delete: operations["delete_trade_portfolios__portfolio_id__trades__trade_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -2556,10 +2684,17 @@ export interface components {
       /** Total */
       total: number;
     };
-    /** HoldingIn */
+    /**
+     * HoldingIn
+     * @description A position already owned. Any of shares, price and amount may be left out: the price is
+     *     then the close of ``bought_on`` (today when that is missing too) and the size comes from the
+     *     amount, or is an equal share of the portfolio.
+     */
     HoldingIn: {
+      /** Amount */
+      amount?: number | null;
       /** Avg Price */
-      avg_price: number;
+      avg_price?: number | null;
       /** Bought On */
       bought_on?: string | null;
       /** Instrument Id */
@@ -2567,7 +2702,7 @@ export interface components {
       /** Note */
       note?: string | null;
       /** Shares */
-      shares: number;
+      shares?: number | null;
       /** Stop Price */
       stop_price?: number | null;
       /** Symbol */
@@ -2585,10 +2720,26 @@ export interface components {
       close_date: string | null;
       /** Cost */
       cost: number;
+      /**
+       * Dividends
+       * @default 0
+       */
+      dividends: number;
+      /** Events */
+      events: {
+        [key: string]: unknown;
+      }[];
       /** Id */
       id: number;
       /** Instrument Id */
       instrument_id: number;
+      /** Instrument Type */
+      instrument_type: string | null;
+      /**
+       * Liquidation Value
+       * @default 0
+       */
+      liquidation_value: number;
       /** Market Value */
       market_value: number;
       /** Name */
@@ -2599,12 +2750,46 @@ export interface components {
       pnl: number;
       /** Pnl Pct */
       pnl_pct: number | null;
+      /**
+       * Price Estimated
+       * @default false
+       */
+      price_estimated: boolean;
+      /**
+       * Price Missing
+       * @default false
+       */
+      price_missing: boolean;
+      /**
+       * Realized
+       * @default 0
+       */
+      realized: number;
+      /** Sector */
+      sector: string | null;
       /** Shares */
       shares: number;
+      /**
+       * Size Estimated
+       * @default false
+       */
+      size_estimated: boolean;
+      /**
+       * Stale
+       * @default false
+       */
+      stale: boolean;
       /** Stop Price */
       stop_price: number | null;
       /** Symbol */
       symbol: string;
+      /**
+       * Total Pnl
+       * @default 0
+       */
+      total_pnl: number;
+      /** Weight */
+      weight: number | null;
     };
     /** HoldingPatch */
     HoldingPatch: {
@@ -3245,10 +3430,16 @@ export interface components {
     };
     /** PortfolioOut */
     PortfolioOut: {
+      /** As Of */
+      as_of: string | null;
       /** Cash */
       cash: number;
       /** Channels */
       channels: {
+        [key: string]: unknown;
+      }[];
+      /** Closed */
+      closed: {
         [key: string]: unknown;
       }[];
       /** Cost */
@@ -3262,10 +3453,30 @@ export interface components {
       defaults: {
         [key: string]: unknown;
       };
+      /**
+       * Dividends
+       * @default 0
+       */
+      dividends: number;
+      /**
+       * Estimated
+       * @default false
+       */
+      estimated: boolean;
+      /**
+       * Fees
+       * @default 0
+       */
+      fees: number;
       /** Holdings */
       holdings: components["schemas"]["HoldingOut"][];
       /** Id */
       id: number;
+      /**
+       * Liquidation Value
+       * @default 0
+       */
+      liquidation_value: number;
       /** Market Value */
       market_value: number;
       /** Name */
@@ -3276,12 +3487,32 @@ export interface components {
       pnl: number;
       /** Pnl Pct */
       pnl_pct: number | null;
+      /**
+       * Realized
+       * @default 0
+       */
+      realized: number;
+      /** Sector Weights */
+      sector_weights: {
+        [key: string]: unknown;
+      }[];
       /** Settings */
       settings: {
         [key: string]: unknown;
       };
+      /**
+       * Total Pnl
+       * @default 0
+       */
+      total_pnl: number;
+      /** Total Pnl Pct */
+      total_pnl_pct: number | null;
       /** Total Value */
       total_value: number;
+      /** Warnings */
+      warnings: {
+        [key: string]: unknown;
+      }[];
     };
     /** PortfolioPatch */
     PortfolioPatch: {
@@ -3868,6 +4099,62 @@ export interface components {
       signals: components["schemas"]["TaSignal"][];
       /** Split Date */
       split_date: string | null;
+    };
+    /** TradeIn */
+    TradeIn: {
+      /** Amount */
+      amount?: number | null;
+      /** Date */
+      date?: string | null;
+      /** Fee */
+      fee?: number | null;
+      /** Instrument Id */
+      instrument_id?: number | null;
+      /** Note */
+      note?: string | null;
+      /** Price */
+      price?: number | null;
+      /** Shares */
+      shares?: number | null;
+      /**
+       * Side
+       * @enum {string}
+       */
+      side: "buy" | "sell";
+      /** Symbol */
+      symbol?: string | null;
+      /** Use Cash */
+      use_cash?: boolean | null;
+    };
+    /** TradeOut */
+    TradeOut: {
+      /** Amount */
+      amount: number | null;
+      /** Cash Delta */
+      cash_delta: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Fee */
+      fee: number | null;
+      /** Id */
+      id: number;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Note */
+      note: string | null;
+      /** Price */
+      price: number | null;
+      /** Shares */
+      shares: number | null;
+      /** Side */
+      side: string;
+      /** Source */
+      source: string;
+      /** Symbol */
+      symbol: string;
     };
     /** TurningHorizon */
     TurningHorizon: {
@@ -4791,6 +5078,41 @@ export interface operations {
       };
     };
   };
+  get_history_portfolios__portfolio_id__history_get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   add_holding_portfolios__portfolio_id__holdings_post: {
     parameters: {
       query?: never;
@@ -4900,6 +5222,140 @@ export interface operations {
       };
     };
   };
+  mofid_status_portfolios__portfolio_id__mofid_get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  mofid_unlink_portfolios__portfolio_id__mofid_delete: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  mofid_connect_portfolios__portfolio_id__mofid_connect_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  mofid_sync_portfolios__portfolio_id__mofid_sync_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   notify_test_portfolios__portfolio_id__notify_test_post: {
     parameters: {
       query?: never;
@@ -4922,6 +5378,110 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           }[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_trades_portfolios__portfolio_id__trades_get: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TradeOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_trade_portfolios__portfolio_id__trades_post: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TradeIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_trade_portfolios__portfolio_id__trades__trade_id__delete: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+        trade_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
         };
       };
       /** @description Validation Error */

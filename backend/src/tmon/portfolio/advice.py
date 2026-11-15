@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 ROUND_TRIP = 0.017512
 SWITCH_GAP = 0.25  # score gap (share of the basket) a switch must clear
 MAX_BUYS = 5
-ZONE_FA = {"buy": "خرید", "hold": "نگه‌داری", "avoid": "پرهیز", None: "بدون امتیاز"}
+ZONE_FA = {"buy": "خرید", "hold": "نگهداری", "avoid": "فروش", None: "بدون امتیاز"}
 
 
 def ranking_doc() -> dict[str, Any] | None:

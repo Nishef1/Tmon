@@ -5887,11 +5887,31 @@
         "type": "object"
       },
       "HoldingIn": {
+        "description": "A position already owned. Any of shares, price and amount may be left out: the price is\nthen the close of ``bought_on`` (today when that is missing too) and the size comes from the\namount, or is an equal share of the portfolio.",
         "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
           "avg_price": {
-            "exclusiveMinimum": 0.0,
-            "title": "Avg Price",
-            "type": "number"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Price"
           },
           "bought_on": {
             "anyOf": [
@@ -5928,9 +5948,16 @@
             "title": "Note"
           },
           "shares": {
-            "exclusiveMinimum": 0.0,
-            "title": "Shares",
-            "type": "number"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
           },
           "stop_price": {
             "anyOf": [
@@ -5956,10 +5983,6 @@
             "title": "Symbol"
           }
         },
-        "required": [
-          "shares",
-          "avg_price"
-        ],
         "title": "HoldingIn",
         "type": "object"
       },
@@ -6007,6 +6030,19 @@
             "title": "Cost",
             "type": "number"
           },
+          "dividends": {
+            "default": 0.0,
+            "title": "Dividends",
+            "type": "number"
+          },
+          "events": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Events",
+            "type": "array"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -6014,6 +6050,22 @@
           "instrument_id": {
             "title": "Instrument Id",
             "type": "integer"
+          },
+          "instrument_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Type"
+          },
+          "liquidation_value": {
+            "default": 0.0,
+            "title": "Liquidation Value",
+            "type": "number"
           },
           "market_value": {
             "title": "Market Value",
@@ -6056,9 +6108,45 @@
             ],
             "title": "Pnl Pct"
           },
+          "price_estimated": {
+            "default": false,
+            "title": "Price Estimated",
+            "type": "boolean"
+          },
+          "price_missing": {
+            "default": false,
+            "title": "Price Missing",
+            "type": "boolean"
+          },
+          "realized": {
+            "default": 0.0,
+            "title": "Realized",
+            "type": "number"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
           "shares": {
             "title": "Shares",
             "type": "number"
+          },
+          "size_estimated": {
+            "default": false,
+            "title": "Size Estimated",
+            "type": "boolean"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
           },
           "stop_price": {
             "anyOf": [
@@ -6074,6 +6162,22 @@
           "symbol": {
             "title": "Symbol",
             "type": "string"
+          },
+          "total_pnl": {
+            "default": 0.0,
+            "title": "Total Pnl",
+            "type": "number"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
           }
         },
         "required": [
@@ -6091,7 +6195,19 @@
           "market_value",
           "cost",
           "pnl",
-          "pnl_pct"
+          "pnl_pct",
+          "liquidation_value",
+          "realized",
+          "dividends",
+          "total_pnl",
+          "weight",
+          "sector",
+          "instrument_type",
+          "stale",
+          "price_missing",
+          "size_estimated",
+          "price_estimated",
+          "events"
         ],
         "title": "HoldingOut",
         "type": "object"
@@ -8071,6 +8187,17 @@
       },
       "PortfolioOut": {
         "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
           "cash": {
             "title": "Cash",
             "type": "number"
@@ -8081,6 +8208,14 @@
               "type": "object"
             },
             "title": "Channels",
+            "type": "array"
+          },
+          "closed": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Closed",
             "type": "array"
           },
           "cost": {
@@ -8097,6 +8232,21 @@
             "title": "Defaults",
             "type": "object"
           },
+          "dividends": {
+            "default": 0.0,
+            "title": "Dividends",
+            "type": "number"
+          },
+          "estimated": {
+            "default": false,
+            "title": "Estimated",
+            "type": "boolean"
+          },
+          "fees": {
+            "default": 0.0,
+            "title": "Fees",
+            "type": "number"
+          },
           "holdings": {
             "items": {
               "$ref": "#/components/schemas/HoldingOut"
@@ -8107,6 +8257,11 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "liquidation_value": {
+            "default": 0.0,
+            "title": "Liquidation Value",
+            "type": "number"
           },
           "market_value": {
             "title": "Market Value",
@@ -8142,14 +8297,51 @@
             ],
             "title": "Pnl Pct"
           },
+          "realized": {
+            "default": 0.0,
+            "title": "Realized",
+            "type": "number"
+          },
+          "sector_weights": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sector Weights",
+            "type": "array"
+          },
           "settings": {
             "additionalProperties": true,
             "title": "Settings",
             "type": "object"
           },
+          "total_pnl": {
+            "default": 0.0,
+            "title": "Total Pnl",
+            "type": "number"
+          },
+          "total_pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Pnl Pct"
+          },
           "total_value": {
             "title": "Total Value",
             "type": "number"
+          },
+          "warnings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Warnings",
+            "type": "array"
           }
         },
         "required": [
@@ -8166,7 +8358,18 @@
           "cost",
           "total_value",
           "pnl",
-          "pnl_pct"
+          "pnl_pct",
+          "liquidation_value",
+          "realized",
+          "dividends",
+          "fees",
+          "total_pnl",
+          "total_pnl_pct",
+          "estimated",
+          "as_of",
+          "warnings",
+          "sector_weights",
+          "closed"
         ],
         "title": "PortfolioOut",
         "type": "object"
@@ -10310,6 +10513,231 @@
         "title": "TaSignalsOut",
         "type": "object"
       },
+      "TradeIn": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "fee": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee"
+          },
+          "instrument_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Id"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          },
+          "side": {
+            "enum": [
+              "buy",
+              "sell"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbol"
+          },
+          "use_cash": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Cash"
+          }
+        },
+        "required": [
+          "side"
+        ],
+        "title": "TradeIn",
+        "type": "object"
+      },
+      "TradeOut": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "cash_delta": {
+            "title": "Cash Delta",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "fee": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          },
+          "side": {
+            "title": "Side",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "instrument_id",
+          "symbol",
+          "side",
+          "date",
+          "shares",
+          "price",
+          "amount",
+          "fee",
+          "cash_delta",
+          "source",
+          "note"
+        ],
+        "title": "TradeOut",
+        "type": "object"
+      },
       "TurningHorizon": {
         "properties": {
           "beat": {
@@ -12023,9 +12451,70 @@
         ]
       }
     },
+    "/portfolios/{portfolio_id}/history": {
+      "get": {
+        "description": "Daily value and time-weighted return next to the total index.",
+        "operationId": "get_history_portfolios__portfolio_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get History Portfolios  Portfolio Id  History Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get History",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
     "/portfolios/{portfolio_id}/holdings": {
       "post": {
-        "description": "Adding a symbol already held averages the price in (a second buy).",
+        "description": "A position already owned: an opening buy that does not touch the cash. A second one for\nthe same symbol averages in.",
         "operationId": "add_holding_portfolios__portfolio_id__holdings_post",
         "parameters": [
           {
@@ -12094,6 +12583,7 @@
     },
     "/portfolios/{portfolio_id}/holdings/{holding_id}": {
       "delete": {
+        "description": "Remove a symbol with its whole ledger (a mistake, not a sale: a sale is a trade).",
         "operationId": "delete_holding_portfolios__portfolio_id__holdings__holding_id__delete",
         "parameters": [
           {
@@ -12159,6 +12649,7 @@
         ]
       },
       "patch": {
+        "description": "Stop and note in place. A new share count or average price replaces the symbol's ledger\nwith one opening line (record a sale as a trade instead, so its profit is kept).",
         "operationId": "patch_holding_portfolios__portfolio_id__holdings__holding_id__patch",
         "parameters": [
           {
@@ -12234,6 +12725,236 @@
         ]
       }
     },
+    "/portfolios/{portfolio_id}/mofid": {
+      "delete": {
+        "operationId": "mofid_unlink_portfolios__portfolio_id__mofid_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mofid Unlink",
+        "tags": [
+          "portfolios"
+        ]
+      },
+      "get": {
+        "description": "The Mofid link: status, token expiry and the last sync (never the token itself).",
+        "operationId": "mofid_status_portfolios__portfolio_id__mofid_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Mofid Status Portfolios  Portfolio Id  Mofid Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mofid Status",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/{portfolio_id}/mofid/connect": {
+      "post": {
+        "description": "Open Chrome on this portfolio's own profile for the owner to log in to Mofid (a saved\nlogin is used without a window), then sync. Runs in the background: poll ``GET mofid``.",
+        "operationId": "mofid_connect_portfolios__portfolio_id__mofid_connect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Mofid Connect Portfolios  Portfolio Id  Mofid Connect Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mofid Connect",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/{portfolio_id}/mofid/sync": {
+      "post": {
+        "description": "Copy Mofid's positions and buying power into this portfolio now.",
+        "operationId": "mofid_sync_portfolios__portfolio_id__mofid_sync_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mofid Sync",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
     "/portfolios/{portfolio_id}/notify-test": {
       "post": {
         "description": "Send a test message (with the answer buttons) to every channel.",
@@ -12293,6 +13014,202 @@
           }
         },
         "summary": "Notify Test",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/{portfolio_id}/trades": {
+      "get": {
+        "operationId": "list_trades_portfolios__portfolio_id__trades_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TradeOut"
+                  },
+                  "title": "Response List Trades Portfolios  Portfolio Id  Trades Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Trades",
+        "tags": [
+          "portfolios"
+        ]
+      },
+      "post": {
+        "description": "A buy or a sale. A sale books its realized profit; with cash tracking the money moves.",
+        "operationId": "post_trade_portfolios__portfolio_id__trades_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Trade",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/{portfolio_id}/trades/{trade_id}": {
+      "delete": {
+        "operationId": "delete_trade_portfolios__portfolio_id__trades__trade_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "trade_id",
+            "required": true,
+            "schema": {
+              "title": "Trade Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Trade",
         "tags": [
           "portfolios"
         ]

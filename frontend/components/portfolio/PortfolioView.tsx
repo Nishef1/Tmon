@@ -16,6 +16,7 @@ import {
 } from "@/lib/portfolio";
 import { signedPct, signTone } from "@/lib/ui";
 import { ForecastCandles } from "./ForecastCandles";
+import { HistoryCard, HoldingEvents, MofidCard, Summary, Trades } from "./Ledger";
 
 const POLL_MS = 10_000;
 const SEV = {
@@ -142,7 +143,7 @@ function Holdings({
   pkey: string;
   onChange: (p: Portfolio) => void;
 }) {
-  const [f, setF] = useState({ symbol: "", shares: "", price: "", stop: "" });
+  const [f, setF] = useState({ symbol: "", shares: "", price: "", amount: "", date: "", stop: "" });
   const [err, setErr] = useState<string | null>(null);
 
   async function add(e: React.FormEvent) {
@@ -154,13 +155,15 @@ function Holdings({
           method: "POST",
           body: {
             symbol: f.symbol.trim(),
-            shares: Number(f.shares),
-            avg_price: Number(f.price),
+            shares: Number(f.shares) || null,
+            avg_price: Number(f.price) || null,
+            amount: Number(f.amount) ? Number(f.amount) * 10 : null,
+            bought_on: f.date || null,
             stop_price: f.stop ? Number(f.stop) : null,
           },
         }),
       );
-      setF({ symbol: "", shares: "", price: "", stop: "" });
+      setF({ symbol: "", shares: "", price: "", amount: "", date: "", stop: "" });
     } catch (x) {
       setErr((x as Error).message);
     }
@@ -174,20 +177,24 @@ function Holdings({
     <section className="card">
       <h2 className="font-bold">دارایی‌ها</h2>
       <p className="mt-1 text-sm text-muted">
-        ارزش {faToman(p.market_value)} تومان · نقد {faToman(p.cash)} تومان · سود/زیان{" "}
-        <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان)
+        ارزش {faToman(p.market_value)} تومان · سود باز{" "}
+        <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان) — پس از
+        کارمزد و مالیات فروش.
       </p>
       {p.holdings.length > 0 && (
         <div className="mt-2 overflow-x-auto">
-          <table className="tbl w-full min-w-[36rem] text-sm" data-testid="holdings">
+          <table className="tbl w-full min-w-[48rem] text-sm" data-testid="holdings">
             <thead>
               <tr>
                 <th>نماد</th>
                 <th>تعداد</th>
                 <th>میانگین خرید (ریال)</th>
                 <th>آخرین (ریال)</th>
+                <th>ارزش (تومان)</th>
+                <th>وزن</th>
                 <th>حد ضرر</th>
-                <th>سود/زیان</th>
+                <th>سود باز</th>
+                <th>سود کل (تومان)</th>
                 <th />
               </tr>
             </thead>
@@ -201,12 +208,32 @@ function Holdings({
                     >
                       {h.symbol}
                     </Link>
+                    {(h.size_estimated || h.price_estimated) && (
+                      <span className="badge badge-warn mr-1" title="تعداد یا قیمت خرید برآورد شده">
+                        برآوردی
+                      </span>
+                    )}
+                    {h.price_missing ? (
+                      <span className="badge badge-down mr-1">بی‌قیمت</span>
+                    ) : (
+                      h.stale && (
+                        <span className="badge mr-1" title={`آخرین قیمت ${jalali(h.close_date)}`}>
+                          قیمت قدیمی
+                        </span>
+                      )
+                    )}
                   </td>
                   <td>{faNumber(h.shares)}</td>
                   <td>{faPrice(h.avg_price)}</td>
                   <td>{h.close != null ? faPrice(h.close) : "—"}</td>
+                  <td>{faToman(h.market_value)}</td>
+                  <td>{h.weight != null ? faPercent(h.weight, 0) : "—"}</td>
                   <td>{h.stop_price ? faPrice(h.stop_price) : "پیش‌فرض"}</td>
-                  <td className={signTone(h.pnl)}>{signedPct(h.pnl_pct)}</td>
+                  <td className={signTone(h.pnl)}>
+                    {signedPct(h.pnl_pct)}
+                    <div className="text-xs">{faToman(h.pnl)}</div>
+                  </td>
+                  <td className={signTone(h.total_pnl)}>{faToman(h.total_pnl)}</td>
                   <td>
                     <button
                       type="button"
@@ -238,7 +265,6 @@ function Holdings({
             className="ctl w-32"
             dir="ltr"
             inputMode="numeric"
-            required
             value={f.shares}
             onChange={(e) => setF({ ...f, shares: e.target.value })}
           />
@@ -249,9 +275,28 @@ function Holdings({
             className="ctl w-32"
             dir="ltr"
             inputMode="numeric"
-            required
             value={f.price}
             onChange={(e) => setF({ ...f, price: e.target.value })}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          یا مبلغ خرید (تومان)
+          <input
+            className="ctl w-32"
+            dir="ltr"
+            inputMode="numeric"
+            value={f.amount}
+            onChange={(e) => setF({ ...f, amount: e.target.value })}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          تاریخ خرید
+          <input
+            className="ctl"
+            type="date"
+            dir="ltr"
+            value={f.date}
+            onChange={(e) => setF({ ...f, date: e.target.value })}
           />
         </label>
         <label className="grid gap-1 text-sm">
@@ -266,6 +311,10 @@ function Holdings({
         </label>
         <button className="btn btn-primary">افزودن</button>
       </form>
+      <p className="mt-1 text-xs text-muted">
+        تعداد، قیمت و مبلغ را اگر نمی‌دانی خالی بگذار: بی‌قیمت، قیمت پایانی روز خرید؛ بی‌تعداد، مبلغ
+        تقسیم بر قیمت یا هم‌اندازهٔ بقیهٔ دارایی‌ها. سود کل هم با همین برآورد حساب می‌شود.
+      </p>
       {err && <p className="mt-1 text-sm text-down">{err}</p>}
     </section>
   );
@@ -757,10 +806,10 @@ export function PortfolioView({ id }: { id: number }) {
       .catch((e: Error) => setError(e.message));
   }, [id, pkey]);
 
-  const changed = (np: Portfolio) => {
+  const changed = useCallback((np: Portfolio) => {
     setP(np);
     setVersion((v) => v + 1);
-  };
+  }, []);
 
   if (pkey === undefined) return null;
   if (pkey === null)
@@ -778,8 +827,13 @@ export function PortfolioView({ id }: { id: number }) {
   return (
     <div className="grid gap-4">
       <h1 className="page-title">{p.name}</h1>
+      <Summary p={p} />
       <AlertsFeed id={id} pkey={pkey} />
       <Holdings p={p} pkey={pkey} onChange={changed} />
+      <MofidCard p={p} pkey={pkey} onChange={changed} />
+      <Trades p={p} pkey={pkey} version={version} onChange={changed} />
+      <HistoryCard id={id} pkey={pkey} version={version} />
+      <HoldingEvents p={p} />
       <BriefingCard id={id} pkey={pkey} />
       <AdviceCard id={id} pkey={pkey} version={version} />
       <ForecastCard id={id} pkey={pkey} version={version} />

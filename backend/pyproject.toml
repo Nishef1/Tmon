@@ -20,6 +20,7 @@ dependencies = [
     "celery[redis]>=5.7.0",
     "redis>=8.1.0",
     "httpx>=0.28.1",
+    "playwright>=1.65.2",  # Mofid login in the owner's Chrome
     "minio>=7.2.20",
     "jdatetime>=6.1.1",
     "pyyaml>=6.0.3",

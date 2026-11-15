@@ -20,7 +20,7 @@ from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.core.timeutil import utcnow
 from tmon.portfolio import alerts as alert_store
-from tmon.portfolio import keys
+from tmon.portfolio import keys, ledger, mofid
 from tmon.portfolio.advice import advise, last_closes
 from tmon.portfolio.briefing import run_one
 from tmon.portfolio.forecast import Position, portfolio_forecast
@@ -32,6 +32,7 @@ from tmon.storage.models import (
     Portfolio,
     PortfolioAlert,
     PortfolioBriefing,
+    PortfolioTrade,
 )
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
@@ -54,12 +55,45 @@ class PortfolioPatch(BaseModel):
 
 
 class HoldingIn(BaseModel):
+    """A position already owned. Any of shares, price and amount may be left out: the price is
+    then the close of ``bought_on`` (today when that is missing too) and the size comes from the
+    amount, or is an equal share of the portfolio."""
+
     symbol: str | None = None
     instrument_id: int | None = None
-    shares: float = Field(gt=0)
-    avg_price: float = Field(gt=0)
+    shares: float | None = Field(default=None, gt=0)
+    avg_price: float | None = Field(default=None, gt=0)
+    amount: float | None = Field(default=None, gt=0)  # rial put in
     bought_on: dt.date | None = None
     stop_price: float | None = Field(default=None, ge=0)
+    note: str | None = None
+
+
+class TradeIn(BaseModel):
+    symbol: str | None = None
+    instrument_id: int | None = None
+    side: Literal["buy", "sell"]
+    date: dt.date | None = None  # today when missing
+    shares: float | None = Field(default=None, gt=0)  # a sale without shares sells all
+    price: float | None = Field(default=None, gt=0)
+    amount: float | None = Field(default=None, gt=0)
+    fee: float | None = Field(default=None, ge=0)  # actual fee; standard rate when missing
+    use_cash: bool | None = None  # buy: pay from the portfolio cash (auto: if it is enough)
+    note: str | None = None
+
+
+class TradeOut(ApiModel):
+    id: int
+    instrument_id: int
+    symbol: str
+    side: str
+    date: dt.date
+    shares: float | None = None
+    price: float | None = None
+    amount: float | None = None
+    fee: float | None = None
+    cash_delta: float
+    source: str
     note: str | None = None
 
 
@@ -94,8 +128,20 @@ class HoldingOut(ApiModel):
     close_date: str | None = None
     market_value: float
     cost: float
-    pnl: float
+    pnl: float  # unrealized, after the fees of buying and of selling today
     pnl_pct: float | None = None
+    liquidation_value: float = 0.0
+    realized: float = 0.0
+    dividends: float = 0.0
+    total_pnl: float = 0.0
+    weight: float | None = None
+    sector: str | None = None
+    instrument_type: str | None = None
+    stale: bool = False
+    price_missing: bool = False
+    size_estimated: bool = False
+    price_estimated: bool = False
+    events: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class PortfolioOut(ApiModel):
@@ -113,6 +159,17 @@ class PortfolioOut(ApiModel):
     total_value: float
     pnl: float
     pnl_pct: float | None = None
+    liquidation_value: float = 0.0
+    realized: float = 0.0
+    dividends: float = 0.0
+    fees: float = 0.0
+    total_pnl: float = 0.0
+    total_pnl_pct: float | None = None
+    estimated: bool = False
+    as_of: str | None = None
+    warnings: list[dict[str, Any]] = Field(default_factory=list)
+    sector_weights: list[dict[str, Any]] = Field(default_factory=list)
+    closed: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class AlertOut(ApiModel):
@@ -140,7 +197,14 @@ class BriefingOut(ApiModel):
 
 
 # -- helpers -----------------------------------------------------------------------------------
+_schema_ready = False
+
+
 def _auth(session: Session, pid: int, key: str | None) -> Portfolio:
+    global _schema_ready
+    if not _schema_ready:
+        ledger.ensure_schema(session)
+        _schema_ready = True
     p = session.get(Portfolio, pid)
     if p is None or not key or not keys.matches(key, p.key_hash):
         raise HTTPException(404, "portfolio not found or key does not match")
@@ -154,7 +218,7 @@ def _norm(s: str) -> str:
     return s.replace("ي", "ی").replace("ك", "ک").replace("‌", "").strip()
 
 
-def _instrument(session: Session, h: HoldingIn) -> Instrument:
+def _instrument(session: Session, h: HoldingIn | TradeIn) -> Instrument:
     if h.instrument_id is not None:
         inst = session.get(Instrument, h.instrument_id)
     elif h.symbol:
@@ -183,34 +247,50 @@ def _holdings(session: Session, p: Portfolio) -> list[tuple[Holding, Instrument]
 
 
 def _out(session: Session, p: Portfolio) -> PortfolioOut:
-    rows = _holdings(session, p)
-    closes = last_closes(session, [h.instrument_id for h, _ in rows])
+    positions = ledger.rebuild(session, p)
+    session.commit()
+    doc = ledger.summarize(session, p, positions)
+    rows = {
+        h.instrument_id: h
+        for h in session.scalars(select(Holding).where(Holding.portfolio_id == p.id))
+    }
     hs: list[HoldingOut] = []
-    for h, i in rows:
-        c = closes.get(h.instrument_id)
-        price = c[0] if c else h.avg_price
-        mv, cost = price * h.shares, h.avg_price * h.shares
+    for x in doc["holdings"]:
+        h = rows.get(x["instrument_id"])
+        if h is None:
+            continue
         hs.append(
             HoldingOut(
                 id=h.id,
-                instrument_id=i.id,
-                symbol=i.symbol_fa,
-                name=i.name_fa,
-                shares=h.shares,
-                avg_price=h.avg_price,
+                instrument_id=x["instrument_id"],
+                symbol=x["symbol"],
+                name=x["name"],
+                shares=x["shares"],
+                avg_price=x["avg_cost"],
                 bought_on=h.bought_on,
                 stop_price=h.stop_price,
                 note=h.note,
-                close=c[0] if c else None,
-                close_date=c[1] if c else None,
-                market_value=mv,
-                cost=cost,
-                pnl=mv - cost,
-                pnl_pct=(mv / cost - 1) if cost else None,
+                close=x["close"],
+                close_date=x["close_date"],
+                market_value=x["market_value"],
+                cost=x["cost"],
+                pnl=x["unrealized"],
+                pnl_pct=x["unrealized_pct"],
+                liquidation_value=x["liquidation_value"],
+                realized=x["realized"],
+                dividends=x["dividends"],
+                total_pnl=x["total_pnl"],
+                weight=x["weight"],
+                sector=x["sector"],
+                instrument_type=x["instrument_type"],
+                stale=x["stale"],
+                price_missing=x["price_missing"],
+                size_estimated=x["size_estimated"],
+                price_estimated=x["price_estimated"],
+                events=x["events"],
             )
         )
-    mv = sum(x.market_value for x in hs)
-    cost = sum(x.cost for x in hs)
+    t = doc["totals"]
     return PortfolioOut(
         id=p.id,
         name=p.name,
@@ -221,12 +301,103 @@ def _out(session: Session, p: Portfolio) -> PortfolioOut:
         defaults=dict(DEFAULTS),
         channels=[masked(c) for c in p.channels or []],
         holdings=hs,
-        market_value=mv,
-        cost=cost,
-        total_value=mv + p.cash,
-        pnl=mv - cost,
-        pnl_pct=(mv / cost - 1) if cost else None,
+        market_value=t["market_value"],
+        cost=t["cost"],
+        total_value=t["total_value"],
+        pnl=t["unrealized"],
+        pnl_pct=t["unrealized_pct"],
+        liquidation_value=t["liquidation_value"],
+        realized=t["realized"],
+        dividends=t["dividends"],
+        fees=t["fees"],
+        total_pnl=t["total_pnl"],
+        total_pnl_pct=t["total_pnl_pct"],
+        estimated=doc["estimated"],
+        as_of=doc["as_of"],
+        warnings=doc["warnings"],
+        sector_weights=doc["sector_weights"],
+        closed=doc["closed"],
     )
+
+
+def _trade_out(t: PortfolioTrade, symbol: str) -> TradeOut:
+    return TradeOut(
+        id=t.id,
+        instrument_id=t.instrument_id,
+        symbol=symbol,
+        side=t.side,
+        date=t.date,
+        shares=t.shares,
+        price=t.price,
+        amount=t.amount,
+        fee=t.fee,
+        cash_delta=t.cash_delta,
+        source=t.source,
+        note=t.note,
+    )
+
+
+def _held(session: Session, p: Portfolio, instrument_id: int, on: dt.date) -> float:
+    pos = ledger.replay(session, p, until=on).get(instrument_id)
+    return pos.shares if pos else 0.0
+
+
+def add_trade(
+    session: Session,
+    p: Portfolio,
+    inst: Instrument,
+    body: TradeIn,
+    source: str = "manual",
+    external_id: str | None = None,
+) -> PortfolioTrade:
+    """Validate one ledger line, move the cash and store it."""
+    day = body.date or utcnow().date()
+    price = body.price
+    if price is None and body.shares and body.amount:
+        price = body.amount / body.shares
+    if price is None:
+        c = ledger.close_on(session, inst.id, day)
+        price = c[0] if c else None
+    if body.side == "sell":
+        held = _held(session, p, inst.id, day)
+        if held <= 0:
+            raise HTTPException(422, f"{inst.symbol_fa} is not held on {day}")
+        if body.shares and body.shares > held * (1 + 1e-9):
+            raise HTTPException(422, f"only {held:,.0f} shares of {inst.symbol_fa} are held")
+    buy_rate, sell_rate = ledger.fee_rates(session, inst.instrument_type, day)
+    cash_delta = 0.0
+    if price is not None:
+        if body.side == "buy":
+            shares = body.shares or (body.amount / price if body.amount else None)
+            if shares:
+                gross = shares * price
+                need = gross + (body.fee if body.fee is not None else gross * buy_rate)
+                use = body.use_cash if body.use_cash is not None else p.cash >= need
+                if use:
+                    cash_delta = -min(need, p.cash)
+        elif body.use_cash is not False:
+            shares = body.shares or _held(session, p, inst.id, day)
+            gross = shares * price
+            cash_delta = gross - (body.fee if body.fee is not None else gross * sell_rate)
+    p.cash = max(0.0, p.cash + cash_delta)
+    t = PortfolioTrade(
+        portfolio_id=p.id,
+        instrument_id=inst.id,
+        side=body.side,
+        date=day,
+        shares=body.shares,
+        price=body.price,
+        amount=body.amount,
+        fee=body.fee,
+        cash_delta=cash_delta,
+        source=source,
+        external_id=external_id,
+        note=body.note,
+        created_at=utcnow(),
+    )
+    session.add(t)
+    session.flush()
+    return t
 
 
 def _merge_channels(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -293,7 +464,8 @@ def patch_portfolio(
 @router.delete("/{portfolio_id}", status_code=204)
 def delete_portfolio(portfolio_id: int, session: SessionDep, key: Auth = None) -> None:
     p = _auth(session, portfolio_id, key)
-    for model in (Holding, PortfolioAlert, PortfolioBriefing):
+    mofid.unlink(session, p.id)
+    for model in (PortfolioTrade, Holding, PortfolioAlert, PortfolioBriefing):
         for row in session.scalars(select(model).where(model.portfolio_id == p.id)):
             session.delete(row)
     session.delete(p)
@@ -304,31 +476,36 @@ def delete_portfolio(portfolio_id: int, session: SessionDep, key: Auth = None) -
 def add_holding(
     portfolio_id: int, body: HoldingIn, session: SessionDep, key: Auth = None
 ) -> PortfolioOut:
-    """Adding a symbol already held averages the price in (a second buy)."""
+    """A position already owned: an opening buy that does not touch the cash. A second one for
+    the same symbol averages in."""
     p = _auth(session, portfolio_id, key)
     inst = _instrument(session, body)
+    ledger.migrate_legacy(session, p)
+    add_trade(
+        session,
+        p,
+        inst,
+        TradeIn(
+            instrument_id=inst.id,
+            side="buy",
+            date=body.bought_on,
+            shares=body.shares,
+            price=body.avg_price,
+            amount=body.amount,
+            use_cash=False,
+            note=body.note,
+        ),
+    )
+    ledger.rebuild(session, p)
     h = session.scalar(
         select(Holding).where(Holding.portfolio_id == p.id, Holding.instrument_id == inst.id)
     )
-    if h is None:
-        session.add(
-            Holding(
-                portfolio_id=p.id,
-                instrument_id=inst.id,
-                shares=body.shares,
-                avg_price=body.avg_price,
-                bought_on=body.bought_on,
-                stop_price=body.stop_price,
-                note=body.note,
-                created_at=utcnow(),
-            )
-        )
-    else:
-        total = h.shares + body.shares
-        h.avg_price = (h.avg_price * h.shares + body.avg_price * body.shares) / total
-        h.shares = total
+    if h is not None:
         if body.stop_price is not None:
-            h.stop_price = body.stop_price
+            h.stop_raw = h.stop_price = body.stop_price or None
+            h.stop_set_on = utcnow().date()
+        if body.note is not None:
+            h.note = body.note
     session.commit()
     return _out(session, p)
 
@@ -337,18 +514,47 @@ def add_holding(
 def patch_holding(
     portfolio_id: int, holding_id: int, body: HoldingPatch, session: SessionDep, key: Auth = None
 ) -> PortfolioOut:
+    """Stop and note in place. A new share count or average price replaces the symbol's ledger
+    with one opening line (record a sale as a trade instead, so its profit is kept)."""
     p = _auth(session, portfolio_id, key)
     h = session.get(Holding, holding_id)
     if h is None or h.portfolio_id != p.id:
         raise HTTPException(404, "holding not found")
-    for f in ("shares", "avg_price", "note"):
-        v = getattr(body, f)
-        if v is not None:
-            setattr(h, f, v)
+    ledger.migrate_legacy(session, p)
+    if body.note is not None:
+        h.note = body.note
     if "stop_price" in body.model_fields_set:
-        h.stop_price = body.stop_price or None
-    if h.shares == 0:
-        session.delete(h)
+        h.stop_raw = h.stop_price = body.stop_price or None
+        h.stop_set_on = utcnow().date()
+    if body.shares is not None or body.avg_price is not None:
+        trades = list(
+            session.scalars(
+                select(PortfolioTrade).where(
+                    PortfolioTrade.portfolio_id == p.id,
+                    PortfolioTrade.instrument_id == h.instrument_id,
+                )
+            )
+        )
+        first = min((t.date for t in trades), default=h.bought_on or utcnow().date())
+        for t in trades:
+            session.delete(t)
+        shares = h.shares if body.shares is None else body.shares
+        if shares > 0:
+            session.add(
+                PortfolioTrade(
+                    portfolio_id=p.id,
+                    instrument_id=h.instrument_id,
+                    side="buy",
+                    date=first,
+                    shares=shares,
+                    price=body.avg_price or h.avg_price,
+                    fee=0.0,  # an average typed in is already the full cost
+                    cash_delta=0.0,
+                    source="manual",
+                    created_at=utcnow(),
+                )
+            )
+        session.flush()
     session.commit()
     return _out(session, p)
 
@@ -357,13 +563,104 @@ def patch_holding(
 def delete_holding(
     portfolio_id: int, holding_id: int, session: SessionDep, key: Auth = None
 ) -> PortfolioOut:
+    """Remove a symbol with its whole ledger (a mistake, not a sale: a sale is a trade)."""
     p = _auth(session, portfolio_id, key)
     h = session.get(Holding, holding_id)
     if h is None or h.portfolio_id != p.id:
         raise HTTPException(404, "holding not found")
+    for t in session.scalars(
+        select(PortfolioTrade).where(
+            PortfolioTrade.portfolio_id == p.id, PortfolioTrade.instrument_id == h.instrument_id
+        )
+    ):
+        p.cash = max(0.0, p.cash - t.cash_delta)
+        session.delete(t)
     session.delete(h)
     session.commit()
     return _out(session, p)
+
+
+@router.get("/{portfolio_id}/trades", response_model=list[TradeOut])
+def list_trades(portfolio_id: int, session: SessionDep, key: Auth = None) -> list[TradeOut]:
+    p = _auth(session, portfolio_id, key)
+    ledger.migrate_legacy(session, p)
+    session.commit()
+    rows = session.execute(
+        select(PortfolioTrade, Instrument.symbol_fa)
+        .join(Instrument, Instrument.id == PortfolioTrade.instrument_id)
+        .where(PortfolioTrade.portfolio_id == p.id)
+        .order_by(PortfolioTrade.date.desc(), PortfolioTrade.id.desc())
+    ).all()
+    return [_trade_out(t, sym) for t, sym in rows]
+
+
+@router.post("/{portfolio_id}/trades", response_model=PortfolioOut)
+def post_trade(
+    portfolio_id: int, body: TradeIn, session: SessionDep, key: Auth = None
+) -> PortfolioOut:
+    """A buy or a sale. A sale books its realized profit; with cash tracking the money moves."""
+    p = _auth(session, portfolio_id, key)
+    ledger.migrate_legacy(session, p)
+    add_trade(session, p, _instrument(session, body), body)
+    session.commit()
+    return _out(session, p)
+
+
+@router.delete("/{portfolio_id}/trades/{trade_id}", response_model=PortfolioOut)
+def delete_trade(
+    portfolio_id: int, trade_id: int, session: SessionDep, key: Auth = None
+) -> PortfolioOut:
+    p = _auth(session, portfolio_id, key)
+    t = session.get(PortfolioTrade, trade_id)
+    if t is None or t.portfolio_id != p.id:
+        raise HTTPException(404, "trade not found")
+    p.cash = max(0.0, p.cash - t.cash_delta)
+    session.delete(t)
+    session.commit()
+    return _out(session, p)
+
+
+@router.get("/{portfolio_id}/history")
+def get_history(portfolio_id: int, session: SessionDep, key: Auth = None) -> dict[str, Any]:
+    """Daily value and time-weighted return next to the total index."""
+    p = _auth(session, portfolio_id, key)
+    positions = ledger.rebuild(session, p)
+    session.commit()
+    return ledger.history(session, p, positions)
+
+
+@router.get("/{portfolio_id}/mofid")
+def mofid_status(portfolio_id: int, session: SessionDep, key: Auth = None) -> dict[str, Any]:
+    """The Mofid link: status, token expiry and the last sync (never the token itself)."""
+    p = _auth(session, portfolio_id, key)
+    return mofid.status(session, p.id)
+
+
+@router.post("/{portfolio_id}/mofid/connect")
+def mofid_connect(portfolio_id: int, session: SessionDep, key: Auth = None) -> dict[str, Any]:
+    """Open Chrome on this portfolio's own profile for the owner to log in to Mofid (a saved
+    login is used without a window), then sync. Runs in the background: poll ``GET mofid``."""
+    p = _auth(session, portfolio_id, key)
+    mofid.start_connect(p.id)
+    return mofid.status(session, p.id)
+
+
+@router.post("/{portfolio_id}/mofid/sync", response_model=PortfolioOut)
+def mofid_sync(portfolio_id: int, session: SessionDep, key: Auth = None) -> PortfolioOut:
+    """Copy Mofid's positions and buying power into this portfolio now."""
+    p = _auth(session, portfolio_id, key)
+    try:
+        mofid.sync(session, p)
+    except mofid.MofidError as e:
+        raise HTTPException(409, str(e)) from None
+    return _out(session, p)
+
+
+@router.delete("/{portfolio_id}/mofid", status_code=204)
+def mofid_unlink(portfolio_id: int, session: SessionDep, key: Auth = None) -> None:
+    p = _auth(session, portfolio_id, key)
+    mofid.unlink(session, p.id)
+    session.commit()
 
 
 @router.get("/{portfolio_id}/alerts", response_model=list[AlertOut])

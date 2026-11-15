@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://tmon:tmon@localhost:5432/tmon"
     redis_url: str = "redis://localhost:6379/0"
+    # Chrome profile per Mofid-linked portfolio; empty means <repo>/data/mofid-profile
+    mofid_profile_dir: str = ""
 
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "tmon"

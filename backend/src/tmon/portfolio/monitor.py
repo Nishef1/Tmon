@@ -397,6 +397,12 @@ class Monitor:
             await asyncio.to_thread(run_macro)
         except Exception as exc:
             log.warning("briefing macro refresh: %s", exc)
+        try:  # holdings linked to Mofid follow the broker before each review
+            from tmon.portfolio.mofid import sync_all
+
+            await asyncio.to_thread(sync_all)
+        except Exception as exc:
+            log.warning("mofid refresh: %s", exc)
         if due == "preopen":  # fresh inputs first
             await self.news_tick({}, now)
             try:

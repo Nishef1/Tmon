@@ -605,6 +605,25 @@ class PortfolioTrade(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
 
 
+class BrokerLink(Base):
+    """A portfolio linked to a broker account (Mofid's EasyTrader). ``token`` is the bearer token
+    the broker's own site issued after the owner logged in there; it is never returned by the
+    API. ``last_result`` is the last sync's summary."""
+
+    __tablename__ = "broker_links"
+
+    portfolio_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolios.id", ondelete="CASCADE"), primary_key=True
+    )
+    broker: Mapped[str] = mapped_column(String(16), default="mofid")
+    token: Mapped[str | None] = mapped_column(Text)
+    expires_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(16), default="new")  # new|login|linked|error
+    message: Mapped[str | None] = mapped_column(String(300))
+    last_sync_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    last_result: Mapped[dict[str, Any] | None] = mapped_column(JsonType)
+
+
 class PortfolioAlert(Base):
     """An alert sent to one portfolio. ``dedupe_key`` makes one condition alert once until it gets
     worse; ``answer`` is the owner's reply (exit / hold / reduce) from the page or the messenger."""

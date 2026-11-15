@@ -10,6 +10,25 @@ export type Holding = S["HoldingOut"];
 export type Alert = S["AlertOut"];
 export type Briefing = S["BriefingOut"];
 export type Created = S["CreatedOut"];
+export type Trade = S["TradeOut"];
+export type HistoryDoc = {
+  points: { date: string; value: number; return: number; index_return: number | null }[];
+  return: number | null;
+  index_return: number | null;
+};
+export type MofidStatus = {
+  linked: boolean;
+  status: string;
+  message?: string | null;
+  busy: boolean;
+  token_valid?: boolean;
+  last_sync_at?: string | null;
+  last_result?: {
+    positions: { symbol: string; shares: number; avg_price: number }[];
+    unknown: string[];
+    cash: number;
+  } | null;
+};
 
 export type Saved = { id: number; key: string; name: string };
 const STORE = "tmon.portfolios";

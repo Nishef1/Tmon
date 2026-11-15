@@ -73,7 +73,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav aria-label="منوی اصلی" className="hidden items-center gap-0.5 lg:flex">
+        <nav aria-label="منوی اصلی" className="hidden items-center gap-0.5 xl:flex">
           {NAV.map((n) => (
             <Link
               key={n.href}
@@ -86,7 +86,7 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="ms-auto min-w-0 flex-1 lg:max-w-xs lg:flex-none">
+        <div className="ms-auto min-w-0 flex-1 xl:max-w-xs xl:flex-none">
           <SymbolSearch />
         </div>
 
@@ -98,7 +98,7 @@ export function SiteHeader() {
           aria-expanded={menu}
           aria-controls="mobile-menu"
           onClick={() => setMenu(!menu)}
-          className="btn size-10 shrink-0 p-0 lg:hidden"
+          className="btn size-10 shrink-0 p-0 xl:hidden"
           data-testid="menu-button"
         >
           <svg
@@ -120,7 +120,7 @@ export function SiteHeader() {
         <nav
           id="mobile-menu"
           aria-label="منوی موبایل"
-          className="border-t border-line bg-surface lg:hidden"
+          className="border-t border-line bg-surface xl:hidden"
         >
           <ul className="mx-auto grid max-w-6xl gap-1 px-4 py-3 sm:grid-cols-2">
             {NAV.map((n) => (
