@@ -44,6 +44,11 @@ export function StockHeader({
                 {faPercent(p.close_change, 2, true)}
               </span>
             )}
+            {p.date && (
+              <span className="ms-2 text-xs font-normal text-muted" data-testid="header-close-date">
+                پایانی {jalali(p.date)}
+              </span>
+            )}
           </span>
         )}
       </div>
