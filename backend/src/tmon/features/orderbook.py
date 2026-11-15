@@ -26,7 +26,11 @@ FLOW_Z_WINDOW = 60
 FLOW_Z_MIN_SAMPLES = 30
 SMART_MONEY_POWER = 2.0
 SMART_MONEY_REL_VOLUME = 2.0
-QUEUE_TOLERANCE_RIALS = 1.0
+# TSETMC rounds the price limits to the tick: down for the upper limit, up for the lower one
+# (17170 x 1.03 = 17685.1 is published as 17680). The tick depends on the price; these bands
+# match the published pMax/pMin of Sep-Nov 2026 on almost every row.
+TICK_BANDS = ((3000.0, 1.0), (100000.0, 10.0))
+TICK_ABOVE = 100.0
 BOOK_LEVELS = 5
 
 
@@ -102,17 +106,29 @@ def add_board_features(df: pl.DataFrame) -> pl.DataFrame:
     return add_queue_features(d)
 
 
-def add_queue_features(df: pl.DataFrame, tolerance: float = QUEUE_TOLERANCE_RIALS) -> pl.DataFrame:
-    """``queue_state`` from the close vs. the price limit, ``days_in_queue`` = run length."""
+def tick_size(price: pl.Expr) -> pl.Expr:
+    """Price step of the exchange at ``price`` (rial)."""
+    out = pl.lit(TICK_ABOVE)
+    for top, tick in reversed(TICK_BANDS):
+        out = pl.when(price < top).then(pl.lit(tick)).otherwise(out)
+    return out
+
+
+def add_queue_features(df: pl.DataFrame) -> pl.DataFrame:
+    """``queue_state`` from the close vs. the price limit, ``days_in_queue`` = run length.
+
+    The published limit is the raw one rounded to the tick, so the highest allowed price lies
+    within one tick under ``prev x (1 + pct)``; a close in that last tick is a close at the limit.
+    """
     close, prev, pct = pl.col("close"), pl.col("prev_close"), pl.col("limit_pct")
     limit_up = prev * (1.0 + pct)
     limit_down = prev * (1.0 - pct)
     code = (
         pl.when(pct.is_null() | prev.is_null() | close.is_null())
         .then(None)
-        .when(close >= limit_up - tolerance)
+        .when(close > limit_up - tick_size(limit_up))
         .then(pl.lit(QUEUE_BUY))
-        .when(close <= limit_down + tolerance)
+        .when(close < limit_down + tick_size(limit_down))
         .then(pl.lit(QUEUE_SELL))
         .otherwise(pl.lit(QUEUE_NONE))
     )

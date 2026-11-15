@@ -121,6 +121,22 @@ def test_queue_state_and_days_in_queue():
     assert out["queue_state"][4] == "none"
 
 
+def test_queue_state_uses_the_tick_rounded_limit():
+    # real TSETMC days: the published limit is the raw one rounded to the price step
+    rows = [
+        {"prev_close": 17170.0, "close": 17680.0},  # 17685.1 -> published 17680 (شکام 2026-11-11)
+        {"prev_close": 17870.0, "close": 18400.0},  # 18406.1 -> 18400 (شکام 2026-11-15)
+        {"prev_close": 1520.0, "close": 1565.0},  # tick 1: 1565.6 -> 1565
+        {"prev_close": 105480.0, "close": 108600.0},  # tick 100: 108644.4 -> 108600
+        {"prev_close": 1520.0, "close": 1475.0},  # 1474.4 -> lower limit 1475
+        {"prev_close": 17870.0, "close": 18390.0},  # one tick under the limit: not a queue
+    ]
+    out = add_queue_features(board_frame(rows))
+    assert out["queue_state"].to_list() == [
+        "buy_queue", "buy_queue", "buy_queue", "buy_queue", "sell_queue", "none"
+    ]  # fmt: skip
+
+
 def test_queue_state_null_without_limit_rule():
     out = add_queue_features(board_frame([{"limit_pct": None}]))
     assert out["queue_state"][0] is None and out["days_in_queue"][0] is None
