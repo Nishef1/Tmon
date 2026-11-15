@@ -27,7 +27,8 @@ from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
 from tmon.core.timeutil import to_tehran, utcnow
-from tmon.storage.models import ClientTypeDaily, PriceDaily
+from tmon.ingest.tsetmc.classify import get_classifier
+from tmon.storage.models import ClientTypeDaily, Instrument, PriceDaily
 from tmon.storage.objectstore import ObjectStore, get_object_store
 
 log = logging.getLogger(__name__)
@@ -67,7 +68,12 @@ class Day:
 
 
 def _counts(session: Session, model: Any, *, traded_only: bool = False) -> dict[date, int]:
-    q = select(model.date, func.count())
+    """Rows per day for the instruments the daily run fetches (stocks and funds). Options, rights
+    and bonds are left out of the count: older days that were loaded market-wide hold them, newer
+    ones do not, and comparing the two would flag every normal day as partial."""
+    kinds = [t.value for t in get_classifier().tradable]
+    q = select(model.date, func.count()).join(Instrument, Instrument.id == model.instrument_id)
+    q = q.where(Instrument.instrument_type.in_(kinds))
     if traded_only:
         q = q.where(model.volume > 0)
     sub = select(func.max(PriceDaily.date)).scalar_subquery()

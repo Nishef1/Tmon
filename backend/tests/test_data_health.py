@@ -54,6 +54,26 @@ def test_complete_days_report_nothing(session: Session) -> None:
     assert dh.check(session, dt.datetime(2026, 11, 14, 5, 0, tzinfo=dt.UTC))["issues"] == []
 
 
+def test_options_in_older_days_do_not_make_newer_days_look_partial(session: Session) -> None:
+    """Older days were loaded market-wide and hold options; the daily run fetches stocks and funds
+    only. Counting everything would flag each normal newer day."""
+    _fill(session, dict.fromkeys(DAYS, 50))
+    for k in range(50):
+        session.add(
+            Instrument(
+                id=1000 + k, ins_code=f"o{k}", symbol_fa=f"ض{k}", instrument_type="option_call"
+            )
+        )
+    session.flush()
+    for d in DAYS[:-2]:
+        for k in range(50):
+            session.add(
+                PriceDaily(instrument_id=1000 + k, date=d, close=1, volume=1, market_halt=False)
+            )
+    session.commit()
+    assert dh.check(session, dt.datetime(2026, 11, 14, 5, 0, tzinfo=dt.UTC))["issues"] == []
+
+
 def test_today_is_pending_only_after_the_close_on_a_trading_day(session: Session) -> None:
     _fill(session, dict.fromkeys(DAYS[:-1], 50))  # newest stored day is 13 Nov
 
