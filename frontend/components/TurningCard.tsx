@@ -15,6 +15,10 @@ const TONE: Record<S["tone"], { label: string; cls: string }> = {
   none: { label: "سابقهٔ پایداری ندارد", cls: "v-none" },
 };
 
+const per100 = (n: number | null | undefined) => (n == null ? "—" : faNumber(Math.round(n * 100)));
+/** "X% more/less than the market" with one positive number, so a minus never sits next to "profit". */
+const vsMarket = (x: number | null | undefined) =>
+  x == null ? "—" : `${faPercent(Math.abs(x), 1)} ${x >= 0 ? "بیشتر" : "کمتر"} از بازار`;
 const pct = (n: number | null | undefined, d = 0) => (n == null ? "—" : faPercent(n, d));
 const h120 = (s: S) => s.horizons.find((h) => h.horizon_days === 120) ?? null;
 
@@ -35,30 +39,29 @@ function Answers({ t }: { t: T }) {
       q: "در گذشته بعد از این حالت چه شده؟",
       a: (
         <>
-          در {faNumber(s.n)} روز-سهم مشابه (هر روزِ هر سهم یک مورد؛ {faNumber(s.episodes ?? 0)} دوره
-          در {faNumber(s.symbols ?? 0)} نماد)، بازدهٔ شش ماه بعد به‌طور میانگین{" "}
-          <b className={signTone(h.excess_mean)}>{signedPct(h.excess_mean)}</b> نسبت به میانگین
-          بازار بوده و {pct(h.beat)} موارد از بازار جلو زده‌اند.
-          {h1 != null && h2 != null && (
-            <>
-              {" "}
-              نیمهٔ اول تاریخ (تا {jalali(t.split_date, "short")}):{" "}
-              <b className={signTone(h1)}>{signedPct(h1)}</b>، نیمهٔ دوم:{" "}
-              <b className={signTone(h2)}>{signedPct(h2)}</b>.
-            </>
+          سهم‌هایی که در همین حالت بودند، در شش ماه بعد به‌طور میانگین{" "}
+          <b className={signTone(h.excess_mean)}>{vsMarket(h.excess_mean)}</b> سود کردند و{" "}
+          <b>{per100(h.beat)}</b> بار از هر ۱۰۰ بار از بازار جلو زدند
+          {b?.beat != null && <> (برای همهٔ سهم‌ها {per100(b.beat)} بار)</>}.
+          {h1 != null && h2 != null && Math.sign(h1) !== Math.sign(h2) && (
+            <> این نتیجه در همهٔ سال‌ها یکسان نبوده و قابل اتکا نیست.</>
           )}
         </>
       ),
     },
     {
-      q: "شانس جهش بزرگ در برابر ریزش سنگین",
+      q: "شانس جهش بزرگ یا ریزش سنگین در شش ماه",
       a: (
         <>
-          شانس دست‌کم <b className="text-up">{faPercent(0.5, 0, true)}</b> در شش ماه:{" "}
-          <b>{pct(h.p_up50)}</b>
-          {b && <> (همهٔ سهم‌ها {pct(b.p_up50)})</>}؛ شانس افت دست‌کم{" "}
-          <b className="text-down">۲۰٪</b>: <b>{pct(h.p_dn20)}</b>
-          {b && <> (همهٔ سهم‌ها {pct(b.p_dn20)})</>}.
+          از هر ۱۰۰ بار، <b className="text-up">{per100(h.p_up50)}</b> بار قیمت دست‌کم ۵۰٪ بالا رفت
+          و <b className="text-down">{per100(h.p_dn20)}</b> بار دست‌کم ۲۰٪ پایین آمد
+          {b && (
+            <>
+              {" "}
+              (برای همهٔ سهم‌ها: {per100(b.p_up50)} بار جهش، {per100(b.p_dn20)} بار ریزش)
+            </>
+          )}
+          .
         </>
       ),
     },
@@ -73,49 +76,25 @@ function Answers({ t }: { t: T }) {
       ))}
       {s.skewed && (
         <p className="text-sm text-muted">
-          میانگین را چند برندهٔ بزرگ بالا برده‌اند؛ مورد وسط (میانه) {signedPct(h.excess_median)}{" "}
-          نسبت به بازار بوده (برای همهٔ سهم‌ها {signedPct(b?.excess_median)}). یعنی بیشتر موارد سود
-          چشمگیری نداشتند و نتیجه به چند برگشت بزرگ بسته بود.
+          این میانگین را چند سهم با سود خیلی بزرگ بالا برده‌اند؛ بیشتر سهم‌ها سود چشمگیری نداشتند.
         </p>
       )}
     </dl>
   );
 }
 
-function HorizonTable({ s, base }: { s: S; base: S }) {
+function HorizonTable({ s }: { s: S; base: S }) {
   if (s.horizons.length === 0) return null;
   return (
-    <div className="mt-3 overflow-x-auto">
-      <table className="w-full text-sm" data-testid="turning-horizons">
-        <thead className="text-muted">
-          <tr>
-            <th className="py-1 text-start font-normal">بازه</th>
-            <th className="py-1 font-normal">سود اضافه (میانگین)</th>
-            <th className="py-1 font-normal">سود اضافه (سهم وسط)</th>
-            <th className="py-1 font-normal">جلوتر از بازار</th>
-            <th className="py-1 font-normal">سهم وسطِ کل بازار</th>
-          </tr>
-        </thead>
-        <tbody>
-          {s.horizons.map((h) => {
-            const b = base.horizons.find((x) => x.horizon_days === h.horizon_days);
-            return (
-              <tr key={h.horizon_days} className="border-t border-line text-center">
-                <td className="py-1 text-start">{HORIZON_FA[h.horizon_days] ?? h.horizon_days}</td>
-                <td className={`py-1 ${signTone(h.excess_mean)}`}>{signedPct(h.excess_mean)}</td>
-                <td className={`py-1 ${signTone(h.excess_median)}`}>
-                  {signedPct(h.excess_median)}
-                </td>
-                <td className="py-1">{pct(h.beat)}</td>
-                <td className={`py-1 ${signTone(b?.excess_median)}`}>
-                  {signedPct(b?.excess_median)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <ul className="mt-3 space-y-1 text-sm" data-testid="turning-horizons">
+      {s.horizons.map((h) => (
+        <li key={h.horizon_days}>
+          بعد از <b>{HORIZON_FA[h.horizon_days] ?? `${faNumber(h.horizon_days)} روز`}</b>:{" "}
+          <b className={signTone(h.excess_mean)}>{vsMarket(h.excess_mean)}</b> سود، و{" "}
+          {per100(h.beat)} بار از ۱۰۰ بار جلوتر از بازار.
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -130,7 +109,16 @@ function Now({ t }: { t: T }) {
       t.net5 == null ? "هنوز نیامده" : signedPct(t.net5, 1),
       signTone(t.net5),
     ],
-    ["قدرت خریدار (۵ روز)", t.power5 == null ? "هنوز نیامده" : faNumber(t.power5, 2)],
+    [
+      "قدرت خریدار حقیقی (۵ روز)",
+      t.power5 == null
+        ? "هنوز نیامده"
+        : t.power5 > 1.05
+          ? "خریداران قوی‌ترند"
+          : t.power5 < 0.95
+            ? "فروشندگان قوی‌ترند"
+            : "برابر",
+    ],
     [
       "نسبت به میانگین ۲۰ روزه",
       t.above_sma20 == null ? "—" : t.above_sma20 ? "بالای آن" : "زیر آن",
@@ -176,9 +164,8 @@ function Triggers({ t }: { t: T }) {
               <p className="text-sm">اگر: {faDigits(g.when)}</p>
               {h && (
                 <p className="text-sm text-muted">
-                  سابقهٔ آن حالت: شش ماه بعد {signedPct(h.excess_mean)} نسبت به بازار (مورد وسط{" "}
-                  {signedPct(h.excess_median)})، شانس {faPercent(0.5, 0, true)}: {pct(h.p_up50)}،
-                  شانس {faPercent(-0.2, 0, true)}: {pct(h.p_dn20)}.
+                  در گذشته بعد از آن حالت: شش ماه بعد {signedPct(h.excess_mean)} نسبت به بازار؛ از
+                  هر ۱۰۰ بار {per100(h.p_up50)} بار جهش ۵۰٪ و {per100(h.p_dn20)} بار ریزش ۲۰٪.
                 </p>
               )}
             </li>
@@ -214,8 +201,8 @@ function Warning({ w }: { w: NonNullable<T["warning"]> }) {
               (نیمهٔ اول تاریخ {signedPct(a)}، نیمهٔ دوم {signedPct(b)})
             </>
           )}{" "}
-          و فقط {pct(h.beat)} موارد از بازار جلو زدند. یعنی خریدن در این روزها در گذشته بدتر از
-          بازار بوده؛ ولی اثر کوچک و پراکنده است و این نشانه به‌تنهایی برای فروش کافی نیست.
+          و فقط {per100(h.beat)} بار از ۱۰۰ بار از بازار جلو زدند. یعنی خریدن در این روزها در گذشته
+          بدتر از بازار بوده؛ ولی اثر کوچک و پراکنده است و این نشانه به‌تنهایی برای فروش کافی نیست.
         </p>
       )}
     </div>
