@@ -229,3 +229,20 @@ def test_history_counts_a_buy_dated_on_a_holiday(session: Session) -> None:
     hist = ledger.history(session, p, pos)
     total = ledger.summarize(session, p, pos)["totals"]["total_pnl_pct"]
     assert hist["return"] == pytest.approx(total, abs=1e-9)
+
+
+def test_a_mofid_average_that_could_not_have_been_paid_is_not_used(session: Session) -> None:
+    a = _stock(session, "طلا", [170_000.0] * 10, isin="IRTKLOTF0001")
+    p = _portfolio(session)
+    item = {"symbolIsin": "IRTKLOTF0001", "symbolName": "طلا", "asset": 3280,
+            "date": str(D0), "periodicBoughtVolume": 3280,
+            "periodicBuyAveragePrice": 9129.1}  # fmt: skip
+    out = mofid.apply(session, p, [item], {"buyPowerT0": 0})
+    assert out["positions"][0]["cost_source"] == "doubtful"
+    pos = ledger.replay(session, p)[a]
+    assert pos.price_estimated  # valued at the close, not a fake +1700%
+    link = mofid._link(session, p.id)
+    link.last_result = {**out, "items": [item]}
+    mofid.set_cost(session, p, "IRTKLOTF0001", 500_000_000)
+    assert ledger.replay(session, p)[a].cost == pytest.approx(500_000_000)
+    assert mofid.status(session, p.id)["last_result"]["positions"][0]["cost_source"] == "owner"

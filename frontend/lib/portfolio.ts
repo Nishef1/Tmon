@@ -24,7 +24,15 @@ export type MofidStatus = {
   token_valid?: boolean;
   last_sync_at?: string | null;
   last_result?: {
-    positions: { symbol: string; shares: number; avg_price: number }[];
+    positions: {
+      symbol: string;
+      isin?: string;
+      shares: number;
+      avg_price: number | null;
+      mofid_avg_price?: number;
+      cost_source?: "mofid" | "owner" | "doubtful";
+      owner_cost?: number | null;
+    }[];
     unknown: string[];
     cash: number;
   } | null;

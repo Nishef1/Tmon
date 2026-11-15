@@ -11,6 +11,12 @@ A sync reads ``assetmodule/api/performance`` (every position with its average pr
 sync day, at Mofid's average price, so Mofid's own handling of capital increases is not applied a
 second time. Lines of other sources for the same symbols are replaced; symbols Mofid does not
 report are left alone. The cash becomes the buying power.
+
+Mofid's average can be wrong: after the 10-for-1 split of طلا it reported 9,129 rial a unit for
+units that never traded below 160,000. An average that cannot have been paid (outside half the
+lowest low to twice the highest high since the position's period began) is not used: the line
+is left without a price (so it is valued at that day's close and marked estimated) until the
+owner gives the real cost (``settings['mofid_cost'][isin]``, total rial), which always wins.
 """
 
 from __future__ import annotations
@@ -26,14 +32,14 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
 from tmon.portfolio import ledger
-from tmon.storage.models import BrokerLink, Instrument, Portfolio, PortfolioTrade
+from tmon.storage.models import BrokerLink, Instrument, Portfolio, PortfolioTrade, PriceDaily
 
 log = logging.getLogger(__name__)
 
@@ -211,6 +217,42 @@ def fetch(
     return list(perf.get("items") or []), dict(money or {})
 
 
+def _paid_range(session: Session, iid: int, x: dict[str, Any]) -> tuple[float, float] | None:
+    """Lowest low and highest high since Mofid's period began, when every unit held was bought
+    in that period (otherwise the average carries older buys and cannot be bounded)."""
+    try:
+        start = dt.date.fromisoformat(str(x.get("date"))[:10])
+    except ValueError:
+        return None
+    if float(x.get("periodicBoughtVolume") or 0) < float(x.get("asset") or 0):
+        return None
+    lo, hi = session.execute(
+        select(func.min(PriceDaily.low), func.max(PriceDaily.high)).where(
+            PriceDaily.instrument_id == iid, PriceDaily.date >= start, PriceDaily.low > 0
+        )
+    ).one()
+    return (float(lo), float(hi)) if lo and hi else None
+
+
+def costs(p: Portfolio) -> dict[str, float]:
+    """The real buy cost the owner gave per ISIN (total rial)."""
+    return {k: float(v) for k, v in ((p.settings or {}).get("mofid_cost") or {}).items()}
+
+
+def set_cost(session: Session, p: Portfolio, isin: str, amount: float | None) -> None:
+    c = costs(p)
+    if amount and amount > 0:
+        c[isin] = float(amount)
+    else:
+        c.pop(isin, None)
+    p.settings = {**(p.settings or {}), "mofid_cost": c}
+    link = session.get(BrokerLink, p.id)
+    items = (link.last_result or {}).get("items") if link else None
+    if link is not None and items is not None:  # re-apply the last sync with the new cost
+        link.last_result = {**apply(session, p, items, {}), "items": items}
+    session.commit()
+
+
 def apply(
     session: Session, p: Portfolio, items: list[dict[str, Any]], money: dict[str, Any]
 ) -> dict[str, Any]:
@@ -245,7 +287,16 @@ def apply(
                 PortfolioTrade.portfolio_id == p.id, PortfolioTrade.instrument_id == inst.id
             )
         )
+        isin = str(x.get("symbolIsin"))
         avg = float(x.get("periodicBuyAveragePrice") or x.get("totalBuyAveragePrice") or 0)
+        mofid_avg, source = avg, "mofid"
+        given = costs(p).get(isin)
+        if given:
+            avg, source = given / shares, "owner"
+        elif avg:
+            rng = _paid_range(session, inst.id, x)
+            if rng and not (rng[0] * 0.5 <= avg <= rng[1] * 2):
+                avg, source = 0.0, "doubtful"
         session.add(
             PortfolioTrade(
                 portfolio_id=p.id,
@@ -254,7 +305,7 @@ def apply(
                 date=day,
                 shares=shares,
                 price=avg or None,
-                fee=None,
+                fee=0.0 if source == "owner" else None,  # the owner gives what they paid
                 cash_delta=0.0,
                 source="mofid",
                 external_id=f"mofid:{x.get('symbolIsin')}",
@@ -262,8 +313,18 @@ def apply(
                 created_at=utcnow(),
             )
         )
-        held.append({"symbol": inst.symbol_fa, "shares": shares, "avg_price": avg})
-    if "buyPowerT0" in money:
+        held.append(
+            {
+                "symbol": inst.symbol_fa,
+                "isin": isin,
+                "shares": shares,
+                "avg_price": avg or None,
+                "mofid_avg_price": mofid_avg,
+                "cost_source": source,
+                "owner_cost": given,
+            }
+        )
+    if money.get("buyPowerT0") is not None:
         p.cash = max(0.0, float(money["buyPowerT0"]))
     session.flush()
     ledger.rebuild(session, p)
@@ -287,7 +348,7 @@ def sync(session: Session, p: Portfolio, *, refresh: bool = True) -> dict[str, A
     result = apply(session, p, items, money)
     link.status, link.message = "linked", None
     link.last_sync_at = utcnow()
-    link.last_result = result
+    link.last_result = {**result, "items": items}
     session.commit()
     return result
 
@@ -304,7 +365,7 @@ def status(session: Session, portfolio_id: int) -> dict[str, Any]:
         "token_valid": _valid(link),
         "expires_at": link.expires_at,
         "last_sync_at": link.last_sync_at,
-        "last_result": link.last_result,
+        "last_result": {k: v for k, v in (link.last_result or {}).items() if k != "items"},
     }
 
 

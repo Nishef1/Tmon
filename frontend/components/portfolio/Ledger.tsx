@@ -280,8 +280,102 @@ export function MofidCard({
           )}
         </p>
       )}
+      {linked && r && r.positions.some((x) => x.isin) && (
+        <MofidCosts p={p} pkey={pkey} positions={r.positions} onChange={onChange} />
+      )}
       {msg && <p className="mt-1 text-sm">{msg}</p>}
     </section>
+  );
+}
+
+type MofidPosition = NonNullable<MofidStatus["last_result"]>["positions"][number];
+
+function MofidCosts({
+  p,
+  pkey,
+  positions,
+  onChange,
+}: {
+  p: Portfolio;
+  pkey: string;
+  positions: MofidPosition[];
+  onChange: (p: Portfolio) => void;
+}) {
+  const [edit, setEdit] = useState<Record<string, string>>({});
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save(isin: string, toman: string) {
+    setErr(null);
+    const n = toNum(toman);
+    try {
+      onChange(
+        await call<Portfolio>(`/${p.id}/mofid/cost`, pkey, {
+          method: "PUT",
+          body: JSON.stringify({ isin, amount: n ? n * 10 : null }),
+        }),
+      );
+      setEdit((e) => ({ ...e, [isin]: "" }));
+    } catch (x) {
+      setErr((x as Error).message);
+    }
+  }
+
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <h3 className="text-sm font-bold">بهای خرید دارایی‌های مفید</h3>
+      <p className="mt-1 text-xs text-muted">
+        اگر میانگین خرید مفید درست نیست (مثلاً پس از تجزیهٔ سهام)، کل مبلغی را که برای این دارایی
+        پرداخته‌ای بنویس؛ از این به بعد همین در حساب سود به کار می‌رود.
+      </p>
+      <ul className="mt-2 space-y-2">
+        {positions
+          .filter((x) => x.isin)
+          .map((x) => {
+            const isin = x.isin as string;
+            return (
+              <li key={isin} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-bold">{x.symbol}</span>
+                <span>{faNumber(x.shares)} واحد</span>
+                {x.cost_source === "owner" && x.owner_cost ? (
+                  <span>بهای خرید: {faToman(x.owner_cost)} تومان (وارد شده توسط تو)</span>
+                ) : x.cost_source === "doubtful" ? (
+                  <span className="text-down">
+                    میانگین مفید ({faNumber(Math.round(x.mofid_avg_price ?? 0))} ریال) با قیمت‌های
+                    واقعی جور نیست و کنار گذاشته شد؛ تا بهای خرید را ننویسی، سود این دارایی صفر
+                    برآورد می‌شود.
+                  </span>
+                ) : (
+                  <span className="text-muted">
+                    میانگین مفید: {faNumber(Math.round(x.avg_price ?? 0))} ریال
+                  </span>
+                )}
+                <input
+                  className="ctl w-44"
+                  inputMode="numeric"
+                  placeholder="کل مبلغ خرید (تومان)"
+                  aria-label={`کل مبلغ خرید ${x.symbol} به تومان`}
+                  value={edit[isin] ?? ""}
+                  onChange={(e) => setEdit((s) => ({ ...s, [isin]: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!(edit[isin] ?? "").trim()}
+                  onClick={() => void save(isin, edit[isin] ?? "")}
+                >
+                  ثبت
+                </button>
+                {x.cost_source === "owner" && (
+                  <button type="button" className="btn" onClick={() => void save(isin, "")}>
+                    برگشت به عدد مفید
+                  </button>
+                )}
+              </li>
+            );
+          })}
+      </ul>
+      {err && <p className="mt-1 text-sm text-down">{err}</p>}
+    </div>
   );
 }
 

@@ -656,6 +656,21 @@ def mofid_sync(portfolio_id: int, session: SessionDep, key: Auth = None) -> Port
     return _out(session, p)
 
 
+class MofidCostIn(BaseModel):
+    isin: str = Field(min_length=12, max_length=12)
+    amount: float | None = Field(default=None, ge=0)  # total rial paid; empty clears it
+
+
+@router.put("/{portfolio_id}/mofid/cost", response_model=PortfolioOut)
+def mofid_cost(
+    portfolio_id: int, body: MofidCostIn, session: SessionDep, key: Auth = None
+) -> PortfolioOut:
+    """The real buy cost of a Mofid position, used instead of Mofid's average from now on."""
+    p = _auth(session, portfolio_id, key)
+    mofid.set_cost(session, p, body.isin, body.amount)
+    return _out(session, p)
+
+
 @router.delete("/{portfolio_id}/mofid", status_code=204)
 def mofid_unlink(portfolio_id: int, session: SessionDep, key: Auth = None) -> None:
     p = _auth(session, portfolio_id, key)

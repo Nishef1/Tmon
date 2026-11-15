@@ -7572,6 +7572,33 @@
         "title": "MarketSector",
         "type": "object"
       },
+      "MofidCostIn": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "isin": {
+            "maxLength": 12,
+            "minLength": 12,
+            "title": "Isin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "isin"
+        ],
+        "title": "MofidCostIn",
+        "type": "object"
+      },
       "NearMiss": {
         "properties": {
           "bucket_n": {
@@ -12891,6 +12918,75 @@
           }
         },
         "summary": "Mofid Connect",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/{portfolio_id}/mofid/cost": {
+      "put": {
+        "description": "The real buy cost of a Mofid position, used instead of Mofid's average from now on.",
+        "operationId": "mofid_cost_portfolios__portfolio_id__mofid_cost_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MofidCostIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mofid Cost",
         "tags": [
           "portfolios"
         ]

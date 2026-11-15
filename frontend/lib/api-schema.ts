@@ -502,6 +502,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/portfolios/{portfolio_id}/mofid/cost": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Mofid Cost
+     * @description The real buy cost of a Mofid position, used instead of Mofid's average from now on.
+     */
+    put: operations["mofid_cost_portfolios__portfolio_id__mofid_cost_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/portfolios/{portfolio_id}/mofid/sync": {
     parameters: {
       query?: never;
@@ -3219,6 +3239,13 @@ export interface components {
       /** Value */
       value: number;
     };
+    /** MofidCostIn */
+    MofidCostIn: {
+      /** Amount */
+      amount?: number | null;
+      /** Isin */
+      isin: string;
+    };
     /** NearMiss */
     NearMiss: {
       /** Bucket N */
@@ -5310,6 +5337,43 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  mofid_cost_portfolios__portfolio_id__mofid_cost_put: {
+    parameters: {
+      query?: never;
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MofidCostIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PortfolioOut"];
         };
       };
       /** @description Validation Error */
