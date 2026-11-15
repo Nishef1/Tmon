@@ -11,7 +11,11 @@ IP="$(curl -4fs https://ifconfig.me || hostname -I | awk '{print $1}')"
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y nginx apache2-utils openssl ufw fail2ban curl ca-certificates tar unattended-upgrades nodejs
+apt-get install -y libgomp1 nginx apache2-utils openssl ufw fail2ban curl ca-certificates tar unattended-upgrades
+if ! node -v 2>/dev/null | grep -qE '^v(2[4-9]|[3-9][0-9])'; then
+  curl -fsSL https://deb.nodesource.com/setup_26.x | bash - || curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+  apt-get install -y nodejs
+fi
 node -v | grep -qE '^v(2[2-9]|[3-9][0-9])' || echo "WARNING: node is old ($(node -v)); Next 16 needs >= 20.9. Install a newer Node."
 
 id tmon >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin tmon
@@ -19,6 +23,9 @@ mkdir -p /opt/tmon /var/lib/tmon/objects
 tar -C /opt/tmon -xzf /root/tmon-app.tar.gz
 chown -R tmon:tmon /opt/tmon /var/lib/tmon
 
+# web: build on the server (needs the npm registry)
+command -v pnpm >/dev/null || npm install -g pnpm
+rm -rf /opt/tmon/web && cp -r /opt/tmon/frontend /opt/tmon/web && chown -R tmon:tmon /opt/tmon/web
 # Python 3.13 + dependencies via uv (needs PyPI; if blocked, set UV_INDEX_URL to a reachable mirror)
 if ! command -v uv >/dev/null; then curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh; fi
 ( cd /opt/tmon/backend && sudo -u tmon -H env UV_CACHE_DIR=/var/lib/tmon/uv /usr/local/bin/uv sync --frozen --no-dev --python 3.13 )
@@ -34,6 +41,7 @@ PORT=3000
 ENV
 chmod 600 /etc/tmon.env
 
+WEBBUILD='cd /opt/tmon/web && pnpm install --frozen-lockfile && API_URL=http://127.0.0.1:8000 pnpm exec next build && cp -r .next/static .next/standalone/.next/static && { [ ! -d public ] || cp -r public .next/standalone/public; }'
 cat > /etc/systemd/system/tmon-api.service <<'UNIT'
 [Unit]
 Description=Tmon API
@@ -57,9 +65,9 @@ Description=Tmon web
 After=network.target tmon-api.service
 [Service]
 User=tmon
-WorkingDirectory=/opt/tmon/web
+WorkingDirectory=/opt/tmon/web/.next/standalone
 EnvironmentFile=/etc/tmon.env
-ExecStart=/usr/bin/node /opt/tmon/web/server.js
+ExecStart=/usr/bin/node /opt/tmon/web/.next/standalone/server.js
 Restart=always
 NoNewPrivileges=true
 ProtectSystem=strict
@@ -82,7 +90,7 @@ ReadWritePaths=/var/lib/tmon
 UNIT
 cat > /etc/systemd/system/tmon-cycle.timer <<'UNIT'
 [Timer]
-OnCalendar=Sat..Wed *-*-* 19:30:00
+OnCalendar=Sat,Sun,Mon,Tue,Wed *-*-* 19:30:00
 Persistent=true
 [Install]
 WantedBy=timers.target
@@ -135,7 +143,10 @@ enabled = true
 F2B
 
 systemctl daemon-reload
-systemctl enable --now tmon-api tmon-web tmon-cycle.timer fail2ban
+systemctl enable --now tmon-api
+sleep 8
+sudo -u tmon -H env HOME=/var/lib/tmon API_URL=http://127.0.0.1:8000 bash -c "$WEBBUILD"
+systemctl enable --now tmon-web tmon-cycle.timer fail2ban
 systemctl restart nginx
 echo "=============================================="
 echo "Site:  https://$IP   (browser warns once: self-signed certificate; accept it)"

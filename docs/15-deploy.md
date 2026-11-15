@@ -13,3 +13,8 @@
 - گواهی خودامضاست (بدون دامنه). با داشتن دامنه، certbot گواهی معتبر می‌دهد.
 - تغییر رمز سایت: `htpasswd -B /etc/nginx/tmon/htpasswd tmon && systemctl reload nginx`.
 - لاگ‌ها: `journalctl -u tmon-api -u tmon-web -u tmon-cycle`.
+
+## یادداشت‌های نصب واقعی (Ubuntu 24.04)
+- Node از nodesource (۲۶ یا ۲۴)، pnpm با npm؛ `corepack` در Node جدید نیست. وب روی سرور بیلد می‌شود.
+- `libgomp1` برای lightgbm لازم است.
+- ورود SSH با رمز بسته و فقط کلید مجاز است (`/etc/ssh/sshd_config.d/00-tmon.conf`).
