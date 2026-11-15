@@ -21,12 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen antialiased">
         <SiteHeader />
-        <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
+        <footer className="mx-auto max-w-6xl px-4 pb-10">
           <DataStamp />
           <DataHealth />
-          {children}
-        </div>
-        <footer className="mx-auto max-w-6xl px-4 pb-10">
           <Disclaimer />
           <p className="mt-3 text-xs text-muted">
             خروجی‌ها برآورد آماری از داده‌های گذشته‌اند و هیچ بازده یا نتیجه‌ای را تضمین نمی‌کنند.

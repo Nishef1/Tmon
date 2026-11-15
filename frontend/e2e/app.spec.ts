@@ -117,7 +117,6 @@ test.describe("instrument page", () => {
     await expect(ha).toHaveAttribute("aria-pressed", "false");
     await expect(page.getByTestId("chart-legend")).toContainText("قیمت واقعی");
     const facts = page.locator('[data-fold="facts"]');
-    await facts.locator("> summary").click();
     await expect(facts.getByText("قدرت خریدار (امروز)")).toBeVisible();
     await expect(facts.getByText("گروه صنعت")).toBeVisible();
   });
@@ -136,6 +135,7 @@ test.describe("instrument page", () => {
 
   test("shows what moves the stock outside its chart", async ({ page }) => {
     await page.goto("/instruments/1");
+    await page.locator('[data-fold="context"] > summary').click();
     const box = page.getByTestId("drivers");
     await expect(box).toContainText("تندتر از بازار");
     await expect(box).toContainText("۳۷۰ ریال");

@@ -14,7 +14,7 @@ export function PortfolioBadge({ instrumentId }: { instrumentId: number }) {
   if (held && held.length === 0) {
     return (
       <Link href="/portfolios" className="chip" data-testid="portfolio-badge" data-held="false">
-        در پرتفوی شما نیست · افزودن برای هشدار خروج
+        + افزودن به پرتفوی
       </Link>
     );
   }

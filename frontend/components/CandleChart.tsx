@@ -921,37 +921,42 @@ export function CandleChart({
             </span>
           </span>
         </div>
-        <div className="chart-bar" role="group" aria-label="خط‌های روی قیمت">
-          <span className="text-xs text-muted">روی قیمت:</span>
-          {OV.map(([k, label, color]) => (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={on.has(k)}
-              onClick={() => toggle(k)}
-              className="ind"
-              style={{ "--sw": color } as React.CSSProperties}
-            >
-              <span className="sw" aria-hidden />
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="chart-bar" role="group" aria-label="اندیکاتور زیر نمودار">
-          <span className="text-xs text-muted">زیر نمودار:</span>
-          <span className="seg">
-            {PANES.map(([k, label]) => (
+        <details className="chart-more" data-testid="chart-indicators">
+          <summary className="cursor-pointer select-none px-2 py-1 text-xs text-muted">
+            اندیکاتورها
+          </summary>
+          <div className="chart-bar" role="group" aria-label="خط‌های روی قیمت">
+            <span className="text-xs text-muted">روی قیمت:</span>
+            {OV.map(([k, label, color]) => (
               <button
                 key={k}
                 type="button"
-                aria-pressed={cfg.pane === k}
-                onClick={() => setCfg({ pane: k })}
+                aria-pressed={on.has(k)}
+                onClick={() => toggle(k)}
+                className="ind"
+                style={{ "--sw": color } as React.CSSProperties}
               >
+                <span className="sw" aria-hidden />
                 {label}
               </button>
             ))}
-          </span>
-        </div>
+          </div>
+          <div className="chart-bar" role="group" aria-label="اندیکاتور زیر نمودار">
+            <span className="text-xs text-muted">زیر نمودار:</span>
+            <span className="seg">
+              {PANES.map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={cfg.pane === k}
+                  onClick={() => setCfg({ pane: k })}
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
+          </div>
+        </details>
         {panel && <Params cfg={cfg} set={setCfg} />}
         <div ref={box} className="relative" dir="ltr">
           {bar && (

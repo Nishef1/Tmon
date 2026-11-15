@@ -12,13 +12,15 @@ import {
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import {
-  SymbolContext,
   SymbolDecision,
   SymbolFacts,
   SymbolTechnical,
   SymbolValuation,
 } from "@/components/SymbolDashboard";
 import { Fold } from "@/components/stock/Fold";
+import { PeersCard } from "@/components/PeersCard";
+import { TurningCard } from "@/components/TurningCard";
+import { DriversCard } from "@/components/DriversCard";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { StockNews } from "@/components/stock/StockNews";
 import { LiveQuote } from "@/components/LiveQuote";
@@ -122,37 +124,63 @@ export default async function InstrumentPage({
   const marks = entry ? entryMarks(entry) : [];
 
   return (
-    <main className="space-y-6">
+    <main className="space-y-4">
       <StockHeader d={d} dash={dash.ok ? dash.data : null} book={book.ok ? book.data : null} />
 
-      <LiveQuote instrumentId={d.instrument.id} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="card min-w-0">
+          <h2 className="mb-2 font-bold">نمودار قیمت</h2>
+          {d.candles.length === 0 ? (
+            <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
+          ) : (
+            <>
+              <CandleChart candles={d.candles} levels={levels} marks={marks} />
+              <p className="mt-2 text-xs text-muted">
+                قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
+                <Link href="/glossary/adjusted_price" className="underline">
+                  تعدیل
+                </Link>{" "}
+                شده‌اند.
+                {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
+                {marks.length > 0 &&
+                  " پیکان سبز/قرمز: کندل ورودی که در گذشته بهتر/بدتر از بقیهٔ سهم‌ها بوده."}
+              </p>
+            </>
+          )}
+        </section>
+        <LiveQuote instrumentId={d.instrument.id} />
+      </div>
 
       {dash.ok && <SymbolDecision d={dash.data} id={d.instrument.id} horizon={q.h} />}
 
-      <section className="card">
-        <h2 className="mb-2 font-bold">نمودار قیمت تعدیل‌شده</h2>
-        {d.candles.length === 0 ? (
-          <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
-        ) : (
-          <>
-            <CandleChart candles={d.candles} levels={levels} marks={marks} />
-            <p className="mt-2 text-xs text-muted">
-              قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
-              <Link href="/glossary/adjusted_price" className="underline">
-                تعدیل
-              </Link>{" "}
-              شده‌اند. روزهای توقف نماد نمایش داده نمی‌شوند.
-              {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
-              {marks.length > 0 &&
-                " پیکان‌ها کندل‌های ورودِ آزموده‌شدهٔ یک سال اخیرند: سبز یعنی بعد از چنین کندلی در گذشته بیشتر از بقیهٔ سهم‌ها بالا رفته، قرمز کمتر، خاکستری فرقی نداشته."}
-            </p>
-          </>
-        )}
-      </section>
+      {dash.ok && dash.data.peers && <PeersCard p={dash.data.peers} />}
+
+      {dash.ok && (
+        <Fold
+          id="facts"
+          title="ارزش‌گذاری، شرکت و معاملات"
+          hint="P/E، مجمع، حقیقی و حقوقی، سرانه"
+          open
+        >
+          <SymbolValuation d={dash.data} />
+          <SymbolFacts d={dash.data} />
+        </Fold>
+      )}
+
+      {book.ok && (
+        <Fold id="book" title="رفتار خریداران و فروشندگان" hint="ردهٔ سهم در کل بازار، روز به روز">
+          <BookCard b={book.data} />
+        </Fold>
+      )}
 
       <StockNews d={d} />
 
-      {dash.ok && <SymbolContext d={dash.data} />}
+      {dash.ok && (dash.data.turning || dash.data.drivers) && (
+        <Fold id="context" title="چه چیزی این سهم را حرکت می‌دهد؟" hint="حالت فعلی و عامل‌ها">
+          {dash.data.turning && <TurningCard t={dash.data.turning} />}
+          {dash.data.drivers && <DriversCard d={dash.data.drivers} />}
+        </Fold>
+      )}
 
       {entry && (
         <Fold id="entry" title="آزمایشگاه ورود" hint="بعد از کندل‌هایی مثل امروز در گذشته چه شد">
@@ -167,23 +195,6 @@ export default async function InstrumentPage({
           hint="اندیکاتورها، سابقهٔ آزموده و بیشترین افت"
         >
           <SymbolTechnical d={dash.data} />
-        </Fold>
-      )}
-
-      {book.ok && (
-        <Fold id="book" title="رفتار خریداران و فروشندگان" hint="ردهٔ سهم در کل بازار، روز به روز">
-          <BookCard b={book.data} />
-        </Fold>
-      )}
-
-      {dash.ok && (
-        <Fold
-          id="facts"
-          title="ارزش‌گذاری، شرکت و معاملات امروز"
-          hint="P/E، مجمع، قیمت، حقیقی و حقوقی"
-        >
-          <SymbolValuation d={dash.data} />
-          <SymbolFacts d={dash.data} />
         </Fold>
       )}
 
