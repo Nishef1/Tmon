@@ -702,7 +702,34 @@ export function CandleChart({
       };
       mark(chart.timeScale().getVisibleLogicalRange());
       chart.timeScale().subscribeVisibleLogicalRangeChange(mark);
+      // The price axis fits itself, and the library only starts moving a chart up/down if it was
+      // released from that fit when the press began. So release it on press, and give the fit back
+      // as soon as the drag turns out to be sideways.
+      let from: { x: number; y: number } | null = null;
+      const fit = (on: boolean) => series.priceScale().applyOptions({ autoScale: on });
+      const down0 = (e: PointerEvent) => {
+        from = { x: e.clientX, y: e.clientY };
+        fit(false);
+      };
+      const move0 = (e: PointerEvent) => {
+        if (!from || !e.buttons) return;
+        const dx = Math.abs(e.clientX - from.x);
+        const dy = Math.abs(e.clientY - from.y);
+        if (Math.max(dx, dy) < 4) return;
+        if (dx >= dy) fit(true);
+        from = null;
+      };
+      const up0 = () => {
+        if (from) fit(true); // a click without a drag changes nothing
+        from = null;
+      };
+      el.addEventListener("pointerdown", down0, true);
+      el.addEventListener("pointermove", move0, true);
+      el.addEventListener("pointerup", up0, true);
       dispose = () => {
+        el.removeEventListener("pointerdown", down0, true);
+        el.removeEventListener("pointermove", move0, true);
+        el.removeEventListener("pointerup", up0, true);
         view.current.range = chart.timeScale().getVisibleLogicalRange();
         const p1 = chart.panes()[1];
         if (p1) view.current.paneH = p1.getHeight();
