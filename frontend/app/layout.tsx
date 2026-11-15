@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { DataStamp } from "@/components/DataStamp";
 import { Disclaimer } from "@/components/Disclaimer";
 import { THEME_INIT } from "@/components/ThemeToggle";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -19,7 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen antialiased">
         <SiteHeader />
-        <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <DataStamp />
+          {children}
+        </div>
         <footer className="mx-auto max-w-6xl px-4 pb-10">
           <Disclaimer />
           <p className="mt-3 text-xs text-muted">

@@ -5543,6 +5543,74 @@
         "title": "FeatureValue",
         "type": "object"
       },
+      "FreshnessItem": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "date",
+          "fetched_at"
+        ],
+        "title": "FreshnessItem",
+        "type": "object"
+      },
+      "FreshnessOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FreshnessItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "updated_at",
+          "items"
+        ],
+        "title": "FreshnessOut",
+        "type": "object"
+      },
       "FundOut": {
         "properties": {
           "bubble": {
@@ -11366,6 +11434,27 @@
         "summary": "Compare",
         "tags": [
           "macro"
+        ]
+      }
+    },
+    "/freshness": {
+      "get": {
+        "operationId": "freshness_freshness_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FreshnessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Freshness",
+        "tags": [
+          "meta"
         ]
       }
     },
