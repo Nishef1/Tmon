@@ -86,3 +86,19 @@ def test_adjusted_returns_match_exchange_reference(steps):
     for t in range(1, len(closes)):
         expected = closes[t] / prevs[t]
         assert ac[t] / ac[t - 1] == pytest.approx(expected, rel=1e-9)
+
+
+def test_small_upward_gap_is_a_missing_day_not_an_event():
+    # 100 -> (missing day at 106) -> prev_close 106: a real move, no adjustment
+    ev = detect_adjustments(_frame([100.0, 107.0], [99.0, 106.0]))
+    assert ev.is_empty()
+
+
+def test_capital_decrease_and_dividend_stay_events():
+    ev = detect_adjustments(_frame([100.0, 150.0, 140.0, 130.0], [99.0, 150.0, 150.0, 120.0]))
+    assert ev["adj_factor"].to_list() == pytest.approx([1.5, 120.0 / 140.0])
+
+
+def test_absurd_factor_is_ignored():
+    ev = detect_adjustments(_frame([1000.0, 40.0], [990.0, 30.0]))
+    assert ev.is_empty()

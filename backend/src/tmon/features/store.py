@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from tmon.domain.rules import RuleBook
 from tmon.features.builder import KEYS, FeatureSet, build_features, get_feature_set
+from tmon.features.quality import clean_clients, clean_prices
 from tmon.ingest.tsetmc.classify import Classifier, get_classifier
 from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
 from tmon.storage.models import (
@@ -117,7 +118,7 @@ def load_inputs(
         .with_columns(pl.coalesce("base_volume", "_tag_base").alias("base_volume"))
         .drop("_tag_base")
     )
-    prices = drop_placeholder_bars(prices)
+    prices = clean_prices(drop_placeholder_bars(prices))
 
     client_rows = session.execute(
         select(
@@ -135,7 +136,7 @@ def load_inputs(
         },
         orient="row",
     )
-    return prices, clients, sectors
+    return prices, clean_clients(clients, prices), sectors
 
 
 def load_benchmark_inputs(session: Session) -> tuple[pl.DataFrame, pl.DataFrame]:

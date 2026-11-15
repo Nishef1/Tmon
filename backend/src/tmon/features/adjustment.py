@@ -6,6 +6,12 @@ from the previous row's ``close``. The event factor is::
     adj_factor_s = prev_close_s / close_before          (< 1 for dividends / increases)
     adjusted_price_t = raw_price_t * prod_{s > t} adj_factor_s
 
+A gap is only taken as an event when its factor is plausible. A factor in (1, ``MIN_UP``) would
+mean the exchange raised the reference price by a few percent, which no corporate action does
+(a capital decrease raises it by much more); such gaps are days missing from the history, and
+treating them as events would erase a real price move. A factor below ``MIN_FACTOR`` (a 20x
+drop) is bad data. Both are left out (docs/reports/indicator-zoo-2026-11.md, "ممیزی داده").
+
 All code is vectorised Polars; there is no per-row Python loop.
 """
 
@@ -14,6 +20,8 @@ from __future__ import annotations
 import polars as pl
 
 PRICE_COLS = ("open", "high", "low", "close", "last", "prev_close")
+MIN_UP = 1.2  # upward factors below this are missing days, not a capital decrease
+MIN_FACTOR = 0.05
 
 
 def detect_adjustments(prices: pl.DataFrame) -> pl.DataFrame:
@@ -25,17 +33,22 @@ def detect_adjustments(prices: pl.DataFrame) -> pl.DataFrame:
     d = prices.sort(["instrument_id", "date"]).with_columns(
         close_before=pl.col("close").shift(1).over("instrument_id")
     )
-    return d.filter(
-        pl.col("close_before").is_not_null()
-        & (pl.col("close_before") > 0)
-        & (pl.col("prev_close") > 0)
-        & (pl.col("prev_close") != pl.col("close_before"))
-    ).select(
-        "instrument_id",
-        "date",
-        "close_before",
-        pl.col("prev_close").alias("price_after"),
-        (pl.col("prev_close") / pl.col("close_before")).alias("adj_factor"),
+    return (
+        d.filter(
+            pl.col("close_before").is_not_null()
+            & (pl.col("close_before") > 0)
+            & (pl.col("prev_close") > 0)
+            & (pl.col("prev_close") != pl.col("close_before"))
+        )
+        .with_columns(_f=pl.col("prev_close") / pl.col("close_before"))
+        .filter(((pl.col("_f") < 1) | (pl.col("_f") >= MIN_UP)) & (pl.col("_f") >= MIN_FACTOR))
+        .select(
+            "instrument_id",
+            "date",
+            "close_before",
+            pl.col("prev_close").alias("price_after"),
+            (pl.col("prev_close") / pl.col("close_before")).alias("adj_factor"),
+        )
     )
 
 
