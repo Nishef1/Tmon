@@ -21,7 +21,8 @@ export function TradeBadge({
   lastTrade?: string | null;
   long?: boolean;
 }) {
-  if (state === "active") return null;
+  // an older API may not send the state at all: show nothing rather than guess
+  if (state !== "idle" && state !== "halted") return null;
   const look = LOOK[state];
   const short = state === "halted" ? "متوقف" : "امروز معامله نشد";
   const detail =

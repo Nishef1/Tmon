@@ -114,7 +114,7 @@ export function StockHeader({
             {c}
           </span>
         ))}
-        {dash && dash.trade_state !== "active" && (
+        {dash && (dash.trade_state === "idle" || dash.trade_state === "halted") && (
           <TradeBadge
             state={dash.trade_state}
             idleDays={dash.idle_days}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { DataHealth } from "@/components/DataHealth";
 import { DataStamp } from "@/components/DataStamp";
@@ -16,10 +17,10 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
-      </head>
       <body className="min-h-screen antialiased">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT}
+        </Script>
         <SiteHeader />
         <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
         <footer className="mx-auto max-w-6xl px-4 pb-10">

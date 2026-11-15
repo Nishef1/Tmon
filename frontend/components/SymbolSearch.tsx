@@ -149,7 +149,7 @@ export function SymbolSearch() {
                   {h.instrument.symbol}{" "}
                   <span className="text-sm font-normal text-muted">{h.instrument.name}</span>
                 </span>
-                {h.trade_state !== "active" && (
+                {(h.trade_state === "idle" || h.trade_state === "halted") && (
                   <span className="block">
                     <TradeBadge
                       state={h.trade_state}
