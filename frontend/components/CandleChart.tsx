@@ -709,7 +709,13 @@ export function CandleChart({
       };
       mark(chart.timeScale().getVisibleLogicalRange());
       chart.timeScale().subscribeVisibleLogicalRangeChange(mark);
+      // The library moves the chart up and down only if the price axis was released from its
+      // automatic fit before the drag began. Release it on press, so a drag follows the mouse in
+      // both directions from the first pixel; «بازنشانی نما» gives the fit back.
+      const free = () => series.priceScale().applyOptions({ autoScale: false });
+      el.addEventListener("pointerdown", free, true);
       dispose = () => {
+        el.removeEventListener("pointerdown", free, true);
         view.current.range = chart.timeScale().getVisibleLogicalRange();
         const p1 = chart.panes()[1];
         if (p1) view.current.paneH = p1.getHeight();
@@ -1053,11 +1059,10 @@ export function CandleChart({
           {cfg.kind === "ha"
             ? "هایکن‌آشی هر شمع را با شمع قبلی نرم می‌کند تا روند روشن‌تر دیده شود؛ قیمت‌های بالای نمودار همان قیمت واقعی همان روزند، نه مقدار شمع نرم‌شده. "
             : ""}
-          با چرخ موس یا دو انگشت بزرگنمایی کنید و با کشیدن، نمودار را در زمان جابه‌جا کنید؛ قیمت
-          خودش اندازه می‌شود. برای بالا و پایین بردن، محور قیمت را بکشید یا ▲ و ▼ را بزنید؛ از آن به
-          بعد کشیدن در هر دو جهت کار می‌کند و «بازنشانی نما» یا دوبار کلیک روی محور قیمت آن را
-          برمی‌گرداند. با روشن و خاموش کردن خط‌ها بزرگنمایی می‌ماند. تنظیم‌ها فقط در همین مرورگر نگه
-          داشته می‌شوند. نمودار: TradingView Lightweight Charts.
+          با چرخ موس یا دو انگشت بزرگنمایی کنید و با کشیدن، نمودار را در هر جهتی جابه‌جا کنید؛
+          «بازنشانی نما» یا دوبار کلیک روی محور قیمت، اندازهٔ خودکار قیمت را برمی‌گرداند. با روشن و
+          خاموش کردن خط‌ها بزرگنمایی می‌ماند. تنظیم‌ها فقط در همین مرورگر نگه داشته می‌شوند. نمودار:
+          TradingView Lightweight Charts.
         </p>
       </details>
     </div>
