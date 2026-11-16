@@ -163,3 +163,13 @@ def test_open_features_works_on_decimal_columns(session) -> None:  # type: ignor
     x = entry.open_features(session, row.instrument_id, bar)
     assert x["gap"] is not None and x["ret_prev"] is not None and x["pos_prev"] is not None
     assert all(isinstance(v, float) for v in x.values() if v is not None)
+
+
+def test_wide_static_band_is_not_a_daily_limit() -> None:
+    from tmon.portfolio.liveprice import parse_info
+
+    info = {"dEven": 20261116, "priceYesterday": 5170.0, "pDrCotVal": 5150.0}
+    normal = parse_info(info, {"psGelStaMax": 5320.0, "psGelStaMin": 5020.0})
+    assert normal.limit_up == 5320.0 and normal.limit_down == 5020.0
+    wide = parse_info(info, {"psGelStaMax": 1_000_000.0, "psGelStaMin": 1.0})
+    assert wide.limit_up is None and wide.limit_down is None

@@ -64,6 +64,14 @@ def parse_info(info: dict[str, Any], threshold: dict[str, Any] | None = None) ->
     if isinstance(d, int) and d > 19000101:
         day = dt.date(d // 10000, d // 100 % 100, d % 100)
     t = threshold or {}
+    ref = _pos(info.get("priceYesterday"))
+    up, down = _pos(t.get("psGelStaMax")), _pos(t.get("psGelStaMin"))
+    # Options, rights and uncapped symbols report a huge band (up to 1,000,000 and down to 1); that
+    # is no daily limit, so a band wider than 15% around yesterday's close is not used as one.
+    if ref and up and not ref * 0.85 <= up <= ref * 1.15:
+        up = None
+    if ref and down and not ref * 0.85 <= down <= ref * 1.15:
+        down = None
     return Bar(
         day=day,
         first=_pos(info.get("priceFirst")),
@@ -72,8 +80,8 @@ def parse_info(info: dict[str, Any], threshold: dict[str, Any] | None = None) ->
         last=_pos(info.get("pDrCotVal")),
         close=_pos(info.get("pClosing")),
         yesterday=_pos(info.get("priceYesterday")),
-        limit_up=_pos(t.get("psGelStaMax")),
-        limit_down=_pos(t.get("psGelStaMin")),
+        limit_up=up,
+        limit_down=down,
         volume=_pos(info.get("qTotTran5J")),
     )
 
