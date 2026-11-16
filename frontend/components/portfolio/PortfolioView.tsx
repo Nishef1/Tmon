@@ -16,7 +16,7 @@ import {
   type Portfolio,
 } from "@/lib/portfolio";
 import { signedPct, signTone } from "@/lib/ui";
-import { BuyPlan } from "./BuyPlan";
+import { BuyPlan, SellPlan } from "./BuyPlan";
 import { ForecastCandles } from "./ForecastCandles";
 import { HistoryCard, HoldingEvents, MofidCard, Summary, Trades } from "./Ledger";
 
@@ -431,6 +431,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
                 {h.verdict_fa}
               </span>
               <span className="text-muted"> — {h.reasons.join(" ")}</span>
+              <SellPlan instrumentId={h.instrument_id} />
             </li>
           ))}
         </ul>

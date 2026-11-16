@@ -3,9 +3,8 @@ import { describe, expect, it } from "vitest";
 import { Gauge } from "@/components/Gauge";
 
 const hues = (zones?: { hold: number; buy: number }) =>
-  Array.from(
-    render(<Gauge value={60} zones={zones} />).container.querySelectorAll("path"),
-    (p) => Number(/hsl\((\d+)/.exec(p.getAttribute("stroke") ?? "")?.[1]),
+  Array.from(render(<Gauge value={60} zones={zones} />).container.querySelectorAll("path"), (p) =>
+    Number(/hsl\((\d+)/.exec(p.getAttribute("stroke") ?? "")?.[1]),
   );
 
 describe("Gauge zones", () => {

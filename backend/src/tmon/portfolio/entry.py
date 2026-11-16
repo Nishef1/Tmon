@@ -665,6 +665,9 @@ MIN_OWN_DAYS = 25
 OWN_PRIOR_DAYS = 40.0  # own history counts n / (n + 40) against the market's days like today's
 
 
+MIN_GAIN = 0.0005  # a sell limit must beat selling now by at least 0.05% to be recommended
+
+
 def _wquantile(x: np.ndarray, w: np.ndarray, q: float) -> float:
     order = np.argsort(x)
     x, w = x[order], w[order]
@@ -675,6 +678,29 @@ def _wquantile(x: np.ndarray, w: np.ndarray, q: float) -> float:
 
 def _tick(price: float) -> float:
     return round(price / TICK) * TICK
+
+
+def _select_days(
+    p: Panel, instrument_id: int, gap: float | None
+) -> tuple[np.ndarray, np.ndarray, str | None, int, int]:
+    """The history days a plan reads: all liquid symbols' days that opened like today (same gap
+    bucket; every day when the bucket is thin) and this symbol's own days (those in the bucket
+    when there are enough). Returns the two masks, the bucket label and the day counts."""
+    gaps = p.o / p.pc - 1
+    keep = (p.adj_ok > 0) & (np.abs(gaps) < 0.055)
+    uni = keep.copy()
+    label = None
+    if gap is not None:
+        for i, text in enumerate(GAP_LABELS):
+            if GAP_EDGES[i] < gap <= GAP_EDGES[i + 1]:
+                uni = keep & (gaps > GAP_EDGES[i]) & (gaps <= GAP_EDGES[i + 1])
+                label = text
+                break
+    if uni.sum() < 200:  # too thin a bucket: all days
+        uni, label = keep.copy(), None
+    own_all = keep & (p.iid == instrument_id)
+    own = own_all & uni if (own_all & uni).sum() >= MIN_OWN_DAYS else own_all
+    return uni, own, label, int(uni.sum()), int(own.sum())
 
 
 def entry_plan(
@@ -705,21 +731,7 @@ def entry_plan(
     gap = bar.gap if in_session else None
     last = bar.last if in_session and bar.last else ref
     dip = p.lo / p.pc - 1
-    gaps = p.o / p.pc - 1
-    keep = (p.adj_ok > 0) & (np.abs(gaps) < 0.055)
-    uni = keep.copy()
-    label = None
-    if gap is not None:
-        for i, text in enumerate(GAP_LABELS):
-            if GAP_EDGES[i] < gap <= GAP_EDGES[i + 1]:
-                uni = keep & (gaps > GAP_EDGES[i]) & (gaps <= GAP_EDGES[i + 1])
-                label = text
-                break
-    if uni.sum() < 200:  # too thin a bucket: all days
-        uni, label = keep.copy(), None
-    own_all = keep & (p.iid == instrument_id)
-    own = own_all & uni if (own_all & uni).sum() >= MIN_OWN_DAYS else own_all
-    n_uni, n_own = int(uni.sum()), int(own.sum())
+    uni, own, label, n_uni, n_own = _select_days(p, instrument_id, gap)
     x = dip[uni]
     w = np.full(n_uni, 1.0 / n_uni)
     if n_own >= MIN_OWN_DAYS:
@@ -800,4 +812,126 @@ def entry_plan(
             )
     else:
         out["headline"] = "در هیچ قیمتی که امروز با احتمال معقول پر شود برتری باقی نمی‌ماند."
+    return out
+
+
+def _mix(
+    values: np.ndarray, mask_u: np.ndarray, mask_o: np.ndarray, own_share: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """The market's days and, weighted by ``own_share``, this symbol's own days."""
+    xs = values[mask_u]
+    ws = np.full(len(xs), 1.0 / max(len(xs), 1))
+    if own_share > 0 and mask_o.any():
+        xo = values[mask_o]
+        xs = np.concatenate([xs, xo])
+        ws = np.concatenate([ws * (1 - own_share), np.full(len(xo), own_share / len(xo))])
+    return xs, ws
+
+
+def exit_plan(
+    session: Session,
+    instrument_id: int,
+    bar: Bar,
+    *,
+    in_session: bool,
+    now_minutes: int | None = None,
+    verdict: str | None = None,
+) -> dict[str, Any]:
+    """Where to leave a sell limit, and whether leaving one beats selling now.
+
+    The mirror of :func:`entry_plan`. The day's highest price against yesterday's close is read
+    from the days that opened like today (blended with this symbol's own days). Each ladder step
+    is a price above the current one that the day's high reached on a known share of days. A
+    limit left at that price is filled on those days; on the others the shares are sold at the
+    close, whose price the same history gives for exactly those days. The expected gain over
+    selling now is ``fill x (price - now) + (1 - fill) x (typical close of the unfilled days -
+    now)`` as a share of today's price. The step with the largest gain is recommended, and selling
+    now when no step gains. Both ways pay the same sale cost, so it does not enter.
+    """
+    p = panel(session)
+    ref = bar.yesterday if in_session else (bar.close or bar.last)
+    if p is None or not ref:
+        return {"available": False, "message": "تاریخچهٔ کافی برای برنامهٔ خروج نیست."}
+    gap = bar.gap if in_session else None
+    now = bar.last if in_session and bar.last else ref
+    uni, own, label, n_uni, n_own = _select_days(p, instrument_id, gap)
+    up = p.h / p.pc - 1  # the day's high against yesterday's close
+    end = p.c / p.pc - 1  # the official close against yesterday's close
+    rem = None
+    factor = 1.0
+    if in_session and now_minutes is not None and now_minutes >= 0:
+        rem = max(0, SESSION_MINUTES - now_minutes)
+        factor = math.sqrt(rem / SESSION_MINUTES)
+    own_share = n_own / (n_own + OWN_PRIOR_DAYS) if n_own >= MIN_OWN_DAYS else 0.0
+    xs, ws = _mix(up, uni, own, own_share)
+    ladder: list[dict[str, Any]] = []
+    for prob in LADDER_P:
+        rel = _wquantile(xs, ws, 1 - prob)  # the level the high reached on `prob` of the days
+        price = _tick(ref * (1 + rel))
+        if bar.limit_up and price > bar.limit_up:
+            price = _tick(bar.limit_up)
+        if price <= now:  # at or below where it trades now: that is selling now, not a limit
+            continue
+        missed = up < (price / ref - 1)
+        if (uni & missed).sum() >= 20:
+            ex, ew = _mix(end, uni & missed, own & missed, own_share)
+            fallback = ref * (1 + float(np.average(ex, weights=ew)))
+        else:
+            fallback = now
+        fill = prob * factor if in_session else prob
+        gain = fill * (price - now) / now + (1 - fill) * (fallback - now) / now
+        ladder.append(
+            {
+                "fill_prob": fill,
+                "day_fill_prob": prob,
+                "price": price,
+                "vs_now": price / now - 1,
+                "vs_ref": price / ref - 1,
+                "touched_today": bool(in_session and bar.high and bar.high >= price),
+                "fallback_price": fallback,
+                "gain_vs_now": gain,
+            }
+        )
+    pos = [r for r in ladder if r["gain_vs_now"] > MIN_GAIN]
+    best = max(pos, key=lambda r: r["gain_vs_now"]) if pos else None
+    out: dict[str, Any] = {
+        "available": True,
+        "mode": "today" if in_session else "next",
+        "reference": ref,
+        "now": now,
+        "ladder": ladder,
+        "recommended": best,
+        "basis": {
+            "market_days": n_uni,
+            "own_days": n_own,
+            "gap_bucket": label,
+            "minutes_left": rem,
+        },
+        "notes": [
+            "احتمال پرشدن از روی بیشترین قیمت روزهای گذشته نسبت به پایانی روز قبل به‌دست آمده؛ "
+            "اگر سفارش حدی تا پایان روز پر نشود، با قیمت پایانیِ همان روزها حساب شده است.",
+            "کارمزد و مالیات فروش در هر دو حالت یکی است و در مقایسه نیامده.",
+        ],
+    }
+    if rem is not None and rem < SESSION_MINUTES:
+        out["notes"].append(
+            "احتمال‌ها با گذشت وقت کم شده‌اند (برآورد اولیه، هنوز روی دادهٔ دقیقه‌ای آزموده نشده)."
+        )
+    want_out = verdict == "sell"
+    if best is not None:
+        out["headline"] = (
+            f"سفارش حدی فروش را روی {best['price']:,.0f} بگذارید؛ در گذشته در "
+            f"{_pct(best['day_fill_prob'], 0)} روزها بیشینهٔ روز به آن رسیده و "
+            f"{_pct(best['vs_now'])} بالاتر از قیمت فعلی است."
+        ).replace(",", "٬")
+        if want_out:
+            out["notes"].append(
+                "مدل فروش می‌گوید؛ اگر سفارش تا پایان روز پر نشد، با قیمت پایانی خارج شوید."
+            )
+    else:
+        out["headline"] = (
+            "صبر برای قیمت بالاتر نمی‌ارزد؛ اگر می‌خواهید بفروشید همین حالا بفروشید."
+            if want_out
+            else "در گذشته صبر برای قیمت بالاتر ارزشی بیشتر از فروش همین حالا نداشته."
+        )
     return out

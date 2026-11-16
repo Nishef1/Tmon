@@ -236,3 +236,37 @@ def test_full_copy_carries_server_owned_rows_and_server_edits(tmp_path: Path) ->
 def _delta_path(tmp: Path, pc: Path, srv: Path) -> str:
     _run(pc, srv, tmp / "seed.db")
     return str(tmp / "seed.db")
+
+
+def test_the_time_of_day_slices_travel_by_day_and_a_refetched_day_is_noticed(
+    tmp_path: Path,
+) -> None:
+    ddl = (
+        "create table intraday_profile_daily (instrument_id int, date date, window int, mid real,"
+        " ask_min real, bid_max real, secs real, source_url text, fetched_at text,"
+        " primary key (instrument_id, date, window));"
+    )
+    for name in ("pc", "srv"):
+        db = _make(tmp_path / f"{name}.db", 3)
+        db.executescript(ddl)
+        for d in ("2026-10-01", "2026-10-02"):
+            for w in range(3):
+                db.execute(
+                    "insert into intraday_profile_daily values (0,?,?,100,101,99,60,'u','t0')",
+                    (d, w),
+                )
+        db.commit()
+    pc = sqlite3.connect(tmp_path / "pc.db")
+    # same date and same row count, different prices: only the sums can tell
+    pc.execute("update intraday_profile_daily set ask_min = 105 where date = '2026-10-02'")
+    pc.execute(
+        "insert into intraday_profile_daily values (0,'2026-10-03',0,100,101,99,60,'u','t1')"
+    )
+    pc.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert res["full"] is False
+    assert res["parts"]["intraday_profile_daily"] == ["2026-10-02", "2026-10-03"]
+    out = sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "delta.db"))
+    assert out["mismatch"] == []
+    got = sqlite3.connect(tmp_path / "srv.db")
+    assert got.execute("select count(*) from intraday_profile_daily").fetchone()[0] == 7

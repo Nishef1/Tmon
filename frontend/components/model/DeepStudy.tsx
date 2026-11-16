@@ -47,11 +47,12 @@ export function DeepStudy({ d }: { d: Deep }) {
           شبکهٔ عمیق، دو مدل <Link href="/glossary/autoregressive">خودبازگشتی</Link> (GRU و TCN روی
           ۱۶ روز اخیر هر سهم)، یک <Link href="/glossary/diffusion_model">دیفیوژن</Link> شرطی،{" "}
           <Link href="/glossary/residual_learning">یادگیری باقیمانده</Link> روی وزن مساوی و
-          ترکیب‌هایشان با GBM و Hedge همه بدون نگاه به آینده سنجیده شدند: مدل در هر روز فقط با نتیجه‌هایی
-          آموزش می‌بیند که تا آن روز معلوم بودند و هر ۱۲۶ روز دوباره آموزش می‌بیند. هر شبکه با{" "}
-          {faNumber(d.seeds.length)} بذر تصادفی متفاوت آموزش داده شده و امتیازش میانگین همین اجراهاست. دورهٔ آزمون خارج از
-          نمونه {jalali(d.oos_from)} تا {jalali(d.last)}، با مرز دو نیمه در {jalali(d.mid)}. معیار
-          قبولی همان <Link href="/glossary/adapt_gate">آزمون ارتقا</Link> است.
+          ترکیب‌هایشان با GBM و Hedge همه بدون نگاه به آینده سنجیده شدند: مدل در هر روز فقط با
+          نتیجه‌هایی آموزش می‌بیند که تا آن روز معلوم بودند و هر ۱۲۶ روز دوباره آموزش می‌بیند. هر
+          شبکه با {faNumber(d.seeds.length)} بذر تصادفی متفاوت آموزش داده شده و امتیازش میانگین همین
+          اجراهاست. دورهٔ آزمون خارج از نمونه {jalali(d.oos_from)} تا {jalali(d.last)}، با مرز دو
+          نیمه در {jalali(d.mid)}. معیار قبولی همان{" "}
+          <Link href="/glossary/adapt_gate">آزمون ارتقا</Link> است.
         </p>
         <p className="alert-warn text-sm leading-7 text-ink" data-testid="deep-caveat">
           داده فقط یک رژیم صعودی را دارد و هر دو نیمه در همان رژیم‌اند.{" "}
@@ -68,7 +69,8 @@ export function DeepStudy({ d }: { d: Deep }) {
       <div className="overflow-x-auto" data-testid="deep-matrix">
         <table className="tbl min-w-[44rem]">
           <caption className="mb-1 text-start text-xs text-muted">
-            بهبود IC هر روش نسبت به وزن مساوی، همراه با t. علامت ✓ یعنی آن روش از آزمون پذیرش گذشته است.
+            بهبود IC هر روش نسبت به وزن مساوی، همراه با t. علامت ✓ یعنی آن روش از آزمون پذیرش گذشته
+            است.
           </caption>
           <thead>
             <tr>

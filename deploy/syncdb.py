@@ -57,6 +57,11 @@ PARTITIONED: dict[str, tuple[str, str, bool]] = {
     "share_changes": ("date", "sum(shares_new)", True),
     "trading_calendar": ("date", "sum(is_open)", True),
     "raw_payloads": ("substr(fetched_at,1,10)", "sum(size_bytes)", True),
+    "intraday_profile_daily": (
+        "date",
+        "round(sum(coalesce(ask_min,0)+coalesce(bid_max,0)),2), round(sum(coalesce(secs,0)),1)",
+        True,
+    ),
 }
 # Written by the server's own monitor: the PC has none (or only test rows) and a sync must never
 # touch them, neither in a delta nor in a full copy.

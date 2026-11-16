@@ -47,9 +47,9 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
       <h3 className="text-lg font-bold">خودکار: سامانه خودش را زیر نظر دارد</h3>
       <p className="text-sm leading-7">
         هر چرخهٔ روزانه قهرمان‌ها و وضعیت بازار را با بررسی قبلی مقایسه می‌کند؛ هر تغییر در فهرست
-        زیر می‌آید. مطالعهٔ عمیق (آزمون شبکه‌های عصبی) خودش بعد از {faNumber(deep?.refresh_days ?? 0)} روز، یا وقتی رژیم
-        بازار عوض شود، دوباره انجام می‌شود. آخرین بررسی: {jalali(a.checked_at?.slice(0, 10))} (داده
-        تا {jalali(a.as_of)}).
+        زیر می‌آید. مطالعهٔ عمیق (آزمون شبکه‌های عصبی) خودش بعد از{" "}
+        {faNumber(deep?.refresh_days ?? 0)} روز، یا وقتی رژیم بازار عوض شود، دوباره انجام می‌شود.
+        آخرین بررسی: {jalali(a.checked_at?.slice(0, 10))} (داده تا {jalali(a.as_of)}).
       </p>
       {r && (
         <p className="text-sm leading-7" data-testid="autopilot-regime">
@@ -66,7 +66,8 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
           <b>مطالعهٔ عمیق:</b>{" "}
           {deep.present ? (
             <>
-              آخرین اجرا: {jalali(deep.last)}، یعنی {faNumber(deep.age_days ?? 0)} روز قدیمی‌تر از داده.{" "}
+              آخرین اجرا: {jalali(deep.last)}، یعنی {faNumber(deep.age_days ?? 0)} روز قدیمی‌تر از
+              داده.{" "}
               {deep.passed.length
                 ? `از آزمون پذیرش گذشته: ${deep.passed.map(passedLabel).join("؛ ")}.`
                 : "هیچ روشی از آزمون پذیرش نگذشته."}
@@ -77,7 +78,8 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
           {deep.due ? (
             <b className="text-down">
               منتظر بازآموزی است: {REASONS[deep.reason ?? ""] ?? deep.reason}.
-              {!deep.can_run && " این سرور کتابخانهٔ torch را ندارد؛ باید روی رایانه‌ای با کارت گرافیک اجرا شود."}
+              {!deep.can_run &&
+                " این سرور کتابخانهٔ torch را ندارد؛ باید روی رایانه‌ای با کارت گرافیک اجرا شود."}
             </b>
           ) : (
             <span className="text-muted">به‌روز است.</span>

@@ -69,7 +69,9 @@ export function Gauge({
           fill="none"
           strokeWidth={sm ? 26 : 20}
           stroke={
-            v == null ? "var(--color-line, #888)" : `hsl(${zoneHue(((s.i + 0.5) / SEGMENTS) * 100, zones)} 70% 42%)`
+            v == null
+              ? "var(--color-line, #888)"
+              : `hsl(${zoneHue(((s.i + 0.5) / SEGMENTS) * 100, zones)} 70% 42%)`
           }
           opacity={v == null ? 0.5 : 1}
         />

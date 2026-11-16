@@ -31,8 +31,8 @@ export function WhyNoRecommendation({
   if (!diagnosis && !gate) {
     return (
       <p className="mt-3 text-sm text-muted" data-testid="why-missing">
-        دلیل این نتیجه برای این اجرا ذخیره نشده است، چون اجرا پیش از افزودن این گزارش انجام شده
-        بود. با اجرای بعدی چرخهٔ روزانه، عددها اینجا نمایش داده می‌شوند.
+        دلیل این نتیجه برای این اجرا ذخیره نشده است، چون اجرا پیش از افزودن این گزارش انجام شده بود.
+        با اجرای بعدی چرخهٔ روزانه، عددها اینجا نمایش داده می‌شوند.
       </p>
     );
   }
@@ -93,12 +93,15 @@ export function WhyNoRecommendation({
       {d && st && (
         <ul className="list-inside list-disc space-y-1" data-testid="why-stats">
           <li>
-            احتمال موفقیت نمادها: بیشترین <Num term="p_win" value={st.p_win_max} kind="percent" digits={1} /> و میانه{" "}
-            <Num term="p_win" value={st.p_win_median} kind="percent" digits={1} />. میانهٔ حداقل احتمالِ لازم{" "}
-            <Num term="p_win" value={st.p_min_median} kind="percent" digits={1} /> است؛ این عدد از نقطهٔ
-            سربه‌سر (<Num term="p_win" value={st.p_breakeven_median} kind="percent" digits={1} />) به‌اضافهٔ
-            حاشیهٔ اطمینان <Num term="p_win" value={d.margin} kind="percent" digits={0} /> ساخته می‌شود و
-            هرگز کمتر از <Num term="p_win" value={d.p_floor} kind="percent" digits={0} /> نیست.
+            احتمال موفقیت نمادها: بیشترین{" "}
+            <Num term="p_win" value={st.p_win_max} kind="percent" digits={1} /> و میانه{" "}
+            <Num term="p_win" value={st.p_win_median} kind="percent" digits={1} />. میانهٔ حداقل
+            احتمالِ لازم <Num term="p_win" value={st.p_min_median} kind="percent" digits={1} /> است؛
+            این عدد از نقطهٔ سربه‌سر (
+            <Num term="p_win" value={st.p_breakeven_median} kind="percent" digits={1} />) به‌اضافهٔ
+            حاشیهٔ اطمینان <Num term="p_win" value={d.margin} kind="percent" digits={0} /> ساخته
+            می‌شود و هرگز کمتر از <Num term="p_win" value={d.p_floor} kind="percent" digits={0} />{" "}
+            نیست.
           </li>
           <li>
             سود خالص مورد انتظار: بیشترین{" "}
@@ -113,7 +116,8 @@ export function WhyNoRecommendation({
             {st.n_distinct_p_win <= 3 && (
               <>
                 {" "}
-                ؛ یعنی مدل امروز تقریباً همهٔ نمادها را یک‌جور امتیاز داده و نمادها را از هم جدا نمی‌کند.
+                ؛ یعنی مدل امروز تقریباً همهٔ نمادها را یک‌جور امتیاز داده و نمادها را از هم جدا
+                نمی‌کند.
               </>
             )}
           </li>
@@ -135,7 +139,8 @@ export function WhyNoRecommendation({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[30rem] text-right" data-testid="near-miss">
             <caption className="pb-1 text-start text-muted">
-              نمادهایی که به قبول‌شدن نزدیک‌تر بودند (از بین ردشده‌ها، بیشترین سود مورد انتظار را دارند)
+              نمادهایی که به قبول‌شدن نزدیک‌تر بودند (از بین ردشده‌ها، بیشترین سود مورد انتظار را
+              دارند)
             </caption>
             <thead>
               <tr className="border-b border-line text-muted">
@@ -194,7 +199,9 @@ export function WhyNoRecommendation({
 
       {gate && !gate.tier_a_allowed && (
         <div data-testid="why-gate">
-          <p className="font-semibold">نتیجهٔ آزمون روی گذشته (خارج از نمونهٔ آموزش و پس از کسر هزینه):</p>
+          <p className="font-semibold">
+            نتیجهٔ آزمون روی گذشته (خارج از نمونهٔ آموزش و پس از کسر هزینه):
+          </p>
           <ul className="mt-1 list-inside list-disc space-y-1">
             {gate.reasons.map((r) => (
               <li key={r}>{faDigits(r)}</li>

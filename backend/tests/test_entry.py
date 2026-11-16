@@ -263,3 +263,71 @@ def test_entry_plan_for_tomorrow_uses_the_official_close(session) -> None:  # ty
     )
     assert plan["mode"] == "next" and plan["reference"] == 1006.0
     assert all(s["touched_today"] is False for s in plan["ladder"])
+
+
+def test_exit_plan_ladder_is_above_the_price_and_picks_the_best_gain(session) -> None:  # type: ignore[no-untyped-def]
+    from tmon.portfolio import entry
+    from tmon.storage.models import Instrument
+
+    _history(session)
+    iid = session.query(Instrument).first().id
+    bar = Bar(None, 1010.0, 1018.0, 1000.0, 1008.0, 1008.0, 1000.0, 1050.0, 950.0)
+    plan = entry.exit_plan(session, iid, bar, in_session=True, now_minutes=30, verdict="sell")
+    assert plan["available"] and plan["mode"] == "today"
+    ladder = plan["ladder"]
+    assert ladder, "some level must sit above the current price"
+    assert all(s["price"] > 1008.0 for s in ladder)
+    assert all(abs(s["price"] % 10) < 1e-9 for s in ladder)
+    prices = [s["price"] for s in ladder]
+    probs = [s["day_fill_prob"] for s in ladder]
+    assert prices == sorted(prices)  # higher levels fill less often
+    assert probs == sorted(probs, reverse=True)
+    best = plan["recommended"]
+    if best is not None:
+        assert best["gain_vs_now"] == max(s["gain_vs_now"] for s in ladder) > 0
+        assert "حدی فروش" in plan["headline"]
+    else:
+        assert "همین حالا" in plan["headline"]
+    assert any("کارمزد" in n for n in plan["notes"])
+
+
+def test_exit_plan_never_proposes_a_price_above_the_daily_limit(session) -> None:  # type: ignore[no-untyped-def]
+    from tmon.portfolio import entry
+    from tmon.storage.models import Instrument
+
+    _history(session)
+    iid = session.query(Instrument).first().id
+    bar = Bar(None, 1010.0, 1018.0, 1000.0, 1008.0, 1008.0, 1000.0, 1030.0, 970.0)
+    plan = entry.exit_plan(session, iid, bar, in_session=True, verdict="hold")
+    assert all(s["price"] <= 1030.0 for s in plan["ladder"])
+
+
+def test_exit_plan_without_history_says_so(session) -> None:  # type: ignore[no-untyped-def]
+    from tmon.portfolio import entry
+
+    bar = Bar(None, 1010.0, 1018.0, 1000.0, 1008.0, 1008.0, 1000.0)
+    plan = entry.exit_plan(session, 1, bar, in_session=True)
+    assert plan == {"available": False, "message": "تاریخچهٔ کافی برای برنامهٔ خروج نیست."}
+
+
+def test_entry_endpoint_carries_the_exit_ladder_and_the_time_of_day(session) -> None:  # type: ignore[no-untyped-def]
+    from fastapi.testclient import TestClient
+
+    from tmon.api.main import create_app
+    from tmon.core.db import get_session
+    from tmon.portfolio import timing
+    from tmon.storage.models import Instrument
+
+    timing._memo.clear()
+    _history(session)
+    iid = session.query(Instrument).first().id
+    app = create_app()
+    app.dependency_overrides[get_session] = lambda: session
+    with TestClient(app) as c:
+        r = c.get(f"/instruments/{iid}/entry")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["available"] and body["exit_plan"]["available"]
+    assert body["exit_plan"]["now"] > 0 and "ladder" in body["exit_plan"]
+    # no 15-minute history stored: the answer says so instead of inventing an hour
+    assert body["timing"]["available"] is False and body["timing"]["message"]

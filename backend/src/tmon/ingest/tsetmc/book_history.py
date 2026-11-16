@@ -26,7 +26,7 @@ from sqlalchemy import text
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
 from tmon.ingest.tsetmc.endpoints import BEST_LIMITS
-from tmon.storage.models import OrderBookDaily
+from tmon.storage.models import Base, IntradayProfileDaily, OrderBookDaily
 from tmon.storage.repositories import upsert
 
 log = logging.getLogger(__name__)
@@ -36,6 +36,8 @@ SESSION_END = 12 * 3600 + 30 * 60  # 12:30:00
 EARLY_END = SESSION_START + 30 * 60
 CLOSE_GRACE = 5 * 60  # closing auction events up to 12:35 still belong to the closing book
 LEVELS = 5
+WINDOW_SECONDS = 15 * 60
+N_WINDOWS = (SESSION_END - SESSION_START) // WINDOW_SECONDS  # 14 slices of 15 minutes
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept-Encoding": "gzip"}
 
 
@@ -158,6 +160,52 @@ def reduce_day(rows: Sequence[dict[str, Any]]) -> dict[str, Any] | None:
     }
 
 
+def reduce_profile(rows: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The ``IntradayProfileDaily`` columns of each 15-minute slice of one day's change log.
+
+    A slice's ``ask_min`` is the lowest best-ask that stood in the book for any part of it (the
+    cheapest price a buyer could have hit) and ``bid_max`` the highest best-bid (the dearest a
+    seller could have hit). ``mid`` is the time-weighted mid price over the seconds the book had
+    both sides. A slice with no usable book is left out."""
+    if not rows:
+        return []
+    t, s = _levels(rows)
+    nxt = np.append(t[1:], SESSION_END)
+    bp, bv = np.nan_to_num(s["bp"][:, 0]), np.nan_to_num(s["bv"][:, 0])
+    ap, av = np.nan_to_num(s["ap"][:, 0]), np.nan_to_num(s["av"][:, 0])
+    ask_ok = (ap > 0) & (av > 0)
+    bid_ok = (bp > 0) & (bv > 0)
+    mid = (ap + bp) / 2
+    out: list[dict[str, Any]] = []
+    for k in range(N_WINDOWS):
+        w0 = SESSION_START + k * WINDOW_SECONDS
+        dur = np.clip(np.minimum(nxt, w0 + WINDOW_SECONDS) - np.maximum(t, w0), 0, None).astype(
+            float
+        )
+        live = dur > 0
+        ask_live, bid_live = live & ask_ok, live & bid_ok
+        both = ask_live & bid_live
+        if not ask_live.any() and not bid_live.any():
+            continue
+        secs = float(dur[both].sum())
+        out.append(
+            {
+                "window": k,
+                "mid": float((mid[both] * dur[both]).sum() / secs) if secs > 0 else None,
+                "ask_min": float(ap[ask_live].min()) if ask_live.any() else None,
+                "bid_max": float(bp[bid_live].max()) if bid_live.any() else None,
+                "secs": secs,
+            }
+        )
+    return out
+
+
+def ensure_profile_table() -> None:
+    """The table is created on first use (older databases predate migration 0015)."""
+    with session_scope() as s:
+        Base.metadata.create_all(s.get_bind(), tables=[IntradayProfileDaily.__table__])  # type: ignore[list-item]
+
+
 async def _fetch(
     client: httpx.AsyncClient, ins_code: str, day: date, tries: int = 5
 ) -> list[dict[str, Any]] | None:
@@ -181,6 +229,7 @@ async def collect(
 ) -> int:
     """Download and store ``(instrument_id, ins_code, day)`` jobs; returns the rows written."""
     todo = list(jobs)
+    ensure_profile_table()
     sem = asyncio.Semaphore(concurrency)
     written = 0
     failed = 0
@@ -195,20 +244,33 @@ async def collect(
             red = reduce_day(rows)
             if red is None:
                 return {"_empty": True, "instrument_id": iid, "date": day}
+            url = BEST_LIMITS.format(ins_code=code, date=day.strftime("%Y%m%d"))
             return {
                 "instrument_id": iid,
                 "date": day,
                 **red,
-                "source_url": BEST_LIMITS.format(ins_code=code, date=day.strftime("%Y%m%d")),
+                "source_url": url,
                 "fetched_at": utcnow(),
+                "_profile": [
+                    {
+                        "instrument_id": iid,
+                        "date": day,
+                        **w,
+                        "source_url": url,
+                        "fetched_at": utcnow(),
+                    }
+                    for w in reduce_profile(rows)
+                ],
             }
 
         for i in range(0, len(todo), batch):
             res = await asyncio.gather(*[one(j) for j in todo[i : i + batch]])
             good = [r for r in res if r and "_failed" not in r and "_empty" not in r]
             failed += sum(1 for r in res if r and "_failed" in r)
+            slices = [w for r in good for w in r.pop("_profile")]
             with session_scope() as s:
                 written += upsert(s, OrderBookDaily, good)
+                upsert(s, IntradayProfileDaily, slices)
             log.info(
                 "book_history %d/%d stored=%d failed=%d", i + len(res), len(todo), written, failed
             )
@@ -239,12 +301,19 @@ def plan_jobs(top: int, days: int) -> list[tuple[int, str, date]]:
             select distinct date from prices_daily
             where date <= (select d from last) order by date desc limit :days
         )
-        and not exists (
-            select 1 from order_book_daily b where b.instrument_id = i.id and b.date = p.date
+        and (
+            not exists (
+                select 1 from order_book_daily b where b.instrument_id = i.id and b.date = p.date
+            )
+            or not exists (
+                select 1 from intraday_profile_daily f
+                where f.instrument_id = i.id and f.date = p.date
+            )
         )
         order by p.date desc, liq.v desc
         """
     )
+    ensure_profile_table()
     with session_scope() as s:
         rows = s.execute(q, {"top": top, "days": days}).all()
     return [(int(r[0]), str(r[1]), date.fromisoformat(str(r[2])[:10])) for r in rows]

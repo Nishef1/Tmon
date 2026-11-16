@@ -14,4 +14,6 @@ if not db.exists():
 os.environ["TMON_DATABASE_URL"] = f"sqlite:///{db.as_posix()}"
 
 if __name__ == "__main__":
-    uvicorn.run("tmon.api.main:app", host="127.0.0.1", port=int(os.environ.get("TMON_DEMO_PORT", "8000")))
+    uvicorn.run(
+        "tmon.api.main:app", host="127.0.0.1", port=int(os.environ.get("TMON_DEMO_PORT", "8000"))
+    )

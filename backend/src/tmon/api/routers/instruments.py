@@ -399,12 +399,14 @@ def instrument_live(instrument_id: int, session: SessionDep) -> LiveOut:
 def instrument_entry(
     instrument_id: int, session: SessionDep, paid: float | None = None
 ) -> dict[str, Any]:
-    """Is now a sensible moment and price to buy this symbol? Today's range comes from the
-    exchange for this request (nothing kept); the answer weighs the gap, the place in the day's
-    range, the model's tested edge after cost, the history of days that opened like today and the
-    order book. With ``paid`` it also grades a purchase made at that price today."""
+    """Is now a sensible moment and price to buy this symbol, and where and when to sell it?
+    Today's range comes from the exchange for this request (nothing kept); the answer weighs the
+    gap, the place in the day's range, the model's tested edge after cost, the history of days
+    that opened like today and the order book. It also carries the exit ladder (where to leave a
+    sell limit) and the best quarter-hours of the session to buy and to sell. With ``paid`` it
+    also grades a purchase made at that price today."""
     from tmon.portfolio import entry as ent
-    from tmon.portfolio import liveprice
+    from tmon.portfolio import liveprice, timing
     from tmon.portfolio.advice import ranking_doc
 
     inst = session.get(Instrument, instrument_id)
@@ -495,6 +497,15 @@ def instrument_entry(
             now_minutes=minutes,
             verdict=verdict,
         ),
+        "exit_plan": ent.exit_plan(
+            session,
+            instrument_id,
+            bar,
+            in_session=minutes is not None and minutes >= 0 and bar.first is not None,
+            now_minutes=minutes,
+            verdict=verdict,
+        ),
+        "timing": timing.time_of_day(session, instrument_id),
         "review": ent.review_entry(paid, bar, edge=edge, cost=cost, fade=fade, queue=queue)
         if paid
         else None,

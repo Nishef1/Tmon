@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { faNumber, faPercent, faPrice } from "@/lib/format";
+import { faDigits, faNumber, faPercent, faPrice, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -51,6 +51,64 @@ type Plan =
       basis: { market_days: number; own_days: number; gap_bucket: string | null };
       notes: string[];
     };
+type ExitStep = {
+  fill_prob: number;
+  day_fill_prob: number;
+  price: number;
+  vs_now: number;
+  vs_ref: number;
+  touched_today: boolean;
+  fallback_price: number;
+  gain_vs_now: number;
+};
+type ExitPlan =
+  | { available: false; message?: string }
+  | {
+      available: true;
+      mode: "today" | "next";
+      reference: number;
+      now: number;
+      headline: string;
+      ladder: ExitStep[];
+      recommended: ExitStep | null;
+      basis: {
+        market_days: number;
+        own_days: number;
+        gap_bucket: string | null;
+        minutes_left: number | null;
+      };
+      notes: string[];
+    };
+type Pick = {
+  window: number;
+  label: string;
+  confirmed: boolean;
+  vs_day: number | null;
+  t: number | null;
+};
+type SliceRow = {
+  window: number;
+  label: string;
+  mid_vs_day: number | null;
+  low_share: number;
+  high_share: number;
+  chance_low: number;
+  chance_high: number;
+};
+type TimeOfDay =
+  | { available: false; message?: string }
+  | {
+      available: true;
+      basis: "own" | "market";
+      basis_days: number;
+      last_day: string;
+      headline: string;
+      spread: number;
+      table: SliceRow[];
+      buy: Pick;
+      sell: Pick;
+      notes: string[];
+    };
 type Entry =
   | { available: false; message?: string }
   | {
@@ -60,6 +118,8 @@ type Entry =
       bar: { last: number | null; close: number | null; yesterday: number | null };
       guard: Guard;
       plan?: Plan;
+      exit_plan?: ExitPlan;
+      timing?: TimeOfDay;
       review: Review | null;
     };
 
@@ -130,11 +190,11 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
           {!entry.live && <span className="font-normal text-muted"> (قیمت زنده نبود)</span>}
         </span>
       </div>
-      <p className={`mt-1 font-bold ${TONE[g.state]}`}>{g.headline}</p>
+      <p className={`mt-1 font-bold ${TONE[g.state]}`}>{faDigits(g.headline)}</p>
       {g.reasons.length > 0 && (
         <ul className="mt-1 list-disc pr-5 text-sm">
           {g.reasons.map((r) => (
-            <li key={r}>{r}</li>
+            <li key={r}>{faDigits(r)}</li>
           ))}
         </ul>
       )}
@@ -177,6 +237,8 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
         )}
       </dl>
       {entry.plan?.available && <PlanBlock plan={entry.plan} />}
+      {entry.exit_plan?.available && <ExitBlock plan={entry.exit_plan} />}
+      {entry.timing && <TimingBlock timing={entry.timing} />}
       <p className="mt-2 text-xs text-muted">
         امتیاز مدل از پایانی دیروز شروع می‌شود؛ هر ریالی که بالاتر از آن بخرید از سود پیش‌بینی‌شده
         کم می‌شود. برای خرید، سفارش حدی در قیمت بالا نبرید و دقایق اول بازگشایی را کنار بگذارید.
@@ -202,7 +264,7 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
           {rev.flags.length > 0 && (
             <ul className="mt-1 list-disc pr-5">
               {rev.flags.map((f) => (
-                <li key={f.key}>{f.text}</li>
+                <li key={f.key}>{faDigits(f.text)}</li>
               ))}
             </ul>
           )}
@@ -222,7 +284,9 @@ function PlanBlock({ plan }: { plan: Extract<Plan, { available: true }> }) {
       <h3 className="font-bold">
         بهترین ورود {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
       </h3>
-      <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>{plan.headline}</p>
+      <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>
+        {faDigits(plan.headline)}
+      </p>
       {plan.ladder.length > 0 && (
         <div className="mt-2 overflow-x-auto">
           <table className="tbl w-full min-w-[22rem] text-sm">
@@ -255,12 +319,133 @@ function PlanBlock({ plan }: { plan: Extract<Plan, { available: true }> }) {
       )}
       <ul className="mt-2 list-disc pr-5 text-xs text-muted">
         {plan.notes.map((n) => (
-          <li key={n}>{n}</li>
+          <li key={n}>{faDigits(n)}</li>
         ))}
         <li>
           مبنا: {faNumber(plan.basis.market_days)} روز مشابه بازار
           {plan.basis.own_days >= 25 ? ` و ${faNumber(plan.basis.own_days)} روز خودِ این نماد` : ""}
           {plan.basis.gap_bucket ? ` (بازگشایی: ${plan.basis.gap_bucket})` : ""}.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+/** The mirror of the entry ladder: prices to leave a limit sell at, how often the day's high
+ *  reached each one, and what each is worth next to selling right now (fees and tax included).
+ *  An order not filled by the close is priced at that day's close, as the note says. */
+function ExitBlock({ plan }: { plan: Extract<ExitPlan, { available: true }> }) {
+  const best = plan.recommended;
+  return (
+    <div className="mt-3 rounded-lg bg-surface-2 p-3" data-testid="exit-plan">
+      <h3 className="font-bold">
+        بهترین فروش {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
+      </h3>
+      <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>
+        {faDigits(plan.headline)}
+      </p>
+      {plan.ladder.length > 0 && (
+        <div className="mt-2 overflow-x-auto">
+          <table className="tbl w-full min-w-[22rem] text-sm">
+            <thead>
+              <tr>
+                <th>قیمت سفارش حدی فروش</th>
+                <th>گران‌تر از {plan.mode === "next" ? "پایانی" : "قیمت فعلی"}</th>
+                <th>شانس پرشدن</th>
+                <th>سود مورد انتظار نسبت به فروش حالا</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plan.ladder.map((st) => (
+                <tr key={st.price} className={best?.price === st.price ? "font-bold" : ""}>
+                  <td>
+                    {faPrice(st.price)}
+                    {best?.price === st.price && <span className="text-up"> ← پیشنهاد</span>}
+                    {st.touched_today && <span className="text-muted"> (امروز لمس شده)</span>}
+                  </td>
+                  <td>{faPercent(st.vs_now, 1, true)}</td>
+                  <td>{faPercent(st.fill_prob, 0)}</td>
+                  <td className={signTone(st.gain_vs_now)}>{faPercent(st.gain_vs_now, 2, true)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ul className="mt-2 list-disc pr-5 text-xs text-muted">
+        {plan.notes.map((n) => (
+          <li key={n}>{faDigits(n)}</li>
+        ))}
+        <li>
+          مبنا: {faNumber(plan.basis.market_days)} روز مشابه بازار
+          {plan.basis.own_days >= 25 ? ` و ${faNumber(plan.basis.own_days)} روز خودِ این نماد` : ""}
+          {plan.basis.gap_bucket ? ` (بازگشایی: ${plan.basis.gap_bucket})` : ""}.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+/** Is any quarter-hour of the session reliably cheaper to buy or dearer to sell? A slice is named
+ *  only when it was picked on the older half of the days and held on the newer half; otherwise the
+ *  block says no hour is reliably better and shows how little the slices differ. The table lets
+ *  the reader see that the day's low and high pile up at the open for volatility, not for price. */
+function TimingBlock({ timing }: { timing: TimeOfDay }) {
+  if (!timing.available) {
+    return (
+      <p className="mt-3 text-xs text-muted" data-testid="timing-missing">
+        ساعت بهتر خرید و فروش: {timing.message ?? "دادهٔ کافی نیست."}
+      </p>
+    );
+  }
+  const found = timing.buy.confirmed || timing.sell.confirmed;
+  return (
+    <div className="mt-3 rounded-lg bg-surface-2 p-3" data-testid="timing">
+      <h3 className="font-bold">ساعت بهتر برای خرید و فروش</h3>
+      <p className={`mt-1 text-sm font-bold ${found ? "text-up" : "text-muted"}`}>
+        {faDigits(timing.headline)}
+      </p>
+      <details className="mt-2 text-sm">
+        <summary className="cursor-pointer text-muted">قیمت هر بازهٔ ۱۵ دقیقه‌ای</summary>
+        <div className="mt-2 overflow-x-auto">
+          <table className="tbl w-full min-w-[26rem] text-sm">
+            <thead>
+              <tr>
+                <th>بازه</th>
+                <th>قیمت نسبت به میانگین روز</th>
+                <th>کمینهٔ روز اینجا افتاده</th>
+                <th>بیشینهٔ روز اینجا افتاده</th>
+              </tr>
+            </thead>
+            <tbody>
+              {timing.table.map((r) => (
+                <tr key={r.window}>
+                  <td dir="ltr">{faDigits(r.label)}</td>
+                  <td className={r.mid_vs_day != null ? signTone(r.mid_vs_day) : "text-muted"}>
+                    {r.mid_vs_day == null ? "—" : faPercent(r.mid_vs_day, 2, true)}
+                  </td>
+                  <td>
+                    {faPercent(r.low_share, 0)}
+                    <span className="text-muted"> (تصادفی {faPercent(r.chance_low, 0)})</span>
+                  </td>
+                  <td>
+                    {faPercent(r.high_share, 0)}
+                    <span className="text-muted"> (تصادفی {faPercent(r.chance_high, 0)})</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <ul className="mt-2 list-disc pr-5 text-xs text-muted">
+        {timing.notes.map((n) => (
+          <li key={n}>{faDigits(n)}</li>
+        ))}
+        <li>
+          مبنا: {faNumber(timing.basis_days)} روز{" "}
+          {timing.basis === "own" ? "خودِ این نماد" : "همهٔ نمادهای دارای داده"}، تا{" "}
+          {jalali(timing.last_day)}.
         </li>
       </ul>
     </div>

@@ -74,7 +74,9 @@ export function PortfolioList() {
       <section className="card">
         <h2 className="font-bold">پرتفوی‌های من</h2>
         {list.length === 0 ? (
-          <p className="mt-2 text-muted">هنوز پرتفویی در این مرورگر نیست. یکی بسازید یا وارد کنید.</p>
+          <p className="mt-2 text-muted">
+            هنوز پرتفویی در این مرورگر نیست. یکی بسازید یا وارد کنید.
+          </p>
         ) : (
           <ul className="mt-2 grid gap-2">
             {list.map((p) => (

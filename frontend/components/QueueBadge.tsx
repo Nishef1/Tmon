@@ -8,7 +8,15 @@ const LEVEL = {
 } as const;
 
 type Queue = Partial<
-  Pick<RankingRow, "queue_state" | "queue_ratio" | "queue_level" | "queue_orders" | "queue_reach_pct" | "queue_reach_cases">
+  Pick<
+    RankingRow,
+    | "queue_state"
+    | "queue_ratio"
+    | "queue_level"
+    | "queue_orders"
+    | "queue_reach_pct"
+    | "queue_reach_cases"
+  >
 >;
 
 /** «صف خرید سنگین (۲٫۴)»: how heavy the buy line is, with the ratio of the line to a usual day's

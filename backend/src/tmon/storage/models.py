@@ -537,6 +537,26 @@ class OrderBookDaily(Base, Provenance):
     peak_queue_volume: Mapped[float | None] = mapped_column(Float)  # largest one-sided queue
 
 
+class IntradayProfileDaily(Base, Provenance):
+    """One 15-minute slice of one instrument's session, reduced from TSETMC's ``BestLimits`` change
+    log: the time-weighted mid price, the cheapest price a buyer could hit (best ask) and the
+    dearest a seller could hit (best bid) inside the slice. ``window`` 0 is 09:00-09:15 and 13 is
+    12:15-12:30. Prices are rial; what the slices say about the time of day is derived from many
+    days at read time (:mod:`tmon.portfolio.timing`)."""
+
+    __tablename__ = "intraday_profile_daily"
+
+    instrument_id: Mapped[int] = mapped_column(
+        ForeignKey("instruments.id"), primary_key=True, index=True
+    )
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True, index=True)
+    window: Mapped[int] = mapped_column(Integer, primary_key=True)
+    mid: Mapped[float | None] = mapped_column(Float)
+    ask_min: Mapped[float | None] = mapped_column(Float)
+    bid_max: Mapped[float | None] = mapped_column(Float)
+    secs: Mapped[float | None] = mapped_column(Float)  # seconds of the slice with a two-sided book
+
+
 class Portfolio(Base):
     """One user's portfolio. Each portfolio is separate: its own holdings, alert thresholds,
     notification channels and access key (only the SHA-256 of the key is stored)."""
