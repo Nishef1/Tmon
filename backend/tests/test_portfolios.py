@@ -445,3 +445,25 @@ def test_a_trend_that_kept_going_keeps_a_larger_weight() -> None:
     month = next(h for h in doc["horizons"] if h["key"] == "month")
     assert month["drift_weight"] >= 0.5
     assert month["portfolio"]["q50"] > month["no_trend"]["q50"]
+
+
+def test_hold_in_sell_zone_explains_why_it_is_not_a_sell() -> None:
+    """The stock page softens a low score the tested month does not back up to «hold»; the
+    portfolio advice must say so next to the sell zone instead of looking self-contradictory."""
+    from tmon.portfolio.advice import Scored, _holding_verdict
+    from tmon.storage.models import Holding
+
+    held = Holding(portfolio_id=1, instrument_id=7, shares=100, avg_price=1000.0)
+    sc = Scored(
+        id=7, score=0.27, zone="avoid", queue_state="none", halted=False, rank=606, verdict="hold"
+    )
+    verdict, reasons = _holding_verdict(held, sc, 1026.0)
+    assert verdict == "hold"
+    text = " ".join(reasons)
+    assert "«فروش»" in text and "فروش قطعی لازم نیست" in text
+    sc_sell = Scored(
+        id=7, score=0.1, zone="avoid", queue_state="none", halted=False, rank=900, verdict="sell"
+    )
+    verdict, reasons = _holding_verdict(held, sc_sell, 1026.0)
+    assert verdict == "weak"
+    assert "فروش قطعی لازم نیست" not in " ".join(reasons)

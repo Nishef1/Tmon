@@ -25,6 +25,13 @@ describe("number formatting", () => {
     expect(faDigits(ltr("+۱٪"))).toBe(ltr("+۱٪"));
   });
 
+  it("turns a Latin thousands comma into the Persian separator", () => {
+    expect(faDigits("قیمت (606,000) به حد (1,234,567) رسید")).toBe(
+      "قیمت (۶۰۶٬۰۰۰) به حد (۱٬۲۳۴٬۵۶۷) رسید",
+    );
+    expect(faDigits("۱۲ ، ۳۴")).toBe("۱۲ ، ۳۴");
+  });
+
   it("isolates negative plain numbers", () => {
     expect(faNumber(-1500)).toBe(ltr("−۱٬۵۰۰"));
   });

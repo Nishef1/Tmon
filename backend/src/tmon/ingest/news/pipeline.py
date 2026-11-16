@@ -147,7 +147,8 @@ async def fetch_feeds(session: Session, client: PoliteClient, store: ObjectStore
 
 async def _run() -> dict[str, Any]:
     settings = get_settings()
-    client = PoliteClient(retry=RetryPolicy(max_retries=2))  # polled often; a miss is retried next time
+    # polled often: a miss is retried on the next tick, not in a loop
+    client = PoliteClient(retry=RetryPolicy(max_retries=2))
     try:
         with session_scope() as session:
             out = {"feeds": await fetch_feeds(session, client, get_object_store())}

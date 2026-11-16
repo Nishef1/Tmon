@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { faNumber, faPercent, faPrice, faToman, jalali } from "@/lib/format";
+import { faDigits, faNumber, faPercent, faPrice, faToman, jalali } from "@/lib/format";
 import {
   call,
   useNotificationPermission,
@@ -115,12 +115,12 @@ export function AlertsFeed({
               >
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className={s.cls}>{s.text}</span>
-                  <b>{a.title}</b>
+                  <b>{faDigits(a.title)}</b>
                   <span className="text-xs text-muted">
                     {new Date(a.created_at).toLocaleString("fa-IR")}
                   </span>
                 </div>
-                <p className="mt-1 whitespace-pre-line text-sm">{a.body}</p>
+                <p className="mt-1 whitespace-pre-line text-sm">{faDigits(a.body)}</p>
                 {a.ask_exit &&
                   (a.answer ? (
                     <p className="mt-1 text-sm">
@@ -246,9 +246,10 @@ function Holdings({
     <section className="card">
       <h2 className="font-bold">دارایی‌ها</h2>
       <p className="mt-1 text-sm text-muted">
-        ارزش {faToman(p.market_value)} تومان · سود باز{" "}
-        <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان) — پس از
-        کارمزد و مالیات فروش.
+        ارزش بازار {faToman(p.market_value)} تومان؛ اگر الان فروخته شود، پس از کارمزد و مالیات{" "}
+        {faToman(p.liquidation_value)} تومان به دست می‌آید · سود باز{" "}
+        <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان) با
+        احتساب همین هزینهٔ فروش.
       </p>
       {p.holdings.length > 0 && <MeetingAlerts holdings={p.holdings} />}
       {p.holdings.length > 0 && (
@@ -412,7 +413,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
     <section className="card" data-testid="advice">
       <h2 className="font-bold">پیشنهاد: نگه‌داری، جایگزینی، خرید</h2>
       <p className={`mt-1 text-sm ${a.validated ? "text-muted" : "text-down"}`}>
-        {a.note} {a.as_of && <>(رتبه‌بندی {jalali(a.as_of)})</>}
+        {faDigits(a.note)} {a.as_of && <>(رتبه‌بندی {jalali(a.as_of)})</>}
       </p>
       {a.holdings.length > 0 && (
         <ul className="mt-2 grid gap-1 text-sm">
@@ -430,7 +431,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
               >
                 {h.verdict_fa}
               </span>
-              <span className="text-muted"> — {h.reasons.join(" ")}</span>
+              <span className="text-muted"> — {faDigits(h.reasons.join(" "))}</span>
               <SellPlan instrumentId={h.instrument_id} />
             </li>
           ))}
@@ -444,7 +445,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
               <li key={s.sell.symbol}>
                 <b className="text-down">{s.sell.symbol}</b> ←{" "}
                 <b className="text-up">{s.buy.symbol}</b>
-                <span className="text-muted"> — {s.reason}</span>
+                <span className="text-muted"> — {faDigits(s.reason)}</span>
               </li>
             ))}
           </ul>
@@ -478,7 +479,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
       )}
       {a.buy_note && (
         <p className="mt-3 text-sm" data-testid="buy-note">
-          {a.buy_note}
+          {faDigits(a.buy_note)}
         </p>
       )}
     </section>
@@ -549,7 +550,7 @@ function EntriesCard({ id, pkey, version }: { id: number; pkey: string; version:
                   {r.flags.length > 0 && (
                     <ul className="list-disc pr-4 text-xs text-muted">
                       {r.flags.map((f) => (
-                        <li key={f.key}>{f.text}</li>
+                        <li key={f.key}>{faDigits(f.text)}</li>
                       ))}
                     </ul>
                   )}
@@ -778,7 +779,7 @@ function BriefingCard({ id, pkey }: { id: number; pkey: string }) {
                   {h.action_fa}
                 </b>{" "}
                 <span className="text-muted">(اطمینان {faNumber(h.confidence * 100)}٪)</span>
-                {h.why.length > 0 && <p className="mt-1 text-muted">{h.why.join(" · ")}</p>}
+                {h.why.length > 0 && <p className="mt-1 text-muted">{faDigits(h.why.join(" · "))}</p>}
                 {h.macro && Math.abs(h.macro.total) >= 0.005 && (
                   <p className={`mt-1 ${signTone(h.macro.total)}`}>
                     فشار دلار/کالا از آخرین معامله (اندازه‌گیری‌شده): {signedPct(h.macro.total)}

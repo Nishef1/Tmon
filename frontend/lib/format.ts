@@ -25,6 +25,7 @@ function group(n: number, digits: number): string {
 export function faDigits(text: string): string {
   return text
     .replace(/[⁦⁩]/g, "")
+    .replace(/(\d),(?=\d{3}(?!\d))/g, "$1٬") // thousands separator
     .replace(/(\d)\.(\d)/g, "$1٫$2") // decimal point
     .replace(/(^|[\s(])-(?=\d)/g, "$1−") // minus sign
     .replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
