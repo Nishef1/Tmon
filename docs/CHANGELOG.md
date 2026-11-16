@@ -8,6 +8,7 @@
 - Frontend: the "why wait with a high score" paragraph no longer blames a thin edge when the state caused the wait; the gauge says it is a rank, not advice, when it sits in the buy zone but the word is not "buy"; «ضعیف / قوی» labels enlarged (they rendered at about 7 px).
 - The 20-candle cone is still own-history noise (−15%…+68% band, median 0% at 20 against +6% at 10 candles) and is labelled "not a signal"; it was not changed.
 - Side effect to know: شکام and داوه, among others, now read «صبر» for the month.
+- Found by cross-checking every ranking «buy» against its own page on the server: 18 of 52 disagreed. Rows that did not trade on the latest day (شتوکا) skipped the state veto, and equity funds kept a «buy» while their page says no decision. `ranking._settle_verdicts` now gives every linked row the stock page's answer (veto for idle rows too, no verdict for non-stocks).
 
 ## 2026-11-16 — Server monitor, no false alerts, exit ladder and best time of day
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -62,16 +62,8 @@ def ranking(session: SessionDep) -> RankingOut:
             r.instrument_id = ins.id
             r.close = close
             r.change_pct = day_change(close, prev)
-            if r.verdict == "buy":  # a buy is lowered to a wait when the symbol's state objects
-                again = final_verdict(
-                    doc,
-                    r.zone,
-                    {k: x for k, x in r.signals.items() if x is not None},
-                    turning,
-                    ins.id,
-                )
-                r.verdict = again if again in ("buy", "hold", "sell") else None  # type: ignore[assignment]
         _mark_idle(session, out, by_symbol)
+        _settle_verdicts(session, out, doc, turning)
         readings = queue_readings(
             session, [r.instrument_id for r in out.rows if r.instrument_id], last
         )
@@ -84,6 +76,37 @@ def ranking(session: SessionDep) -> RankingOut:
                 if hit_odds is not None:
                     r.queue_reach_pct, r.queue_reach_cases = hit_odds
     return out
+
+
+def _settle_verdicts(
+    session: Session,
+    out: RankingOut,
+    doc: dict[str, Any],
+    turning: dict[str, Any] | None,
+) -> None:
+    """The same answer the stock page gives, for every row that links to an instrument (traded
+    today or idle): a buy is lowered to a wait when the symbol's own state objects, and a row that
+    is not a stock (an equity fund) has no verdict, as on its page."""
+    ids = {r.instrument_id for r in out.rows if r.instrument_id}
+    kinds = dict(
+        session.execute(
+            select(Instrument.id, Instrument.instrument_type).where(Instrument.id.in_(ids))
+        ).all()
+    )
+    for r in out.rows:
+        if r.instrument_id is None or r.verdict is None:
+            continue
+        if kinds.get(r.instrument_id, "stock") != "stock":
+            r.verdict = None
+        elif r.verdict == "buy":
+            again = final_verdict(
+                doc,
+                r.zone,
+                {k: x for k, x in r.signals.items() if x is not None},
+                turning,
+                r.instrument_id,
+            )
+            r.verdict = again if again in ("buy", "hold", "sell") else None  # type: ignore[assignment]
 
 
 def _mark_idle(

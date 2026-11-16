@@ -242,3 +242,46 @@ def test_a_fresh_listing_gets_no_score_and_does_not_shape_the_ranking() -> None:
     }
     assert 20 not in {r["symbol"] for r in rows_for(got, names)} | set()  # symbols are s<i>
     assert "s20" not in {r["symbol"] for r in rows_for(got, names)}
+
+
+class _Kinds:
+    """Stands in for the session: ``execute(...).all()`` answers (instrument id, type) pairs."""
+
+    def __init__(self, kinds: dict[int, str]) -> None:
+        self._kinds = kinds
+
+    def execute(self, _stmt: object) -> _Kinds:
+        return self
+
+    def all(self) -> list[tuple[int, str]]:
+        return list(self._kinds.items())
+
+
+def test_a_row_gets_the_stock_pages_answer_whether_or_not_it_traded_today() -> None:
+    """A buy row that is idle today and a buy row that is a fund used to keep "buy" in the list
+    while their own pages said wait / no decision."""
+    from tmon.api.schemas import RankingOut
+
+    stock = {**DOC["rows"][0], "symbol": "الف", "rank": 1}  # type: ignore[index]
+    fund = {**stock, "symbol": "ب", "rank": 2, "name": "صندوق ب"}
+    out = RankingOut(available=True, **{**DOC, "rows": [stock, fund]})
+    for r, ident in zip(out.rows, (7, 8), strict=True):
+        r.instrument_id, r.verdict = ident, "buy"
+    hot = {
+        "symbols": {"7": {"state": "hot"}},
+        "history": {
+            "states": {
+                "hot": {
+                    "n": 40000,
+                    "h20": {"n": 40000, "excess_mean": -0.002, "p_dn20": 0.11},
+                    "h60": None,
+                }
+            },
+            "base": {"h20": {"n": 1000000, "excess_mean": 0.0, "p_dn20": 0.05}, "h60": None},
+        },
+        "states": [],
+    }
+    doc = {**DOC, "round_trip_cost": 0.017512}
+    rk._settle_verdicts(_Kinds({7: "stock", 8: "etf_equity"}), out, doc, hot)  # type: ignore[arg-type]
+    assert out.rows[0].verdict == "hold"  # the state objects, as on the stock page
+    assert out.rows[1].verdict is None  # a fund has no verdict, as on its page
