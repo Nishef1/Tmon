@@ -159,6 +159,12 @@ def _holding_verdict(h: Holding, sc: Scored | None, price: float | None) -> tupl
     if sc.queue_state == "sell_queue":
         reasons.append("در صف فروش است؛ فروش فوری ممکن نیست و خطر ادامهٔ ریزش هست.")
         return "sell", reasons
+    if sc.zone == "avoid" and sc.verdict != "sell":
+        # same as the stock page: a low score the tested month does not back up is not a sell
+        reasons.append(
+            "ولی در آزمون گذشته سهم‌های کم‌امتیاز در یک ماه از بازار عقب نمانده‌اند، پس فروش قطعی "
+            "لازم نیست؛ خرید تازه نکنید و حد ضرر بگذارید."
+        )
     if pnl is not None:
         reasons.append(f"سود/زیان فعلی {pnl * 100:+.1f}٪ نسبت به میانگین خرید (آخرین معامله).")
     if sc.verdict == "sell":
@@ -168,12 +174,6 @@ def _holding_verdict(h: Holding, sc: Scored | None, price: float | None) -> tupl
     if sc.zone == "buy":
         # the zone says buy but the tested month does not carry it: same as the stock page, wait
         reasons.append("امتیاز بالاست ولی آزمون ماه گذشته پس از کارمزد برتری را تأیید نکرده است.")
-    if sc.zone == "avoid":
-        # same as the stock page: a low score the tested month does not back up is not a sell
-        reasons.append(
-            "ولی در آزمون گذشته سهم‌های کم‌امتیاز در یک ماه از بازار عقب نمانده‌اند، پس فروش قطعی "
-            "لازم نیست؛ خرید تازه نکنید و حد ضرر بگذارید."
-        )
     return "hold", reasons
 
 
