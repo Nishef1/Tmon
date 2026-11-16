@@ -56,7 +56,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
           <StockTable rows={rows} />
           <p className="text-xs leading-6 text-muted" data-testid="today-note">
             رتبه‌بندی برای نگه‌داری حدود یک هفته یا بیشتر آزموده شده و برای یک روز، پس از کارمزد،
-            سودی ندارد. هنوز همهٔ آزمون‌های اعتبار نگذشته‌اند؛ دلیل هر سهم در صفحهٔ خودش است.{" "}
+            سودی ندارد. هنوز همهٔ آزمون‌های پذیرش نگذشته‌اند؛ دلیل هر سهم در صفحهٔ خودش است.{" "}
             <Link href="/model#v2" className="text-accent underline">
               نتیجهٔ آزمون‌ها
             </Link>
@@ -81,9 +81,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
         </summary>
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted">
-            این مدل هنوز از آزمون‌ها نگذشته؛ اغلب روزها هیچ سیگنالی نمی‌دهد و نباید مبنای خرید باشد.
+            این مدل هنوز از آزمون‌های پذیرش نگذشته؛ اغلب روزها هیچ سیگنالی نمی‌دهد و نباید مبنای خرید باشد.
           </p>
-          <nav aria-label="تایم‌فریم" className="flex flex-wrap gap-2">
+          <nav aria-label="بازهٔ زمانی" className="flex flex-wrap gap-2">
             {TIMEFRAMES.map((t) => (
               <Link
                 key={t.id}
@@ -137,7 +137,7 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
 
       {run?.defensive_mode && (
         <aside role="status" className="alert-warn alert-lg">
-          <strong>حالت دفاعی فعال است.</strong> عرض بازار ضعیف است یا پول حقیقی چند روز پیاپی خارج
+          <strong>حالت دفاعی فعال است.</strong> تعداد سهم‌های صعودی کم است یا پول حقیقی چند روز پیاپی خارج
           شده؛ آستانهٔ پذیرش سیگنال بالاتر رفته است.{" "}
           <Link href="/glossary/defensive_mode" className="underline">
             توضیح بیشتر

@@ -393,7 +393,7 @@ def judge(
     gate(
         "G6",
         bool(g.survivorship_resolved),
-        "فهرست کامل نمادهای TSETMC (حذف‌شده‌ها هم) و تاریخچهٔ آن‌ها از ۱۳۸۰ بارگیری شده است؛ دروازه باز می‌ماند چون زیان روزهای پس از آخرین معامله (تعلیق و حذف) در سری نیست و کران بدبینانه‌ای ثبت نشده (ثبت‌شده به‌عنوان مسئلهٔ باز در گزارش داده و روش‌ها)"
+        "فهرست کامل نمادهای TSETMC (حذف‌شده‌ها هم) و تاریخچهٔ آن‌ها از ۱۳۸۰ بارگیری شده است؛ آزمون پذیرش باز می‌ماند چون زیان روزهای پس از آخرین معامله (تعلیق و حذف) در سری نیست و کران بدبینانه‌ای ثبت نشده (ثبت‌شده به‌عنوان مسئلهٔ باز در گزارش داده و روش‌ها)"
         if not g.survivorship_resolved
         else "رفع‌شده",
     )
@@ -487,7 +487,7 @@ def evaluate(
 def verdict(j: Judged) -> str:
     vals = [g["passed"] for g in j.gates.values()]
     if all(v is True for v in vals):
-        return "همهٔ دروازه‌ها گذشت"
+        return "همهٔ آزمون‌های پذیرش گذشت"
     failed = [k for k, g in j.gates.items() if g["passed"] is False]
     unknown = [k for k, g in j.gates.items() if g["passed"] is None]
     return (
@@ -504,7 +504,7 @@ def render_markdown(js: list[Judged], info: dict[str, Any], cfg: EngineConfig) -
         "v2": "v2 کامل (انتخاب + لایهٔ مواجهه + اخزا)",
     }
     out = [
-        "# R3 — سبد مبنای v2 و دروازهٔ G1 تا G6 (دادهٔ واقعی)",
+        "# R3 — سبد مبنای v2 و آزمون پذیرشِ G1 تا G6 (دادهٔ واقعی)",
         "",
         f"- سبد: {pc.n_names} نماد هم‌وزن در {pc.n_tranches} قسط، بازبینی هر {pc.review_every_days} روز، خرید از "
         f"{pc.buy_top_frac * 100:.0f}٪ بالا، نگهداری تا خروج از {pc.hold_top_frac * 100:.0f}٪ بالا، سقف صنعت "
@@ -541,7 +541,7 @@ def render_markdown(js: list[Judged], info: dict[str, Any], cfg: EngineConfig) -
             ),
             f"| هم‌وزن جهان خودمان (تعدیل‌شده، همان نمادها) | {_p(j.extra['ew_universe'].get('total_return'))} | {_p(j.extra['ew_universe'].get('annualized_return'))} | {_p(j.extra['ew_universe'].get('annualized_volatility'))} | {_p(j.extra['ew_universe'].get('max_drawdown'))} | {j.extra['ew_universe'].get('sharpe') or float('nan'):.2f} |",
             "",
-            "| دروازه | نتیجه | عدد |",
+            "| آزمون پذیرش | نتیجه | عدد |",
             "|---|---|---|",
         ]
         for k, g in j.gates.items():

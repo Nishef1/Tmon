@@ -13,7 +13,7 @@ function horizon(h: number, champion = "equal"): Adapt["horizons"][number] {
     window_to: "2026-11-04",
     window_dates: 500,
     champion,
-    why: "هیچ نامزدی از دروازه نگذشت؛ وزن مساوی می‌ماند",
+    why: "هیچ نامزدی از آزمون پذیرش نگذشت؛ وزن مساوی می‌ماند",
     production_expressible: true,
     weights: W,
     reference_weights: { ...W, ind_buy_power: 0.6 },

@@ -11,14 +11,17 @@ type Props = {
   signed?: boolean;
 };
 
+/** Hover text: the term and the first sentence of its definition. */
+function hint(term: GlossaryKey): string {
+  const g = GLOSSARY[term];
+  const first = g.definition.split(/(?<=[.؛؟!])\s/)[0] ?? "";
+  return `${g.fa}: ${first} (توضیح کامل در واژه‌نامه)`;
+}
+
 export function Num({ term, value, kind = "plain", digits, signed }: Props) {
   const text = formatValue(value, kind, digits, signed);
   return (
-    <Link
-      href={`/glossary/${term}`}
-      className="num"
-      title={`${GLOSSARY[term].fa} — توضیح در واژه‌نامه`}
-    >
+    <Link href={`/glossary/${term}`} className="num" title={hint(term)}>
       <bdi dir="ltr">{text}</bdi>
     </Link>
   );

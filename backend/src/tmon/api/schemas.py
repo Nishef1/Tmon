@@ -473,6 +473,9 @@ class RankingRow(ApiModel):
     instrument_id: int | None = None
     close: float | None = None
     change_pct: float | None = None
+    trade_state: Literal["active", "idle", "halted"] = "active"
+    idle_days: int = 0
+    last_trade_date: dt.date | None = None
 
 
 class OutsideRow(ApiModel):

@@ -1,4 +1,5 @@
 import { verdictPill, verdictTone } from "@/lib/ui";
+import { TradeBadge } from "@/components/TradeBadge";
 import Link from "next/link";
 import type { Ranking, RankingRow } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
@@ -45,19 +46,19 @@ export function TradableRanking({ d }: { d: Ranking }) {
     <section className="card space-y-3" data-testid="tradable-ranking">
       <h2 className="text-lg font-bold">تصمیم امروز: خرید، نگهداری یا فروش (توصیه نیست)</h2>
       <p className="text-sm text-muted">
-        هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها محدودهٔ خرید خالی است یا آزمون‌های اعتبار
+        هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها محدودهٔ خرید خالی است یا آزمون‌های پذیرش
         مدل نگذشته‌اند و آن‌وقت این فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}:{" "}
         {d.basket_size == null ? "نمادهای پرمعامله" : `${faNumber(d.basket_size)} نماد پرمعامله`}
         {extra > 0 &&
           ` و ${faNumber(extra)} نماد محدودهٔ خرید بیرون از آن‌ها («کم‌معامله‌تر»)`}.{" "}
         <Link href="/model#v2" className="text-accent underline">
-          اعداد دروازه‌ها و همهٔ نمادها
+          اعداد آزمون‌های پذیرش و همهٔ نمادها
         </Link>
       </p>
       {!d.recommendation_allowed && (
         <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn" data-testid="gate-note">
-          هنوز دروازه‌های اعتبار مدل کامل نگذشته‌اند؛ پس هیچ‌کدام از این سه ناحیه توصیهٔ مطمئن نیست.
-          دلیل هر نماد در صفحهٔ خودش آمده است.
+          هنوز آزمون‌های پذیرش اعتبار مدل کامل نگذشته‌اند؛ پس هیچ‌کدام از این سه ناحیه توصیهٔ مطمئن
+          نیست. دلیل هر نماد در صفحهٔ خودش آمده است.
         </p>
       )}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -126,6 +127,7 @@ function Chip({ r }: { r: RankingRow }) {
       >
         <span className="flex items-baseline gap-2">
           <span className="font-bold">{r.symbol}</span>
+          <TradeBadge state={r.trade_state} idleDays={r.idle_days} lastTrade={r.last_trade_date} />
           {r.queue_state === "buy_queue" && (
             <span className="rounded bg-up-soft px-1 text-[10px] text-up">صف خرید</span>
           )}

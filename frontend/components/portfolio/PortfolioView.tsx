@@ -134,6 +134,59 @@ function AlertsFeed({ id, pkey }: { id: number; pkey: string }) {
 }
 
 // -- holdings ---------------------------------------------------------------------------------
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const MEETING_WARN_DAYS = 7;
+
+type Held = { instrument_id: number; symbol: string };
+type SoonMeeting = { id: number; symbol: string; days: number; kind: string };
+
+/** Held symbols whose shareholders' meeting is at most a week away; prices move around it. */
+function MeetingAlerts({ holdings }: { holdings: Held[] }) {
+  const [soon, setSoon] = useState<SoonMeeting[]>([]);
+  const key = holdings.map((h) => h.instrument_id).join(",");
+  useEffect(() => {
+    let live = true;
+    Promise.all(
+      holdings.map(async (h): Promise<SoonMeeting | null> => {
+        try {
+          const res = await fetch(`${API_BASE}/instruments/${h.instrument_id}/dashboard`, {
+            cache: "no-store",
+          });
+          if (!res.ok) return null;
+          const d = (await res.json()) as { meeting?: { days_left: number; kind: string } | null };
+          const m = d.meeting;
+          return m && m.days_left >= 0 && m.days_left <= MEETING_WARN_DAYS
+            ? { id: h.instrument_id, symbol: h.symbol, days: m.days_left, kind: m.kind }
+            : null;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((r) => live && setSoon(r.filter((x): x is SoonMeeting => x !== null)));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  if (soon.length === 0) return null;
+  return (
+    <aside className="alert-warn mt-2 text-sm" data-testid="meeting-alerts">
+      <p className="font-semibold">مجمع نزدیک برای سهم‌های سبد شما</p>
+      <ul className="mt-1 list-inside list-disc">
+        {soon.map((m) => (
+          <li key={m.id}>
+            <Link href={`/instruments/${m.id}#agm`} className="underline">
+              {m.symbol}
+            </Link>
+            : {m.days === 0 ? "مجمع امروز است" : `مجمع ${faNumber(m.days)} روز دیگر است`}. نزدیک
+            مجمع قیمت با خبر سود نقدی جابه‌جا می‌شود و پس از آن به‌اندازهٔ سود تقسیم‌شده افت می‌کند.
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
 function Holdings({
   p,
   pkey,
@@ -181,6 +234,7 @@ function Holdings({
         <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان) — پس از
         کارمزد و مالیات فروش.
       </p>
+      {p.holdings.length > 0 && <MeetingAlerts holdings={p.holdings} />}
       {p.holdings.length > 0 && (
         <div className="mt-2 overflow-x-auto">
           <table className="tbl w-full min-w-[48rem] text-sm" data-testid="holdings">
@@ -417,8 +471,8 @@ function ForecastCard({ id, pkey, version }: { id: number; pkey: string; version
     <section className="card" data-testid="forecast">
       <h2 className="font-bold">پیش‌بینی بازدهٔ پرتفوی</h2>
       <p className="mt-1 text-sm text-muted">
-        بازهٔ ۸۰٪ یعنی در ۸ از ۱۰ حالت بازده بین این دو عدد است؛ «پوشش واقعی» همین را روی گذشتهٔ
-        همین سبد آزموده (اگر ۰٫۸ نباشد بازه اصلاح شده). نوسان سالانهٔ فعلی{" "}
+        بازهٔ ۸۰٪ یعنی بازده در ۸ از ۱۰ حالت بین این دو عدد قرار می‌گیرد. «پوشش واقعی» همین ادعا را
+        روی گذشتهٔ همین سبد می‌سنجد؛ اگر از ۰٫۸ دور باشد، بازه اصلاح شده است. نوسان سالانهٔ فعلی{" "}
         {faPercent(f.annual_vol_now ?? 0)}.
       </p>
       <p className="mt-1 rounded-lg bg-warn-soft p-2 text-sm" data-testid="forecast-caveat">
@@ -700,10 +754,10 @@ function SettingsCard({
     <details className="card">
       <summary className="cursor-pointer font-bold">تنظیمات هشدار و پیام‌رسان</summary>
       <p className="mt-2 text-sm text-muted">
-        بله یا تلگرام: یک بات بساز (در بله از @botfather)، توکن را این‌جا بگذار، به بات «/start»
-        بفرست تا شناسهٔ گفت‌وگو را برگرداند. هشدارهای فوری با دکمه‌های «خارج می‌شوم / نصف / نگه
-        می‌دارم» می‌آیند. Apprise: هر آدرس پشتیبانی‌شده، مثلاً ntfy://topic برای اعلان صدادار گوشی
-        یا mailto://.
+        برای بله یا تلگرام: یک بات بسازید (در بله از @botfather)، توکن را این‌جا بگذارید و به بات
+        «/start» بفرستید تا شناسهٔ گفت‌وگو را برگرداند. هشدارهای فوری با دکمه‌های «خارج می‌شوم / نصف
+        / نگه می‌دارم» می‌آیند. برای سرویس Apprise هر آدرس پشتیبانی‌شده مثلاً ntfy://topic برای
+        اعلان صدادار گوشی یا mailto://.
       </p>
       <div className="mt-2 grid gap-2">
         {channels.map((c, i) => (

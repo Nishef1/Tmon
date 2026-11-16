@@ -121,15 +121,15 @@ def choose(
     still passes unless a challenger's t beats it by ``margin_t``; ``equal`` when nobody passes."""
     passing = {n: v for n, v in verdicts.items() if v.passed and v.t is not None}
     if not passing:
-        return EQUAL, "هیچ نامزدی از دروازه نگذشت؛ وزن مساوی می‌ماند"
+        return EQUAL, "هیچ نامزدی از آزمون پذیرش نگذشت؛ وزن مساوی می‌ماند"
     best = max(passing, key=lambda n: passing[n].t or -math.inf)
     if previous in passing and previous != best:
         if (passing[best].t or 0) < (passing[previous].t or 0) + margin_t:
-            return previous, "قهرمان قبلی هنوز از دروازه می‌گذرد و رقیب به‌اندازهٔ کافی بهتر نیست"
+            return previous, "قهرمان قبلی هنوز از آزمون پذیرش می‌گذرد و رقیب به‌اندازهٔ کافی بهتر نیست"
         return best, "رقیب با حاشیهٔ کافی از قهرمان قبلی بهتر شد"
     if previous == best:
         return best, "قهرمان قبلی هنوز بهترین است"
-    return best, "نامزد از دروازه گذشت"
+    return best, "نامزد از آزمون پذیرش گذشت"
 
 
 def is_linear(name: str) -> bool:

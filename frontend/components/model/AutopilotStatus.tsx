@@ -24,12 +24,12 @@ function eventText(e: AutopilotEvent): string {
         : "شاخص کل از حالت افت بیرون آمد؛ بازپخش و مطالعهٔ عمیق دوباره انجام می‌شوند";
     case "deep_refreshed":
       return e.passed.length
-        ? `مطالعهٔ عمیق دوباره انجام شد؛ از دروازه گذشت: ${e.passed.map(passedLabel).join("؛ ")}`
-        : "مطالعهٔ عمیق دوباره انجام شد؛ هیچ روشی از دروازه نگذشت";
+        ? `مطالعهٔ عمیق دوباره انجام شد؛ از آزمون پذیرش گذشت: ${e.passed.map(passedLabel).join("؛ ")}`
+        : "مطالعهٔ عمیق دوباره انجام شد؛ هیچ روشی از آزمون پذیرش نگذشت";
     case "deep_passed":
-      return `از دروازه گذشت: ${e.methods.map(passedLabel).join("؛ ")}`;
+      return `از آزمون پذیرش گذشت: ${e.methods.map(passedLabel).join("؛ ")}`;
     case "deep_lost":
-      return `دیگر از دروازه نمی‌گذرد: ${e.methods.map(passedLabel).join("؛ ")}`;
+      return `دیگر از آزمون پذیرش نمی‌گذرد: ${e.methods.map(passedLabel).join("؛ ")}`;
     case "deep_skipped":
       return "مطالعهٔ عمیق باید دوباره انجام شود، ولی این سرور کتابخانهٔ torch را ندارد؛ آن را باید روی رایانه‌ای با کارت گرافیک اجرا کرد";
     default:
@@ -68,8 +68,8 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
             <>
               آخرین اجرا: {jalali(deep.last)}، یعنی {faNumber(deep.age_days ?? 0)} روز قدیمی‌تر از داده.{" "}
               {deep.passed.length
-                ? `از دروازه گذشته: ${deep.passed.map(passedLabel).join("؛ ")}.`
-                : "هیچ روشی از دروازه نگذشته."}
+                ? `از آزمون پذیرش گذشته: ${deep.passed.map(passedLabel).join("؛ ")}.`
+                : "هیچ روشی از آزمون پذیرش نگذشته."}
             </>
           ) : (
             "هنوز اجرا نشده."

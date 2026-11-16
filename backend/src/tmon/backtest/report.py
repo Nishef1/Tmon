@@ -288,7 +288,7 @@ def render_markdown(
             lines += _calibration_section(name, sr.summary["probabilistic"])
     lines += _grid_section(run)
     if gate is not None:
-        lines += ["## دروازهٔ سطح A", ""]
+        lines += ["## آزمون پذیرشِ سطح A", ""]
         lines.append(
             "- سطح A **مجاز** است."
             if gate["tier_a_allowed"]

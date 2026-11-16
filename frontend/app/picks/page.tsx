@@ -47,7 +47,7 @@ function PickCard({ p }: { p: Pick }) {
             <thead>
               <tr className="text-start text-muted">
                 <th className="py-1 text-start font-medium">بعد از</th>
-                <th className="text-start font-medium">پیش‌بینی (۸ از ۱۰ بار بین)</th>
+                <th className="text-start font-medium">بازهٔ پیش‌بینی (در ۸ از ۱۰ بار داخل آن)</th>
                 <th className="text-start font-medium">شانس بالا رفتن</th>
                 <th className="text-start font-medium">واقعیت</th>
                 <th className="text-start font-medium">نتیجه</th>

@@ -44,3 +44,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Install browser for end-to-end tests
+        run: pnpm exec playwright install --with-deps chromium
+      - name: End-to-end tests (fixture API, no real data)
+        run: pnpm test:e2e

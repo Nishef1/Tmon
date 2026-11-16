@@ -59,7 +59,7 @@ export function PortfolioList() {
       {created && (
         <div className="alert-warn" role="status" data-testid="new-key">
           <b>پرتفوی «{created.name}» ساخته شد.</b> کلید آن فقط همین یک بار نمایش داده می‌شود و در
-          همین مرورگر ذخیره شد. برای باز کردن از دستگاه دیگر آن را نگه دار:
+          همین مرورگر ذخیره شد. برای باز کردن در دستگاه دیگر، این را نگه دارید:
           <div className="mt-2 font-mono text-sm" dir="ltr">
             id={created.id} key={created.key}
           </div>
@@ -74,7 +74,7 @@ export function PortfolioList() {
       <section className="card">
         <h2 className="font-bold">پرتفوی‌های من</h2>
         {list.length === 0 ? (
-          <p className="mt-2 text-muted">هنوز پرتفویی در این مرورگر نیست. یکی بساز یا وارد کن.</p>
+          <p className="mt-2 text-muted">هنوز پرتفویی در این مرورگر نیست. یکی بسازید یا وارد کنید.</p>
         ) : (
           <ul className="mt-2 grid gap-2">
             {list.map((p) => (

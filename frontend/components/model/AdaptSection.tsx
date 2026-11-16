@@ -116,7 +116,7 @@ function CandidateRows({ rows, round }: { rows: [string, AdaptCandidate][]; roun
               </td>
               <td className="text-sm">
                 {c.passed ? (
-                  <b className="text-up">از دروازه گذشت</b>
+                  <b className="text-up">از آزمون پذیرش گذشت</b>
                 ) : (
                   <span className="text-muted">{c.reasons.join("؛ ") || "—"}</span>
                 )}
@@ -188,7 +188,7 @@ export function AdaptSection({
           هر چرخه (اکنون تا {jalali(d.as_of)}) چند روش وزن‌دهی را روی{" "}
           {faNumber(d.config?.window_dates ?? 0)} روز اخیر با وزن مساوی مقایسه می‌کند؛ هر روش در هر
           روز آزمون فقط از داده‌ای استفاده کرده که همان روز معلوم بود. روشی جای وزن مساوی را می‌گیرد
-          که از <Link href="/glossary/adapt_gate">دروازهٔ ارتقا</Link> بگذرد: بهبود پایدار در هر دو
+          که از <Link href="/glossary/adapt_gate">آزمون ارتقا</Link> بگذرد: بهبود پایدار در هر دو
           نیمهٔ پنجره، t حداقل {faNumber(d.config?.min_t ?? 2)} و مازاد بیشتر از هزینهٔ یک
           رفت‌وبرگشت. وگرنه همان وزن مساوی می‌ماند. اینجا نتیجهٔ گذشته است، نه پیش‌بینی و نه توصیه؛
           ما مشاور سرمایه‌گذاری دارای مجوز نیستیم.
@@ -200,7 +200,7 @@ export function AdaptSection({
           {allEqual && (
             <>
               {" "}
-              <b>فعلاً در هیچ افقی هیچ روشی از دروازه نگذشته است؛ وزن مساوی همه‌جا قهرمان است.</b>
+              <b>فعلاً در هیچ افقی هیچ روشی از آزمون پذیرش نگذشته است؛ وزن مساوی همه‌جا قهرمان است.</b>
             </>
           )}
         </p>
@@ -247,7 +247,7 @@ export function AdaptSection({
           </h3>
           <p className="text-sm leading-7 text-muted">
             وزنی که روش ریج با داده‌های معلوم همان روز به هر یک از چهار سیگنال می‌دهد (وزن مرجع).
-            تا وقتی از دروازه نگذرد، در امتیاز اصلی به‌کار نمی‌رود؛ فقط نشان می‌دهد بازار به کدام
+            تا وقتی از آزمون پذیرش نگذرد، در امتیاز اصلی به‌کار نمی‌رود؛ فقط نشان می‌دهد بازار به کدام
             سیگنال بیشتر پاداش داده است. وزن مرجع امروز:{" "}
             {SIGNALS.map(([k, l]) => (
               <span key={k} className="ml-2 whitespace-nowrap">
@@ -279,13 +279,13 @@ export function AdaptSection({
 
       <section className="space-y-2" data-testid="adapt-replay">
         <h3 className="text-lg font-bold">
-          <Link href="/glossary/adapt_replay">بازپخش دروازه</Link> روی گذشته: زنده بودن بهتر از ثابت
+          <Link href="/glossary/adapt_replay">بازپخش آزمون پذیرش</Link> روی گذشته: زنده بودن بهتر از ثابت
           ماندن است؟
         </h3>
         {replay ? (
           <>
             <p className="text-sm leading-7 text-muted">
-              دروازه هر {faNumber(replay.every)} روز روی گذشته دوباره اجرا شد، فقط با داده‌ای که در
+              آزمون پذیرش هر {faNumber(replay.every)} روز روی گذشته دوباره اجرا شد، فقط با داده‌ای که در
               آن روز معلوم بود. ستون «IC زنده / مساوی» میانگین IC روش انتخاب‌شده را در برابر وزن مساوی نشان می‌دهد و
               «تفاوت نیمه‌ها» تفاوت این دو را در نیمهٔ اول و دوم. اگر قهرمان همیشه وزن مساوی بوده،
               تفاوت دقیقاً صفر است؛ یعنی الگوریتم زنده به وزن مساوی آسیب نزده، ولی برتری هم نشان

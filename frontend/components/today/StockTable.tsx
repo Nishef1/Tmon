@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TradeBadge } from "@/components/TradeBadge";
 import { useMemo, useState } from "react";
 import type { RankingRow } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
@@ -147,6 +148,11 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
                   >
                     {r.symbol}
                   </Link>
+                  <TradeBadge
+                    state={r.trade_state}
+                    idleDays={r.idle_days}
+                    lastTrade={r.last_trade_date}
+                  />
                   <span className="block max-w-44 truncate text-xs text-muted">{r.name}</span>
                 </td>
                 <td className="py-2">{r.close == null ? "—" : faNumber(r.close)}</td>

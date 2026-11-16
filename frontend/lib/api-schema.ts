@@ -3922,12 +3922,19 @@ export interface components {
       /** Close */
       close: number | null;
       /**
+       * Idle Days
+       * @default 0
+       */
+      idle_days: number;
+      /**
        * In Basket
        * @default true
        */
       in_basket: boolean;
       /** Instrument Id */
       instrument_id: number | null;
+      /** Last Trade Date */
+      last_trade_date: string | null;
       /** Median Value */
       median_value: number | null;
       /** Name */
@@ -3946,6 +3953,12 @@ export interface components {
       };
       /** Symbol */
       symbol: string;
+      /**
+       * Trade State
+       * @default active
+       * @enum {string}
+       */
+      trade_state: "active" | "idle" | "halted";
       /**
        * Zone
        * @enum {string}

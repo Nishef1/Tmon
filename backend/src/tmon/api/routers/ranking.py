@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from tmon.api.returns import day_change
 from tmon.api.schemas import OutsideRow, RankingOut
+from tmon.api.trade_state import market_days, trade_state
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.storage.models import Instrument, PriceDaily
@@ -55,7 +56,28 @@ def ranking(session: SessionDep) -> RankingOut:
             r.instrument_id = ins.id
             r.close = close
             r.change_pct = day_change(close, prev)
+        _mark_idle(session, out, by_symbol)
     return out
+
+
+def _mark_idle(
+    session: Session, out: RankingOut, traded: dict[str, tuple[Instrument, PriceDaily]]
+) -> None:
+    """Rows that did not trade on the latest day: link them anyway and say for how long."""
+    missing = {r.symbol for r in out.rows if r.symbol not in traded}
+    if not missing:
+        return
+    days = market_days(session)
+    listed: dict[str, Instrument] = {}
+    for found in session.scalars(select(Instrument).where(Instrument.symbol_fa.in_(missing))):
+        listed.setdefault(found.symbol_fa, found)
+    for r in out.rows:
+        stopped = listed.get(r.symbol) if r.symbol in missing else None
+        if stopped is None:
+            continue
+        state, last_trade, idle = trade_state(session, stopped.id, days)
+        r.instrument_id = stopped.id
+        r.trade_state, r.idle_days, r.last_trade_date = state, idle, last_trade
 
 
 OUTSIDE_LIMIT = 12

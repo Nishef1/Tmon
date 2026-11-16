@@ -55,7 +55,7 @@ describe("DeepStudy", () => {
     render(<DeepStudy d={doc(false)} />);
     const c = screen.getByTestId("deep-caveat").textContent ?? "";
     expect(c).toContain("یک رژیم صعودی");
-    expect(c).toContain("هیچ روشی در هیچ افقی از دروازه نگذشت");
+    expect(c).toContain("هیچ روشی در هیچ افقی از آزمون پذیرش نگذشت");
   });
 
   it("names who passed, and marks that cell", () => {

@@ -51,14 +51,14 @@ export function DeepStudy({ d }: { d: Deep }) {
           آموزش می‌بیند که تا آن روز معلوم بودند و هر ۱۲۶ روز دوباره آموزش می‌بیند. هر شبکه با{" "}
           {faNumber(d.seeds.length)} بذر تصادفی متفاوت آموزش داده شده و امتیازش میانگین همین اجراهاست. دورهٔ آزمون خارج از
           نمونه {jalali(d.oos_from)} تا {jalali(d.last)}، با مرز دو نیمه در {jalali(d.mid)}. معیار
-          قبولی همان <Link href="/glossary/adapt_gate">دروازهٔ ارتقا</Link> است.
+          قبولی همان <Link href="/glossary/adapt_gate">آزمون ارتقا</Link> است.
         </p>
         <p className="alert-warn text-sm leading-7 text-ink" data-testid="deep-caveat">
           داده فقط یک رژیم صعودی را دارد و هر دو نیمه در همان رژیم‌اند.{" "}
           <b>
             {passed.length === 0
-              ? "هیچ روشی در هیچ افقی از دروازه نگذشت."
-              : `از دروازه گذشتند: ${passed.join("؛ ")}.`}
+              ? "هیچ روشی در هیچ افقی از آزمون پذیرش نگذشت."
+              : `از آزمون پذیرش گذشتند: ${passed.join("؛ ")}.`}
           </b>{" "}
           در افق‌های بلند وزن مساوی از همهٔ روش‌ها بهتر ماند. این نتیجهٔ گذشته است، نه پیش‌بینی و نه
           توصیه؛ ما مشاور سرمایه‌گذاری دارای مجوز نیستیم.
@@ -68,7 +68,7 @@ export function DeepStudy({ d }: { d: Deep }) {
       <div className="overflow-x-auto" data-testid="deep-matrix">
         <table className="tbl min-w-[44rem]">
           <caption className="mb-1 text-start text-xs text-muted">
-            بهبود IC هر روش نسبت به وزن مساوی، همراه با t. علامت ✓ یعنی آن روش از دروازه گذشته است.
+            بهبود IC هر روش نسبت به وزن مساوی، همراه با t. علامت ✓ یعنی آن روش از آزمون پذیرش گذشته است.
           </caption>
           <thead>
             <tr>
@@ -170,7 +170,7 @@ export function DeepStudy({ d }: { d: Deep }) {
                             {!m.gate ? (
                               <span className="text-muted">مرجع</span>
                             ) : m.gate.passed ? (
-                              <b className="text-up">از دروازه گذشت</b>
+                              <b className="text-up">از آزمون پذیرش گذشت</b>
                             ) : (
                               <span className="text-muted">{m.gate.reasons.join("؛ ")}</span>
                             )}

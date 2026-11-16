@@ -9498,6 +9498,11 @@
             ],
             "title": "Close"
           },
+          "idle_days": {
+            "default": 0,
+            "title": "Idle Days",
+            "type": "integer"
+          },
           "in_basket": {
             "default": true,
             "title": "In Basket",
@@ -9513,6 +9518,18 @@
               }
             ],
             "title": "Instrument Id"
+          },
+          "last_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Trade Date"
           },
           "median_value": {
             "anyOf": [
@@ -9591,6 +9608,16 @@
             "title": "Symbol",
             "type": "string"
           },
+          "trade_state": {
+            "default": "active",
+            "enum": [
+              "active",
+              "idle",
+              "halted"
+            ],
+            "title": "Trade State",
+            "type": "string"
+          },
           "zone": {
             "enum": [
               "buy",
@@ -9616,7 +9643,10 @@
           "signals",
           "instrument_id",
           "close",
-          "change_pct"
+          "change_pct",
+          "trade_state",
+          "idle_days",
+          "last_trade_date"
         ],
         "title": "RankingRow",
         "type": "object"
