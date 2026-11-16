@@ -13,6 +13,7 @@ from tmon.api.main import create_app
 from tmon.core.db import get_session
 from tmon.portfolio import advice as advice_mod
 from tmon.portfolio import alerts as alert_store
+from tmon.portfolio import ledger
 from tmon.portfolio.briefing import rule_call
 from tmon.portfolio.forecast import Position, forecast
 from tmon.portfolio.keys import hash_key, matches, new_key
@@ -286,6 +287,29 @@ def test_portfolio_flow(
     assert b.status_code == 200, b.text
     assert b.json()["method"] == "rules"
     assert client.get(f"/portfolios/{pid}/briefing", headers=hdr).json()["id"] == b.json()["id"]
+
+
+def test_prices_as_of_follows_the_live_day_not_the_last_stored_one(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    iid = _prices(session, "زنده", "1003", 1000)
+    r = client.post("/portfolios", json={"name": "من", "cash": 0})
+    pid, hdr = r.json()["id"], {"X-Portfolio-Key": r.json()["key"]}
+    client.post(
+        f"/portfolios/{pid}/holdings",
+        json={"symbol": "زنده", "shares": 10, "avg_price": 900},
+        headers=hdr,
+    )
+    stored = client.get(f"/portfolios/{pid}", headers=hdr).json()["as_of"]
+    live_day = (dt.date.fromisoformat(stored) + dt.timedelta(days=1)).isoformat()
+    monkeypatch.setattr(
+        ledger.liveprice,
+        "live_marks",
+        lambda _s, _m: {iid: (1100.0, 1090.0, dt.date.fromisoformat(live_day))},
+    )
+    body = client.get(f"/portfolios/{pid}", headers=hdr).json()
+    assert body["holdings"][0]["close_date"] == live_day
+    assert body["as_of"] == live_day
 
 
 # -- macro / foreign ---------------------------------------------------------------------------

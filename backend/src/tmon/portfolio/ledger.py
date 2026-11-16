@@ -579,8 +579,13 @@ def summarize(session: Session, p: Portfolio, positions: dict[int, Position]) ->
 
     total_pnl = tot["unrealized"] + tot["realized"] + tot["dividends"]
     holdings.sort(key=lambda h: -h["market_value"])
+    # a holding valued at today's live price is newer than the last stored day: the page says
+    # "prices as of" the newest date any figure on it really uses
+    dates = [d for d in (h["close_date"] for h in holdings) if d]
+    if latest:
+        dates.append(latest.isoformat())
     return {
-        "as_of": latest.isoformat() if latest else None,
+        "as_of": max(dates) if dates else None,
         "holdings": holdings,
         "closed": closed,
         "sector_weights": sector_weights,
