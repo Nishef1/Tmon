@@ -26,7 +26,7 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 | کار | زمان | دستور |
 | --- | --- | --- |
 | `Tmon-Intraday` | ساعت بازار | `python -m tmon.ingest.tsetmc.cli intraday --follow` |
-| `Tmon-EOD` | ۱۹:۳۰، شنبه تا چهارشنبه | `run_collectors.ps1 -Eod` |
+| `Tmon-EOD` | ۱۹:۳۰، شنبه تا چهارشنبه (از ۱۴۰۵/۰۸/۲۵ به خواست مالک غیرفعال است؛ چرخه دستی اجرا می‌شود) | `run_collectors.ps1 -Eod` |
 
 `-Eod` به‌ترتیب اجرا می‌کند:
 
@@ -37,6 +37,8 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 بعد از پایان چرخه: `bash deploy/sync-data.sh`.
 
 اجرای دستی همان چرخه: `powershell -File backend/scripts/run_collectors.ps1 -Eod`.
+
+روی هر ماشین فقط یک چرخه اجرا می‌شود. `tmon.tasks.cycle` قفل فایلی `tmon-cycle.lock` (کنار `TMON_OBJECT_STORE_DIR`) می‌گیرد؛ اگر چرخهٔ دیگری آن را دارد، پیام «another cycle is already running» می‌دهد و با کد ۲ خارج می‌شود، و `run_collectors.ps1` هم گام‌های بعدی را اجرا نمی‌کند. قفل با مردن فرایند آزاد می‌شود، پس چرخهٔ کشته‌شده راه بعدی را نمی‌بندد.
 
 ## فرمان‌های جداگانه (از `backend/`)
 

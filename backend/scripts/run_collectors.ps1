@@ -11,6 +11,11 @@ if ($Eod) {
   # the same cycle as the Celery beat: EOD prices and flows, indices, order book, risk-free rate,
   # dollar/gold/oil, news, features, living ranking, and the D1, W1 and M1 models (engine.yaml)
   & $py -m tmon.tasks.cycle
+  if ($LASTEXITCODE -eq 2) {
+    # another cycle holds the lock: running the rest now would fight it for the database
+    Write-Host "another cycle is already running; nothing was started"
+    exit 2
+  }
   & $py -m tmon.tools.v2_ranking
   # where each symbol stands in its fall or run-up, with that state's history
   & $py -m tmon.tools.turning_points

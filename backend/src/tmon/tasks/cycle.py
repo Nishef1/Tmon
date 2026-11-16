@@ -11,10 +11,15 @@ so one cycle can be followed in the worker log.
 from __future__ import annotations
 
 import logging
+import os
+import sys
+import tempfile
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Protocol
 
 from tmon.core.timeutil import TEHRAN, utcnow
@@ -253,14 +258,66 @@ def tick(
     return "complete"
 
 
+def lock_path() -> Path:
+    """The lock file: in the object store folder when there is one, else in the temp dir."""
+    base = os.environ.get("TMON_OBJECT_STORE_DIR") or tempfile.gettempdir()
+    return Path(base) / "tmon-cycle.lock"
+
+
+@contextmanager
+def single_instance(path: Path | None = None) -> Iterator[bool]:
+    """Yield True when this process is the only cycle running, False when another holds the lock.
+
+    The operating system drops the lock when the holder dies, so a killed cycle never blocks the
+    next one (unlike the ``mark_cycle`` marker, which only warns the refill page)."""
+    target = path or lock_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    handle = target.open("a+b")
+    got = False
+    try:
+        try:
+            if sys.platform == "win32":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            got = True
+        except OSError:
+            got = False
+        yield got
+    finally:
+        if got:
+            if sys.platform == "win32":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
 def main() -> None:
     """``python -m tmon.tasks.cycle``: today's whole cycle once (the
-    Windows scheduled task). Exits non-zero only if a required step failed."""
-    import sys
-
+    Windows scheduled task). Exits non-zero only if a required step failed, or with 2 when another
+    cycle already runs on this machine (two at once slow each other and lock the database)."""
     from tmon.core.logging import configure_logging
 
     configure_logging()
+    with single_instance() as alone:
+        if not alone:
+            print("another cycle is already running; this one did not start")
+            sys.exit(2)
+        _run_main()
+
+
+def _run_main() -> None:
     from tmon.tools.data_health import mark_cycle, record_timings
 
     started = utcnow()
