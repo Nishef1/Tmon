@@ -565,8 +565,15 @@ def decide(
     in_basket = row is not None
     zone = src["zone"]
     score = src.get("score")
-    in_rows = [r for r in rows if r.get("in_basket", True)]
-    # the position among the liquid stocks the list shows, not the raw rank over every symbol
+    # the position among the stocks the home list shows (liquid, no funds, nothing stuck in a sell
+    # queue), not the raw rank over every symbol
+    in_rows = [
+        r
+        for r in rows
+        if r.get("in_basket", True)
+        and not str(r.get("name") or "").startswith("صندوق")
+        and r.get("queue_state") != "sell_queue"
+    ]
     basket_rank = 1 + sum(1 for r in in_rows if r["rank"] < row["rank"]) if row else None
     base: dict[str, Any] = {
         "as_of": as_of,
