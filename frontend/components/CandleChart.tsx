@@ -222,6 +222,10 @@ function iso(t: Time): string {
 const NO_LEVELS: Level[] = [];
 const NO_MARKS: Mark[] = [];
 
+/** Empty pixels kept right of the last candle at any zoom, so price-line titles («حد ضرر»، «مرجع»)
+ *  sit beside the latest days instead of on top of them. */
+const GAP = 76;
+
 const SPANS: [number, string][] = [
   [22, "۱ ماه"],
   [66, "۳ ماه"],
@@ -337,7 +341,10 @@ export function CandleChart({
   const applySpan = useCallback(
     (chart: IChartApi, n: number) => {
       if (n > 0 && real.length > n) {
-        chart.timeScale().setVisibleLogicalRange({ from: real.length - n, to: real.length + 2 });
+        // n bars fill the plot less the gap; the gap is n bars scaled by its share of the width
+        const w = Math.max(chart.timeScale().width() - GAP, 100);
+        const to = real.length - 0.5 + (n * GAP) / w;
+        chart.timeScale().setVisibleLogicalRange({ from: real.length - n, to });
       } else {
         chart.timeScale().fitContent();
       }
@@ -388,7 +395,7 @@ export function CandleChart({
         },
         timeScale: {
           borderVisible: false,
-          rightOffset: 4,
+          rightOffsetPixels: GAP,
           tickMarkFormatter: (t: Time) => jalali(iso(t), "monthDay"),
         },
         localization: {
@@ -702,34 +709,7 @@ export function CandleChart({
       };
       mark(chart.timeScale().getVisibleLogicalRange());
       chart.timeScale().subscribeVisibleLogicalRangeChange(mark);
-      // The price axis fits itself, and the library only starts moving a chart up/down if it was
-      // released from that fit when the press began. So release it on press, and give the fit back
-      // as soon as the drag turns out to be sideways.
-      let from: { x: number; y: number } | null = null;
-      const fit = (on: boolean) => series.priceScale().applyOptions({ autoScale: on });
-      const down0 = (e: PointerEvent) => {
-        from = { x: e.clientX, y: e.clientY };
-        fit(false);
-      };
-      const move0 = (e: PointerEvent) => {
-        if (!from || !e.buttons) return;
-        const dx = Math.abs(e.clientX - from.x);
-        const dy = Math.abs(e.clientY - from.y);
-        if (Math.max(dx, dy) < 4) return;
-        if (dx >= dy) fit(true);
-        from = null;
-      };
-      const up0 = () => {
-        if (from) fit(true); // a click without a drag changes nothing
-        from = null;
-      };
-      el.addEventListener("pointerdown", down0, true);
-      el.addEventListener("pointermove", move0, true);
-      el.addEventListener("pointerup", up0, true);
       dispose = () => {
-        el.removeEventListener("pointerdown", down0, true);
-        el.removeEventListener("pointermove", move0, true);
-        el.removeEventListener("pointerup", up0, true);
         view.current.range = chart.timeScale().getVisibleLogicalRange();
         const p1 = chart.panes()[1];
         if (p1) view.current.paneH = p1.getHeight();
@@ -921,82 +901,80 @@ export function CandleChart({
             </span>
           </span>
         </div>
-        <details className="chart-more" data-testid="chart-indicators">
-          <summary className="cursor-pointer select-none px-2 py-1 text-xs text-muted">
-            اندیکاتورها
-          </summary>
-          <div className="chart-bar" role="group" aria-label="خط‌های روی قیمت">
-            <span className="text-xs text-muted">روی قیمت:</span>
-            {OV.map(([k, label, color]) => (
-              <button
-                key={k}
-                type="button"
-                aria-pressed={on.has(k)}
-                onClick={() => toggle(k)}
-                className="ind"
-                style={{ "--sw": color } as React.CSSProperties}
-              >
-                <span className="sw" aria-hidden />
-                {label}
-              </button>
-            ))}
+        <div className="chart-ind" data-testid="chart-indicators">
+          <div className="chart-ind-row" role="group" aria-label="خط‌های روی قیمت">
+            <span className="chart-ind-label">روی قیمت</span>
+            <div className="chart-ind-list">
+              {OV.map(([k, label, color]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={on.has(k)}
+                  onClick={() => toggle(k)}
+                  className="ind"
+                  style={{ "--sw": color } as React.CSSProperties}
+                >
+                  <span className="sw" aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="chart-bar" role="group" aria-label="اندیکاتور زیر نمودار">
-            <span className="text-xs text-muted">زیر نمودار:</span>
-            <span className="seg">
+          <div className="chart-ind-row" role="group" aria-label="اندیکاتور زیر نمودار">
+            <span className="chart-ind-label">زیر نمودار</span>
+            <div className="chart-ind-list">
               {PANES.map(([k, label]) => (
                 <button
                   key={k}
                   type="button"
                   aria-pressed={cfg.pane === k}
                   onClick={() => setCfg({ pane: k })}
+                  className="ind"
                 >
                   {label}
                 </button>
               ))}
-            </span>
+            </div>
           </div>
-        </details>
+        </div>
         {panel && <Params cfg={cfg} set={setCfg} />}
-        <div ref={box} className="relative" dir="ltr">
-          {bar && (
-            <div className="chart-legend" dir="rtl" data-testid="chart-legend">
-              <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-bold text-ink">{jalali(bar.time, "short")}</span>
-                <span className="text-muted">قیمت واقعی</span>
-                <span>باز {faPrice(bar.open)}</span>
-                <span>بالا {faPrice(bar.high)}</span>
-                <span>پایین {faPrice(bar.low)}</span>
-                <span className="font-bold">بسته {faPrice(bar.close)}</span>
-                {chg != null && (
-                  <bdi dir="ltr" className={chg >= 0 ? "font-bold text-up" : "font-bold text-down"}>
-                    {faPercent(chg, 2, true)}
-                  </bdi>
-                )}
-                {volumes.get(bar.time) != null && (
-                  <span className="text-muted">
-                    حجم {faNumber(volumes.get(bar.time) as number)}
-                  </span>
-                )}
-              </div>
-              {vals.length > 0 && (
-                <div className="flex flex-wrap gap-x-3" data-testid="chart-values">
-                  {vals.map((v) => (
-                    <span key={v.label} style={{ color: v.color }}>
-                      {v.label}{" "}
-                      <bdi dir="ltr">
-                        {v.value == null
-                          ? "—"
-                          : Math.abs(v.value) >= 1000
-                            ? faPrice(v.value)
-                            : faNumber(Math.round(v.value * 100) / 100)}
-                      </bdi>
-                    </span>
-                  ))}
-                </div>
+        {bar && (
+          <div className="chart-legend" dir="rtl" data-testid="chart-legend">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-bold text-ink">{jalali(bar.time, "short")}</span>
+              <span className="text-muted">قیمت واقعی</span>
+              <span>باز {faPrice(bar.open)}</span>
+              <span>بالا {faPrice(bar.high)}</span>
+              <span>پایین {faPrice(bar.low)}</span>
+              <span className="font-bold">بسته {faPrice(bar.close)}</span>
+              {chg != null && (
+                <bdi dir="ltr" className={chg >= 0 ? "font-bold text-up" : "font-bold text-down"}>
+                  {faPercent(chg, 2, true)}
+                </bdi>
+              )}
+              {volumes.get(bar.time) != null && (
+                <span className="text-muted">حجم {faNumber(volumes.get(bar.time) as number)}</span>
               )}
             </div>
-          )}
+            {vals.length > 0 && (
+              <div className="flex flex-wrap gap-x-3" data-testid="chart-values">
+                {vals.map((v) => (
+                  <span key={v.label} style={{ color: v.color }}>
+                    {v.label}{" "}
+                    <bdi dir="ltr">
+                      {v.value == null
+                        ? "—"
+                        : Math.abs(v.value) >= 1000
+                          ? faPrice(v.value)
+                          : faNumber(Math.round(v.value * 100) / 100)}
+                    </bdi>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <div ref={box} className="relative" dir="ltr">
           <div
             ref={ref}
             role="img"
@@ -1075,9 +1053,11 @@ export function CandleChart({
           {cfg.kind === "ha"
             ? "هایکن‌آشی هر شمع را با شمع قبلی نرم می‌کند تا روند روشن‌تر دیده شود؛ قیمت‌های بالای نمودار همان قیمت واقعی همان روزند، نه مقدار شمع نرم‌شده. "
             : ""}
-          با چرخ موس یا دو انگشت بزرگنمایی کنید و با کشیدن جابه‌جا شوید؛ با روشن و خاموش کردن خط‌ها
-          بزرگنمایی می‌ماند. تنظیم‌ها فقط در همین مرورگر نگه داشته می‌شوند. نمودار: TradingView
-          Lightweight Charts.
+          با چرخ موس یا دو انگشت بزرگنمایی کنید و با کشیدن، نمودار را در زمان جابه‌جا کنید؛ قیمت
+          خودش اندازه می‌شود. برای بالا و پایین بردن، محور قیمت را بکشید یا ▲ و ▼ را بزنید؛ از آن به
+          بعد کشیدن در هر دو جهت کار می‌کند و «بازنشانی نما» یا دوبار کلیک روی محور قیمت آن را
+          برمی‌گرداند. با روشن و خاموش کردن خط‌ها بزرگنمایی می‌ماند. تنظیم‌ها فقط در همین مرورگر نگه
+          داشته می‌شوند. نمودار: TradingView Lightweight Charts.
         </p>
       </details>
     </div>
