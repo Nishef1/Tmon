@@ -2628,6 +2628,28 @@
             "default": false,
             "title": "Weak",
             "type": "boolean"
+          },
+          "zone_buy_from": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Buy From"
+          },
+          "zone_hold_from": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Hold From"
           }
         },
         "required": [
@@ -2643,6 +2665,8 @@
           "score",
           "gauge",
           "in_basket",
+          "zone_hold_from",
+          "zone_buy_from",
           "queue_state",
           "summary",
           "signals",

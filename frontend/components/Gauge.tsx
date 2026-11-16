@@ -10,22 +10,33 @@ const pt = (deg: number, r = R) => {
   return [CX + r * Math.cos(a), CY - r * Math.sin(a)] as const;
 };
 
-/** Hue 0 (red) .. 130 (green) so the whole half circle runs red -> orange -> yellow -> green. */
-const hue = (t: number) => Math.round(130 * t);
+/** Where the zones start on the 0-100 scale when the API gave none: the model's configured
+ *  hold (top 30%) and buy (top 10%) shares. */
+export const DEFAULT_ZONES = { hold: 70, buy: 90 } as const;
+
+const ZONE_HUE = { low: 2, mid: 42, high: 135 } as const;
+
+/** The colour of a point on the scale is the zone it falls in, so the needle sits in the same
+ *  colour as the verdict it belongs to (a linear red-to-green ramp showed 60 as "almost good"
+ *  while 60 is in the sell zone). */
+const zoneHue = (v: number, z: { hold: number; buy: number }) =>
+  v >= z.buy ? ZONE_HUE.high : v >= z.hold ? ZONE_HUE.mid : ZONE_HUE.low;
 
 /**
- * Semicircle gauge from red (left, 0) to green (right, 100) with a needle at `value`. The
- * arc is drawn left-to-right in every language direction so red is always the weak end.
- * `value` null draws a grey, empty gauge.
+ * Semicircle gauge from 0 (left) to 100 (right) with a needle at `value`. The arc is coloured
+ * by decision zone (below `zones.hold` red, up to `zones.buy` amber, then green) and drawn
+ * left-to-right in every language direction. `value` null draws a grey, empty gauge.
  */
 export function Gauge({
   value,
   label,
   size = "lg",
+  zones = DEFAULT_ZONES,
 }: {
   value: number | null | undefined;
   label?: string;
   size?: "lg" | "sm";
+  zones?: { hold: number; buy: number };
 }) {
   const v = value == null ? null : Math.min(100, Math.max(0, value));
   const segs = Array.from({ length: SEGMENTS }, (_, i) => {
@@ -58,7 +69,7 @@ export function Gauge({
           fill="none"
           strokeWidth={sm ? 26 : 20}
           stroke={
-            v == null ? "var(--color-line, #888)" : `hsl(${hue((s.i + 0.5) / SEGMENTS)} 70% 45%)`
+            v == null ? "var(--color-line, #888)" : `hsl(${zoneHue(((s.i + 0.5) / SEGMENTS) * 100, zones)} 70% 42%)`
           }
           opacity={v == null ? 0.5 : 1}
         />

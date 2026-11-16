@@ -1,5 +1,9 @@
 # تغییرات
 
+## 2026-11-16 — Gauge coloured by decision zone
+
+- The stock-page gauge was a linear red-to-green ramp over a score that is a percentile of all ~1000 stocks, while the verdict zones are the top 10% (buy), next 20% (hold) and the rest (sell). A stock ranked 97th of 100 sat at 60 in the "almost green" part. The arc is now three zones (red below 70, amber 70-90, green from 90) with the thresholds served by the API (`zone_hold_from`, `zone_buy_from`).
+
 ## 2026-11-16 — Combined multi-signal walk-forward test (negative) and second self-critique
 
 - `backend/research/combined_walkforward.py`: top-10 of the 100 liquid, no-buy-queue names, costs 1.75% per round trip, benchmark = mean of the same names. Simple composite, each signal and a walk-forward ridge fit all lose to the benchmark at 5 and 20 days; only the fitted score at 60 days is positive (+1.5%, t 1.13, 18 periods), consistent with noise among 24 tests. Nothing changed on the site. Report: `docs/reports/combined-strategy-and-critique-2026-11-16.md`.

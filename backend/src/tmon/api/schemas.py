@@ -773,6 +773,8 @@ class DashDecision(ApiModel):
     score: float | None = None
     gauge: float | None = None  # score on 0-100 for the semicircle gauge; None = not scored
     in_basket: bool = False  # inside the validated liquid basket; False = unvalidated score
+    zone_hold_from: float | None = None  # gauge value (0-100) where the hold zone starts
+    zone_buy_from: float | None = None  # gauge value (0-100) where the buy zone starts
     queue_state: str | None = None  # buy_queue / sell_queue / none on the ranking day
     summary: str = ""  # one plain sentence on what the verdict means for the reader
     signals: list[DashSignal] = []

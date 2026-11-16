@@ -470,6 +470,13 @@ def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
     return DashHolding(horizon_days=HOLD_DAYS, expected_excess=edge, lines=lines)
 
 
+def _zone_from(top_frac: object) -> float | None:
+    """Gauge value where the zone of the top ``top_frac`` share starts (1 - frac, on 0-100)."""
+    return (
+        None if not isinstance(top_frac, int | float) else round((1.0 - float(top_frac)) * 100, 1)
+    )
+
+
 def decide(
     inst: Instrument, doc: dict[str, Any] | None, median_value: float | None
 ) -> DashDecision:
@@ -550,6 +557,8 @@ def decide(
         "score": score,
         "gauge": None if score is None else score * 100,
         "in_basket": in_basket,
+        "zone_hold_from": _zone_from(doc.get("hold_top_frac")),
+        "zone_buy_from": _zone_from(doc.get("buy_top_frac")),
     }
     queue = src.get("queue_state")
     base["queue_state"] = queue

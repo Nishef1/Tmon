@@ -131,7 +131,15 @@ function Verdict({
         )}
       </div>
       <div className="w-36 shrink-0" data-testid="gauge-box">
-        <Gauge value={d.gauge} label="جایگاه امروز در بازار" />
+        <Gauge
+          value={d.gauge}
+          label="جایگاه امروز در بازار"
+          zones={
+            d.zone_hold_from != null && d.zone_buy_from != null
+              ? { hold: d.zone_hold_from, buy: d.zone_buy_from }
+              : undefined
+          }
+        />
         <p className="text-center text-xs text-muted">
           {d.gauge == null
             ? "امتیازی محاسبه نشده"

@@ -1767,6 +1767,10 @@ export interface components {
        * @default false
        */
       weak: boolean;
+      /** Zone Buy From */
+      zone_buy_from: number | null;
+      /** Zone Hold From */
+      zone_hold_from: number | null;
     };
     /**
      * DashDrivers
