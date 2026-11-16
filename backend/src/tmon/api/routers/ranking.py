@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from tmon.api.queue_size import history_odds, odds_for, queue_readings
 from tmon.api.returns import day_change
-from tmon.api.routers.dashboard import final_verdict
+from tmon.api.routers.dashboard import _turning_doc, final_verdict
 from tmon.api.schemas import OutsideRow, RankingOut
 from tmon.api.trade_state import market_days, trade_state
 from tmon.core.config import get_settings
@@ -34,6 +34,7 @@ def ranking(session: SessionDep) -> RankingOut:
     doc = json.loads(data)
     out = RankingOut(available=True, **doc)
     out.outside = _outside(session, doc)
+    turning = _turning_doc()
     for r in out.rows:
         v = final_verdict(doc, r.zone, {k: x for k, x in r.signals.items() if x is not None})
         r.verdict = v if v in ("buy", "hold", "sell") else None  # type: ignore[assignment]
@@ -61,6 +62,15 @@ def ranking(session: SessionDep) -> RankingOut:
             r.instrument_id = ins.id
             r.close = close
             r.change_pct = day_change(close, prev)
+            if r.verdict == "buy":  # a buy is lowered to a wait when the symbol's state objects
+                again = final_verdict(
+                    doc,
+                    r.zone,
+                    {k: x for k, x in r.signals.items() if x is not None},
+                    turning,
+                    ins.id,
+                )
+                r.verdict = again if again in ("buy", "hold", "sell") else None  # type: ignore[assignment]
         _mark_idle(session, out, by_symbol)
         readings = queue_readings(
             session, [r.instrument_id for r in out.rows if r.instrument_id], last

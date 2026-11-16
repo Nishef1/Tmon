@@ -341,17 +341,81 @@ def _signed(x: float) -> str:
     return f"{x * 100:+.2f}٪".replace(".", "٫")
 
 
+STATE_MIN_N = 2000  # symbol-days behind a state's statistic before it may overrule a score
+STATE_EXEMPT = frozenset({"normal"})  # the baseline state: it has no evidence of its own
+
+
+def state_veto(
+    turn_doc: dict[str, Any] | None, instrument_id: int, h: int
+) -> dict[str, Any] | None:
+    """Why a high score must not become a "buy": the symbol's current state (a run-up that doubled
+    in 60 days, ...) trailed the same-day market on average over the same ``h`` days in the past.
+
+    The score's edge is an average over the whole top tenth; it says nothing about a symbol whose
+    state history is flat or negative at that horizon. This can only lower a buy to a wait, never
+    raise anything. Only horizons the state table has (20 and 60 days) can veto, only states with
+    at least ``STATE_MIN_N`` symbol-days, and the baseline "normal" state never does. ``None``
+    when nothing speaks against the buy."""
+    if not turn_doc or h not in (20, 60):
+        return None
+    cur = (turn_doc.get("symbols") or {}).get(str(instrument_id)) or {}
+    key = cur.get("state")
+    if not key or key in STATE_EXEMPT:
+        return None
+    hist = turn_doc.get("history") or {}
+    st = (hist.get("states") or {}).get(key) or {}
+    stat = st.get(f"h{h}") or {}
+    mean, n = stat.get("excess_mean"), stat.get("n")
+    if mean is None or not n or n < STATE_MIN_N or mean > 0:
+        return None
+    base = (hist.get("base") or {}).get(f"h{h}") or {}
+    return {
+        "key": key,
+        "title": _state_meta(turn_doc).get(key, {}).get("title", key),
+        "mean": float(mean),
+        "n": int(n),
+        "p_dn20": stat.get("p_dn20"),
+        "base_dn20": base.get("p_dn20"),
+    }
+
+
+def _veto_sentence(v: dict[str, Any], label: str) -> str:
+    def per100(x: float) -> str:
+        return f"{round(x * 100)}".translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+    tail = ""
+    if v.get("p_dn20") is not None and v.get("base_dn20") is not None:
+        tail = (
+            f" و از هر ۱۰۰ سهم هم‌حالت {per100(v['p_dn20'])} تا بیش از ۲۰٪ ریزش کردند "
+            f"(برای همهٔ سهم‌ها {per100(v['base_dn20'])})"
+        )
+    return (
+        f"برای {label}: فعلاً نخرید؛ امتیاز بالاست، ولی این سهم در حالت «{v['title']}» است و "
+        f"سهم‌های هم‌حالت در گذشته در همین مدت به‌طور میانگین از بازار جلو نزده‌اند "
+        f"(میانگین سود اضافه {_signed(v['mean'])})" + tail + "؛ برتری گروه پرامتیاز دربارهٔ "
+        "چنین سهمی ثابت نشده."
+    )
+
+
 def _horizon_decision(
-    h: int, ev: dict[str, Any], zone: str, cost: float, sig: dict[str, float], advice_base: bool
+    h: int,
+    ev: dict[str, Any],
+    zone: str,
+    cost: float,
+    sig: dict[str, float],
+    advice_base: bool,
+    veto: dict[str, Any] | None = None,
 ) -> DashHorizon:
     """Buy / hold / sell for one holding period from the symbol's zone and what that zone's past
-    excess return was at this period, net of the round-trip cost. Nothing is fitted here."""
+    excess return was at this period, net of the round-trip cost. A buy is lowered to a wait when
+    the symbol's own state speaks against it (``state_veto``). Nothing is fitted here."""
     key, label = HORIZONS_FA[h]
     top, bot = ev.get("top_excess"), ev.get("bottom_excess")
     t = ev.get("excess_t")
     net = None if top is None else top - cost
     reasons: list[str] = []
     weak = False
+    vetoed = False
     if top is not None and ev.get("n_days"):
         reasons.append(
             f"اعداد بالا از {ev.get('n_days')} روز معاملاتی گذشته به دست آمده‌اند: در هر روز، "
@@ -377,7 +441,11 @@ def _horizon_decision(
         )
     solid_edge = net is not None and t is not None and net >= MIN_NET_EDGE and t >= MIN_T
     if zone == "buy":
-        if solid_edge:
+        if solid_edge and veto is not None:
+            verdict = "hold"
+            vetoed = True
+            head = _veto_sentence(veto, label)
+        elif solid_edge:
             verdict = "buy"
             head = (
                 f"برای {label}: بخرید؛ در گذشته این گروه حتی پس از کسر کارمزد، سود اضافه‌ای داده "
@@ -425,6 +493,7 @@ def _horizon_decision(
         verdict=verdict,
         verdict_label=LABEL[verdict],
         weak=weak,
+        vetoed=vetoed,
         headline=head,
         reasons=reasons,
         top_excess=top,
@@ -435,21 +504,42 @@ def _horizon_decision(
     )
 
 
-def _horizons(doc: dict[str, Any], zone: str, sig: dict[str, float]) -> list[DashHorizon]:
+def _horizons(
+    doc: dict[str, Any],
+    zone: str,
+    sig: dict[str, float],
+    turn_doc: dict[str, Any] | None = None,
+    instrument_id: int | None = None,
+) -> list[DashHorizon]:
     cost = doc.get("round_trip_cost")
     if cost is None:
         return []
     by_h = {e["horizon_days"]: e for e in doc.get("evidence", [])}
     return [
-        _horizon_decision(h, by_h[h], zone, float(cost), sig, True)
+        _horizon_decision(
+            h,
+            by_h[h],
+            zone,
+            float(cost),
+            sig,
+            True,
+            None if instrument_id is None else state_veto(turn_doc, instrument_id, h),
+        )
         for h in HORIZONS_FA
         if h in by_h
     ]
 
 
-def final_verdict(doc: dict[str, Any], zone: str | None, sig: dict[str, float]) -> str | None:
+def final_verdict(
+    doc: dict[str, Any],
+    zone: str | None,
+    sig: dict[str, float],
+    turn_doc: dict[str, Any] | None = None,
+    instrument_id: int | None = None,
+) -> str | None:
     """The verdict the symbol page shows (buy / hold / sell): the score zone, softened by what the
-    tested month says. ``None`` when the zone gives no decision. One definition for every list."""
+    tested month says and, for a buy, by the symbol's own state. ``None`` when the zone gives no
+    decision. One definition for every list: pass the turning document and the instrument id."""
     if zone not in ("buy", "hold", "avoid"):
         return None
     verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
@@ -459,7 +549,8 @@ def final_verdict(doc: dict[str, Any], zone: str | None, sig: dict[str, float]) 
             ev = e
     if cost is None or ev is None:
         return verdict
-    return _horizon_decision(HOLD_DAYS, ev, zone, float(cost), sig, True).verdict
+    veto = None if instrument_id is None else state_veto(turn_doc, instrument_id, HOLD_DAYS)
+    return _horizon_decision(HOLD_DAYS, ev, zone, float(cost), sig, True, veto).verdict
 
 
 def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
@@ -502,7 +593,10 @@ def _zone_from(top_frac: object) -> float | None:
 
 
 def decide(
-    inst: Instrument, doc: dict[str, Any] | None, median_value: float | None
+    inst: Instrument,
+    doc: dict[str, Any] | None,
+    median_value: float | None,
+    turn_doc: dict[str, Any] | None = None,
 ) -> DashDecision:
     """Map the symbol to buy / hold / sell / none with plain-language reasons.
 
@@ -656,7 +750,7 @@ def decide(
             "آزمون‌های اعتبار مدل هنوز کامل نگذشته‌اند؛ این جایگاه یک رتبه‌بندی آماری است، "
             "نه توصیهٔ مطمئن."
         )
-    horizons = _horizons(doc, zone, src.get("signals") or {})
+    horizons = _horizons(doc, zone, src.get("signals") or {}, turn_doc, inst.id)
     summary = SUMMARY[verdict]
     # The headline must not say more than the tested month says: when the score's zone and the
     # past excess of that zone at HOLD_DAYS disagree, the tested month decides.
@@ -809,7 +903,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
             )
             for c in changes
         ],
-        decision=decide(inst, rank_doc, statistics.median(vals) if vals else None),
+        decision=decide(inst, rank_doc, statistics.median(vals) if vals else None, turn_doc),
         turning=turning_out(turn_doc, inst.id),
         peers=peers_out(session, inst, sector.name if sector else None, rank_doc, turn_doc),
         drivers=drivers_out(drv_doc, inst.id) if inst.instrument_type == "stock" else None,

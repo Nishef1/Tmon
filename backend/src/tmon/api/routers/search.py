@@ -10,7 +10,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.returns import day_change
-from tmon.api.routers.dashboard import _kind, _ranking_doc, decide, fundamental_out
+from tmon.api.routers.dashboard import (
+    _kind,
+    _ranking_doc,
+    _turning_doc,
+    decide,
+    fundamental_out,
+)
 from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import SearchHit, SearchOut
 from tmon.api.trade_state import market_days, trade_state
@@ -75,6 +81,7 @@ def search(
         )
     head.sort(key=lambda t: (t[0], t[1], t[2].id not in traded, len(t[2].symbol_fa or ""), t[2].id))
     ranking = _ranking_doc()
+    turning = _turning_doc()
     days = market_days(session)
     states = {t[2].id: trade_state(session, t[2].id, days) for t in head}
     if active_only:
@@ -89,7 +96,7 @@ def search(
         ).first()
         close = float(p.close) if p and p.close is not None else None
         prev = float(p.prev_close) if p and p.prev_close else None
-        d = decide(inst, ranking, None)
+        d = decide(inst, ranking, None, turning)
         fa = fundamental_out(inst, close, sec) if inst.instrument_type == "stock" else None
         hits.append(
             SearchHit(

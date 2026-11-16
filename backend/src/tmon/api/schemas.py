@@ -750,6 +750,7 @@ class DashHorizon(ApiModel):
     verdict: Literal["buy", "hold", "sell", "none"]
     verdict_label: str
     weak: bool = False  # hold only because the past does not back a sell; the score itself is low
+    vetoed: bool = False  # a buy-zone score lowered to a wait by the symbol's own state
     headline: str
     reasons: list[str] = []
     top_excess: float | None = None  # past gross excess return of the top group over the market

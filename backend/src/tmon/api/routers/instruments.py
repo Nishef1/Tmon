@@ -429,10 +429,10 @@ def instrument_entry(
     verdict = None
     for u in (doc or {}).get("universe") or []:
         if int(u["id"]) == instrument_id:
-            from tmon.api.routers.dashboard import final_verdict
+            from tmon.api.routers.dashboard import _turning_doc, final_verdict
 
             sig = {k: x for k, x in (u.get("signals") or {}).items() if x is not None}
-            v = final_verdict(doc or {}, u.get("zone"), sig)
+            v = final_verdict(doc or {}, u.get("zone"), sig, _turning_doc(), instrument_id)
             verdict = v if v in ("buy", "hold", "sell") else None
             break
     fade = ent.bucket_for(ent.fade_table(session), bar.gap)

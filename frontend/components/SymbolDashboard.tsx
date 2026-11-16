@@ -97,7 +97,7 @@ function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
 export const DEFAULT_HORIZON = "M1";
 
 /** The verdict for one holding period, with the small gauge beside it. */
-function Verdict({
+export function Verdict({
   d,
   h,
   id,
@@ -121,7 +121,7 @@ function Verdict({
         <p className="text-base font-semibold leading-8">
           {faDigits((h?.headline ?? (d.summary || d.headline)).replace(/^برای [^:]*:\s*/, ""))}
         </p>
-        {h && verdict !== "buy" && d.gauge != null && d.gauge >= 90 && (
+        {h && verdict !== "buy" && !h.vetoed && d.gauge != null && d.gauge >= 90 && (
           <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
             چرا با امتیاز بالا «<HoldWord verdict={verdict} label={label} instrumentId={id} />
             »؟ خودِ سهم قوی است، ولی برای {shortLabel(h.label)} سودِ اضافهٔ گذشته
@@ -130,7 +130,7 @@ function Verdict({
           </p>
         )}
       </div>
-      <div className="w-36 shrink-0" data-testid="gauge-box">
+      <div className="w-40 shrink-0" data-testid="gauge-box">
         <Gauge
           value={d.gauge}
           label="جایگاه امروز در بازار"
@@ -145,6 +145,11 @@ function Verdict({
             ? "امتیازی محاسبه نشده"
             : `جایگاه امروز در بازار${d.rank != null ? ` · رتبهٔ ${faNumber(d.rank)}` : ""}`}
         </p>
+        {d.gauge != null && verdict !== "buy" && d.gauge >= (d.zone_buy_from ?? 90) && (
+          <p className="text-center text-xs text-muted" data-testid="gauge-not-advice">
+            این فقط رتبه است؛ توصیه همان کلمهٔ کنارش است.
+          </p>
+        )}
       </div>
     </div>
   );

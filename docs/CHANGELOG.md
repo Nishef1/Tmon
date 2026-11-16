@@ -1,5 +1,14 @@
 # تغییرات
 
+## 2026-11-16 — A buy for the month no longer contradicts the stock's own state
+
+- Reported: the page said "buy" for one month (gauge in the green zone) while the candle forecast was flat and wide. The score zone and the group's past edge (+2.1% net) were both true, but the stock's own state was never consulted: a stock after a very sharp rise belongs to a group that trailed the market.
+- State veto (`dashboard.py::state_veto`, used by `final_verdict`/`decide`): a buy at the one-month (and 60-day) period is lowered to a wait when the stock's current state in `v2/turning.json` trailed the same-day market on average at that period (at least 2000 past cases; the baseline state "normal" is exempt). It only lowers a buy, never raises, and the rule was declared before measuring. Measured on the live data: 20 of 105 buy-zone stocks flip to wait; the "very sharp rise" state had a 20-day excess of −0.2% and 11 in 100 closed more than 20% lower (5 in 100 for all stocks).
+- Same function everywhere: stock page, ranking list, entry guard, portfolio advice, screener and search; `DashHorizon.vetoed` tells the page which wait it is.
+- Frontend: the "why wait with a high score" paragraph no longer blames a thin edge when the state caused the wait; the gauge says it is a rank, not advice, when it sits in the buy zone but the word is not "buy"; «ضعیف / قوی» labels enlarged (they rendered at about 7 px).
+- The 20-candle cone is still own-history noise (−15%…+68% band, median 0% at 20 against +6% at 10 candles) and is labelled "not a signal"; it was not changed.
+- Side effect to know: شکام and داوه, among others, now read «صبر» for the month.
+
 ## 2026-11-16 — Server monitor, no false alerts, exit ladder and best time of day
 
 - Monitor: `tmon-monitor.service` runs `portfolio/monitor.py` around the clock on the server (installed by `deploy/install-monitor.sh`, restarted by `release.sh`). Supervisor notices name a stock only as `[SYM]`, `(SYM)` or `نماد SYM` (matching a symbol as a substring flagged unrelated stocks); market-wide foreign news reads the headline only and is spaced out by three hours; the Codal/news fetch no longer blocks the minute loop. Sync never overwrites tables the server owns (alerts, snapshots, portfolios the server edited).

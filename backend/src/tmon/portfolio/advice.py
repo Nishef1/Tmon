@@ -20,7 +20,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from tmon.api.routers.dashboard import final_verdict
+from tmon.api.routers.dashboard import _turning_doc, final_verdict
 from tmon.core.config import get_settings
 from tmon.portfolio import liveprice
 from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
@@ -99,7 +99,7 @@ class Scored:
     verdict: str | None = None  # the verdict the stock page shows: buy / hold / sell
 
 
-def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
+def _scored(doc: dict[str, Any] | None, turn: dict[str, Any] | None = None) -> dict[int, Scored]:
     if not doc:
         return {}
     uni = doc.get("universe") or []
@@ -108,7 +108,7 @@ def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
 
     def verdict(u: dict[str, Any]) -> str | None:
         sig = {k: x for k, x in (u.get("signals") or {}).items() if x is not None}
-        v = final_verdict(doc, u.get("zone"), sig)
+        v = final_verdict(doc, u.get("zone"), sig, turn, int(u["id"]))
         return v if v in ("buy", "hold", "sell") else None
 
     return {
@@ -182,7 +182,7 @@ VERDICT_FA = {
 
 def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
     doc = ranking_doc()
-    scored = _scored(doc)
+    scored = _scored(doc, _turning_doc())
     holdings = list(
         session.scalars(
             select(Holding).where(Holding.portfolio_id == portfolio.id, Holding.shares > 0)

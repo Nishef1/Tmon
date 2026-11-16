@@ -3518,6 +3518,11 @@
             "title": "Verdict Label",
             "type": "string"
           },
+          "vetoed": {
+            "default": false,
+            "title": "Vetoed",
+            "type": "boolean"
+          },
           "weak": {
             "default": false,
             "title": "Weak",
@@ -3531,6 +3536,7 @@
           "verdict",
           "verdict_label",
           "weak",
+          "vetoed",
           "headline",
           "reasons",
           "top_excess",
@@ -12439,7 +12445,7 @@
     },
     "/instruments/{instrument_id}/entry": {
       "get": {
-        "description": "Is now a sensible moment and price to buy this symbol? Today's range comes from the\nexchange for this request (nothing kept); the answer weighs the gap, the place in the day's\nrange, the model's tested edge after cost, the history of days that opened like today and the\norder book. With ``paid`` it also grades a purchase made at that price today.",
+        "description": "Is now a sensible moment and price to buy this symbol, and where and when to sell it?\nToday's range comes from the exchange for this request (nothing kept); the answer weighs the\ngap, the place in the day's range, the model's tested edge after cost, the history of days\nthat opened like today and the order book. It also carries the exit ladder (where to leave a\nsell limit) and the best quarter-hours of the session to buy and to sell. With ``paid`` it\nalso grades a purchase made at that price today.",
         "operationId": "instrument_entry_instruments__instrument_id__entry_get",
         "parameters": [
           {

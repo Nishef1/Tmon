@@ -208,10 +208,12 @@ export interface paths {
     };
     /**
      * Instrument Entry
-     * @description Is now a sensible moment and price to buy this symbol? Today's range comes from the
-     *     exchange for this request (nothing kept); the answer weighs the gap, the place in the day's
-     *     range, the model's tested edge after cost, the history of days that opened like today and the
-     *     order book. With ``paid`` it also grades a purchase made at that price today.
+     * @description Is now a sensible moment and price to buy this symbol, and where and when to sell it?
+     *     Today's range comes from the exchange for this request (nothing kept); the answer weighs the
+     *     gap, the place in the day's range, the model's tested edge after cost, the history of days
+     *     that opened like today and the order book. It also carries the exit ladder (where to leave a
+     *     sell limit) and the best quarter-hours of the session to buy and to sell. With ``paid`` it
+     *     also grades a purchase made at that price today.
      */
     get: operations["instrument_entry_instruments__instrument_id__entry_get"];
     put?: never;
@@ -2072,6 +2074,11 @@ export interface components {
       verdict: "buy" | "hold" | "sell" | "none";
       /** Verdict Label */
       verdict_label: string;
+      /**
+       * Vetoed
+       * @default false
+       */
+      vetoed: boolean;
       /**
        * Weak
        * @default false

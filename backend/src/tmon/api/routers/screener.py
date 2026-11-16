@@ -12,6 +12,7 @@ from tmon.api.returns import day_change, period_table
 from tmon.api.routers.dashboard import (
     INVITATION_STAGES,
     _ranking_doc,
+    _turning_doc,
     decide,
     fundamental_out,
 )
@@ -121,6 +122,7 @@ def screener(
             for c in session.scalars(select(ClientTypeDaily).where(ClientTypeDaily.date == fd))
         }
     ranking = _ranking_doc()
+    turning = _turning_doc()
 
     sectors = {
         c.strip().zfill(2): normalize_fa(n)
@@ -147,7 +149,7 @@ def screener(
         pcb = c.buy_value_i / c.buy_count_i if c and c.buy_value_i and c.buy_count_i else None
         pcs = c.sell_value_i / c.sell_count_i if c and c.sell_value_i and c.sell_count_i else None
         pv = prior.get(inst.id)
-        d = decide(inst, ranking, None)
+        d = decide(inst, ranking, None, turning)
         fa = fundamental_out(inst, close, sec) if inst.instrument_type == "stock" else None
         pr = periods.get(inst.id)
         tags = inst.tags or {}

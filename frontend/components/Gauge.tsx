@@ -102,10 +102,10 @@ export function Gauge({
           >
             {v == null ? "—" : faNumber(v, 0)}
           </text>
-          <text x={CX - R} y={CY + 14} textAnchor="middle" fontSize="10" className="fill-bad">
+          <text x={CX - R} y={CY + 18} textAnchor="middle" fontSize="14" className="fill-bad">
             ضعیف
           </text>
-          <text x={CX + R} y={CY + 14} textAnchor="middle" fontSize="10" className="fill-good">
+          <text x={CX + R} y={CY + 18} textAnchor="middle" fontSize="14" className="fill-good">
             قوی
           </text>
         </>
