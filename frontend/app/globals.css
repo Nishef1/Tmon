@@ -756,3 +756,61 @@ input[type="radio"] {
     transition: none !important;
   }
 }
+
+/* market map tiles: text scales with the tile, the move hides when the tile is too small */
+.hm-tile {
+  container-type: size;
+}
+.hm-face {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1em;
+  overflow: hidden;
+  border-radius: 5px;
+  color: #fff;
+  line-height: 1.15;
+  transition:
+    filter 0.15s,
+    box-shadow 0.15s;
+}
+.hm-tile:hover .hm-face {
+  filter: brightness(1.18);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55);
+}
+.hm-sym {
+  font-weight: 800;
+  font-size: clamp(9px, 21cqmin, 24px);
+  white-space: nowrap;
+}
+.hm-pct {
+  font-weight: 600;
+  font-size: clamp(8px, 15cqmin, 17px);
+  opacity: 0.92;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@container (max-height: 30px) or (max-width: 40px) {
+  .hm-pct {
+    display: none;
+  }
+}
+@container (max-height: 14px) or (max-width: 24px) {
+  .hm-sym {
+    display: none;
+  }
+}
+.hm-legend {
+  display: inline-block;
+  width: 5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    oklch(0.38 0.15 25),
+    oklch(0.5 0.02 152),
+    oklch(0.38 0.15 152)
+  );
+}

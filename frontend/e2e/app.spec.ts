@@ -299,33 +299,16 @@ test("model page is labelled a model ranking and shows the failed gates", async 
   await expect(page.getByTestId("ranking-evidence")).toContainText("سنجیده نشده‌اند");
 });
 
-test("home shows the full zone tables behind a fold and the old ranking address redirects", async ({
+test("home has one ranking table, the gate note and the market map; old ranking address redirects", async ({
   page,
 }) => {
   await page.goto("/ranking");
   await expect(page).toHaveURL(/\/$/);
-  await page.getByTestId("zone-details").locator("summary").click();
-  await expect(page.getByTestId("zone-buy")).toContainText("شکام");
-  await expect(page.getByTestId("zone-buy")).toContainText("صف خرید");
-  await expect(page.getByTestId("zone-avoid")).toContainText("خودرو");
-  await expect(page.getByTestId("zone-other")).toContainText("اروند");
-});
-
-test("home lists only tradable v2 stocks and says what was left out", async ({ page }) => {
-  await page.goto("/");
-  await page.getByTestId("zone-details").locator("summary").click();
-  const t = page.getByTestId("tradable-ranking");
-  await expect(t).toContainText("توصیه نیست");
-  await expect(t).not.toContainText("شکام ۰"); // in a buy queue: counted as left out, not listed
-  await expect(t).toContainText("وبانک");
-  await expect(t).toContainText("کنار گذاشته‌شده");
-  await expect(page.getByTestId("gate-note")).toContainText("توصیهٔ مطمئن نیست");
+  await expect(page.getByTestId("zone-details")).toHaveCount(0);
+  await expect(page.getByTestId("gate-note")).toContainText("توصیه نیست");
   await expect(page.getByTestId("today-note")).toContainText("یک هفته");
-  await expect(page.getByTestId("decision-hold")).toContainText("وبانک");
-  await expect(page.getByTestId("decision-avoid")).toContainText("خودرو");
-  await expect(page.getByTestId("decision-buy")).toContainText("امروز سهم عادیِ بدون صف");
-  await expect(page.getByTestId("outside-basket")).toContainText("داوه");
-  await expect(page.getByTestId("outside-basket")).toContainText("بیرون از سبد");
+  await expect(page.getByTestId("stock-table")).toContainText("وبانک");
+  await expect(page.getByTestId("heatmap")).toBeVisible();
 });
 
 test("the old all-symbols address opens the industries page with the search filled in", async ({

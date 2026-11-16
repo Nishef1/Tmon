@@ -3,9 +3,6 @@ import { apiGet, type MarketOverview, type Ranking, type Recommendations } from 
 import { jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
-import { TradableRanking } from "@/components/TradableRanking";
-import { ZoneTables } from "@/components/ZoneTables";
-import { OutsideBasket } from "@/components/OutsideBasket";
 import { ExposureCard } from "@/components/ExposureCard";
 import { SignalCard } from "@/components/SignalCard";
 import { WhyNoRecommendation } from "@/components/WhyNoRecommendation";
@@ -43,8 +40,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       <div className="space-y-1">
         <h1 className="page-title">امروز بازار چه شد؟</h1>
         <p className="lead">
-          خلاصهٔ بازار، نقشهٔ سهم‌های پرمعامله و رتبهٔ هر سهم. رتبه‌بندی فقط یک ابزار کمکی است و
-          توصیهٔ قطعی نیست.
+          خلاصهٔ بازار، نقشهٔ سهم‌های پرمعامله و رتبهٔ هر سهم. رتبه‌بندی فقط یک ابزار کمکی است و توصیهٔ
+          قطعی نیست.
         </p>
       </div>
 
@@ -53,6 +50,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       {ranked && (
         <>
           <Heatmap rows={rows} />
+          {!ranked.recommendation_allowed && (
+            <p className="alert-warn text-sm" data-testid="gate-note">
+              رتبه‌بندی مدل، توصیه نیست: آزمون‌های پذیرش اعتبار مدل هنوز کامل نگذشته‌اند. داده تا{" "}
+              {jalali(ranked.as_of, "weekday")}.
+            </p>
+          )}
           <StockTable rows={rows} />
           <p className="text-xs leading-6 text-muted" data-testid="today-note">
             رتبه‌بندی برای نگه‌داری حدود یک هفته یا بیشتر آزموده شده و برای یک روز، پس از کارمزد،
@@ -61,17 +64,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
               نتیجهٔ آزمون‌ها
             </Link>
           </p>
-          <details className="card" data-testid="zone-details">
-            <summary className="cursor-pointer font-semibold">
-              نمای ناحیه‌ها، خارج از سبد و میزان سرمایه در سهام
-            </summary>
-            <div className="mt-4 space-y-5">
-              <TradableRanking d={ranked} />
-              <OutsideBasket d={ranked} />
-              <ExposureCard d={ranked} />
-              <ZoneTables d={ranked} />
-            </div>
-          </details>
+          <ExposureCard d={ranked} />
         </>
       )}
 
@@ -81,7 +74,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
         </summary>
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted">
-            این مدل هنوز از آزمون‌های پذیرش نگذشته؛ اغلب روزها هیچ سیگنالی نمی‌دهد و نباید مبنای خرید باشد.
+            این مدل هنوز از آزمون‌های پذیرش نگذشته؛ اغلب روزها هیچ سیگنالی نمی‌دهد و نباید مبنای
+            خرید باشد.
           </p>
           <nav aria-label="بازهٔ زمانی" className="flex flex-wrap gap-2">
             {TIMEFRAMES.map((t) => (
@@ -137,8 +131,8 @@ function Body({ data, tf }: { data: Recommendations; tf: string }) {
 
       {run?.defensive_mode && (
         <aside role="status" className="alert-warn alert-lg">
-          <strong>حالت دفاعی فعال است.</strong> تعداد سهم‌های صعودی کم است یا پول حقیقی چند روز پیاپی خارج
-          شده؛ آستانهٔ پذیرش سیگنال بالاتر رفته است.{" "}
+          <strong>حالت دفاعی فعال است.</strong> تعداد سهم‌های صعودی کم است یا پول حقیقی چند روز
+          پیاپی خارج شده؛ آستانهٔ پذیرش سیگنال بالاتر رفته است.{" "}
           <Link href="/glossary/defensive_mode" className="underline">
             توضیح بیشتر
           </Link>
