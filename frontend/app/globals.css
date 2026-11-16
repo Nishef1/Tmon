@@ -386,6 +386,23 @@ input[type="radio"] {
     opacity: 0.5;
     cursor: not-allowed;
   }
+  /* A thumb is not a cursor: on touch screens every control is at least 44px tall. */
+  @media (pointer: coarse) {
+    .btn,
+    .tab,
+    main input:not([type="checkbox"]):not([type="radio"]),
+    main select,
+    main summary {
+      min-height: 2.75rem;
+    }
+    .tbl td a,
+    .tbl td button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+      padding-inline: 0.35rem;
+    }
+  }
   .btn-primary,
   .tab[aria-pressed="true"],
   .tab[aria-current="page"],

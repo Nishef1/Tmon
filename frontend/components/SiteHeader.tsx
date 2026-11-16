@@ -98,7 +98,7 @@ export function SiteHeader() {
           aria-expanded={menu}
           aria-controls="mobile-menu"
           onClick={() => setMenu(!menu)}
-          className="btn size-10 shrink-0 p-0 xl:hidden"
+          className="btn size-11 shrink-0 p-0 xl:hidden"
           data-testid="menu-button"
         >
           <svg

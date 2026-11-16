@@ -1039,7 +1039,7 @@ export function PortfolioView({ id }: { id: number }) {
   if (error) return <p className="card text-down">{error}</p>;
   if (!p) return <p className="card text-muted">در حال بارگذاری…</p>;
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       <h1 className="page-title">{p.name}</h1>
       <Summary p={p} />
       <AlertsFeed id={id} pkey={pkey} hasChannel={p.channels.length > 0} />

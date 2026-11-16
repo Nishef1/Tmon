@@ -38,7 +38,7 @@ export function ThemeToggle() {
       aria-pressed={dark}
       title={dark ? "حالت روشن" : "حالت تاریک"}
       data-testid="theme-toggle"
-      className="btn size-10 shrink-0 p-0"
+      className="btn size-11 shrink-0 p-0"
     >
       <svg
         viewBox="0 0 24 24"
