@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
-from tmon.ingest.http import PoliteClient
+from tmon.ingest.http import PoliteClient, RetryPolicy
 from tmon.ingest.news import rss, text
 from tmon.storage.models import NewsEvent, NewsRaw
 from tmon.storage.objectstore import ObjectStore, get_object_store, store_raw_payload
@@ -107,9 +107,18 @@ def extract_events(session: Session, api_key: str | None, model: str) -> dict[st
     return {"events": stored, "failed": failed}
 
 
+# A feed that failed is left alone for a while: from some hosts a site never answers (the VPS
+# cannot connect to sena.ir), and each failed fetch costs a full round of retries.
+FEED_PAUSE = dt.timedelta(minutes=30)
+_paused_until: dict[str, dt.datetime] = {}
+
+
 async def fetch_feeds(session: Session, client: PoliteClient, store: ObjectStore) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for source, url in rss.FEEDS.items():
+        if _paused_until.get(source, utcnow()) > utcnow():
+            out[source] = {"paused": True}
+            continue
         try:
             fetched_at = utcnow()
             resp = await client.get(url)
@@ -127,16 +136,18 @@ async def fetch_feeds(session: Session, client: PoliteClient, store: ObjectStore
                 session, rss.parse_feed(resp.content, source), url, fetched_at
             )
             session.commit()
+            _paused_until.pop(source, None)
         except Exception as exc:
             session.rollback()
             log.warning("news %s failed: %s", source, exc)
+            _paused_until[source] = utcnow() + FEED_PAUSE
             out[source] = {"error": str(exc)[:200]}
     return out
 
 
 async def _run() -> dict[str, Any]:
     settings = get_settings()
-    client = PoliteClient()
+    client = PoliteClient(retry=RetryPolicy(max_retries=2))  # polled often; a miss is retried next time
     try:
         with session_scope() as session:
             out = {"feeds": await fetch_feeds(session, client, get_object_store())}

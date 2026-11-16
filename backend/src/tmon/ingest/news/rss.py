@@ -13,6 +13,7 @@ FEEDS: dict[str, str] = {
     "sena": "https://www.sena.ir/rss",
     "boursenews": "https://www.boursenews.ir/fa/rss/allnews",
     "irna": "https://www.irna.ir/rss",
+    "isna": "https://www.isna.ir/rss",  # reachable from the VPS, unlike sena.ir (2026-11-16)
     "donya": "https://www.donya-e-eqtesad.com/fa/rss/allnews",
     # foreign highlights (English), checked from this machine on 2026-11-15
     "oilprice": "https://oilprice.com/rss/main",

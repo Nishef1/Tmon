@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+import httpx
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,7 @@ from tmon.ingest.codal.reports import (
     row_label,
     subsidiary_of,
 )
-from tmon.ingest.http import DomainRateLimiter, FetchError, PoliteClient
+from tmon.ingest.http import DomainRateLimiter, FetchError, PoliteClient, RetryPolicy
 from tmon.ingest.tsetmc.parsers import ParseError
 from tmon.storage.models import (
     CodalLetter,
@@ -301,7 +302,8 @@ async def sync_reports(
     return totals
 
 
-def codal_client() -> PoliteClient:
+def codal_client(*, fail_fast: bool = False) -> PoliteClient:
+    """``fail_fast`` is for a quick reachability check: one try, a short timeout."""
     s = get_settings()
     limiter = DomainRateLimiter(
         s.http_min_interval_seconds,
@@ -311,11 +313,22 @@ def codal_client() -> PoliteClient:
             "www.codal.ir": s.codal_min_interval_seconds,
         },
     )
+    if fail_fast:
+        return PoliteClient(
+            limiter=limiter,
+            retry=RetryPolicy(max_retries=0),
+            client=httpx.AsyncClient(
+                timeout=10.0,
+                headers={"User-Agent": s.http_user_agent},
+                follow_redirects=True,
+                proxy=s.http_proxy,
+            ),
+        )
     return PoliteClient(limiter=limiter)
 
 
-async def _run(kind: str, **kwargs: Any) -> dict[str, int]:
-    client = codal_client()
+async def _run(kind: str, *, fail_fast: bool = False, **kwargs: Any) -> dict[str, int]:
+    client = codal_client(fail_fast=fail_fast)
     try:
         with session_scope() as session:
             ctx = CodalCtx(session, client, get_object_store())

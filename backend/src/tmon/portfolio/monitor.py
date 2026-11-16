@@ -126,6 +126,9 @@ DOMESTIC_SHOCK = (
 
 
 MARKET_NEWS_GAP = timedelta(hours=3)
+# a letter is new when it is stored and was published within this window but not looked at yet:
+# the TSETMC feed can add a letter whose tracing number is lower than ones already seen
+CODAL_LOOKBACK = timedelta(days=2)
 
 
 def shock(item: NewsRaw) -> bool:
@@ -174,7 +177,7 @@ class Monitor:
     intraday: IntradayState = field(default_factory=IntradayState)
     polls: int = 0
     offsets: dict[str, int] = field(default_factory=dict)
-    codal_mark: int | None = None
+    codal_seen: set[int] | None = None  # tracing numbers already looked at
     news_mark: int | None = None
     last_codal: datetime | None = None
     meeting_day: date | None = None
@@ -294,13 +297,18 @@ class Monitor:
     async def codal_tick(
         self, views: dict[int, tuple[Portfolio, list[HoldingView]]], now: datetime
     ) -> int:
-        from tmon.ingest.codal.pipeline import run_letters
+        from tmon.ingest.codal.tsetmc_feed import run_newest_letters
 
-        if self.codal_mark is None:
+        since = now - CODAL_LOOKBACK
+        if self.codal_seen is None:
             with session_scope() as s:
-                self.codal_mark = s.scalar(select(func.max(CodalLetter.tracing_no))) or 0
+                self.codal_seen = set(
+                    s.scalars(
+                        select(CodalLetter.tracing_no).where(CodalLetter.published_at >= since)
+                    )
+                )
         try:
-            await asyncio.to_thread(run_letters, max_pages=3)
+            await asyncio.to_thread(run_newest_letters, max_pages=3)
         except Exception as exc:
             log.warning("monitor codal: %s", exc)
         self.last_codal = now
@@ -310,15 +318,22 @@ class Monitor:
                 by_inst.setdefault(h.instrument_id, []).append((pid, h))
         n = 0
         with session_scope() as s:
-            letters = list(
-                s.scalars(
-                    select(CodalLetter)
-                    .where(CodalLetter.tracing_no > self.codal_mark)
-                    .order_by(CodalLetter.tracing_no)
-                )
+            recent = set(
+                s.scalars(select(CodalLetter.tracing_no).where(CodalLetter.published_at >= since))
             )
-        if letters:
-            self.codal_mark = max(x.tracing_no for x in letters)
+            fresh = recent - self.codal_seen
+            letters = (
+                list(
+                    s.scalars(
+                        select(CodalLetter)
+                        .where(CodalLetter.tracing_no.in_(fresh))
+                        .order_by(CodalLetter.tracing_no)
+                    )
+                )
+                if fresh
+                else []
+            )
+        self.codal_seen |= fresh
         per: dict[int, list[Finding]] = {}
         for x in letters:
             for pid, h in by_inst.get(x.instrument_id or -1, []):
@@ -429,9 +444,9 @@ class Monitor:
         if due == "preopen":  # fresh inputs first
             await self.news_tick({}, now)
             try:
-                from tmon.ingest.codal.pipeline import run_letters
+                from tmon.ingest.codal.tsetmc_feed import run_newest_letters
 
-                await asyncio.to_thread(run_letters, max_pages=5)
+                await asyncio.to_thread(run_newest_letters, max_pages=5)
             except Exception as exc:
                 log.warning("preopen codal: %s", exc)
         try:

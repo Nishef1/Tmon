@@ -1,5 +1,14 @@
 # تغییرات
 
+## 2026-11-16 — The server's Codal watch works again (TSETMC feed) and a dead news site no longer stalls a tick
+
+- Found while looking at the monitor log: the VPS cannot connect to `search.codal.ir` (the name resolves, the connection is dropped; also `www.sena.ir`), so every Codal tick spent about 2.5 minutes in five retries and stored nothing. The exit watch for a held stock's Codal letters therefore never saw a letter on the server.
+- New path: `ingest/codal/tsetmc_feed.py` reads `cdn.tsetmc.com/api/Codal/GetPreparedData/{top}` (the newest Codal letters of the whole market, reachable from the VPS) and stores only the letters not stored yet, so a row Codal itself gave (with letter code and link) is never replaced by the poorer one. `run_newest_letters` tries Codal once with a 10 s timeout and no retries; when it does not answer it uses the feed and does not try Codal again for 30 minutes. On the PC, where Codal answers, nothing changes.
+- The feed has no letter code and no report link, so the server's own letters from the feed raise the title alert (and the «بد» words that ask for an exit) but not corporate-event rows; those still come from the PC's Codal ingest and its sync.
+- Monitor: "new letter" is now "published in the last two days and not looked at yet" instead of "tracing number above the highest seen", because the feed can add a letter with a lower number than ones already seen.
+- News: a feed that failed is paused for 30 minutes (it was retried five times with 30 s waits on every tick), RSS uses two retries, and `isna.ir` (reachable from the VPS) joins the domestic feeds next to `sena.ir` (not reachable from the VPS).
+- Not tested yet: the live alert path against a real session (the market is closed until Tuesday 09:00); the Bale token is still not entered, so alerts only land on the site.
+
 ## 2026-11-16 — A buy for the month no longer contradicts the stock's own state
 
 - Reported: the page said "buy" for one month (gauge in the green zone) while the candle forecast was flat and wide. The score zone and the group's past edge (+2.1% net) were both true, but the stock's own state was never consulted: a stock after a very sharp rise belongs to a group that trailed the market.

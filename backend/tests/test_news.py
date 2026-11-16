@@ -50,3 +50,24 @@ def test_store_items_dedupes_and_clusters(session):
 
 def test_llm_step_skipped_without_key(session):
     assert pipeline.extract_events(session, None, "m") == {"skipped": "TMON_LLM_API_KEY not set"}
+
+
+def test_a_failed_feed_is_paused_instead_of_retried_every_tick(session, monkeypatch):
+    import asyncio
+
+    from tmon.ingest.news import pipeline
+    from tmon.storage.objectstore import MemoryStore
+
+    monkeypatch.setattr(pipeline.rss, "FEEDS", {"sena": "https://example.invalid/rss"})
+    monkeypatch.setattr(pipeline, "_paused_until", {})
+    calls: list[str] = []
+
+    class Down:
+        async def get(self, url):
+            calls.append(url)
+            raise OSError("no route")
+
+    first = asyncio.run(pipeline.fetch_feeds(session, Down(), MemoryStore()))
+    second = asyncio.run(pipeline.fetch_feeds(session, Down(), MemoryStore()))
+    assert "error" in first["sena"] and second["sena"] == {"paused": True}
+    assert len(calls) == 1
