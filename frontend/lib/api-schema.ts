@@ -3949,6 +3949,10 @@ export interface components {
       queue_orders: number | null;
       /** Queue Ratio */
       queue_ratio: number | null;
+      /** Queue Reach Cases */
+      queue_reach_cases: number | null;
+      /** Queue Reach Pct */
+      queue_reach_pct: number | null;
       /** Queue State */
       queue_state: string | null;
       /** Rank */

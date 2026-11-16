@@ -479,6 +479,10 @@ class RankingRow(ApiModel):
     queue_ratio: float | None = None  # buy line at the close / usual daily volume; None = no line
     queue_level: Literal["weak", "medium", "heavy"] | None = None
     queue_orders: int | None = None  # orders in the line (level 1 bid count)
+    queue_reach_pct: float | None = (
+        None  # past share (0..1) of similar lines the next day's volume covered
+    )
+    queue_reach_cases: int | None = None  # how many past lines that share is based on
 
 
 class OutsideRow(ApiModel):

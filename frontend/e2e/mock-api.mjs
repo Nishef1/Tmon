@@ -153,6 +153,8 @@ const RANKING = {
       zone: "buy",
       queue_state: "buy_queue",
       queue_ratio: 1.8,
+      queue_reach_pct: 0.4,
+      queue_reach_cases: 120,
       queue_level: "heavy",
       queue_orders: 538,
       median_value: 1e11,

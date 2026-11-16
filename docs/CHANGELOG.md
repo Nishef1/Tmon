@@ -1,5 +1,9 @@
 # تغییرات
 
+## 2026-11-16 — Queue fill odds from history
+
+- The buy-queue badge tooltip now adds how often, in past one-sided close books of a similar size (queue / usual volume bucket), the next day's total volume was at least the whole queue. It is an upper bound on the chance of getting filled, not the chance itself (selling at the limit price is only a part of the volume). Memo keyed by data fingerprint, no TTL.
+
 ## M0 — اسکلت (۲۰ آبان ۱۴۰۵)
 
 - ساختار ریپو طبق [11](11-architecture-and-data-model.md): `backend/` (uv، Python 3.12)، `frontend/` (Next.js 16، TypeScript، Tailwind 4، RTL و وزیرمتن)، `infra/docker-compose.yml`، `.github/workflows/ci.yml`.

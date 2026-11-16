@@ -14,6 +14,23 @@ describe("QueueBadge", () => {
     expect(b.getAttribute("title")).toContain("۵۳۸ سفارش");
   });
 
+  it("adds the past reach share as an upper bound to the tooltip", () => {
+    render(
+      <QueueBadge
+        r={{
+          queue_state: "buy_queue",
+          queue_ratio: 2.44,
+          queue_level: "heavy",
+          queue_reach_pct: 0.4,
+          queue_reach_cases: 120,
+        }}
+      />,
+    );
+    const t = screen.getByTestId("queue-badge").getAttribute("title") ?? "";
+    expect(t).toContain("۴۰٪");
+    expect(t).toContain("سقف شانس پر شدن");
+  });
+
   it("shows a line without a stored book as the plain label and nothing otherwise", () => {
     const { container, rerender } = render(<QueueBadge r={{ queue_state: "buy_queue" }} />);
     expect(container.textContent).toBe("صف خرید");

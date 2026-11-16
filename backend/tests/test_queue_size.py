@@ -54,3 +54,23 @@ def test_reading_uses_the_median_volume_and_only_the_latest_book_day(session: Se
     ratio, level, orders = out[line.id]
     assert ratio == 2.5 and level == "heavy" and orders == 7
     assert queue_readings(session, [], LAST) == {}
+
+
+def test_history_odds_counts_the_next_day_covering_the_whole_queue(session: Session) -> None:
+    from tmon.api.queue_size import history_odds, odds_for
+
+    light = _stock(session, "11", [10.0] * 14)
+    heavy = _stock(session, "12", [10.0] * 14)
+    for ins, bid in ((light, 5.0), (heavy, 80.0)):
+        for back in (4, 3):  # two consecutive book days; the second one is the "next day"
+            session.add(
+                OrderBookDaily(
+                    instrument_id=ins.id, date=LAST - dt.timedelta(days=back), n_events=5,
+                    close_bid_volume=bid, close_ask_volume=0.0, close_bid_count=3,
+                )
+            )  # fmt: skip
+    session.commit()
+    table = history_odds(session)
+    assert odds_for(0.5, table) == (1.0, 1)  # 5 shares of a 10-share day: covered next day
+    assert odds_for(8.0, table) == (0.0, 1)  # 80 shares: next day's 10 cannot clear it
+    assert odds_for(1.0, []) is None

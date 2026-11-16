@@ -9615,6 +9615,28 @@
             ],
             "title": "Queue Ratio"
           },
+          "queue_reach_cases": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Reach Cases"
+          },
+          "queue_reach_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Reach Pct"
+          },
           "queue_state": {
             "anyOf": [
               {
@@ -9711,7 +9733,9 @@
           "last_trade_date",
           "queue_ratio",
           "queue_level",
-          "queue_orders"
+          "queue_orders",
+          "queue_reach_pct",
+          "queue_reach_cases"
         ],
         "title": "RankingRow",
         "type": "object"
