@@ -74,7 +74,7 @@ export function Summary({ p }: { p: Portfolio }) {
       )}
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         {stat("ارزش کل (سهام + نقد)", `${faToman(p.total_value)} تومان`)}
-        {stat("ارزش اگر الان فروخته شود", `${faToman(p.liquidation_value)} تومان`)}
+        {stat("ارزش سهام اگر الان فروخته شود", `${faToman(p.liquidation_value)} تومان`)}
         {stat("نقد", `${faToman(p.cash)} تومان`)}
         {stat("بهای تمام‌شدهٔ دارایی‌ها", `${faToman(p.cost)} تومان`)}
         {stat("سود باز", `${faToman(p.pnl)} (${signedPct(p.pnl_pct)})`, signTone(p.pnl))}
