@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from tmon.api.queue_size import history_odds, odds_for, queue_readings
 from tmon.api.returns import day_change
+from tmon.api.routers.dashboard import final_verdict
 from tmon.api.schemas import OutsideRow, RankingOut
 from tmon.api.trade_state import market_days, trade_state
 from tmon.core.config import get_settings
@@ -33,6 +34,9 @@ def ranking(session: SessionDep) -> RankingOut:
     doc = json.loads(data)
     out = RankingOut(available=True, **doc)
     out.outside = _outside(session, doc)
+    for r in out.rows:
+        v = final_verdict(doc, r.zone, {k: x for k, x in r.signals.items() if x is not None})
+        r.verdict = v if v in ("buy", "hold", "sell") else None  # type: ignore[assignment]
     out.universe_size = len(doc.get("universe") or []) or None
     # link each row to its instrument page with the latest close and day change
     last = session.scalar(select(func.max(PriceDaily.date)))

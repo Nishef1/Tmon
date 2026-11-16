@@ -9726,6 +9726,22 @@
             "title": "Trade State",
             "type": "string"
           },
+          "verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "hold",
+                  "sell"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
           "zone": {
             "enum": [
               "buy",
@@ -9745,6 +9761,7 @@
           "sector_code",
           "score",
           "zone",
+          "verdict",
           "queue_state",
           "median_value",
           "in_basket",

@@ -438,6 +438,21 @@ def _horizons(doc: dict[str, Any], zone: str, sig: dict[str, float]) -> list[Das
     ]
 
 
+def final_verdict(doc: dict[str, Any], zone: str | None, sig: dict[str, float]) -> str | None:
+    """The verdict the symbol page shows (buy / hold / sell): the score zone, softened by what the
+    tested month says. ``None`` when the zone gives no decision. One definition for every list."""
+    if zone not in ("buy", "hold", "avoid"):
+        return None
+    verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
+    cost, ev = doc.get("round_trip_cost"), None
+    for e in doc.get("evidence", []):
+        if e.get("horizon_days") == HOLD_DAYS:
+            ev = e
+    if cost is None or ev is None:
+        return verdict
+    return _horizon_decision(HOLD_DAYS, ev, zone, float(cost), sig, True).verdict
+
+
 def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
     ev = next((e for e in doc.get("evidence", []) if e.get("horizon_days") == HOLD_DAYS), None)
     edge = ev.get("top_excess") if ev else None
@@ -550,10 +565,13 @@ def decide(
     in_basket = row is not None
     zone = src["zone"]
     score = src.get("score")
+    in_rows = [r for r in rows if r.get("in_basket", True)]
+    # the position among the liquid stocks the list shows, not the raw rank over every symbol
+    basket_rank = 1 + sum(1 for r in in_rows if r["rank"] < row["rank"]) if row else None
     base: dict[str, Any] = {
         "as_of": as_of,
-        "rank": row["rank"] if row else None,
-        "basket_size": size,
+        "rank": basket_rank,
+        "basket_size": len(in_rows) or size,
         "score": score,
         "gauge": None if score is None else score * 100,
         "in_basket": in_basket,
@@ -582,7 +600,7 @@ def decide(
         reasons = [
             f"امتیاز ترکیبی {(score or 0) * 100:.0f} از ۱۰۰ یعنی از حدود "
             f"{(score or 0) * 100:.0f}٪ نمادهای امتیازدار بازار بهتر است؛ در فهرست امروز "
-            f"({len(rows)} نماد) رتبهٔ {row['rank']} را دارد."
+            f"({len(in_rows)} سهم پرمعامله) رتبهٔ {basket_rank} را دارد."
         ]
     else:
         pos = sum(1 for u in scored if u["score"] > (score or 0)) + 1

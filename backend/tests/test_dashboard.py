@@ -56,7 +56,7 @@ def test_verdict_by_zone(sym: str, verdict: str) -> None:
 def test_reasons_carry_rank_and_signals_and_gate_status() -> None:
     d = dash.decide(_inst("الف"), _doc(allowed=False), None)
     text = " ".join(d.reasons)
-    assert "(4 نماد) رتبهٔ 1" in text and "نمادهای امتیازدار بازار بهتر" in text
+    assert "(4 سهم پرمعامله) رتبهٔ 1" in text and "نمادهای امتیازدار بازار بهتر" in text
     # strongest/weakest live in the signal bars, not repeated in the reasons
     names = {g.name for g in d.signals}
     assert "قدرت خریدار حقیقی" in names and "نقطهٔ قوت" not in text
@@ -275,3 +275,24 @@ def test_headline_follows_the_tested_month_when_the_score_says_more() -> None:
     lag = dash.decide(_with_id(8, "رابع"), doc, 3e9)
     assert lag.verdict == "sell" and lag.horizons[0].verdict == "sell"
     assert not lag.weak and not lag.horizons[0].weak
+
+
+def test_list_verdict_is_the_one_the_stock_page_shows() -> None:
+    doc = _doc()
+    doc["round_trip_cost"] = 0.0175
+    doc["evidence"] = [
+        {"horizon_days": 20, "top_excess": 0.012, "excess_t": 2.0, "bottom_excess": -0.03}
+    ]
+    sig = doc["rows"][0]["signals"]
+    # buy zone, but the tested month is not solid (t 2 < 3): the list says hold, like the page
+    assert dash.final_verdict(doc, "buy", sig) == "hold"
+    assert dash.decide(_inst("الف"), doc, 9e11).verdict == "hold"
+    assert dash.final_verdict(doc, "avoid", sig) == "sell"
+    assert dash.final_verdict(doc, "excluded", sig) is None
+
+
+def test_rank_counts_only_liquid_basket_rows() -> None:
+    doc = _doc()
+    doc["rows"][0]["in_basket"] = False  # a thin stock ranked above the others
+    d = dash.decide(_inst("ب"), doc, 8e11)
+    assert d.rank == 1 and d.basket_size == 3

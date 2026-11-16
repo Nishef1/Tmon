@@ -8,11 +8,16 @@ import type { RankingRow } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
 import { verdictPill } from "@/lib/ui";
 
-type Zone = "all" | "buy" | "hold" | "avoid";
+type Zone = "all" | V;
 type Key = "rank" | "change" | "close" | "value";
 
-const LABEL = { buy: "خرید", hold: "صبر", avoid: "فروش" } as const;
-const VERDICT = { buy: "buy", hold: "hold", avoid: "sell" } as const;
+const LABEL = { buy: "خرید", hold: "صبر", sell: "فروش" } as const;
+type V = keyof typeof LABEL;
+
+/** The verdict the stock's own page shows (zone softened by the tested month); falls back to the
+ *  zone for an older API that has no `verdict`. */
+const verdictOf = (r: RankingRow): V | null =>
+  r.verdict ?? (r.zone === "buy" ? "buy" : r.zone === "hold" ? "hold" : r.zone === "avoid" ? "sell" : null);
 const PAGE = 40;
 
 /** One sortable, filterable table of the liquid stocks: what a visitor scans first. */
@@ -35,11 +40,12 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
   }, [rows]);
 
   const counts = useMemo(() => {
-    const c = { all: 0, buy: 0, hold: 0, avoid: 0 };
+    const c = { all: 0, buy: 0, hold: 0, sell: 0 };
     for (const r of rows) {
       if (!thin && r.in_basket === false) continue;
       c.all++;
-      if (r.zone === "buy" || r.zone === "hold" || r.zone === "avoid") c[r.zone]++;
+      const v = verdictOf(r);
+      if (v) c[v]++;
     }
     return c;
   }, [rows, thin]);
@@ -55,7 +61,7 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
             ? (r.close ?? 0)
             : (r.median_value ?? 0);
     return rows
-      .filter((r) => (thin || r.in_basket !== false) && (zone === "all" || r.zone === zone))
+      .filter((r) => (thin || r.in_basket !== false) && (zone === "all" || verdictOf(r) === zone))
       .filter((r) => !needle || r.symbol.includes(needle) || (r.name ?? "").includes(needle))
       .sort((a, b) => (asc ? 1 : -1) * (get(a) - get(b)));
   }, [rows, zone, q, key, asc, thin, pos]);
@@ -73,7 +79,7 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
     { id: "all", label: "همه" },
     { id: "buy", label: "خرید" },
     { id: "hold", label: "صبر" },
-    { id: "avoid", label: "فروش" },
+    { id: "sell", label: "فروش" },
   ];
 
   return (
@@ -166,8 +172,10 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
                   {r.median_value == null ? "—" : `${faNumber(r.median_value / 1e10, 1)} میلیارد ت`}
                 </td>
                 <td className="py-2">
-                  {r.zone === "buy" || r.zone === "hold" || r.zone === "avoid" ? (
-                    <span className={verdictPill(VERDICT[r.zone])}>{LABEL[r.zone]}</span>
+                  {verdictOf(r) ? (
+                    <span className={verdictPill(verdictOf(r) as V)}>
+                      {LABEL[verdictOf(r) as V]}
+                    </span>
                   ) : (
                     "—"
                   )}

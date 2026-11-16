@@ -1,5 +1,10 @@
 # تغییرات
 
+## 2026-11-16 — One verdict and one rank everywhere
+
+- The home table showed the score zone (Shekam: "buy") while its own page showed the tested-month verdict (hold on every horizon). `final_verdict` in `dashboard.py` is now the single definition; `/v2/ranking` rows carry `verdict` and the home table, tabs and counts use it.
+- The stock page rank was the raw rank over every symbol (3 of "100"), the home table the position among liquid stocks (1 of 87). The page now uses the position among liquid rows and their count.
+
 ## 2026-11-16 — Gauge coloured by decision zone
 
 - The stock-page gauge was a linear red-to-green ramp over a score that is a percentile of all ~1000 stocks, while the verdict zones are the top 10% (buy), next 20% (hold) and the rest (sell). A stock ranked 97th of 100 sat at 60 in the "almost green" part. The arc is now three zones (red below 70, amber 70-90, green from 90) with the thresholds served by the API (`zone_hold_from`, `zone_buy_from`).

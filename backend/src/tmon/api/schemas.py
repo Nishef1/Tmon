@@ -466,6 +466,7 @@ class RankingRow(ApiModel):
     sector_code: str | None = None
     score: float | None = None
     zone: Literal["buy", "hold", "avoid", "excluded", "no_data"]
+    verdict: Literal["buy", "hold", "sell"] | None = None  # what the symbol page says
     queue_state: str | None = None
     median_value: float | None = None
     in_basket: bool = True

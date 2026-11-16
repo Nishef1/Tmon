@@ -3977,6 +3977,8 @@ export interface components {
        * @enum {string}
        */
       trade_state: "active" | "idle" | "halted";
+      /** Verdict */
+      verdict: ("buy" | "hold" | "sell") | null;
       /**
        * Zone
        * @enum {string}
