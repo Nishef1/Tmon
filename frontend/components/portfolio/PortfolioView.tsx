@@ -37,7 +37,15 @@ function sevOf(n: number) {
 }
 
 // -- alerts -----------------------------------------------------------------------------------
-function AlertsFeed({ id, pkey }: { id: number; pkey: string }) {
+export function AlertsFeed({
+  id,
+  pkey,
+  hasChannel,
+}: {
+  id: number;
+  pkey: string;
+  hasChannel: boolean;
+}) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [perm, askPerm] = useNotificationPermission();
   const last = useRef(0);
@@ -87,6 +95,12 @@ function AlertsFeed({ id, pkey }: { id: number; pkey: string }) {
           </button>
         )}
       </div>
+      {!hasChannel && (
+        <p className="alert-warn mt-2 text-sm" data-testid="no-channel">
+          کانال اطلاع‌رسانی نداری؛ هشدار فقط داخل همین صفحه می‌آید و اگر صفحه بسته باشد از آن خبردار
+          نمی‌شوی. در بخش تنظیمات پایین همین صفحه بله یا تلگرام را اضافه کن.
+        </p>
+      )}
       {alerts.length === 0 ? (
         <p className="mt-2 text-muted">هشداری ثبت نشده است.</p>
       ) : (
@@ -1026,7 +1040,7 @@ export function PortfolioView({ id }: { id: number }) {
     <div className="grid gap-4">
       <h1 className="page-title">{p.name}</h1>
       <Summary p={p} />
-      <AlertsFeed id={id} pkey={pkey} />
+      <AlertsFeed id={id} pkey={pkey} hasChannel={p.channels.length > 0} />
       <Holdings p={p} pkey={pkey} onChange={changed} />
       <MofidCard p={p} pkey={pkey} onChange={changed} />
       <Trades p={p} pkey={pkey} version={version} onChange={changed} />

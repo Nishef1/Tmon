@@ -460,16 +460,19 @@ MESSAGE_MAX_AGE = timedelta(
 
 
 def names_symbol(symbol: str, text: str) -> bool:
-    """True when ``text`` names ``symbol`` as a word of its own (also ``حفارس1``, ``(خمحور)``).
-
-    A substring test is wrong: the gold fund «طلا» sits inside «اطلاعیه» (notice), so every
-    general announcement would have been an urgent alert for its holder."""
+    """True when ``text`` names ``symbol`` the way the exchange writes it: in brackets, «(خمحور)»
+    or «(حفارس1)», or after the word «نماد». Never as a loose word or substring: «طلا» sits inside
+    «اطلاعیه» (notice), and «خودرو» or «فولاد» are words of other companies' names, so every
+    general announcement or neighbour's notice would have been an urgent alert for its holder."""
     sym = normalize_fa(symbol).replace(ZWNJ, " ")
     if not sym:
         return False
     body = normalize_fa(text).replace(ZWNJ, " ")
-    pattern = rf"(?<![\w\u0600-\u06ff]){re.escape(sym)}\d?(?![\w\u0600-\u06ff])"
-    return re.search(pattern, body) is not None
+    sym_re = re.escape(sym)
+    word = r"[\w؀-ۿ]"
+    bracket = rf"[(\[]\s*{sym_re}\d?\s*[)\]]"
+    after_word = rf"نماد(?: معاملاتی)?\s+{sym_re}\d?(?!{word})"
+    return re.search(f"{bracket}|{after_word}", body) is not None
 
 
 def _message_time(msg: dict[str, Any]) -> datetime | None:

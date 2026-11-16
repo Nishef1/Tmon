@@ -366,6 +366,16 @@ def test_only_real_shocks_raise_market_news() -> None:
     assert f is not None and f.severity == WARN and not f.ask_exit
     calm = NewsRaw(id=2, source="irna", url="u", title="افتتاح نمایشگاه", title_norm="x")
     assert news_finding(1, calm, None, None) is None
+    # Iran named only in the summary of an unrelated story is not a market alarm
+    passing = NewsRaw(
+        id=3,
+        source="cnbc_world",
+        url="u",
+        title="Japan's economy contracts as exports fall",
+        title_norm="x",
+        summary="Analysts also pointed to the war near Iran and new sanctions",
+    )
+    assert news_finding(1, passing, None, None) is None
 
 
 def test_entries_empty_portfolio(client: TestClient) -> None:

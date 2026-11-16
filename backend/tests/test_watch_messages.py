@@ -36,12 +36,20 @@ def test_gold_fund_is_not_found_inside_the_word_notice() -> None:
     [
         ("خمحور", "نماد معاملاتي شركت توليد محور خودرو (خمحور) باز شد"),
         ("حفارس", "توقف نماد (حفارس1) به علت افشاي اطلاعات"),  # trailing series digit
-        ("طلا", "قیمت صندوق طلا امروز"),
+        ("طلا", "توقف نماد معاملاتی طلا"),
         ("کگل", "توقف نماد كگل"),  # Arabic kaf in the feed, Persian in our table
     ],
 )
 def test_the_symbol_as_a_word_is_found(symbol: str, text: str) -> None:
     assert names_symbol(symbol, text)
+
+
+def test_a_symbol_that_is_only_a_word_of_a_company_name_is_not_found() -> None:
+    # «خودرو» and «فولاد» are words in many companies' names; only the bracketed code counts
+    assert not names_symbol("خودرو", "مجمع شرکت ایران خودرو دیزل برگزار شد")
+    assert not names_symbol("فولاد", "افشای اطلاعات شرکت فولاد کاوه (بیمیسکو1)")
+    assert not names_symbol("طلا", "قیمت صندوق طلا امروز")
+    assert names_symbol("خودرو", "نماد (خودرو) بازگشایی شد")
 
 
 def test_a_symbol_inside_another_symbol_is_not_found() -> None:

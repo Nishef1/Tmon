@@ -125,9 +125,14 @@ DOMESTIC_SHOCK = (
 )
 
 
+MARKET_NEWS_GAP = timedelta(hours=3)
+
+
 def shock(item: NewsRaw) -> bool:
     if item.source in FOREIGN:
-        return bool(FOREIGN_SHOCK.search(f"{item.title} {item.summary or ''}"))
+        # the headline only: a summary that mentions Iran in passing made a Japanese GDP story
+        # a market alarm
+        return bool(FOREIGN_SHOCK.search(item.title))
     return any(w in item.title for w in DOMESTIC_SHOCK)
 
 
@@ -175,6 +180,7 @@ class Monitor:
     meeting_day: date | None = None
     last_news: datetime | None = None
     last_prune: date | None = None
+    market_news_at: dict[int, datetime] = field(default_factory=dict)
     background: dict[str, asyncio.Task[Any]] = field(default_factory=dict)
     briefed: set[str] = field(default_factory=set)
 
@@ -372,8 +378,15 @@ class Monitor:
                     None,
                 )
                 f = news_finding(pid, it, ev, hit)
-                if f:
-                    found.append(f)
+                if f is None:
+                    continue
+                if f.instrument_id is None:
+                    # market-wide news: one a few hours, not a feed of every oil headline
+                    last = self.market_news_at.get(pid)
+                    if last is not None and now - last < MARKET_NEWS_GAP:
+                        continue
+                    self.market_news_at[pid] = now
+                found.append(f)
             n += await self._emit(pid, found, now)
         return n
 
