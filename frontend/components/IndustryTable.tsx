@@ -83,7 +83,7 @@ const COLS: Col[] = [
     agg: (i) => (
       <span className="text-xs">
         {i.verdicts.buy > 0 && <span className="text-up">{faNumber(i.verdicts.buy)} خرید </span>}
-        {i.verdicts.hold > 0 && <span className="text-hold">{faNumber(i.verdicts.hold)} نگه </span>}
+        {i.verdicts.hold > 0 && <span className="text-hold">{faNumber(i.verdicts.hold)} صبر </span>}
         {i.verdicts.sell > 0 && <span className="text-down">{faNumber(i.verdicts.sell)} فروش</span>}
         {i.gauge != null && <div className="text-muted">میانگین {faNumber(i.gauge)}</div>}
       </span>
@@ -757,8 +757,8 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
                 <tr>
                   <td colSpan={colCount} className="px-3 py-2 text-xs text-muted">
                     بازدهٔ صنعت میانگین وزنی بازدهٔ نمادها با وزن ارزش بازار است. بازده‌ها روی قیمت
-                    تعدیل‌شده برای مجمع و افزایش سرمایه محاسبه می‌شوند؛ خانهٔ خالی یعنی داده یا
-                    سابقهٔ کافی وجود ندارد.
+                    تعدیل‌شده برای مجمع و افزایش سرمایه محاسبه می‌شوند؛ خانهٔ خالی یعنی داده یا سابقهٔ
+                    کافی وجود ندارد.
                   </td>
                 </tr>
               </tfoot>
