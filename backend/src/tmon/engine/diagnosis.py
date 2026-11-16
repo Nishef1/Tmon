@@ -58,17 +58,25 @@ def build_diagnosis(
         "portfolio": int(selected),
     }
     counts = [
-        ("universe", "نمادهای جهان امروز", n),
-        ("scored", "دارای امتیاز مدل", int(scored.sum())),
+        ("universe", "نمادهای بررسی‌شدهٔ امروز", n),
+        ("scored", "نمادهایی که مدل برایشان امتیاز محاسبه کرد", int(scored.sum())),
         (
             "bucket",
-            f"سطل احتمال با دست‌کم {thresholds.min_bucket_samples} نمونهٔ آماری",
+            f"نمادهایی که گروه احتمالشان دست‌کم {thresholds.min_bucket_samples} نمونهٔ گذشته دارد",
             int(enough.sum()),
         ),
-        ("ev", f"سود خالص مورد انتظار ≥ {thresholds.ev_min_abs * 100:.2f}٪", int(ev_ok.sum())),
-        ("p_min", "احتمال برد ≥ حداقل احتمال همان سطل", int(p_ok.sum())),
-        ("signal", "سیگنال پس از همهٔ شرط‌ها", int(sig.sum())),
-        ("portfolio", "پس از محدودیت‌های پرتفوی", int(selected)),
+        (
+            "ev",
+            f"نمادهایی که سود خالص مورد انتظارشان دست‌کم {thresholds.ev_min_abs * 100:.2f}٪ است",
+            int(ev_ok.sum()),
+        ),
+        (
+            "p_min",
+            "نمادهایی که احتمال موفقیتشان از حداقل لازم برای سودآوری همان گروه کمتر نیست",
+            int(p_ok.sum()),
+        ),
+        ("signal", "نمادهایی که همهٔ شرط‌ها را گذراندند و سیگنال شدند", int(sig.sum())),
+        ("portfolio", "نمادهای باقی‌مانده پس از محدودیت‌های پرتفوی", int(selected)),
     ]
     stages: list[dict[str, Any]] = []
     prev = n

@@ -47,9 +47,9 @@ export function DeepStudy({ d }: { d: Deep }) {
           شبکهٔ عمیق، دو مدل <Link href="/glossary/autoregressive">خودبازگشتی</Link> (GRU و TCN روی
           ۱۶ روز اخیر هر سهم)، یک <Link href="/glossary/diffusion_model">دیفیوژن</Link> شرطی،{" "}
           <Link href="/glossary/residual_learning">یادگیری باقیمانده</Link> روی وزن مساوی و
-          ترکیب‌هایشان با GBM و Hedge با همان پروتکل علّی سنجیده شدند: مدل هر روز فقط با برچسب‌های
-          معلوم‌شده آموزش دیده و هر ۱۲۶ روز دوباره آموزش می‌بیند؛ هر شبکه با{" "}
-          {faNumber(d.seeds.length)} seed و امتیازش میانگین استاندارد آن‌هاست. دورهٔ آزمون خارج از
+          ترکیب‌هایشان با GBM و Hedge همه بدون نگاه به آینده سنجیده شدند: مدل در هر روز فقط با نتیجه‌هایی
+          آموزش می‌بیند که تا آن روز معلوم بودند و هر ۱۲۶ روز دوباره آموزش می‌بیند. هر شبکه با{" "}
+          {faNumber(d.seeds.length)} بذر تصادفی متفاوت آموزش داده شده و امتیازش میانگین همین اجراهاست. دورهٔ آزمون خارج از
           نمونه {jalali(d.oos_from)} تا {jalali(d.last)}، با مرز دو نیمه در {jalali(d.mid)}. معیار
           قبولی همان <Link href="/glossary/adapt_gate">دروازهٔ ارتقا</Link> است.
         </p>
@@ -68,7 +68,7 @@ export function DeepStudy({ d }: { d: Deep }) {
       <div className="overflow-x-auto" data-testid="deep-matrix">
         <table className="tbl min-w-[44rem]">
           <caption className="mb-1 text-start text-xs text-muted">
-            بهبود IC هر روش نسبت به وزن مساوی (و t). ✓ یعنی از دروازه گذشت.
+            بهبود IC هر روش نسبت به وزن مساوی، همراه با t. علامت ✓ یعنی آن روش از دروازه گذشته است.
           </caption>
           <thead>
             <tr>
@@ -119,11 +119,11 @@ export function DeepStudy({ d }: { d: Deep }) {
                   <tr>
                     <th>روش</th>
                     <th>IC</th>
-                    <th>بهبود IC نسبت به مساوی</th>
+                    <th>بهبود IC نسبت به وزن مساوی</th>
                     <th>نیمهٔ اول ← دوم</th>
-                    <th>مازاد دهک بالا (هزینه {faPercent(cost, 2)})</th>
+                    <th>بازدهٔ اضافهٔ ۱۰٪ بالای فهرست (هزینه {faPercent(cost, 2)})</th>
                     <th>
-                      <Link href="/glossary/seed_spread">IC هر seed</Link>
+                      <Link href="/glossary/seed_spread">IC هر بذر تصادفی</Link>
                     </th>
                     <th>نتیجه</th>
                   </tr>
@@ -184,8 +184,8 @@ export function DeepStudy({ d }: { d: Deep }) {
           </details>
         ))}
         <p className="text-xs leading-6 text-muted">
-          Hedge روی همهٔ روش‌ها به تاریخچهٔ خودش نیاز دارد و چند ماه دیرتر شروع می‌شود؛ بهبودش فقط
-          روی روزهای مشترک با وزن مساوی حساب شده و IC خامش با ردیف‌های دیگر هم‌بازه نیست.
+          Hedge برای شروع به تاریخچهٔ خودش نیاز دارد و چند ماه دیرتر شروع می‌شود. بهبودش فقط روی
+          روزهای مشترک با وزن مساوی حساب شده است، پس IC خام آن با ردیف‌های دیگر بازهٔ یکسانی ندارد.
         </p>
       </div>
     </section>

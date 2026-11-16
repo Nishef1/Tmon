@@ -23,8 +23,8 @@ METRIC_ROWS: Sequence[tuple[str, str, str, str]] = (
     ("میانگین برد", "trades", "avg_win", "pct"),
     ("میانگین باخت", "trades", "avg_loss", "pct"),
     ("نسبت برد به باخت", "trades", "payoff_ratio", "num"),
-    ("امید ریاضی هر معامله (خالص)", "trades", "expectancy_net", "pct"),
-    ("امید ریاضی هر معامله (ناخالص)", "trades", "expectancy_gross", "pct"),
+    ("میانگین سود هر معامله، خالص (امید ریاضی)", "trades", "expectancy_net", "pct"),
+    ("میانگین سود هر معامله، ناخالص (امید ریاضی)", "trades", "expectancy_gross", "pct"),
     ("میانگین هزینهٔ رفت‌وبرگشت", "trades", "avg_round_trip_cost", "pct"),
     ("بازده کل", "portfolio", "total_return", "pct"),
     ("بازده سالانه", "portfolio", "annualized_return", "pct"),
@@ -147,7 +147,7 @@ def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[st
         )
     if exp is not None:
         out.append(
-            f"{challenger}: امید ریاضی هر معامله پس از هزینه {_fmt(exp, 'pct')} "
+            f"{challenger}: میانگین سود هر معامله پس از هزینه {_fmt(exp, 'pct')} "
             + ("(مثبت)." if exp > 0 else "(منفی یا صفر: لبهٔ معنادار ثابت نشد).")
         )
     ew = run.benchmarks.get("equal_weight_universe", {}).get("portfolio", {}).get("total_return")
@@ -176,7 +176,7 @@ def verdicts(run: BacktestRun, challenger: str, baseline: str | None) -> list[st
         if exp is not None and be is not None:
             better = exp > be and (tr is None or btr is None or tr > btr)
             out.append(
-                f"نسبت به روش پایهٔ ساده ({baseline}): امید ریاضی {_fmt(exp, 'pct')} در برابر {_fmt(be, 'pct')}"
+                f"نسبت به قاعدهٔ سادهٔ مقایسه ({baseline}): امید ریاضی {_fmt(exp, 'pct')} در برابر {_fmt(be, 'pct')}"
                 + ("؛ مدل بهتر بود." if better else "؛ مدل از روش پایهٔ ساده بهتر نبود.")
             )
     return out

@@ -56,8 +56,8 @@ function Reliability({ block }: { block: CalibrationBlock }) {
         </tbody>
       </table>
       <p className="mt-2 text-xs text-muted">
-        نوار بالا: احتمال پیش‌بینی‌شده · نوار پایین: نرخ موفقیت واقعی. اگر مدل کالیبره باشد، دو نوار
-        تقریباً هم‌اندازه‌اند.
+        نوار بالا احتمالی است که مدل پیش‌بینی کرده و نوار پایین درصد موفقیت واقعی. اگر احتمال‌های
+        مدل با واقعیت هم‌خوان (کالیبره) باشند، دو نوار تقریباً هم‌اندازه‌اند.
       </p>
     </div>
   );
@@ -69,13 +69,13 @@ function Stats({ block }: { block: CalibrationBlock }) {
       {[
         ["نمونه", <Num key="n" term="sample_size" value={block.n} kind="count" />],
         [
-          "نرخ پایه",
+          "درصد موفقیت کل",
           <Num key="b" term="base_rate" value={block.base_rate} kind="percent" digits={1} />,
         ],
         ["AUC", <Num key="a" term="auc" value={block.auc} digits={3} />],
-        ["امتیاز بریر", <Num key="br" term="brier" value={block.brier} digits={3} />],
+        ["خطای احتمال (Brier)", <Num key="br" term="brier" value={block.brier} digits={3} />],
         [
-          "مهارت بریر",
+          "مهارت نسبت به حدس ثابت",
           <Num key="s" term="brier_skill" value={block.brier_skill} digits={3} signed />,
         ],
       ].map(([label, node]) => (
@@ -93,10 +93,11 @@ export async function CalibrationSection() {
   return (
     <section id="calibration" className="scroll-mt-20 space-y-5">
       <div>
-        <h2 className="text-xl font-extrabold">کالیبراسیون و کیفیت مدل</h2>
+        <h2 className="text-xl font-extrabold">هم‌خوانی احتمال‌ها با واقعیت (کالیبراسیون)</h2>
         <p className="mt-1 text-sm text-muted">
-          آیا وقتی مدل می‌گوید «۶۰٪» تقریباً ۶۰٪ از موارد موفق می‌شوند؟ این صفحه هم آزمون گذشته‌نگر
-          (خارج از نمونه) و هم نتیجهٔ سیگنال‌های واقعاً منتشرشده را نشان می‌دهد.
+          وقتی مدل احتمال ۶۰٪ می‌دهد، آیا حدود ۶۰٪ آن موارد واقعاً موفق می‌شوند؟ این بخش هم نتیجهٔ
+          آزمون روی گذشته (خارج از نمونهٔ آموزش) و هم نتیجهٔ سیگنال‌های واقعاً منتشرشده را نشان
+          می‌دهد.
         </p>
       </div>
       {!res.ok ? (
@@ -118,8 +119,8 @@ export async function CalibrationSection() {
               <div className="mt-3" data-testid="gate">
                 <p className="font-semibold">
                   {res.data.gate.tier_a_allowed
-                    ? "شرط‌های انتشار رده A برقرارند."
-                    : "سیگنال رده A منتشر نمی‌شود."}
+                    ? "شرط‌های انتشار سیگنال رده A برقرار است."
+                    : "سیگنال رده A منتشر نمی‌شود، چون شرط‌های زیر برقرار نیست:"}
                 </p>
                 {res.data.gate.reasons.length > 0 && (
                   <ul className="mt-1 list-inside list-disc text-muted">

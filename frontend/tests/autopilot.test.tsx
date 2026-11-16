@@ -51,7 +51,7 @@ describe("AutopilotStatus", () => {
     render(<AutopilotStatus a={a} />);
     const deep = screen.getByTestId("autopilot-deep").textContent ?? "";
     expect(deep).toContain("منتظر بازآموزی است");
-    expect(deep).toContain("torch ندارد");
+    expect(deep).toContain("torch را ندارد");
     expect(deep).not.toContain("به‌روز است");
   });
 

@@ -10,8 +10,8 @@ const FILTERS = [
   { id: "", label: "همه" },
   { id: "tp", label: "حد سود" },
   { id: "sl", label: "حد ضرر" },
-  { id: "expiry", label: "پایان افق" },
-  { id: "pending", label: "باز" },
+  { id: "expiry", label: "پایان بازهٔ نگهداری" },
+  { id: "pending", label: "هنوز باز است" },
 ];
 
 export type Search = { outcome?: string; offset?: string };
@@ -45,10 +45,10 @@ export async function HistorySection({ outcome = "", offset = "0" }: Search) {
             {(
               [
                 ["کل سیگنال‌ها", "signals_count", res.data.summary.total],
-                ["رسید به حد سود", "tp_count", res.data.summary.take_profit],
-                ["رسید به حد ضرر", "sl_count", res.data.summary.stop_loss],
-                ["پایان افق", "expiry_count", res.data.summary.expired],
-                ["هنوز باز", "pending_count", res.data.summary.pending],
+                ["به حد سود رسید", "tp_count", res.data.summary.take_profit],
+                ["به حد ضرر رسید", "sl_count", res.data.summary.stop_loss],
+                ["پایان بازهٔ نگهداری", "expiry_count", res.data.summary.expired],
+                ["هنوز باز است", "pending_count", res.data.summary.pending],
               ] as [string, GlossaryKey, number][]
             ).map(([label, term, value]) => (
               <div key={term} className="tile">
@@ -87,8 +87,8 @@ export async function HistorySection({ outcome = "", offset = "0" }: Search) {
 
           {res.data.items.length === 0 ? (
             <p data-testid="history-empty" className="card card-pad-lg text-sm text-muted">
-              هنوز سیگنالی منتشر نشده است. تا وقتی نمادی شرایط توصیه را نداشته باشد (دلیل دقیق در
-              صفحهٔ رتبه‌بندی آمده)، چیزی در این فهرست ثبت نمی‌شود.
+              هنوز سیگنالی منتشر نشده است. تا وقتی هیچ نمادی شرایط توصیه را نداشته باشد، چیزی در این
+              فهرست ثبت نمی‌شود؛ دلیل دقیق را در صفحهٔ رتبه‌بندی ببینید.
             </p>
           ) : (
             <SignalTable items={res.data.items} />

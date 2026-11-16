@@ -31,7 +31,7 @@ function eventText(e: AutopilotEvent): string {
     case "deep_lost":
       return `دیگر از دروازه نمی‌گذرد: ${e.methods.map(passedLabel).join("؛ ")}`;
     case "deep_skipped":
-      return "مطالعهٔ عمیق باید دوباره انجام شود ولی این سرور torch ندارد؛ روی ماشین دارای GPU اجرا شود";
+      return "مطالعهٔ عمیق باید دوباره انجام شود، ولی این سرور کتابخانهٔ torch را ندارد؛ آن را باید روی رایانه‌ای با کارت گرافیک اجرا کرد";
     default:
       return e.kind;
   }
@@ -47,7 +47,7 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
       <h3 className="text-lg font-bold">خودکار: سامانه خودش را زیر نظر دارد</h3>
       <p className="text-sm leading-7">
         هر چرخهٔ روزانه قهرمان‌ها و وضعیت بازار را با بررسی قبلی مقایسه می‌کند؛ هر تغییر در فهرست
-        زیر می‌آید. مطالعهٔ عمیق خودش بعد از {faNumber(deep?.refresh_days ?? 0)} روز، یا وقتی رژیم
+        زیر می‌آید. مطالعهٔ عمیق (آزمون شبکه‌های عصبی) خودش بعد از {faNumber(deep?.refresh_days ?? 0)} روز، یا وقتی رژیم
         بازار عوض شود، دوباره انجام می‌شود. آخرین بررسی: {jalali(a.checked_at?.slice(0, 10))} (داده
         تا {jalali(a.as_of)}).
       </p>
@@ -66,7 +66,7 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
           <b>مطالعهٔ عمیق:</b>{" "}
           {deep.present ? (
             <>
-              تا {jalali(deep.last)} ({faNumber(deep.age_days ?? 0)} روز قدیمی‌تر از داده).{" "}
+              آخرین اجرا: {jalali(deep.last)}، یعنی {faNumber(deep.age_days ?? 0)} روز قدیمی‌تر از داده.{" "}
               {deep.passed.length
                 ? `از دروازه گذشته: ${deep.passed.map(passedLabel).join("؛ ")}.`
                 : "هیچ روشی از دروازه نگذشته."}
@@ -77,7 +77,7 @@ export function AutopilotStatus({ a }: { a: Autopilot }) {
           {deep.due ? (
             <b className="text-down">
               منتظر بازآموزی است: {REASONS[deep.reason ?? ""] ?? deep.reason}.
-              {!deep.can_run && " این سرور torch ندارد؛ باید روی ماشین دارای GPU اجرا شود."}
+              {!deep.can_run && " این سرور کتابخانهٔ torch را ندارد؛ باید روی رایانه‌ای با کارت گرافیک اجرا شود."}
             </b>
           ) : (
             <span className="text-muted">به‌روز است.</span>

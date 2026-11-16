@@ -19,8 +19,9 @@ export async function AccuracySection({ timeframe }: { timeframe?: string }) {
       <div>
         <h2 className="text-xl font-extrabold">دقت زنده</h2>
         <p className="mt-1 text-sm text-muted">
-          نتیجهٔ سیگنال‌هایی که واقعاً منتشر شده‌اند، به تفکیک روز سیگنال. اگر امتیاز بریر بیست روز
-          اخیر بیش از ۲۰٪ از بریر آزمون گذشته‌نگر بدتر شود، انتشار توصیه متوقف می‌شود.
+          نتیجهٔ سیگنال‌هایی که واقعاً منتشر شده‌اند، به تفکیک روز انتشار. اگر خطای احتمال‌ها
+          (امتیاز Brier) در بیست روز اخیر بیش از ۲۰٪ بدتر از آزمون روی گذشته شود، انتشار سیگنال
+          متوقف می‌شود.
         </p>
       </div>
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="افق">
@@ -43,10 +44,10 @@ export async function AccuracySection({ timeframe }: { timeframe?: string }) {
             <p data-testid="kill-switch">
               {res.data.kill_switch_active ? (
                 <strong className="text-down">
-                  توقف انتشار فعال است: کیفیت احتمال‌ها در روزهای اخیر افت کرده است.
+                  انتشار سیگنال متوقف شده است، چون دقت احتمال‌ها در روزهای اخیر افت کرده است.
                 </strong>
               ) : (
-                <span>توقف انتشار فعال نیست.</span>
+                <span>انتشار سیگنال متوقف نشده است.</span>
               )}
               {res.data.defensive_mode != null && (
                 <>
@@ -55,7 +56,7 @@ export async function AccuracySection({ timeframe }: { timeframe?: string }) {
                   <Link href="/glossary/defensive_mode" className="underline">
                     حالت دفاعی
                   </Link>{" "}
-                  آخرین روز: {res.data.defensive_mode ? "روشن" : "خاموش"}
+                  در آخرین روز: {res.data.defensive_mode ? "روشن بود" : "خاموش بود"}
                 </>
               )}
             </p>
@@ -81,7 +82,7 @@ export async function AccuracySection({ timeframe }: { timeframe?: string }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">امتیاز بریر (کمتر بهتر است)</dt>
+                <dt className="text-xs text-muted">خطای احتمال‌ها (Brier؛ کمتر بهتر است)</dt>
                 <dd>
                   {faNumber(res.data.recent_days)} روز اخیر ({faNumber(res.data.recent_n)} سیگنال):{" "}
                   {res.data.recent_brier != null ? (
@@ -90,7 +91,7 @@ export async function AccuracySection({ timeframe }: { timeframe?: string }) {
                     "—"
                   )}
                   <br />
-                  آزمون گذشته‌نگر:{" "}
+                  آزمون روی گذشته:{" "}
                   {res.data.backtest_brier != null ? (
                     <Num value={res.data.backtest_brier} kind="plain" term="brier" digits={3} />
                   ) : (
@@ -110,7 +111,7 @@ export async function AccuracySection({ timeframe }: { timeframe?: string }) {
                 <caption className="sr-only">دقت سیگنال‌ها به تفکیک روز</caption>
                 <thead>
                   <tr className="border-b border-line">
-                    {["روز سیگنال", "تعداد", "موفق", "میانگین احتمال", "بریر"].map((h) => (
+                    {["روز انتشار", "تعداد", "موفق", "میانگین احتمال", "خطای Brier"].map((h) => (
                       <th key={h} scope="col">
                         {h}
                       </th>

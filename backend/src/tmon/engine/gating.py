@@ -58,30 +58,35 @@ def evaluate_gate(
     n = int(t.get("n_trades", 0))
     if n < c.model.tier_a_min_trades:
         reasons.append(
-            f"تعداد معاملات خارج از نمونه ({n}) کمتر از حداقل {c.model.tier_a_min_trades} است."
+            f"تعداد معاملات آزمون خارج از نمونه ({n}) از حداقل لازم ({c.model.tier_a_min_trades}) "
+            "کمتر است."
         )
     exp = t.get("expectancy_net")
     if exp is None or exp <= 0:
-        reasons.append(f"امید ریاضی خالص هر معامله پس از هزینه {_pct(exp)} است؛ باید مثبت باشد.")
+        reasons.append(
+            f"میانگین سود هر معامله (امید ریاضی) پس از کسر هزینه {_pct(exp)} است و باید مثبت باشد."
+        )
     if baseline is not None and baseline.get("trades", {}).get("n_trades", 0) > 0:
         be = baseline["trades"].get("expectancy_net")
         btr = baseline["portfolio"].get("total_return")
         if exp is None or be is None or exp <= be:
             reasons.append(
-                f"امید ریاضی خالص مدل ({_pct(exp)}) از baseline ({_pct(be)}) بیشتر نیست."
+                f"میانگین سود هر معامله در مدل ({_pct(exp)}) از قاعدهٔ ساده‌ای که برای مقایسه "
+                f"ساخته‌ایم ({_pct(be)}) بیشتر نیست."
             )
         tr = p.get("total_return")
         if tr is None or btr is None or tr <= btr:
             reasons.append(
-                f"بازده کل مدل پس از هزینه ({_pct(tr)}) از baseline ({_pct(btr)}) بیشتر نیست."
+                f"بازده کل مدل پس از کسر هزینه ({_pct(tr)}) از قاعدهٔ ساده‌ی مقایسه "
+                f"({_pct(btr)}) بیشتر نیست."
             )
     prob = challenger.get("probabilistic")
     if prob is not None:
         skill = prob.get("brier_skill")
         if skill is None or skill <= 0:
             reasons.append(
-                f"مهارت Brier مدل {_num(skill)} است؛ برای بهتر بودن از پیش‌بینی ثابت نرخ پایه "
-                "باید مثبت باشد."
+                f"امتیاز مهارت Brier مدل {_num(skill)} است و باید مثبت باشد؛ یعنی احتمال‌های مدل "
+                "باید از این حدس ساده دقیق‌تر باشند که همهٔ معاملات شانس موفقیت یکسان دارند."
             )
     return GateResult(not reasons, reasons)
 
