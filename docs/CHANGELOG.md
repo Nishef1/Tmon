@@ -1,5 +1,9 @@
 # تغییرات
 
+## 2026-11-16 — Combined multi-signal walk-forward test (negative) and second self-critique
+
+- `backend/research/combined_walkforward.py`: top-10 of the 100 liquid, no-buy-queue names, costs 1.75% per round trip, benchmark = mean of the same names. Simple composite, each signal and a walk-forward ridge fit all lose to the benchmark at 5 and 20 days; only the fitted score at 60 days is positive (+1.5%, t 1.13, 18 periods), consistent with noise among 24 tests. Nothing changed on the site. Report: `docs/reports/combined-strategy-and-critique-2026-11-16.md`.
+
 ## 2026-11-16 — Queue fill odds from history
 
 - The buy-queue badge tooltip now adds how often, in past one-sided close books of a similar size (queue / usual volume bucket), the next day's total volume was at least the whole queue. It is an upper bound on the chance of getting filled, not the chance itself (selling at the limit price is only a part of the volume). Memo keyed by data fingerprint, no TTL.
