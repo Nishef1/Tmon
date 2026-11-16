@@ -159,3 +159,80 @@ def test_urls_of_batch_downloads_are_shortened_in_the_delta(tmp_path: Path) -> N
         .fetchone()[0]
     )
     assert url.endswith("&a=...") and len(url) < 60
+
+
+def _with_state(path: Path, alerts: int, trades: list[tuple[int, str]]) -> sqlite3.Connection:
+    db = _make(path, 3)
+    db.executescript(
+        """create table portfolio_alerts (id integer primary key, text text);
+           create table intraday_snapshots (id integer primary key, ts text);
+           create table portfolio_trades (id integer primary key, note text, fetched_at text);"""
+    )
+    for i in range(alerts):
+        db.execute("insert into portfolio_alerts values (?, 'a')", (i,))
+        db.execute("insert into intraday_snapshots values (?, 't')", (i,))
+    for i, note in trades:
+        db.execute("insert into portfolio_trades values (?, ?, 't0')", (i, note))
+    db.commit()
+    return db
+
+
+def test_server_owned_tables_are_invisible_to_the_comparison(tmp_path: Path) -> None:
+    _with_state(tmp_path / "pc.db", 0, [])
+    _with_state(tmp_path / "srv.db", 500, [])  # the monitor wrote these on the server
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert res["full"] is False and res["whole"] == [] and res["parts"] == {}
+    sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "delta.db"))
+    got = sqlite3.connect(tmp_path / "srv.db")
+    assert got.execute("select count(*) from portfolio_alerts").fetchone()[0] == 500
+    assert got.execute("select count(*) from intraday_snapshots").fetchone()[0] == 500
+
+
+def test_pc_portfolio_edit_reaches_the_server_until_the_server_edits_it_too(
+    tmp_path: Path,
+) -> None:
+    _with_state(tmp_path / "pc.db", 0, [(1, "buy")])
+    _with_state(tmp_path / "srv.db", 0, [])
+    # first sync (no record yet): the PC copy replaces, as it always has
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "d1.db")
+    assert res["whole"] == ["portfolio_trades"]
+    out = sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "d1.db"))
+    assert out["mismatch"] == [] and out["kept_server_edits"] == []
+    srv = sqlite3.connect(tmp_path / "srv.db")
+    assert srv.execute("select count(*) from portfolio_trades").fetchone()[0] == 1
+    # the owner adds a trade on the server; meanwhile the PC changed its own copy
+    srv.execute("insert into portfolio_trades values (2, 'server', 't')")
+    srv.commit()
+    pc = sqlite3.connect(tmp_path / "pc.db")
+    pc.execute("insert into portfolio_trades values (3, 'pc', 't')")
+    pc.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "d2.db")
+    out = sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "d2.db"))
+    assert out["kept_server_edits"] == ["portfolio_trades"] and out["mismatch"] == []
+    notes = [r[0] for r in srv.execute("select note from portfolio_trades order by id")]
+    assert notes == ["buy", "server"]  # the server's edit survived
+
+
+def test_full_copy_carries_server_owned_rows_and_server_edits(tmp_path: Path) -> None:
+    _with_state(tmp_path / "pc.db", 0, [(1, "buy")])
+    _with_state(tmp_path / "srv.db", 40, [])
+    sd.apply(
+        str(tmp_path / "srv.db"),
+        _delta_path(tmp_path, tmp_path / "pc.db", tmp_path / "srv.db"),
+    )
+    srv = sqlite3.connect(tmp_path / "srv.db")
+    srv.execute("insert into portfolio_trades values (2, 'server', 't')")
+    srv.commit()
+    res = sd.preserve(str(tmp_path / "srv.db"), str(tmp_path / "pc.db"))
+    assert res["kept_server_edits"] == ["portfolio_trades"]
+    new = sqlite3.connect(tmp_path / "pc.db")
+    assert new.execute("select count(*) from portfolio_alerts").fetchone()[0] == 40
+    assert [r[0] for r in new.execute("select note from portfolio_trades order by id")] == [
+        "buy",
+        "server",
+    ]
+
+
+def _delta_path(tmp: Path, pc: Path, srv: Path) -> str:
+    _run(pc, srv, tmp / "seed.db")
+    return str(tmp / "seed.db")

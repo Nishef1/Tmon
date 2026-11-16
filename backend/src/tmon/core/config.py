@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # Portfolio monitor (tmon.portfolio.monitor): one market-watch poll feeds both the intraday
     # tables and the exit alerts, so this replaces intraday_interval_seconds while it runs.
     monitor_interval_seconds: float = 20.0
+    intraday_keep_days: int = 45  # intraday snapshots and books older than this are deleted daily
+    monitor_raw_every: int = (
+        10  # keep the raw 4 MB market-watch payload every N polls; 0 = never (the server)
+    )
     preopen_lead_minutes: int = 120  # pre-open briefing this long before the open
     codal_watch_minutes: int = 5  # newest Codal letters during the session
     news_watch_minutes: int = 30  # RSS feeds during the session (hourly outside it)

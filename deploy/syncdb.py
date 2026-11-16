@@ -14,6 +14,13 @@ differs, or too much differs. The caller then ships the whole database instead.
     python syncdb.py fingerprint DB [--deep-from JSON] [--deep]
     python syncdb.py delta PC_DB SERVER_FINGERPRINT.json OUT_DB
     python syncdb.py apply SERVER_DB DELTA_DB
+    python syncdb.py preserve OLD_SERVER_DB NEW_DB   (full copy: keep what the server owns)
+
+Two kinds of table never travel blindly. SERVER_OWNED tables (alerts, intraday snapshots, order
+books, briefings) are written by the server monitor and are invisible to the comparison.
+USER_STATE tables (portfolios, trades, ...) are replaced by the PC's copy only while the server's
+table is unchanged since the last sync; if the owner edited it on the server it is kept and
+reported.
 """
 
 from __future__ import annotations
@@ -40,13 +47,29 @@ PARTITIONED: dict[str, tuple[str, str, bool]] = {
     ),
     "features": ("date", 'sum(length("values"))', True),
     "price_adjustments": ("date", "sum(cast(round(adj_factor * 1000000) as integer))", True),
-    "order_book_daily": ("date", "sum(cast(round(close_imbalance * 1000000) as integer)), sum(n_events)", True),
+    "order_book_daily": (
+        "date",
+        "sum(cast(round(close_imbalance * 1000000) as integer)), sum(n_events)",
+        True,
+    ),
     "market_index_daily": ("date", "sum(cast(round(close * 10000) as integer))", True),
     "fund_nav": ("date", "round(sum(net_asset),2)", True),
     "share_changes": ("date", "sum(shares_new)", True),
     "trading_calendar": ("date", "sum(is_open)", True),
     "raw_payloads": ("substr(fetched_at,1,10)", "sum(size_bytes)", True),
 }
+# Written by the server's own monitor: the PC has none (or only test rows) and a sync must never
+# touch them, neither in a delta nor in a full copy.
+SERVER_OWNED = frozenset(
+    {"portfolio_alerts", "portfolio_briefings", "intraday_snapshots", "order_book_snapshots"}
+)
+# Typed in by the owner (on the PC, e.g. the Mofid link, or on the site): the PC copy replaces the
+# server's only while the server's table is still exactly what the last sync left; otherwise the
+# server was edited since and its rows are kept (the conflict is reported, never silently lost).
+USER_STATE = frozenset(
+    {"portfolios", "portfolio_trades", "holdings", "broker_links", "tracked_picks"}
+)
+SYNC_STATE = "_sync_state"
 FEATURE_KEYS = 60  # the site reads only the newest feature rows; the server keeps this many days
 DEEP_KEYS = 30
 MAX_DELTA_ROWS = 600_000  # beyond this a delta is no smaller than the full copy
@@ -71,7 +94,40 @@ def _tables(db: sqlite3.Connection) -> list[str]:
             "select name from sqlite_master where type='table' and name not like 'sqlite_%' "
             "order by name"
         )
+        if r[0] not in SERVER_OWNED and not r[0].startswith("_")
     ]
+
+
+def _exists(db: sqlite3.Connection, table: str, schema: str = "main") -> bool:
+    return (
+        db.execute(
+            f"select 1 from {schema}.sqlite_master where type='table' and name=?", (table,)
+        ).fetchone()
+        is not None
+    )
+
+
+def _recorded(db: sqlite3.Connection) -> dict[str, str]:
+    """Hashes the last sync left behind for the user-state tables."""
+    if not _exists(db, SYNC_STATE):
+        return {}
+    return {t: h for t, h in db.execute(f'select name, hash from "{SYNC_STATE}"')}
+
+
+def _record(db: sqlite3.Connection, tables: list[str]) -> None:
+    db.execute(f'create table if not exists "{SYNC_STATE}" (name text primary key, hash text)')
+    for t in tables:
+        if _exists(db, t):
+            db.execute(
+                f'insert or replace into "{SYNC_STATE}" values (?, ?)', (t, _hash_table(db, t)[1])
+            )
+
+
+def server_edited(db: sqlite3.Connection) -> list[str]:
+    """User-state tables of this (server) database that changed since the last sync left them.
+    No record yet means the status quo: the PC copy has always replaced them."""
+    rec = _recorded(db)
+    return [t for t, h in rec.items() if _exists(db, t) and _hash_table(db, t)[1] != h]
 
 
 def _columns(db: sqlite3.Connection, table: str) -> list[str]:
@@ -250,7 +306,10 @@ def apply(server_path: str, delta_path: str) -> dict[str, Any]:
     db = sqlite3.connect(server_path, timeout=120, isolation_level=None)
     db.execute("attach database ? as d", (delta_path,))
     doc = json.loads(db.execute("select doc from d._plan").fetchone()[0])
-    plan, expect = doc["plan"], doc["expect"]
+    plan, expect = doc["plan"], dict(doc["expect"])
+    kept = [t for t in server_edited(db) if t in plan["whole"]]  # edited on the server: keep it
+    for t in kept:
+        expect.pop(t, None)
     db.execute("begin immediate")
     try:
         for t, keys in {**plan["drop"], **plan["parts"]}.items():
@@ -264,6 +323,8 @@ def apply(server_path: str, delta_path: str) -> dict[str, Any]:
             cols = ", ".join(f'"{c}"' for c in _columns(db, t))
             db.execute(f'insert into main."{t}" ({cols}) select {cols} from d."{t}"')
         for t in plan["whole"]:
+            if t in kept:
+                continue
             cols = ", ".join(f'"{c}"' for c in _columns(db, t))
             db.execute(f'delete from main."{t}"')
             db.execute(f'insert into main."{t}" ({cols}) select {cols} from d."{t}"')
@@ -272,8 +333,38 @@ def apply(server_path: str, delta_path: str) -> dict[str, Any]:
         db.execute("rollback")
         raise
     db.execute("detach database d")
+    _record(db, [t for t in sorted(USER_STATE) if t not in kept])
     bad = verify(db, expect, doc["deep_cut"])
-    return {"applied": True, "mismatch": bad}
+    return {"applied": True, "mismatch": bad, "kept_server_edits": kept}
+
+
+def preserve(old_path: str, new_path: str) -> dict[str, Any]:
+    """Full copy: carry what belongs to the server from the old database into the incoming one.
+    Server-owned tables come over whole; a user-state table the server edited since the last sync
+    keeps the server's rows (the PC copy's are discarded)."""
+    new = sqlite3.connect(new_path, isolation_level=None)
+    new.execute("attach database ? as old", (old_path,))
+    carried: dict[str, int] = {}
+    edited = server_edited(sqlite3.connect(old_path))
+    for t in sorted(SERVER_OWNED | set(edited)):
+        if not _exists(new, t) or not _exists(new, t, "old"):
+            continue
+        cols = ", ".join(f'"{c}"' for c in _columns(new, t))
+        old_cols = {r[1] for r in new.execute(f'pragma old.table_info("{t}")')}
+        if any(c not in old_cols for c in _columns(new, t)):
+            continue  # the layout changed; a fresh table is better than a half-copied one
+        new.execute("begin immediate")
+        new.execute(f'delete from main."{t}"')
+        new.execute(f'insert into main."{t}" ({cols}) select {cols} from old."{t}"')
+        new.execute("commit")
+        carried[t] = new.execute(f'select count(*) from main."{t}"').fetchone()[0]
+    new.execute("detach database old")
+    _record(new, [t for t in sorted(USER_STATE) if t not in edited])
+    for t in edited:  # keep the stale record so the next delta still sees the edit
+        rec = _recorded(sqlite3.connect(old_path)).get(t)
+        if rec:
+            new.execute(f'insert or replace into "{SYNC_STATE}" values (?, ?)', (t, rec))
+    return {"carried": carried, "kept_server_edits": edited}
 
 
 def verify(db: sqlite3.Connection, expect: dict[str, Any], deep_cut: dict[str, str]) -> list[str]:
@@ -313,6 +404,9 @@ def main(argv: list[str]) -> int:
                 srv = json.load(f)
         res = delta(argv[2], srv, argv[4])
         print(json.dumps(res))
+        return 0
+    if cmd == "preserve":
+        print(json.dumps(preserve(argv[2], argv[3])))
         return 0
     if cmd == "apply":
         res = apply(argv[2], argv[3])

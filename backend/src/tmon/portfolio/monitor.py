@@ -39,7 +39,12 @@ from tmon.core.timeutil import TEHRAN, utcnow
 from tmon.domain.rules import MissingRuleError, RuleBook
 from tmon.ingest.news import text as news_text
 from tmon.ingest.news.rss import FOREIGN
-from tmon.ingest.tsetmc.intraday import IntradayState, in_trading_hours, store_quotes
+from tmon.ingest.tsetmc.intraday import (
+    IntradayState,
+    in_trading_hours,
+    prune_intraday,
+    store_quotes,
+)
 from tmon.portfolio import alerts as alert_store
 from tmon.portfolio.notify import BOT_HOSTS, poll_answers
 from tmon.portfolio.watch import (
@@ -168,6 +173,7 @@ class Monitor:
     last_codal: datetime | None = None
     meeting_day: date | None = None
     last_news: datetime | None = None
+    last_prune: date | None = None
     briefed: set[str] = field(default_factory=set)
 
     # -- the session -------------------------------------------------------------------------
@@ -187,6 +193,7 @@ class Monitor:
                 self.intraday,
                 book_top_n=get_settings().book_top_n,
                 fetched_at=now,
+                raw_every=get_settings().monitor_raw_every,
             )
         held = {h.ins_code for _, hs in views.values() for h in hs}
         quotes: dict[str, Quote] = {}
@@ -438,6 +445,17 @@ class Monitor:
             n += await self._emit(pid, found, now)
         return n
 
+    # -- housekeeping ------------------------------------------------------------------------
+    def prune_tick(self, now: datetime) -> None:
+        """Once a day, outside the session: keep the intraday tables bounded."""
+        day = now.date()
+        if self.last_prune == day:
+            return
+        self.last_prune = day
+        with session_scope() as db:
+            gone = prune_intraday(db, keep_days=get_settings().intraday_keep_days, now=now)
+        log.info("pruned intraday tables: %s", gone)
+
     # -- messenger answers -------------------------------------------------------------------
     async def answers_tick(self, client: httpx.AsyncClient) -> int:
         with session_scope() as s:
@@ -478,7 +496,7 @@ class Monitor:
                     await self.briefing_tick(rules, now)
                     if views:
                         await self.meeting_tick(views, now)
-                    if open_now and views:
+                    if open_now:
                         await self.market_tick(api, views, now, minutes)
                     codal_gap = s.codal_watch_minutes if open_now else 30
                     news_gap = s.news_watch_minutes if open_now else 60
@@ -495,6 +513,7 @@ class Monitor:
                 except Exception:
                     log.exception("monitor tick failed")
                 if not open_now:
+                    self.prune_tick(now)
                     self.intraday = IntradayState()
                     self.state = WatchState(seen_messages=self.state.seen_messages)
                 if once:

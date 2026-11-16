@@ -90,16 +90,20 @@ assert ok == "ok"
 EOF
 zstd -19 -T0 -q "$OUT/tmon-live.sqlite3" -o "$OUT/tmon-live.sqlite3.zst"
 ls -lh "$OUT"
-"${SCP[@]}" "$OUT/tmon-live.sqlite3.zst" "$HOST:/root/"
+"${SCP[@]}" "$OUT/tmon-live.sqlite3.zst" deploy/syncdb.py "$HOST:/root/"
 "${SSH[@]}" 'set -e
 zstd -d -q -f /root/tmon-live.sqlite3.zst -o /var/lib/tmon/new.sqlite3
 python3 -c "import sqlite3,sys; r=sqlite3.connect(\"/var/lib/tmon/new.sqlite3\").execute(\"pragma integrity_check\").fetchone()[0]; print(\"server db\", r); sys.exit(r!=\"ok\")"
-systemctl stop tmon-api
+systemctl stop tmon-monitor tmon-api 2>/dev/null || systemctl stop tmon-api
+# what the monitor on the server wrote (alerts, intraday, books) and any portfolio edit made on the
+# server since the last sync come along into the new database instead of being overwritten
+[ -f /var/lib/tmon/tmon-live.sqlite3 ] && python3 - preserve /var/lib/tmon/tmon-live.sqlite3 /var/lib/tmon/new.sqlite3 < /root/syncdb.py
 mv /var/lib/tmon/new.sqlite3 /var/lib/tmon/tmon-live.sqlite3
 rm -f /var/lib/tmon/tmon-live.sqlite3-wal /var/lib/tmon/tmon-live.sqlite3-shm
 rm -f /root/tmon-live.sqlite3.zst
 chown -R tmon:tmon /var/lib/tmon
 systemctl start tmon-api
+systemctl is-enabled --quiet tmon-monitor 2>/dev/null && systemctl start tmon-monitor
 for i in $(seq 60); do curl -sf -o /dev/null 127.0.0.1:8000/health && break; sleep 1; done  # ~15 s on 2 cores
 systemctl is-active tmon-api tmon-web'
 }

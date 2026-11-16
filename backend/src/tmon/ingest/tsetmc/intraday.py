@@ -14,12 +14,12 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Any
 
 from iran_bourse_mcp.api import TseApi
 from iran_bourse_mcp.client import Http
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
@@ -97,11 +97,12 @@ def store_quotes(
     *,
     book_top_n: int,
     fetched_at: datetime,
+    raw_every: int = RAW_EVERY,
 ) -> dict[str, int]:
     """Write one market-watch poll: changed quotes, books of the most traded, daily limits."""
     if not quotes or "insCode" not in quotes[0]:
         raise FeedError("market-watch returned no rows or an unknown layout")
-    if state.polls % RAW_EVERY == 0:
+    if raw_every > 0 and state.polls % raw_every == 0:
         store_raw_payload(
             session,
             store,
@@ -249,3 +250,13 @@ async def run_loop(
 
 def run_intraday(**kwargs: object) -> dict[str, int]:
     return asyncio.run(run_loop(**kwargs))  # type: ignore[arg-type]
+
+
+def prune_intraday(session: Session, *, keep_days: int, now: datetime) -> dict[str, int]:
+    """Drop snapshots and books older than ``keep_days`` so the server's database stays bounded."""
+    cut = now - timedelta(days=keep_days)
+    out: dict[str, int] = {}
+    for model in (IntradaySnapshot, OrderBookSnapshot):
+        res = session.execute(delete(model).where(model.ts < cut))
+        out[model.__tablename__] = int(getattr(res, "rowcount", 0) or 0)
+    return out

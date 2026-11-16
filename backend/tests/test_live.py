@@ -5,7 +5,7 @@ real service; the real service is checked by ``pytest -m network`` and the probe
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -20,6 +20,7 @@ from tmon.ingest.tsetmc.intraday import (
     FeedError,
     IntradayState,
     in_trading_hours,
+    prune_intraday,
     store_quotes,
     sync_sector_names,
 )
@@ -274,3 +275,25 @@ def test_file_store_round_trip_and_refuses_path_escape(tmp_path):
     assert s.get("raw", "tsetmc/2026/a.json") == b"{}"
     with pytest.raises(ValueError):
         s.put("raw", "../../escape.txt", b"x", "text/plain")
+
+
+def test_raw_payload_can_be_switched_off_and_old_snapshots_pruned(session):
+    now = datetime(2026, 11, 10, 7, tzinfo=UTC)
+    session.add(Instrument(ins_code="111", symbol_fa="الف", instrument_type="stock"))
+    session.flush()
+    store_quotes(
+        session,
+        MemoryStore(),
+        [mw("111", volume=500, value=9_000_000)],
+        IntradayState(),
+        book_top_n=1,
+        fetched_at=now,
+        raw_every=0,
+    )
+    assert session.scalars(select(RawPayload)).all() == []  # the server keeps typed rows only
+    snap = session.scalars(select(IntradaySnapshot)).one()
+    snap.ts = now - timedelta(days=60)
+    session.flush()
+    gone = prune_intraday(session, keep_days=45, now=now)
+    assert gone["intraday_snapshots"] == 1
+    assert session.scalars(select(IntradaySnapshot)).all() == []

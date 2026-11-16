@@ -16,7 +16,7 @@ rm -rf deploy/stage && mkdir -p deploy/stage
 git archive HEAD frontend backend/src backend/config backend/migrations backend/alembic.ini   backend/pyproject.toml backend/uv.lock | tar -x -C deploy/stage
 tar -C deploy/stage -czf deploy/tmon-app.tar.gz . && rm -rf deploy/stage
 ls -lh deploy/tmon-app.tar.gz
-"${SCP[@]}" deploy/tmon-app.tar.gz "$HOST:/root/"
+"${SCP[@]}" deploy/tmon-app.tar.gz deploy/install-monitor.sh "$HOST:/root/"
 "${SSH[@]}" "COMMIT=$COMMIT bash -s" <<'REMOTE'
 set -euo pipefail
 # code: replace the sources, keep the Python venv, the web node_modules and the data
@@ -30,11 +30,12 @@ cd /opt/tmon/backend
 sudo -u tmon -H env UV_CACHE_DIR=/var/lib/tmon/uv /usr/local/bin/uv sync --frozen --no-dev --python 3.13 -q
 sudo -u tmon -H bash -c 'cd /opt/tmon/web && pnpm install --frozen-lockfile --silent && API_URL=http://127.0.0.1:8000 pnpm exec next build >/tmp/tmon-build.log 2>&1 || { tail -30 /tmp/tmon-build.log; exit 1; } && cp -r .next/static .next/standalone/.next/static && { [ ! -d public ] || cp -r public .next/standalone/public; }'
 systemctl restart tmon-api tmon-web
+bash /root/install-monitor.sh
 for i in $(seq 60); do curl -sf -o /dev/null 127.0.0.1:8000/health && break; sleep 1; done
 for i in $(seq 30); do curl -sf -o /dev/null 127.0.0.1:3000/ && break; sleep 1; done
-systemctl is-active tmon-api tmon-web
+systemctl is-active tmon-api tmon-web tmon-monitor
 curl -sf 127.0.0.1:8000/data-health | head -c 200; echo
 echo "$COMMIT $(date -u +%FT%TZ)" > /opt/tmon/RELEASE
-rm -f /root/tmon-app.tar.gz
+rm -f /root/tmon-app.tar.gz /root/install-monitor.sh
 REMOTE
 echo "released $COMMIT"
