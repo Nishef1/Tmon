@@ -133,3 +133,33 @@ def test_lessons_name_the_pattern() -> None:
 
     text = " ".join(lessons(rows))
     assert "۱٫۵٪" in text and "کندل سبز" in text
+
+
+def test_open_features_works_on_decimal_columns(session) -> None:  # type: ignore[no-untyped-def]
+    """Postgres returns Decimal for price columns; the arithmetic must not mix it with floats."""
+    import datetime as dt
+    from decimal import Decimal
+
+    from sqlalchemy import select
+
+    from tmon.portfolio import entry
+    from tmon.storage.models import PriceDaily
+
+    _history(session)
+    session.commit()
+    session.expire_all()
+    row = session.scalars(select(PriceDaily).order_by(PriceDaily.date.desc())).first()
+    assert row is not None
+    row.prev_close = Decimal(str(row.prev_close))
+    bar = Bar(
+        day=row.date + dt.timedelta(days=1),
+        first=1010.0,
+        high=1015.0,
+        low=1000.0,
+        last=1005.0,
+        close=1005.0,
+        yesterday=float(row.close),
+    )
+    x = entry.open_features(session, row.instrument_id, bar)
+    assert x["gap"] is not None and x["ret_prev"] is not None and x["pos_prev"] is not None
+    assert all(isinstance(v, float) for v in x.values() if v is not None)

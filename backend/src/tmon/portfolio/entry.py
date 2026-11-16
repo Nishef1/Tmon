@@ -607,12 +607,14 @@ def open_features(session: Session, instrument_id: int, bar: Bar) -> dict[str, f
     if not rows:
         return x
     y = rows[0]
+    # Postgres hands back Decimal; every number is made a float before any arithmetic.
     if y.high and y.low and y.high > y.low and y.close:
-        x["pos_prev"] = float((y.close - y.low) / (y.high - y.low))
+        hi, lo = float(y.high), float(y.low)
+        x["pos_prev"] = (float(y.close) - lo) / (hi - lo)
     if y.prev_close and bar.yesterday:
-        x["ret_prev"] = float(bar.yesterday / y.prev_close - 1)
+        x["ret_prev"] = float(bar.yesterday) / float(y.prev_close) - 1
     if len(rows) >= 5 and rows[4].prev_close and bar.yesterday:
-        x["ret5"] = float(bar.yesterday / rows[4].prev_close - 1)
+        x["ret5"] = float(bar.yesterday) / float(rows[4].prev_close) - 1
     return x
 
 
