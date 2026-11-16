@@ -33,7 +33,7 @@ export function JumpNav({ items }: { items: JumpItem[] }) {
     <nav
       aria-label="بخش‌های صفحه"
       data-testid="jump-nav"
-      className="jump-nav sticky top-[4.4rem] z-20 overflow-x-auto py-2"
+      className="jump-nav sticky top-[4.4rem] z-20 overflow-x-auto py-2 [scrollbar-width:none]"
     >
       <ul className="mx-auto flex w-max gap-1 rounded-full border border-line bg-surface/85 p-1 shadow-sm backdrop-blur-md">
         {items.map((i) => (
