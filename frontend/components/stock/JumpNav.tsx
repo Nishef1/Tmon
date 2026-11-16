@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type JumpItem = { id: string; label: string };
 
@@ -29,8 +29,20 @@ export function JumpNav({ items }: { items: JumpItem[] }) {
     return () => window.removeEventListener("scroll", pick);
   }, [key]);
 
+  // on a narrow screen the bar is wider than the page: slide it so the marked section is in view
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const bar = nav.current;
+    const link = bar?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!bar || !link || bar.scrollWidth <= bar.clientWidth) return;
+    const b = bar.getBoundingClientRect();
+    const l = link.getBoundingClientRect();
+    bar.scrollBy({ left: l.left + l.width / 2 - (b.left + b.width / 2), behavior: "smooth" });
+  }, [active]);
+
   return (
     <nav
+      ref={nav}
       aria-label="بخش‌های صفحه"
       data-testid="jump-nav"
       className="jump-nav sticky top-[4.05rem] z-20 overflow-x-auto pb-1 pt-0.5 [scrollbar-width:none]"
