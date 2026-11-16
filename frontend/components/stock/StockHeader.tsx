@@ -182,8 +182,7 @@ export function StockHeader({
                 className={`text-xs ${mixed ? "text-warn" : "text-muted"}`}
                 data-testid="header-close-date"
               >
-                {mixed ? "قیمت پایانی" : "دادهٔ"} {jalali(p.date, "weekday")}{" "}
-                {jalali(p.date, "long")}
+                {mixed ? "قیمت پایانی" : "دادهٔ"} {jalali(p.date, "weekday")}
               </span>
             )}
           </div>
