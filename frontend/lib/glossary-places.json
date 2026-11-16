@@ -1,0 +1,258 @@
+{
+  "adapt_gate": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "agm_decision": [
+    {
+      "label": "صفحهٔ هر نماد",
+      "href": "/screener"
+    }
+  ],
+  "auc": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "base_rate": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "book_imbalance": [
+    {
+      "label": "صفحهٔ هر نماد",
+      "href": "/screener"
+    }
+  ],
+  "brier": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "brier_skill": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "candidates": [
+    {
+      "label": "امروز بازار",
+      "href": "/"
+    },
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "dps": [
+    {
+      "label": "صفحهٔ هر نماد",
+      "href": "/screener"
+    }
+  ],
+  "entry_price": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "etf_bubble": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "ev": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "exposure_level": [
+    {
+      "label": "امروز بازار",
+      "href": "/"
+    }
+  ],
+  "feature_value": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "fund_nav": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "hit_rate": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "horizon": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "ic": [
+    {
+      "label": "صفحهٔ هر نماد",
+      "href": "/screener"
+    },
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "inflation": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "inflation_threshold": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "last_price": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "max_drawdown": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "net_excess": [
+    {
+      "label": "صفحهٔ هر نماد",
+      "href": "/screener"
+    }
+  ],
+  "nominal_return": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "p_win": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    },
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "pending_count": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "position_pct": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "rank": [
+    {
+      "label": "امروز بازار",
+      "href": "/"
+    },
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "rank_score": [
+    {
+      "label": "امروز بازار",
+      "href": "/"
+    }
+  ],
+  "real_return": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "realized_return": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    },
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "sample_size": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    },
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "shap": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "signals_count": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "stop_loss": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "t_stat": [
+    {
+      "label": "صفحهٔ هر نماد",
+      "href": "/screener"
+    },
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
+  "take_profit": [
+    {
+      "label": "سیگنال‌ها و سابقه",
+      "href": "/model#history"
+    }
+  ],
+  "tp_count": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ]
+}

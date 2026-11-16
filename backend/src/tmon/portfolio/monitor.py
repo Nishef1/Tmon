@@ -25,7 +25,7 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -166,6 +166,7 @@ class Monitor:
     codal_mark: int | None = None
     news_mark: int | None = None
     last_codal: datetime | None = None
+    meeting_day: date | None = None
     last_news: datetime | None = None
     briefed: set[str] = field(default_factory=set)
 
@@ -419,6 +420,24 @@ class Monitor:
         for pid, found in results.items():
             await self._emit(pid, found, now)
 
+    # -- meetings ----------------------------------------------------------------------------
+    async def meeting_tick(
+        self, views: dict[int, tuple[Portfolio, list[HoldingView]]], now: datetime
+    ) -> int:
+        """Once per day: held symbols whose shareholder meeting is within a week."""
+        from tmon.portfolio.meetings import meeting_findings
+
+        today = now.astimezone(TEHRAN).date()
+        if self.meeting_day == today:
+            return 0
+        self.meeting_day = today
+        with session_scope() as s:
+            per = meeting_findings(s, {pid: hs for pid, (_, hs) in views.items()}, today)
+        n = 0
+        for pid, found in per.items():
+            n += await self._emit(pid, found, now)
+        return n
+
     # -- messenger answers -------------------------------------------------------------------
     async def answers_tick(self, client: httpx.AsyncClient) -> int:
         with session_scope() as s:
@@ -457,6 +476,8 @@ class Monitor:
                 try:
                     await self.answers_tick(client)
                     await self.briefing_tick(rules, now)
+                    if views:
+                        await self.meeting_tick(views, now)
                     if open_now and views:
                         await self.market_tick(api, views, now, minutes)
                     codal_gap = s.codal_watch_minutes if open_now else 30

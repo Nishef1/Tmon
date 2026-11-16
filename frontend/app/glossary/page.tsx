@@ -1,41 +1,32 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { CATEGORY_LABEL, GLOSSARY, GLOSSARY_KEYS, type Category } from "@/lib/glossary";
+import { GlossarySearch, type GlossaryItem } from "@/components/GlossarySearch";
+import { CATEGORY_LABEL, GLOSSARY, GLOSSARY_KEYS } from "@/lib/glossary";
 
 export const metadata: Metadata = { title: "واژه‌نامه" };
 
+function aliasesOf(e: object): readonly string[] {
+  return "aliases" in e ? (e.aliases as readonly string[]) : [];
+}
+
 export default function GlossaryIndex() {
-  const groups = (Object.keys(CATEGORY_LABEL) as Category[]).map((c) => ({
-    category: c,
-    keys: GLOSSARY_KEYS.filter((k) => GLOSSARY[k].category === c),
+  const items: GlossaryItem[] = GLOSSARY_KEYS.map((k) => ({
+    key: k,
+    fa: GLOSSARY[k].fa,
+    en: GLOSSARY[k].en,
+    category: GLOSSARY[k].category,
+    categoryLabel: CATEGORY_LABEL[GLOSSARY[k].category],
+    text: [GLOSSARY[k].definition, ...aliasesOf(GLOSSARY[k])].join(" "),
   }));
   return (
     <main className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold">واژه‌نامه</h1>
         <p className="mt-1 text-sm text-muted">
-          هر عدد در سایت به مدخل خودش در این صفحه پیوند دارد: تعریف، فرمول، دلیل اهمیت و محدودیت‌ها.
+          هر عدد در سایت به مدخل خودش در این صفحه پیوند دارد: تعریف، فرمول، دلیل اهمیت، محدودیت‌ها و
+          صفحه‌هایی که آن را نشان می‌دهند.
         </p>
       </div>
-      {groups.map((g) => (
-        <section key={g.category} aria-labelledby={`g-${g.category}`}>
-          <h2 id={`g-${g.category}`} className="mb-2 font-bold">
-            {CATEGORY_LABEL[g.category]}
-          </h2>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {g.keys.map((k) => (
-              <li key={k}>
-                <Link href={`/glossary/${k}`} className="chip block w-full">
-                  <span className="font-semibold">{GLOSSARY[k].fa}</span>
-                  <span className="block text-xs text-muted" dir="ltr">
-                    {GLOSSARY[k].en}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <GlossarySearch items={items} />
     </main>
   );
 }

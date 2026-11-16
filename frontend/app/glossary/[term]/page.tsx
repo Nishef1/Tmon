@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { TermTests } from "@/components/TermTests";
 import { taSignals } from "@/lib/api";
 import { GLOSSARY, GLOSSARY_KEYS, glossaryEntry, CATEGORY_LABEL } from "@/lib/glossary";
+import { placesFor } from "@/lib/glossary-places";
 import { SHOWN_ON } from "@/lib/glossary-usage";
 
 type Props = { params: Promise<{ term: string }> };
@@ -25,6 +26,7 @@ export default async function GlossaryTerm({ params }: Props) {
   const e = glossaryEntry(term);
   if (!e) notFound();
   const shown = SHOWN_ON[term];
+  const places = placesFor(term);
   const tests = shown ? await taSignals() : null;
   return (
     <main className="max-w-2xl space-y-5">
@@ -56,6 +58,20 @@ export default async function GlossaryTerm({ params }: Props) {
           <ul className="list-disc space-y-1 ps-5 text-sm">
             {shown.map((w) => (
               <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {places.length > 0 && (
+        <section data-testid="term-places">
+          <h2 className="mb-1 font-bold">این عدد در کدام صفحه‌ها آمده است؟</h2>
+          <ul className="flex flex-wrap gap-2 text-sm">
+            {places.map((pl) => (
+              <li key={pl.href}>
+                <Link href={pl.href} className="tab tab-pill">
+                  {pl.label}
+                </Link>
+              </li>
             ))}
           </ul>
         </section>
