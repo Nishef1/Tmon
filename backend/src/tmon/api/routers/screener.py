@@ -224,15 +224,13 @@ def screener(
 
 def _next_meetings(session: Session, last: dt.date) -> dict[int, dt.date]:
     """Day of the nearest announced assembly per instrument (Codal invitation letters)."""
-    out: dict[int, dt.date] = {}
-    for iid, day in session.execute(
+    rows = session.execute(
         select(CorporateEvent.instrument_id, CorporateEvent.event_date)
         .where(CorporateEvent.stage.in_(INVITATION_STAGES), CorporateEvent.event_date >= last)
         .order_by(CorporateEvent.event_date.desc())
-    ):
-        if day is not None:
-            out[iid] = day  # descending order: the last write is the nearest day
-    return out
+    )
+    # descending order: the last write per instrument is the nearest day
+    return {iid: day for iid, day in rows if day is not None}
 
 
 def _num(v: Any) -> float | None:

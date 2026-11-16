@@ -48,9 +48,3 @@ REDUNDANT: tuple[str, ...] = (
 def _rank(col: str) -> pl.Expr:
     r = pl.col(col).rank("average").over("date")
     return (r - 0.5) / pl.col(col).count().over("date") - 0.5
-
-
-def short_score(df: pl.DataFrame) -> pl.DataFrame:
-    """``df`` plus ``book_score``: mean of the date-ranked features (missing counts as neutral)."""
-    parts = [(_rank(c) * s).fill_null(0.0).fill_nan(0.0) for c, s in SHORT_FEATURES]
-    return df.with_columns((pl.sum_horizontal(parts) / len(parts)).alias("book_score"))

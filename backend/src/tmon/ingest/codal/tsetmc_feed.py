@@ -31,7 +31,6 @@ from tmon.storage.repositories import upsert
 log = logging.getLogger(__name__)
 
 FEED_URL = "https://cdn.tsetmc.com/api/Codal/GetPreparedData/{top}"
-SOURCE_NOTE = "tsetmc-codal-feed"
 
 
 def _local(text: str | None) -> datetime | None:

@@ -10,31 +10,25 @@ equal weights. Nothing here changes the production score; see ``engine.adapt.wei
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
 
 from tmon.backtest.walkforward_study import Panel, build_panel
-from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import get_engine_config
 from tmon.domain.rules import CostModel, RuleBook
 from tmon.engine import adapt, regime
 from tmon.storage.models import MarketIndexDaily
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import read_artifact, write_artifact
 
 KEY = "v2/adapt_state.json"
 
 
 def load_state() -> dict[str, Any] | None:
-    try:
-        raw = get_object_store().get(get_settings().minio_artifact_bucket, KEY)
-    except (FileNotFoundError, KeyError):
-        return None
-    doc: dict[str, Any] = json.loads(raw)
-    return doc
+    return read_artifact(KEY)
 
 
 def replay_is_stale(previous: dict[str, Any] | None, today: date, refresh_days: int) -> bool:
@@ -95,9 +89,7 @@ def build_state(*, with_replay: bool | None = None) -> dict[str, Any]:
 
 
 def store_state(state: dict[str, Any]) -> bytes:
-    data = json.dumps(state, ensure_ascii=False, separators=(",", ":")).encode("utf8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
-    return data
+    return write_artifact(KEY, state)
 
 
 def run() -> dict[str, Any]:
@@ -119,8 +111,7 @@ def main() -> None:
     state = build_state(with_replay=True if a.replay else None)
     data = store_state(state)
     if a.out:
-        with open(a.out, "wb") as f:
-            f.write(data)
+        Path(a.out).write_bytes(data)
     print(f"{KEY}: {len(data)} bytes, as_of={state['as_of']}")
     for h, v in state["horizons"].items():
         print(f"h{h:>4}: {v['champion']:14s} {v['why']}")

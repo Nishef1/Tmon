@@ -26,7 +26,7 @@
     "vazirmatn": "33.0.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "4.3.5",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -34,13 +34,14 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.6",
-    "jsdom": "^31.0.0",
+    "jsdom": "^31.0.1",
     "openapi-typescript": "^7.13.0",
-    "prettier": "^3.9.10",
+    "prettier": "^3.10.1",
     "tailwindcss": "4.3.5",
-    "typescript": "~6.0.3",
+    "typescript": "^7.0.2",
     "vitest": "5.1.0"
   }
 }

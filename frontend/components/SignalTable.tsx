@@ -4,7 +4,7 @@ import { jalali } from "@/lib/format";
 import { Num } from "./Num";
 import { TierBadge } from "./TierBadge";
 
-export const OUTCOME_LABEL: Record<string, string> = {
+const OUTCOME_LABEL: Record<string, string> = {
   pending: "هنوز باز است",
   tp: "به حد سود رسید",
   sl: "به حد ضرر رسید",

@@ -190,11 +190,3 @@ def build_features(
     )
     keep = [*KEYS, *FLAG_COLUMNS, *_D1.columns, *REFERENCE_COLUMNS]
     return d.select(list(dict.fromkeys(keep))).sort(KEYS)
-
-
-def model_matrix(features: pl.DataFrame, timeframe: str = "D1") -> pl.DataFrame:
-    """Rows that may be used for training or scoring (outside halt windows). Columns: keys +
-    the timeframe's feature set. Warm-up rows stay and carry nulls, which the model tolerates;
-    the ``eligible`` flag is what enforces minimum history."""
-    fs = get_feature_set(timeframe)
-    return features.filter(~pl.col("market_halt")).select(*KEYS, *fs.columns)

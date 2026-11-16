@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from tmon.api.schemas import ApiModel
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
-from tmon.core.timeutil import TEHRAN, utcnow
+from tmon.core.timeutil import tehran_today, utcnow
 from tmon.portfolio import alerts as alert_store
 from tmon.portfolio import entry as ent
 from tmon.portfolio import keys, ledger, liveprice, mofid
@@ -753,7 +753,7 @@ def get_entries(
     last trade against the price paid, the edge the model promised after cost and what was left
     of it. Today's purchases are read against today's live range."""
     p = _auth(session, portfolio_id, key)
-    today = utcnow().astimezone(TEHRAN).date()
+    today = tehran_today()
     doc = ranking_doc()
     edge, cost = ent.edge_and_cost(doc)
     fade_all = ent.fade_table(session)

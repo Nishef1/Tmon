@@ -7,9 +7,9 @@ export type HealthIssue = {
   first_seen: string | null;
 };
 
-export type RefillStep = { name: string; status: "ok" | "skipped" | "failed"; detail: string };
+type RefillStep = { name: string; status: "ok" | "skipped" | "failed"; detail: string };
 
-export type Refill = {
+type Refill = {
   state: "running" | "done" | "failed" | "blocked";
   started_at: string | null;
   finished_at: string | null;

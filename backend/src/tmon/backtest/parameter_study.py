@@ -57,13 +57,17 @@ def build(extra: Sequence[str] = ()) -> tuple[pl.DataFrame, float, pl.DataFrame]
     fwd = forward_returns(adj, HS).select(*KEYS, "mom_12_1", *[f"fwd_{h}" for h in HS])
     c = pl.col("adj_close")
     lr = (c / c.shift(1)).log().over(G)
-    ex: list[pl.Expr] = []
-    for w in (10, 20, 40, 60, 120):
-        ex.append(lr.rolling_std(w).over(G).alias(f"rvw_{w}"))
-    for w in (20, 60, 120, 252):
-        ex.append((c / c.rolling_max(w, min_samples=w // 2) - 1.0).over(G).alias(f"dhw_{w}"))
-    for sk, lb in ((0, 63), (5, 126), (21, 126), (21, 63), (63, 252)):
-        ex.append((c.shift(sk) / c.shift(lb) - 1.0).over(G).alias(f"momw_{sk}_{lb}"))
+    ex: list[pl.Expr] = [
+        *(lr.rolling_std(w).over(G).alias(f"rvw_{w}") for w in (10, 20, 40, 60, 120)),
+        *(
+            (c / c.rolling_max(w, min_samples=w // 2) - 1.0).over(G).alias(f"dhw_{w}")
+            for w in (20, 60, 120, 252)
+        ),
+        *(
+            (c.shift(sk) / c.shift(lb) - 1.0).over(G).alias(f"momw_{sk}_{lb}")
+            for sk, lb in ((0, 63), (5, 126), (21, 126), (21, 63), (63, 252))
+        ),
+    ]
     paths = (
         adj.sort(KEYS)
         .join(feats.select(*KEYS, "queue_state"), on=list(KEYS), how="left")

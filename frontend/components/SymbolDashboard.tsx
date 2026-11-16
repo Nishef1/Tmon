@@ -3,10 +3,7 @@ import { HoldWord } from "@/components/stock/HoldWord";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { Gauge } from "@/components/Gauge";
-import { DriversCard } from "@/components/DriversCard";
-import { PeersCard } from "@/components/PeersCard";
 import { TrackBuyButton } from "@/components/TrackBuyButton";
-import { TurningCard } from "@/components/TurningCard";
 import { TechnicalCard } from "@/components/TechnicalCard";
 import { Checks, shortLabel } from "@/components/stock/Checks";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
@@ -94,7 +91,7 @@ function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
   );
 }
 
-export const DEFAULT_HORIZON = "M1";
+const DEFAULT_HORIZON = "M1";
 
 /** The verdict for one holding period, with the small gauge beside it. */
 export function Verdict({
@@ -350,17 +347,6 @@ export function SymbolDecision({ d, id, horizon }: { d: D; id: number; horizon?:
     <div data-testid="symbol-dashboard">
       <Decision d={d.decision} dash={d} horizon={horizon ?? DEFAULT_HORIZON} id={id} />
     </div>
-  );
-}
-
-/** Where the stock stands: its current state's past record, what moves it, and its group. */
-export function SymbolContext({ d }: { d: D }) {
-  return (
-    <>
-      {d.turning && <TurningCard t={d.turning} />}
-      {d.drivers && <DriversCard d={d.drivers} />}
-      {d.peers && <PeersCard p={d.peers} />}
-    </>
   );
 }
 

@@ -12,7 +12,7 @@ const pt = (deg: number, r = R) => {
 
 /** Where the zones start on the 0-100 scale when the API gave none: the model's configured
  *  hold (top 30%) and buy (top 10%) shares. */
-export const DEFAULT_ZONES = { hold: 70, buy: 90 } as const;
+const DEFAULT_ZONES = { hold: 70, buy: 90 } as const;
 
 const ZONE_HUE = { low: 2, mid: 42, high: 135 } as const;
 

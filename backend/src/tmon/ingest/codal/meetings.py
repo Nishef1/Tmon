@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
 
-from tmon.core.timeutil import from_jalali, to_tehran, utcnow
+from tmon.core.timeutil import from_jalali, tehran_today, utcnow
 from tmon.ingest.codal import endpoints
 from tmon.ingest.codal.parsers import ascii_digits
 from tmon.ingest.http import FetchError
@@ -62,7 +62,7 @@ def parse_meeting(html: str) -> Meeting | None:
 async def sync_meetings(ctx) -> dict[str, int]:  # type: ignore[no-untyped-def]
     """Read the assembly date of every recent invitation that has none yet. Stops at the first
     refusal (429, CAPTCHA) with what it has."""
-    today = to_tehran(utcnow()).date()
+    today = tehran_today()
     rows = ctx.session.execute(
         select(CorporateEvent, CodalLetter.url)
         .join(CodalLetter, CodalLetter.tracing_no == CorporateEvent.tracing_no)

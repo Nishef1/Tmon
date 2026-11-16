@@ -10,19 +10,17 @@ the history and each symbol's dashboard its part.
 from __future__ import annotations
 
 import argparse
-import json
 from collections import Counter
 from datetime import date
 from typing import Any
 
 from tmon.backtest import entry_odds as eo
 from tmon.backtest import ta_signals as ts
-from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import get_engine_config
 from tmon.domain.rules import CostModel, RuleBook
 from tmon.features.store import load_inputs
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import write_artifact
 
 KEY = "v2/entry_odds.json"
 
@@ -59,11 +57,7 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document()
-    data = json.dumps(doc, ensure_ascii=False).encode("utf-8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
-    if a.out:
-        with open(a.out, "wb") as f:
-            f.write(data)
+    write_artifact(KEY, doc, a.out)
     print(f"as_of={doc['as_of']} history={doc['first']}..{doc['last']} split={doc['split_date']}")
     print(f"labels={dict(Counter(v['label'] for v in doc['setups'].values()))}")
     nan = float("nan")

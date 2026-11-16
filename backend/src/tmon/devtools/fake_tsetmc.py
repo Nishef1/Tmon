@@ -58,7 +58,7 @@ class FakeMarket:
         self.prices = prices
         self.clients = clients
         self.codes = [str(CODE0 + i) for i in range(1, n_inst + 1)]
-        self._cum_volume: dict[str, float] = {c: 0.0 for c in self.codes}
+        self._cum_volume: dict[str, float] = dict.fromkeys(self.codes, 0.0)
         self._last: dict[str, float] = {}
         for i, code in enumerate(self.codes, start=1):
             rows = prices.filter(prices["instrument_id"] == i).sort("date")

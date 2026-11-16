@@ -139,12 +139,11 @@ def zigzag(close: np.ndarray, th: float = ZIGZAG) -> list[tuple[int, int, float,
             elif c <= hi * (1 - th):
                 out.append((hi_i, i, hi, 1))
                 d, lo_i, lo = -1, i, c
-        else:
-            if c < lo:
-                lo_i, lo = i, c
-            elif c >= lo * (1 + th):
-                out.append((lo_i, i, lo, -1))
-                d, hi_i, hi = 1, i, c
+        elif c < lo:
+            lo_i, lo = i, c
+        elif c >= lo * (1 + th):
+            out.append((lo_i, i, lo, -1))
+            d, hi_i, hi = 1, i, c
     return out
 
 

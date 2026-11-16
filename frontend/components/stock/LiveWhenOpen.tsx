@@ -13,7 +13,7 @@ const tehran = new Intl.DateTimeFormat("en-US", {
 });
 
 /** Tehran's exchange trades Saturday to Wednesday, about 08:45 (pre-open) to 12:45. */
-export function marketOpen(now: Date): boolean {
+function marketOpen(now: Date): boolean {
   const parts = Object.fromEntries(tehran.formatToParts(now).map((p) => [p.type, p.value]));
   if (parts.weekday === "Thu" || parts.weekday === "Fri") return false;
   const minutes = Number(parts.hour) * 60 + Number(parts.minute);

@@ -39,7 +39,7 @@ export type Row = {
   perSell: number | null;
 };
 
-export const NO_SECTOR = "بدون گروه صنعتی";
+const NO_SECTOR = "بدون گروه صنعتی";
 
 export function toRow(r: ScreenerRow): Row {
   return {

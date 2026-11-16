@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import polars as pl
-
-from tmon.features.book_signal import short_score
 from tmon.ingest.tsetmc.book_history import reduce_day
 
 
@@ -50,13 +47,3 @@ def test_levels_are_carried_forward() -> None:
     rows = [_row(90000, 1, 1, 100, 1000, 50, 1010), _row(90100, 2, 2, 100, 990, 50, 1020)]
     out = reduce_day(rows)
     assert out is not None and out["close_bid_volume"] == 100 and out["close_ask_volume"] == 50
-
-
-def test_short_score_ranks_within_day() -> None:
-    cols = ("tw_imbalance", "close_imbalance", "tw_size_ratio", "open_imbalance", "last_close_gap")
-    df = pl.DataFrame(
-        {"instrument_id": [1, 2, 3], "date": ["2026-01-01"] * 3}
-        | {c: [0.1, 0.5, 0.9] for c in cols}
-    ).with_columns(pl.col("date").str.to_date())
-    out = short_score(df)["book_score"].to_list()
-    assert out[0] < out[1] < out[2]

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
-from tmon.core.timeutil import to_tehran, utcnow
+from tmon.core.timeutil import tehran_today, utcnow
 from tmon.domain.calendar import build_calendar, halt_windows
 from tmon.domain.enums import InstrumentType
 from tmon.domain.rules import RuleBook
@@ -88,12 +88,9 @@ async def sync_instruments(ctx: Ctx) -> int:
     except parsers.ParseError:  # quotes are only used to rank; the instrument list still stands
         ctx.liquidity = {}
 
-    existing = {
-        code: itype
-        for code, itype in ctx.session.execute(
-            select(Instrument.ins_code, Instrument.instrument_type)
-        )
-    }
+    existing = dict(
+        ctx.session.execute(select(Instrument.ins_code, Instrument.instrument_type)).all()
+    )
     rows = []
     for w in watch:
         itype, matched = ctx.classifier.classify(group_title=None, name_fa=w.name_fa)
@@ -297,7 +294,7 @@ async def fill_today_client_types(ctx: Ctx, today: date | None = None) -> int:
     without this the evening ranking scored most symbols on an older day's flow. Only today:
     the market-wide endpoint always describes the current session. The next run's history
     fetch overwrites these rows with TSETMC's published ones (values included)."""
-    day = today or to_tehran(utcnow()).date()
+    day = today or tehran_today()
     traded = dict(
         ctx.session.execute(
             select(Instrument.ins_code, Instrument.id)
@@ -568,7 +565,7 @@ def _missing_flows(
 ) -> list[Instrument]:
     """Instruments that traded on a day since ``since`` (before today, which the market-wide call
     covers) but have no real/legal row for that day."""
-    today = to_tehran(utcnow()).date()
+    today = tehran_today()
     traded = {
         (iid, d)
         for iid, d in session.execute(
@@ -628,10 +625,6 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
             return {"instruments": n}
     finally:
         await client.aclose()
-
-
-def refresh_instrument_list() -> int:
-    return asyncio.run(_run("instruments"))["instruments"]
 
 
 def ingest_end_of_day(full: bool = False) -> dict[str, int]:

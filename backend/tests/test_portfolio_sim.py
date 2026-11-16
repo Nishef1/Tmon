@@ -11,18 +11,18 @@ T, J = 80, 12
 
 
 def _params(**kw) -> BookParams:
-    base = dict(
-        n_names=4,
-        n_tranches=2,
-        review_every=2,
-        buy_top_frac=0.4,
-        hold_top_frac=0.5,
-        sector_cap_pct=1.0,
-        name_cap_pct=1.0,
-        liquidity_cap=1.0,
-        capital=1.0,
-        entry_delay=1,
-    )
+    base = {
+        "n_names": 4,
+        "n_tranches": 2,
+        "review_every": 2,
+        "buy_top_frac": 0.4,
+        "hold_top_frac": 0.5,
+        "sector_cap_pct": 1.0,
+        "name_cap_pct": 1.0,
+        "liquidity_cap": 1.0,
+        "capital": 1.0,
+        "entry_delay": 1,
+    }
     base.update(kw)
     return BookParams(**base)
 

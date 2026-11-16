@@ -26,9 +26,6 @@ BEST_LIMITS_LIVE = f"{CDN}/api/BestLimits/{{ins_code}}"  # current order book (r
 ADJUSTED_HISTORY = f"{OLD}/tsev2/chart/data/Financial.aspx?i={{ins_code}}&t=ph&a=1&b=0"
 INDEX_HISTORY = f"{CDN}/api/Index/GetIndexB2History/{{code}}"
 INSTRUMENT_SEARCH = f"{CDN}/api/Instrument/GetInstrumentSearch/{{text}}"
-LAST_TRADE_DAY = "https://service.tsetmc.com/tsev2/data/TseClient2.aspx?t=LastPossibleDeven"
-
-
 SERVICE = "https://service.tsetmc.com/tsev2/data/TseClient2.aspx"
 FIRST_POSSIBLE_DEVEN = 20010321  # earliest date the service serves (open-source tse-client, MIT)
 
@@ -68,10 +65,6 @@ def shareholders_url(ins_code: str) -> str:
 
 def best_limits_live_url(ins_code: str) -> str:
     return BEST_LIMITS_LIVE.format(ins_code=ins_code)
-
-
-def best_limits_url(ins_code: str, date_yyyymmdd: int | str = 0) -> str:
-    return BEST_LIMITS.format(ins_code=ins_code, date=date_yyyymmdd)
 
 
 def index_history_url(code: str) -> str:

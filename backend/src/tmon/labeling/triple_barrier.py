@@ -112,13 +112,6 @@ def prepare_bars(
     return d.filter(~pl.col("market_halt")).sort(G, "date")
 
 
-def _shift(a: np.ndarray, k: int, fill: float) -> np.ndarray:
-    out = np.full_like(a, fill)
-    if k < len(a):
-        out[: len(a) - k] = a[k:]
-    return out
-
-
 def triple_barrier_labels(
     prices: pl.DataFrame,
     rules: RuleBook,

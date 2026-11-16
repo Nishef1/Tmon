@@ -185,7 +185,7 @@ def test_refill_waits_while_the_daily_cycle_runs(session: Session) -> None:
     assert not dh.cycle_running(store, now)
     dh.mark_cycle(True, store)
     assert dh.cycle_running(store)
-    res = dh.run_refill(store, {}, here=lambda: {})
+    res = dh.run_refill(store, {}, here=dict)
     assert res["state"] == "blocked"
     dh.mark_cycle(False, store)
     assert not dh.cycle_running(store)

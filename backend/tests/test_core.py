@@ -4,25 +4,16 @@ import pytest
 
 from tmon.core.engine_config import load_engine_config
 from tmon.core.timeutil import (
-    date_to_yyyymmdd,
     ensure_utc,
-    format_jalali,
-    format_jalali_long,
-    parse_jalali,
+    from_jalali,
     to_tehran,
     yyyymmdd_to_date,
 )
 
 
-def test_jalali_roundtrip():
-    d = parse_jalali("1405/02/29")
-    assert d == date(2026, 5, 19)
-    assert format_jalali(d) == "1405/02/29"
-    assert parse_jalali("1404-12-09") == date(2026, 2, 28)
-
-
-def test_jalali_long_uses_persian_digits():
-    assert format_jalali_long(date(2026, 5, 19)) == "۲۹ اردیبهشت ۱۴۰۵"
+def test_jalali_to_gregorian():
+    assert from_jalali(1405, 2, 29) == date(2026, 5, 19)
+    assert from_jalali(1404, 12, 9) == date(2026, 2, 28)
 
 
 def test_tehran_conversion_and_naive_rejected():
@@ -35,7 +26,6 @@ def test_tehran_conversion_and_naive_rejected():
 
 def test_yyyymmdd():
     assert yyyymmdd_to_date(20260519) == date(2026, 5, 19)
-    assert date_to_yyyymmdd(date(2026, 5, 19)) == 20260519
 
 
 def test_engine_yaml_loads_and_regimes_match_docs():
@@ -46,7 +36,7 @@ def test_engine_yaml_loads_and_regimes_match_docs():
     assert cfg.labeling.grid["D1"].k_tp == [1.0, 1.5, 2.0]  # ADR 0002 section 4
     assert cfg.labeling.grid["D1"].k_sl == [1.0, 1.5]
     # halt window from docs/01: 9 Esfand 1404 .. day before 29 Ordibehesht 1405
-    assert cfg.regime_of(parse_jalali("1404/12/08")) == "normal"
-    assert cfg.regime_of(parse_jalali("1404/12/09")) == "halt"
-    assert cfg.regime_of(parse_jalali("1405/02/28")) == "halt"
-    assert cfg.regime_of(parse_jalali("1405/02/29")) == "post_reopen"
+    assert cfg.regime_of(from_jalali(1404, 12, 8)) == "normal"
+    assert cfg.regime_of(from_jalali(1404, 12, 9)) == "halt"
+    assert cfg.regime_of(from_jalali(1405, 2, 28)) == "halt"
+    assert cfg.regime_of(from_jalali(1405, 2, 29)) == "post_reopen"

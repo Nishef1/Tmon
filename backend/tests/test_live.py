@@ -73,7 +73,7 @@ def test_quotes_parse_and_reject_a_changed_layout():
     assert qs[0].final == 1010 and qs[0].volume == 500 and qs[0].yesterday == 1000
 
     with pytest.raises(parsers.ParseError):  # columns shifted: high < low everywhere
-        bad = ",".join(["111", "I", "s", "n", "t", "1", "2", "3", "4", "5", "6", "9", "8", "7"])
+        bad = "111,I,s,n,t,1,2,3,4,5,6,9,8,7"
         parsers.parse_market_watch_quotes(watch(*[bad.replace("111", str(c)) for c in range(5)]))
     with pytest.raises(parsers.ParseError):
         parsers.parse_market_watch_quotes("nothing")

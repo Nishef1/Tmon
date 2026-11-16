@@ -66,8 +66,17 @@ src = ["src", "tests"]
 extend-exclude = ["research"]  # one-off research scripts, not engine code
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF"]
-ignore = ["RUF001", "RUF002", "RUF003"]
+select = [
+    "E", "F", "I", "UP", "B", "SIM", "N", "RUF",
+    "C4", "PERF", "FURB", "PIE", "PTH", "FLY", "ASYNC", "PLE", "PLW",
+    "DTZ011", "PLR0124", "PLR5501", "RET504",
+]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # Persian text uses Arabic-script look-alike characters
+    "PLW0603",  # module-level flags (schema ready, Codal cool-down) are deliberate
+    "PLW2901",  # rebinding a loop variable after cleaning it reads better here
+    "ASYNC240",  # CLI backfills write tiny state files; not worth an async file API
+]
 
 [tool.ruff.lint.per-file-ignores]
 "src/tmon/backtest/report.py" = ["E501"]  # Persian report strings
@@ -75,7 +84,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 "src/tmon/backtest/v2_gates.py" = ["E501"]  # Persian report strings
 "src/tmon/tools/orderbook_research.py" = ["E501"]  # Persian texts
 "src/tmon/backtest/runner.py" = ["E501"]
-"tests/**" = ["E501"]  # synthetic TSETMC payload fixtures are long single lines
+"tests/**" = ["E501", "PERF401"]  # long synthetic payload lines; explicit loops in fixtures
+"src/tmon/devtools/fake_tsetmc.py" = ["PERF401"]  # builds fake CSV rows line by line
 
 [tool.mypy]
 python_version = "3.13"

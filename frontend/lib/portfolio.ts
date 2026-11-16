@@ -41,7 +41,7 @@ export type MofidStatus = {
 export type Saved = { id: number; key: string; name: string };
 const STORE = "tmon.portfolios";
 
-export function savedPortfolios(): Saved[] {
+function savedPortfolios(): Saved[] {
   try {
     const v = JSON.parse(localStorage.getItem(STORE) ?? "[]") as unknown;
     return Array.isArray(v) ? (v as Saved[]).filter((x) => x && x.id && x.key) : [];
@@ -69,7 +69,7 @@ export function forgetPortfolio(id: number): void {
   }
 }
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
@@ -106,7 +106,7 @@ export async function call<T>(
 
 // Loose shapes of the advice / forecast documents (the API returns them as JSON objects).
 export type Band = Record<string, number>;
-export type AdviceHolding = {
+type AdviceHolding = {
   holding_id: number;
   instrument_id: number;
   symbol: string;
@@ -121,7 +121,7 @@ export type AdviceHolding = {
   close?: number | null;
   pnl_pct_close?: number | null;
 };
-export type Candidate = {
+type Candidate = {
   instrument_id: number;
   symbol: string;
   name: string | null;
@@ -150,7 +150,7 @@ export type Advice = {
   buy_note?: string | null;
   candidates: Candidate[];
 };
-export type EntryReview = {
+type EntryReview = {
   trade_id: number;
   instrument_id: number;
   symbol: string;
@@ -191,7 +191,7 @@ export type Entries = {
     }[];
   } | null;
 };
-export type ForecastHorizon = {
+type ForecastHorizon = {
   key: string;
   label: string;
   days: number;
@@ -223,7 +223,7 @@ export type Forecast = {
   method?: string;
   horizons?: ForecastHorizon[];
 };
-export type BriefingItem = AdviceHolding & {
+type BriefingItem = AdviceHolding & {
   action: "exit" | "reduce" | "hold" | "add";
   action_fa: string;
   confidence: number;
@@ -242,7 +242,7 @@ export type BriefingItem = AdviceHolding & {
     }[];
   };
 };
-export type MacroMove = {
+type MacroMove = {
   series: string;
   label_fa: string;
   domestic: boolean;
@@ -251,7 +251,7 @@ export type MacroMove = {
   change_1: number | null;
   change_5: number | null;
 };
-export type ForeignHeadline = {
+type ForeignHeadline = {
   title: string;
   source: string;
   url: string;

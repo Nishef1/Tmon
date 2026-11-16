@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from tmon.api.main import create_app
 from tmon.api.routers import ranking as rk
 from tmon.core.db import get_session
+from tmon.storage import objectstore
 from tmon.storage.objectstore import MemoryStore
 from tmon.tools.v2_ranking import _zone
 
@@ -71,7 +72,7 @@ def test_zones_follow_the_configured_fractions() -> None:
 def test_endpoint_without_a_stored_ranking_says_unavailable(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(rk, "get_object_store", lambda: MemoryStore())
+    monkeypatch.setattr(objectstore, "get_object_store", MemoryStore)
     body = client.get("/v2/ranking").json()
     assert body["available"] is False
     assert body["recommendation_allowed"] is False
@@ -91,7 +92,7 @@ def test_endpoint_serves_the_stored_document_and_keeps_the_disclaimer(
         json.dumps(DOC, ensure_ascii=False).encode(),
         "application/json",
     )
-    monkeypatch.setattr(rk, "get_object_store", lambda: store)
+    monkeypatch.setattr(objectstore, "get_object_store", lambda: store)
     body = client.get("/v2/ranking").json()
     assert body["available"] is True
     assert body["recommendation_allowed"] is False

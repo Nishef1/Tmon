@@ -38,10 +38,6 @@ def halt_windows(rules: RuleBook, *, market: str = "IR") -> list[HaltWindow]:
     return out
 
 
-def is_in_halt(d: date, windows: list[HaltWindow]) -> bool:
-    return any(w.contains(d) for w in windows)
-
-
 def build_calendar(
     traded_counts: pl.DataFrame,
     windows: list[HaltWindow],
@@ -85,13 +81,3 @@ def build_calendar(
         is_open=pl.col("is_open") & pl.col("halt_reason").is_null()
     )
     return cal.select(pl.lit(market).alias("market"), "date", "is_open", "halt_reason")
-
-
-def trading_days_between(calendar: pl.DataFrame, start: date, end: date) -> list[date]:
-    df = calendar.filter(pl.col("is_open") & pl.col("date").is_between(start, end)).sort("date")
-    return df["date"].to_list()
-
-
-def next_open_day(calendar: pl.DataFrame, after: date) -> date | None:
-    df = calendar.filter(pl.col("is_open") & (pl.col("date") > after)).sort("date").head(1)
-    return df["date"][0] if df.height else None

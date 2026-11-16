@@ -236,8 +236,10 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
           </div>
         )}
       </dl>
-      {entry.plan?.available && <PlanBlock plan={entry.plan} />}
-      {entry.exit_plan?.available && <ExitBlock plan={entry.exit_plan} />}
+      {entry.plan?.available && <LadderBlock plan={entry.plan} side="buy" value={(r) => r.ev} />}
+      {entry.exit_plan?.available && (
+        <LadderBlock plan={entry.exit_plan} side="sell" value={(r) => r.gain_vs_now} />
+      )}
       {entry.timing && <TimingBlock timing={entry.timing} />}
       <p className="mt-2 text-xs text-muted">
         امتیاز مدل از پایانی دیروز شروع می‌شود؛ هر ریالی که بالاتر از آن بخرید از سود پیش‌بینی‌شده
@@ -274,72 +276,39 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
   );
 }
 
-/** The cheapest entry the history supports: prices to leave a limit order at, how often the
- *  day's low reached each one, and the one worth most after fees. Independent of the candle's
- *  colour; an order that is not filled by the close is cancelled, not chased. */
-function PlanBlock({ plan }: { plan: Extract<Plan, { available: true }> }) {
-  const best = plan.recommended;
-  return (
-    <div className="mt-3 rounded-lg bg-surface-2 p-3" data-testid="entry-plan">
-      <h3 className="font-bold">
-        بهترین ورود {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
-      </h3>
-      <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>
-        {faDigits(plan.headline)}
-      </p>
-      {plan.ladder.length > 0 && (
-        <div className="mt-2 overflow-x-auto">
-          <table className="tbl w-full min-w-[22rem] text-sm">
-            <thead>
-              <tr>
-                <th>قیمت سفارش حدی</th>
-                <th>ارزان‌تر از {plan.mode === "next" ? "پایانی" : "قیمت فعلی"}</th>
-                <th>شانس پرشدن</th>
-                <th>ارزش مورد انتظار پس از کارمزد</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plan.ladder.map((st) => (
-                <tr key={st.price} className={best?.price === st.price ? "font-bold" : ""}>
-                  <td>
-                    {faPrice(st.price)}
-                    {best?.price === st.price && <span className="text-up"> ← پیشنهاد</span>}
-                    {st.touched_today && <span className="text-muted"> (امروز لمس شده)</span>}
-                  </td>
-                  <td>{faPercent(-st.vs_now, 1)}</td>
-                  <td>{faPercent(st.fill_prob, 0)}</td>
-                  <td className={st.ev != null ? signTone(st.ev) : "text-muted"}>
-                    {st.ev == null ? "—" : faPercent(st.ev, 2, true)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <ul className="mt-2 list-disc pr-5 text-xs text-muted">
-        {plan.notes.map((n) => (
-          <li key={n}>{faDigits(n)}</li>
-        ))}
-        <li>
-          مبنا: {faNumber(plan.basis.market_days)} روز مشابه بازار
-          {plan.basis.own_days >= 25 ? ` و ${faNumber(plan.basis.own_days)} روز خودِ این نماد` : ""}
-          {plan.basis.gap_bucket ? ` (بازگشایی: ${plan.basis.gap_bucket})` : ""}.
-        </li>
-      </ul>
-    </div>
-  );
-}
+type Rung = { price: number; touched_today: boolean; vs_now: number; fill_prob: number };
+type Ladder<R extends Rung> = {
+  mode: string;
+  headline: string;
+  recommended?: { price: number } | null;
+  ladder: R[];
+  notes: string[];
+  basis: { market_days: number; own_days: number; gap_bucket?: string | null };
+};
 
-/** The mirror of the entry ladder: prices to leave a limit sell at, how often the day's high
- *  reached each one, and what each is worth next to selling right now (fees and tax included).
- *  An order not filled by the close is priced at that day's close, as the note says. */
-function ExitBlock({ plan }: { plan: Extract<ExitPlan, { available: true }> }) {
+/** A ladder of limit-order prices with how often the day's range reached each one. Buying, the
+ *  rungs sit below the price and are valued after fees; selling, they sit above it and are valued
+ *  against selling right now (fees and tax included). An order not filled by the close is
+ *  cancelled, not chased. Independent of the candle's colour. */
+function LadderBlock<R extends Rung>({
+  plan,
+  side,
+  value,
+}: {
+  plan: Ladder<R>;
+  side: "buy" | "sell";
+  value: (r: R) => number | null | undefined;
+}) {
   const best = plan.recommended;
+  const buy = side === "buy";
   return (
-    <div className="mt-3 rounded-lg bg-surface-2 p-3" data-testid="exit-plan">
+    <div
+      className="mt-3 rounded-lg bg-surface-2 p-3"
+      data-testid={buy ? "entry-plan" : "exit-plan"}
+    >
       <h3 className="font-bold">
-        بهترین فروش {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
+        {buy ? "بهترین ورود" : "بهترین فروش"}{" "}
+        {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
       </h3>
       <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>
         {faDigits(plan.headline)}
@@ -349,25 +318,35 @@ function ExitBlock({ plan }: { plan: Extract<ExitPlan, { available: true }> }) {
           <table className="tbl w-full min-w-[22rem] text-sm">
             <thead>
               <tr>
-                <th>قیمت سفارش حدی فروش</th>
-                <th>گران‌تر از {plan.mode === "next" ? "پایانی" : "قیمت فعلی"}</th>
+                <th>{buy ? "قیمت سفارش حدی" : "قیمت سفارش حدی فروش"}</th>
+                <th>
+                  {buy ? "ارزان‌تر از" : "گران‌تر از"}{" "}
+                  {plan.mode === "next" ? "پایانی" : "قیمت فعلی"}
+                </th>
                 <th>شانس پرشدن</th>
-                <th>سود مورد انتظار نسبت به فروش حالا</th>
+                <th>
+                  {buy ? "ارزش مورد انتظار پس از کارمزد" : "سود مورد انتظار نسبت به فروش حالا"}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {plan.ladder.map((st) => (
-                <tr key={st.price} className={best?.price === st.price ? "font-bold" : ""}>
-                  <td>
-                    {faPrice(st.price)}
-                    {best?.price === st.price && <span className="text-up"> ← پیشنهاد</span>}
-                    {st.touched_today && <span className="text-muted"> (امروز لمس شده)</span>}
-                  </td>
-                  <td>{faPercent(st.vs_now, 1, true)}</td>
-                  <td>{faPercent(st.fill_prob, 0)}</td>
-                  <td className={signTone(st.gain_vs_now)}>{faPercent(st.gain_vs_now, 2, true)}</td>
-                </tr>
-              ))}
+              {plan.ladder.map((st) => {
+                const v = value(st);
+                return (
+                  <tr key={st.price} className={best?.price === st.price ? "font-bold" : ""}>
+                    <td>
+                      {faPrice(st.price)}
+                      {best?.price === st.price && <span className="text-up"> ← پیشنهاد</span>}
+                      {st.touched_today && <span className="text-muted"> (امروز لمس شده)</span>}
+                    </td>
+                    <td>{buy ? faPercent(-st.vs_now, 1) : faPercent(st.vs_now, 1, true)}</td>
+                    <td>{faPercent(st.fill_prob, 0)}</td>
+                    <td className={v != null ? signTone(v) : "text-muted"}>
+                      {v == null ? "—" : faPercent(v, 2, true)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -43,7 +43,6 @@ DOMESTIC = frozenset({"usd_free", "coin_emami", "gold_18k"})
 WINDOW = 500  # Tehran sessions in the regression
 MIN_OBS = 120
 T_MIN = 2.5  # seven series per stock: a stricter bar than 2 against chance hits
-IMPACT_MIN = 0.005  # report a holding's macro pressure from 0.5%
 FOREIGN_WORDS = re.compile(
     r"\b(iran\w*|tehran|hormuz|gulf|sanction\w*|opec\w*|oil|crude|brent|fed|rate cut\w*|"
     r"inflation|dollar|gold|copper|steel|iron ore|china|israel|war|ceasefire|tanker\w*|"

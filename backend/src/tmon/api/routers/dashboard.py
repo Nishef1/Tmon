@@ -5,7 +5,6 @@ daily tables and the latest ranking document; nothing is estimated here."""
 from __future__ import annotations
 
 import datetime as dt
-import json
 import logging
 import statistics
 from typing import Annotated, Any
@@ -44,10 +43,9 @@ from tmon.api.schemas import (
 from tmon.api.technical import ta_doc, technical_out
 from tmon.api.trade_state import market_days, trade_state
 from tmon.backtest.turning import STATE_BY_KEY
-from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
-from tmon.core.timeutil import to_tehran, utcnow
+from tmon.core.timeutil import tehran_today
 from tmon.domain.fundamentals import Fundamental, fundamental
 from tmon.storage.models import (
     ClientTypeDaily,
@@ -58,7 +56,7 @@ from tmon.storage.models import (
     SectorName,
     ShareChange,
 )
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import read_artifact
 from tmon.tools.stock_drivers import KEY as DRIVERS_KEY
 from tmon.tools.turning_points import KEY as TURNING_KEY
 from tmon.tools.v2_ranking import KEY, MIN_RANK_DAYS
@@ -199,15 +197,7 @@ def _flow(rows: list[ClientTypeDaily]) -> DashFlow | None:
 
 
 def _ranking_doc() -> dict[str, Any] | None:
-    try:
-        raw = get_object_store().get(get_settings().minio_artifact_bucket, KEY)
-    except (FileNotFoundError, KeyError):
-        return None
-    except Exception:  # store unreachable: say "not computed" instead of failing the page
-        log.warning("ranking document unreadable", exc_info=True)
-        return None
-    doc: dict[str, Any] = json.loads(raw)
-    return doc
+    return _stored_doc(KEY)
 
 
 STAGE_FA = {
@@ -892,7 +882,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         fundamental=fa,
         base_volume=base_vol,
         ranges=ranges if ranges.year_max else None,
-        meeting=_meeting(events, to_tehran(utcnow()).date()),
+        meeting=_meeting(events, tehran_today()),
         events=_events_out(events),
         share_changes=[
             DashShareChange(
@@ -920,14 +910,10 @@ def _beta(doc: dict[str, Any] | None, instrument_id: int) -> float | None:
 
 def _stored_doc(key: str) -> dict[str, Any] | None:
     try:
-        raw = get_object_store().get(get_settings().minio_artifact_bucket, key)
-    except (FileNotFoundError, KeyError):
-        return None
+        return read_artifact(key)
     except Exception:  # store unreachable: leave the card out instead of failing the page
         log.warning("%s unreadable", key, exc_info=True)
         return None
-    doc: dict[str, Any] = json.loads(raw)
-    return doc
 
 
 def _turning_doc() -> dict[str, Any] | None:

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import httpx
 
 from tmon.core.config import get_settings
-from tmon.core.timeutil import TEHRAN, utcnow
+from tmon.core.timeutil import tehran_today
 from tmon.ingest.http import FetchError, PoliteClient, RetryPolicy
 from tmon.ingest.tsetmc import endpoints, parsers
 
@@ -122,7 +122,7 @@ def _cross_check(shared: dict[str, object], code: str) -> Check:
     if not qs or not bars:
         return Check(name, None, "not comparable (a payload is missing)")
     q, bar = qs[0], bars[-1]  # type: ignore[index]
-    today = utcnow().astimezone(TEHRAN).date()
+    today = tehran_today()
     if bar.date != today:
         return Check(name, None, f"not comparable (latest daily bar is {bar.date}, today {today})")
     findings = []

@@ -7,7 +7,6 @@ immutable, which is what ``data_snapshot_id`` refers to).
 
 from __future__ import annotations
 
-import io
 import math
 from datetime import date
 from typing import Any
@@ -29,7 +28,6 @@ from tmon.storage.models import (
     MarketIndexDaily,
     PriceDaily,
 )
-from tmon.storage.objectstore import ObjectStore
 from tmon.storage.repositories import upsert
 
 READ_SLICE = 100_000  # database rows turned into a frame at a time
@@ -231,32 +229,6 @@ def write_features(
         ]
         written += upsert(session, FeatureRow, rows)
     return written
-
-
-def read_features(
-    session: Session, fs: FeatureSet, *, start: date | None = None, end: date | None = None
-) -> pl.DataFrame:
-    q = select(FeatureRow.instrument_id, FeatureRow.date, FeatureRow.values).where(
-        FeatureRow.feature_set_version == fs.key
-    )
-    if start:
-        q = q.where(FeatureRow.date >= start)
-    if end:
-        q = q.where(FeatureRow.date <= end)
-    rows = session.execute(q).all()
-    data = {c: [(r.values or {}).get(c) for r in rows] for c in fs.columns}
-    return pl.DataFrame(
-        {"instrument_id": [r.instrument_id for r in rows], "date": [r.date for r in rows], **data},
-        schema_overrides={"date": pl.Date},
-    ).sort(*KEYS)
-
-
-def export_parquet(features: pl.DataFrame, store: ObjectStore, bucket: str, key: str) -> str:
-    """Write an immutable training snapshot and return its object key."""
-    buf = io.BytesIO()
-    features.write_parquet(buf)
-    store.put(bucket, key, buf.getvalue(), "application/vnd.apache.parquet")
-    return key
 
 
 def refresh_features(session: Session, timeframe: str = "D1") -> int:

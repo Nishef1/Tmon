@@ -302,20 +302,6 @@ class FeatureRow(Base):
     values: Mapped[dict[str, Any]] = mapped_column(JsonType)
 
 
-class LabelRow(Base):
-    __tablename__ = "labels"
-
-    instrument_id: Mapped[int] = mapped_column(
-        ForeignKey("instruments.id"), primary_key=True, index=True
-    )
-    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
-    timeframe: Mapped[str] = mapped_column(String(4), primary_key=True)
-    y: Mapped[int] = mapped_column(Integer)
-    realized_return: Mapped[float] = mapped_column(Float)
-    exit_reason: Mapped[str] = mapped_column(String(24))
-    exit_date: Mapped[dt.date | None] = mapped_column(Date)
-
-
 class ModelRun(Base):
     __tablename__ = "model_runs"
     __table_args__ = (UniqueConstraint("timeframe", "version", name="uq_model_runs_tf_version"),)

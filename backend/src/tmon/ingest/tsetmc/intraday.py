@@ -223,6 +223,11 @@ async def run_loop(
     state = IntradayState()
     totals = {"polls": 0, "snapshots": 0, "books": 0, "failed": 0}
     try:
+        try:  # group names change rarely; one read per run keeps them current
+            with session_scope() as session:
+                totals["sectors"] = await sync_sector_names(session, api)
+        except Exception as exc:  # library raises its own error types
+            log.warning("sector names not refreshed: %s", exc)
         while True:
             with session_scope() as session:
                 if not force and not trading_now(session):

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from minio import Minio
 from sqlalchemy import select
@@ -94,7 +95,7 @@ class FileStore:
         # new file, so ``version`` changes even for a same-size rewrite within one clock tick
         tmp = p.with_name(f".{p.name}.{os.getpid()}.tmp")
         tmp.write_bytes(data)
-        os.replace(tmp, p)
+        tmp.replace(p)
 
     def get(self, bucket: str, key: str) -> bytes:
         return self._path(bucket, key).read_bytes()
@@ -110,6 +111,26 @@ def get_object_store() -> ObjectStore:
     if s.object_store == "file":
         return FileStore(s.object_store_dir)
     return MinioStore()
+
+
+def read_artifact(key: str) -> dict[str, Any] | None:
+    """A JSON document published to the artifact bucket, or ``None`` if it was never written.
+    Other store errors propagate; each caller decides whether a page can do without it."""
+    try:
+        raw = get_object_store().get(get_settings().minio_artifact_bucket, key)
+    except (FileNotFoundError, KeyError):
+        return None
+    doc: dict[str, Any] = json.loads(raw)
+    return doc
+
+
+def write_artifact(key: str, doc: object, out: str | None = None) -> bytes:
+    """Publish ``doc`` as JSON to the artifact bucket, and to the file ``out`` when given."""
+    data = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode()
+    get_object_store().put(get_settings().minio_artifact_bucket, key, data, "application/json")
+    if out:
+        Path(out).write_bytes(data)
+    return data
 
 
 def raw_key(source: str, fetched_at: datetime, sha256: str, ext: str) -> str:

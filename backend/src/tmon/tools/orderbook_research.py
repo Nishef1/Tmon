@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date
 from pathlib import Path
 from typing import Any
 
-from tmon.core.config import get_settings
+from tmon.core.timeutil import tehran_today
 from tmon.features.book_signal import DROPPED, REDUNDANT, SHORT_FEATURES
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import write_artifact
 
 KEY = "v2/orderbook_research.json"
 DATA_DIR = Path(__file__).resolve().parents[4] / "docs" / "data"
@@ -221,7 +220,7 @@ def build(real: dict[str, Any], book: dict[str, Any]) -> dict[str, Any]:
     rb = real["random_baseline"]
     sel = book["selection"]
     return {
-        "generated": date.today().isoformat(),
+        "generated": tehran_today().isoformat(),
         "book_days": book["dates"],
         "book_rows": book["rows"],
         "split": sel["split"],
@@ -271,10 +270,7 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document(Path(a.data_dir))
-    data = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
-    if a.out:
-        Path(a.out).write_bytes(data)
+    data = write_artifact(KEY, doc, a.out)
     print(f"{KEY}: {len(data)} bytes")
 
 

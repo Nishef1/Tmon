@@ -99,7 +99,7 @@ def test_events_are_capped() -> None:
 @pytest.fixture
 def store(monkeypatch: pytest.MonkeyPatch) -> dict[str, dict[str, Any]]:
     docs: dict[str, dict[str, Any]] = {}
-    monkeypatch.setattr(autopilot, "_load", lambda key: docs.get(key))
+    monkeypatch.setattr(autopilot, "_load", docs.get)
     monkeypatch.setattr(autopilot, "_store", lambda doc: docs.__setitem__(autopilot.KEY, doc))
     monkeypatch.setattr(adapt_cycle, "load_state", lambda: docs.get("state"))
     return docs

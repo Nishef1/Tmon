@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -211,7 +212,7 @@ def parse_instrument_info(payload: str | dict[str, Any]) -> InstrumentInfo:
             v = float(eps_block.get(key) or 0)
         except (TypeError, ValueError):
             return None
-        return v if v == v and v != 0 else None  # NaN and the exchange's 0 mean "none"
+        return v if not math.isnan(v) and v != 0 else None  # NaN and the exchange's 0 mean "none"
 
     return InstrumentInfo(
         ins_code=str(info.get("insCode", "")),

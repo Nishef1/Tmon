@@ -21,7 +21,7 @@ BANNED = re.compile(
     r"TTLCache|cachetools|expire_after|staleTime|s-maxage|stale-while-revalidate"
     r"|max-age=[1-9]|revalidate\s*[:=]\s*[1-9]|next:\s*\{\s*revalidate"
 )
-MEMO = re.compile(r"^\s*@(?:functools\.)?(?:lru_cache|cache)\b", re.M)
+MEMO = re.compile(r"^\s*@(?:functools\.)?(?:lru_cache|cache)\b", re.MULTILINE)
 
 # file (relative to tmon/) -> number of memoized functions. Each is a constant for the life of
 # the process, not data. Add here only with the same guarantee.
@@ -36,7 +36,7 @@ MEMO_ALLOWED = {
 
 
 def _sources() -> list[Path]:
-    files = [p for p in BACKEND.rglob("*.py")]
+    files = list(BACKEND.rglob("*.py"))
     for d in FRONTEND_DIRS:
         files += [p for p in d.rglob("*") if p.suffix in {".ts", ".tsx"}]
     return [p for p in files if "node_modules" not in p.parts]

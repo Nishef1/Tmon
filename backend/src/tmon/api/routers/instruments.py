@@ -28,7 +28,7 @@ from tmon.api.schemas import (
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
-from tmon.core.timeutil import TEHRAN, utcnow
+from tmon.core.timeutil import TEHRAN, tehran_today, utcnow
 from tmon.domain.agm import AgmInputs, hold_or_sell, monthly_from_annual
 from tmon.domain.rules import CostModel, MissingRuleError, RuleBook
 from tmon.features.adjustment import apply_adjustments
@@ -262,7 +262,7 @@ def agm_decision(
     try:
         costs = CostModel.from_rules(
             RuleBook.from_session(session),
-            utcnow().astimezone(TEHRAN).date(),
+            tehran_today(),
             get_engine_config().costs.slippage_fraction,
         )
     except MissingRuleError as exc:
@@ -513,7 +513,7 @@ def instrument_entry(
 
 
 def _prev_close(session: Session, instrument_id: int) -> float | None:
-    day = utcnow().astimezone(TEHRAN).date()
+    day = tehran_today()
     v = session.scalars(
         select(PriceDaily.close)
         .where(PriceDaily.instrument_id == instrument_id, PriceDaily.date < day)

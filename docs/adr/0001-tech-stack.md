@@ -19,7 +19,7 @@
 | پایگاه داده | **PostgreSQL + TimescaleDB** | PG 16 |
 | کش و پیام | Redis | 7 |
 | فایل خام | MinIO (سازگار با S3) | — |
-| فرانت‌اند | **TypeScript** + Next.js (App Router) + Tailwind، نمودار با TradingView `lightweight-charts` | Node 26، pnpm 12 (TypeScript 6 و ESLint 9: آخرین نسخه‌هایی که زنجیرهٔ lint پشتیبانی می‌کند) |
+| فرانت‌اند | **TypeScript** + Next.js (App Router) + Tailwind، نمودار با TradingView `lightweight-charts` | Node 26، pnpm 12، TypeScript 7 (کامپایلر بومی؛ `typescript-eslint` و `openapi-typescript` با `.pnpmfile.cjs` بستهٔ سازگاری TS 6 را می‌گیرند)، ESLint 9، React Compiler روشن |
 | تست | pytest (+ hypothesis برای فرمول‌ها)، Vitest، Playwright | — |
 | کیفیت کد | ruff، mypy (strict در `core/`)، ESLint، Prettier | — |
 | اجرا | Docker Compose (توسعه و تک‌سرور) | — |

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import math
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
@@ -58,7 +59,7 @@ def _pos(x: Any) -> float | None:
         v = float(x)
     except (TypeError, ValueError):
         return None
-    return v if v == v and v > 0 else None
+    return v if not math.isnan(v) and v > 0 else None
 
 
 def parse_info(info: dict[str, Any], threshold: dict[str, Any] | None = None) -> Bar:

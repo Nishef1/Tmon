@@ -42,12 +42,11 @@ def signal_history(
         .offset(offset)
     ).all()
 
-    counts = {
-        outcome_: n
-        for outcome_, n in session.execute(
+    counts = dict(
+        session.execute(
             select(Signal.outcome, func.count()).where(*scope).group_by(Signal.outcome)
-        )
-    }
+        ).all()
+    )
     mean_ret = session.scalar(
         select(func.avg(Signal.realized_return)).where(*scope, Signal.outcome != "pending")
     )

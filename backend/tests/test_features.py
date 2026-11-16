@@ -15,7 +15,6 @@ from tmon.features.builder import (
     build_features,
     get_feature_set,
     limit_pct_expr,
-    model_matrix,
 )
 from tmon.features.orderbook import (
     add_board_features,
@@ -38,12 +37,12 @@ def board_frame(rows: list[dict]) -> pl.DataFrame:
         "open": 1000.0, "high": 1030.0, "low": 1000.0, "close": 1030.0, "last": 1030.0,
         "prev_close": 1000.0, "volume": 1000.0, "adj_volume": 1000.0, "value": 1_030_000.0,
         "base_volume": 2000.0, "limit_pct": 0.03,
-        **{c: None for c in CLIENT_COLS},
+        **dict.fromkeys(CLIENT_COLS),
     }  # fmt: skip
     out = []
     for i, r in enumerate(rows):
         out.append({**base, "date": date(2025, 1, 1) + timedelta(days=i), **r})
-    return pl.DataFrame(out, schema_overrides={c: pl.Float64 for c in CLIENT_COLS})
+    return pl.DataFrame(out, schema_overrides=dict.fromkeys(CLIENT_COLS, pl.Float64))
 
 
 def test_board_features_hand_computed():
@@ -223,7 +222,7 @@ def synthetic_market(n_days: int = 330, n_inst: int = 4, seed: int = 3):
     return pl.DataFrame(price_rows), pl.DataFrame(client_rows)
 
 
-def test_build_features_shapes_flags_and_model_matrix():
+def test_build_features_shapes_and_flags():
     prices, clients = synthetic_market()
     sectors = pl.DataFrame({"instrument_id": [1, 2, 3, 4], "sector_code": ["a", "a", "b", "b"]})
     feats = build_features(prices, clients, RULES, sectors=sectors)
@@ -240,8 +239,6 @@ def test_build_features_shapes_flags_and_model_matrix():
     assert abs(ev["ret_1"][0]) <= 0.031
     # eligibility needs history and liquidity
     assert not feats.filter(pl.col("history_len") < 120)["eligible"].any()
-    mm = model_matrix(feats)
-    assert mm.columns == ["instrument_id", "date", *fs.columns]
 
 
 def test_halt_rows_are_flagged_excluded_and_not_filled():
@@ -251,11 +248,6 @@ def test_halt_rows_are_flagged_excluded_and_not_filled():
     )
     feats = build_features(prices, clients, RULES)
     assert feats.filter(pl.col("market_halt"))["eligible"].any() is False
-    assert (
-        model_matrix(feats)
-        .filter(pl.col("date").is_between(date(2023, 4, 1), date(2023, 4, 30)))
-        .is_empty()
-    )
     assert feats.height == prices.height  # no rows invented, none dropped
 
 

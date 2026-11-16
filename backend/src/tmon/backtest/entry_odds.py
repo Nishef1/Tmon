@@ -292,12 +292,10 @@ def _years(sub: pl.DataFrame) -> list[dict[str, Any]]:
                 (C(f"f{h}") > 0).cast(pl.Float64).filter(ok).mean() - C(f"ub{h}").filter(ok).mean()
             ).alias(f"e{h}")
         )
-    out = []
-    for r in y.group_by("fy").agg(aggs).sort("fy").iter_rows(named=True):
-        out.append(
-            {"year": int(r["fy"]), "n": int(r["n"]), **{f"e{h}": _f(r[f"e{h}"]) for h in YEAR_H}}
-        )
-    return out
+    return [
+        {"year": int(r["fy"]), "n": int(r["n"]), **{f"e{h}": _f(r[f"e{h}"]) for h in YEAR_H}}
+        for r in y.group_by("fy").agg(aggs).sort("fy").iter_rows(named=True)
+    ]
 
 
 def year_count(years: list[dict[str, Any]], h: int) -> dict[str, int]:

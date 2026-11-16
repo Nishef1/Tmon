@@ -3,7 +3,7 @@ import type { AgmDecision } from "@/lib/api";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 
-export const AGM_INPUT_LABEL: Record<string, string> = {
+const AGM_INPUT_LABEL: Record<string, string> = {
   dps: "سود نقدی هر سهم (ریال)",
   price_now: "قیمت فعلی (ریال)",
   months_to_payment: "فاصلهٔ تا دریافت سود (ماه)",

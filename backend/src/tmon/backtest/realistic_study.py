@@ -145,14 +145,13 @@ def simulate_real(
                     continue
                 if iid in new:
                     end = pth.px[k + 1]
+                elif locks:
+                    j = _first_free(pth.sell_locked, k + 1, MAX_WAIT_SELL)
+                    end = pth.px[
+                        j if j is not None else min(k + 1 + MAX_WAIT_SELL, pth.px.size - 1)
+                    ]
                 else:
-                    if locks:
-                        j = _first_free(pth.sell_locked, k + 1, MAX_WAIT_SELL)
-                        end = pth.px[
-                            j if j is not None else min(k + 1 + MAX_WAIT_SELL, pth.px.size - 1)
-                        ]
-                    else:
-                        end = pth.px[k + 1]
+                    end = pth.px[k + 1]
                 rets.append(prev_weights.get(iid, 0.0) * (end / basis - 1.0))
             gross = float(np.sum(rets))
             med = float(np.nanmedian(prev_p[f"fwd_{h}"].to_numpy()))

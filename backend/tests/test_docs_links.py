@@ -36,7 +36,7 @@ def _markdown_files() -> list[Path]:
 
 def _broken_links(md: Path) -> list[str]:
     out = []
-    text = re.sub(r"```.*?```", "", md.read_text(encoding="utf-8"), flags=re.S)
+    text = re.sub(r"```.*?```", "", md.read_text(encoding="utf-8"), flags=re.DOTALL)
     for target in LINK.findall(text):
         if re.match(r"^[a-z]+:", target) or target.startswith("#"):
             continue

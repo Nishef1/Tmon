@@ -79,7 +79,7 @@ def _counts(session: Session, model: Any, *, traded_only: bool = False) -> dict[
     sub = select(func.max(PriceDaily.date)).scalar_subquery()
     start = sub - timedelta(days=WINDOW_DAYS + REFERENCE_DAYS * 2)
     q = q.where(model.date >= start).group_by(model.date)
-    return {d: n for d, n in session.execute(q)}
+    return dict(session.execute(q).all())
 
 
 def _ref(counts: dict[date, int], d: date, days: list[date]) -> int | None:

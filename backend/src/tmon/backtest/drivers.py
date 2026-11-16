@@ -38,7 +38,7 @@ BAD_KINDS = ("war", "sanction", "unrest")
 
 
 def read_events(path: Path = EVENTS_PATH) -> list[dict[str, str]]:
-    with open(path, encoding="utf-8") as fh:
+    with path.open(encoding="utf-8") as fh:
         return [r for r in csv.DictReader(fh) if r.get("date")]
 
 

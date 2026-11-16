@@ -382,12 +382,7 @@ def unlink(session: Session, portfolio_id: int) -> None:
 def sync_all() -> None:
     """Refresh every linked portfolio (from the monitor); a failure is kept on the link."""
     with session_scope() as s:
-        ids = [
-            pid
-            for pid in s.scalars(
-                select(BrokerLink.portfolio_id).where(BrokerLink.broker == "mofid")
-            )
-        ]
+        ids = s.scalars(select(BrokerLink.portfolio_id).where(BrokerLink.broker == "mofid")).all()
     for pid in ids:
         if busy(pid):
             continue

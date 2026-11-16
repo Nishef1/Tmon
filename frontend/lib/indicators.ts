@@ -379,11 +379,11 @@ export function fvgZones(bars: Bar[], min = 0.01, keep = 2): Zone[] {
   ];
 }
 
-export type Pivot = { i: number; conf: number; price: number; kind: 1 | -1 };
+type Pivot = { i: number; conf: number; price: number; kind: 1 | -1 };
 
 /** Swing pivots of the closes, known only once the close has turned ``th`` from them (the
  *  same zigzag as the tested Elliott signals). */
-export function zigzag(bars: Bar[], th = 0.1): Pivot[] {
+function zigzag(bars: Bar[], th = 0.1): Pivot[] {
   const out: Pivot[] = [];
   if (bars.length === 0) return out;
   let d = 0;

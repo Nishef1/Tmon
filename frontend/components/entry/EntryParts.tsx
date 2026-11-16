@@ -1,7 +1,7 @@
 import type { EntryHorizon, EntrySetup } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
 
-export const LABEL_FA: Record<EntrySetup["label"], string> = {
+const LABEL_FA: Record<EntrySetup["label"], string> = {
   better: "بهتر از بقیهٔ سهم‌ها",
   worse: "بدتر از بقیهٔ سهم‌ها",
   same: "تفاوت روشنی ندارد",

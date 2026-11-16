@@ -263,8 +263,7 @@ def train_and_publish(
     prices, clients, sectors = inputs
     rules = rules or RuleBook.from_session(session)
     if prices.is_empty():
-        res = PublishResult(timeframe, None, message=NO_DATA)
-        return res
+        return PublishResult(timeframe, None, message=NO_DATA)
 
     ds = prepare_dataset(prices, clients, rules, sectors=sectors, timeframe=timeframe, cfg=c)
     label_sets = prepare_label_sets(prices, rules, timeframe=timeframe, cfg=c)

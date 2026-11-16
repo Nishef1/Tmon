@@ -9,20 +9,18 @@ after each shock. The API turns the stock's part into plain sentences.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any
 
 import polars as pl
 from sqlalchemy import select
 
 from tmon.backtest import drivers as dv
-from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import get_engine_config
 from tmon.features.adjustment import apply_adjustments
 from tmon.features.store import load_inputs
 from tmon.storage.models import MacroSeries, MarketIndexDaily, PriceAdjustment
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import write_artifact
 
 KEY = "v2/drivers.json"
 C = pl.col
@@ -102,11 +100,7 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document()
-    data = json.dumps(doc, ensure_ascii=False).encode("utf-8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
-    if a.out:
-        with open(a.out, "wb") as f:
-            f.write(data)
+    write_artifact(KEY, doc, a.out)
     sy = doc["symbols"]
     n_sens = sum(1 for v in sy.values() if "beta_index" in v)
     n_usd = sum(1 for v in sy.values() if "usd_pctl" in v)

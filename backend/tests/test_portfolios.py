@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import json
 from collections.abc import Iterator
 
 import numpy as np
@@ -11,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from tmon.api.main import create_app
 from tmon.core.db import get_session
-from tmon.portfolio import advice as advice_mod
 from tmon.portfolio import alerts as alert_store
 from tmon.portfolio import ledger
 from tmon.portfolio.briefing import rule_call
@@ -28,6 +26,7 @@ from tmon.portfolio.watch import (
     parse_quote,
     settings_for,
 )
+from tmon.storage import objectstore
 from tmon.storage.models import Instrument, PriceDaily
 from tmon.storage.objectstore import MemoryStore
 from tmon.tools.v2_ranking import KEY
@@ -229,11 +228,8 @@ def test_portfolio_flow(
             {"id": strong, "score": 0.95, "zone": "buy", "queue_state": "none"},
         ],
     }
-    store.put("artifacts", KEY, json.dumps(doc).encode(), "application/json")
-    monkeypatch.setattr(advice_mod, "get_object_store", lambda: store)
-    monkeypatch.setattr(
-        advice_mod, "get_settings", lambda: type("S", (), {"minio_artifact_bucket": "artifacts"})
-    )
+    monkeypatch.setattr(objectstore, "get_object_store", lambda: store)
+    objectstore.write_artifact(KEY, doc)
 
     r = client.post("/portfolios", json={"name": "من", "cash": 50_000_000})
     assert r.status_code == 201

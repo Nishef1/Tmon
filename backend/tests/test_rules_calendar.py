@@ -8,9 +8,6 @@ from tmon.domain.calendar import (
     HaltWindow,
     build_calendar,
     halt_windows,
-    is_in_halt,
-    next_open_day,
-    trading_days_between,
 )
 from tmon.domain.rules import CostModel, MissingRuleError, RuleBook, RuleRecord
 from tmon.storage.seed import SEED_RULES, seed_market_rules
@@ -90,10 +87,8 @@ def test_calendar_marks_holidays_and_halts_without_forward_fill():
     assert by_date[date(2026, 5, 19)]["is_open"] is True
     assert cal.height == (date(2026, 5, 19) - date(2026, 2, 25)).days + 1
 
-    assert trading_days_between(cal, date(2026, 2, 1), date(2026, 6, 1)) == [
+    assert cal.filter(pl.col("is_open"))["date"].to_list() == [
         date(2026, 2, 25),
         date(2026, 2, 26),
         date(2026, 5, 19),
     ]
-    assert next_open_day(cal, date(2026, 2, 26)) == date(2026, 5, 19)
-    assert is_in_halt(date(2026, 4, 1), [HaltWindow(date(2026, 2, 28), date(2026, 5, 18), "war")])

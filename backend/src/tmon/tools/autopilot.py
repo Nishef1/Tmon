@@ -10,13 +10,11 @@ Nothing here changes the production score: that is still decided by the gate in 
 
 from __future__ import annotations
 
-import json
 from datetime import date
 from typing import Any
 
-from tmon.core.config import get_settings
 from tmon.core.timeutil import utcnow
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import read_artifact, write_artifact
 from tmon.tools import adapt_cycle
 
 KEY = "v2/autopilot.json"
@@ -24,12 +22,7 @@ EVENTS_KEEP = 60
 
 
 def _load(key: str) -> dict[str, Any] | None:
-    try:
-        raw = get_object_store().get(get_settings().minio_artifact_bucket, key)
-    except (FileNotFoundError, KeyError):
-        return None
-    doc: dict[str, Any] = json.loads(raw)
-    return doc
+    return read_artifact(key)
 
 
 def _events(
@@ -73,8 +66,7 @@ def assess(
 
 
 def _store(doc: dict[str, Any]) -> None:
-    data = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
+    write_artifact(KEY, doc)
 
 
 def run() -> dict[str, Any]:

@@ -5,7 +5,7 @@ import { Num } from "./Num";
 import { TierBadge } from "./TierBadge";
 
 // The engine stores machine keys (engine/service.py `_risks`); unknown text is shown as it is.
-export const RISK_LABEL: Record<string, string> = {
+const RISK_LABEL: Record<string, string> = {
   defensive_mode: "بازار در حالت دفاعی است؛ آستانهٔ ورود سخت‌گیرانه‌تر شده است.",
   unverified_rules: "کارمزدها و قوانین بازار هنوز با منبع رسمی تأیید نشده‌اند.",
   tier_a_disabled:

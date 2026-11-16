@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import math
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -39,7 +40,7 @@ def _num(x: Any) -> float | None:
         v = float(x)
     except (TypeError, ValueError):
         return None
-    return v if v == v else None
+    return v if not math.isnan(v) else None
 
 
 def parse_info(info: dict[str, Any]) -> tuple[dt.date, dict[str, Any]] | None:

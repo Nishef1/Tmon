@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
@@ -12,10 +11,9 @@ from tmon.api.returns import day_change
 from tmon.api.routers.dashboard import _turning_doc, final_verdict
 from tmon.api.schemas import OutsideRow, RankingOut
 from tmon.api.trade_state import market_days, trade_state
-from tmon.core.config import get_settings
 from tmon.core.db import get_session
 from tmon.storage.models import Instrument, PriceDaily
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import read_artifact
 from tmon.tools.v2_ranking import KEY
 
 router = APIRouter(tags=["ranking"])
@@ -28,10 +26,11 @@ def ranking(session: SessionDep) -> RankingOut:
     with the evidence per horizon and the gate verdicts. Not a recommendation unless
     ``recommendation_allowed`` is true."""
     try:
-        data = get_object_store().get(get_settings().minio_artifact_bucket, KEY)
-    except (FileNotFoundError, KeyError, OSError):
+        doc = read_artifact(KEY)
+    except OSError:
+        doc = None
+    if doc is None:
         return RankingOut(available=False)
-    doc = json.loads(data)
     out = RankingOut(available=True, **doc)
     out.outside = _outside(session, doc)
     turning = _turning_doc()

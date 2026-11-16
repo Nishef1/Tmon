@@ -8,26 +8,18 @@ import type { components } from "./api-schema";
 // Pydantic models in `backend/src/tmon/api/schemas.py` are the single source of truth.
 type S = components["schemas"];
 
-export type Instrument = S["InstrumentOut"];
 export type InstrumentDashboard = S["InstrumentDashboard"];
-export type Reason = S["Reason"];
 export type Signal = S["SignalOut"];
-export type Run = S["RunOut"];
 export type Gate = S["GateOut"];
 export type Diagnosis = S["DiagnosisOut"];
 export type Recommendations = S["RecommendationsOut"];
 export type Candle = S["Candle"];
 export type InstrumentDetail = S["InstrumentDetail"];
-export type HistorySummary = S["HistorySummary"];
 export type History = S["HistoryOut"];
-export type CalibrationBucket = S["CalibrationBucket"];
 export type CalibrationBlock = S["CalibrationBlock"];
 export type Calibration = S["CalibrationOut"];
-export type CorporateEvent = S["CorporateEventOut"];
-export type CodalLetter = S["CodalLetterOut"];
 export type AgmDecision = S["AgmDecisionOut"];
 export type Compare = S["CompareOut"];
-export type CompareRow = S["CompareRow"];
 export type Funds = S["FundsOut"];
 export type LiveAccuracy = S["LiveAccuracyOut"];
 export type Screener = S["ScreenerOut"];
@@ -83,7 +75,6 @@ export async function taSignals(): Promise<TaSignals | null> {
   }
 }
 
-export type BookLevel = S["BookLevelOut"];
 
 /** Latest stored intraday snapshot + order book (what the poller last wrote). */
 export type LiveQuote = S["LiveOut"];

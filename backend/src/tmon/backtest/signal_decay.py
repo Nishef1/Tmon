@@ -189,12 +189,18 @@ def top_decile_spread(panel: pl.DataFrame, horizon: int) -> dict[str, Any]:
             (pl.col("bottom") - pl.col("med")).alias("bottom_excess"),
         )
     )
+    return _excess_summary(per, horizon)
+
+
+def _excess_summary(per: pl.DataFrame, horizon: int) -> dict[str, Any]:
+    """Mean top and bottom excess over the dates of ``per``; ``t`` counts n/horizon independent
+    observations because the forward windows overlap."""
     n = per.height
     if not n:
-        return {"n_days": 0, "top_excess": None, "bottom_excess": None}
+        return {"n_days": 0, "top_excess": None, "bottom_excess": None, "t": None}
     top = per["top_excess"].drop_nulls()
-    eff = max(n / horizon, 1.0)
     sd = top.std()
+    eff = max(n / horizon, 1.0)
     t = None if not sd else float(top.mean()) / (float(sd) / math.sqrt(eff))  # type: ignore[arg-type]
     return {
         "n_days": n,
@@ -254,19 +260,7 @@ def tradable_spread(
             (pl.col("bottom") - pl.col("avg")).alias("bottom_excess"),
         )
     )
-    n = per.height
-    if not n:
-        return {"n_days": 0, "top_excess": None, "bottom_excess": None, "t": None}
-    top = per["top_excess"].drop_nulls()
-    sd = top.std()
-    eff = max(n / horizon, 1.0)
-    t = None if not sd else float(top.mean()) / (float(sd) / math.sqrt(eff))  # type: ignore[arg-type]
-    return {
-        "n_days": n,
-        "top_excess": float(top.mean()),  # type: ignore[arg-type]
-        "bottom_excess": float(per["bottom_excess"].drop_nulls().mean()),  # type: ignore[arg-type]
-        "t": t,
-    }
+    return _excess_summary(per, horizon)
 
 
 @dataclass(frozen=True)
@@ -400,8 +394,10 @@ def render_markdown(r: DecayResult) -> str:
     names = list(SIGNALS)
     out.append("| | " + " | ".join(names) + " |")
     out.append("|---|" + "---|" * len(names))
-    for a in names:
-        out.append(f"| {a} | " + " | ".join(_f(r.correlations[a].get(b), 2) for b in names) + " |")
+    out.extend(
+        f"| {a} | " + " | ".join(_f(r.correlations[a].get(b), 2) for b in names) + " |"
+        for a in names
+    )
     out.append("")
     out.append("## دهک بالای امتیاز ترکیبی: بازده ناخالص مازاد بر میانهٔ جهان")
     out.append("")

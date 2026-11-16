@@ -136,7 +136,7 @@ def test_endpoint_numbers(
         )
     )
     session.commit()
-    monkeypatch.setattr(dash, "_ranking_doc", lambda: _doc())
+    monkeypatch.setattr(dash, "_ranking_doc", _doc)
     r = client.get("/instruments/1/dashboard")
     assert r.status_code == 200
     j = r.json()
@@ -244,7 +244,7 @@ def test_dashboard_shows_the_next_meeting_and_skips_cancelled_or_past_ones(
         ]
     )  # fmt: skip
     session.commit()
-    monkeypatch.setattr(dash, "_ranking_doc", lambda: _doc())
+    monkeypatch.setattr(dash, "_ranking_doc", _doc)
     j = client.get("/instruments/1/dashboard").json()
     # the cancellation (same day as both invitations) removes both; the past one is not "next"
     assert j["meeting"] is None

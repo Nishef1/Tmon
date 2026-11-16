@@ -10,7 +10,6 @@ section 7): while any gate fails, the document says so and the page says so.
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import replace
 from datetime import date
 from typing import Any
@@ -37,7 +36,6 @@ from tmon.backtest.v2_gates import (
     restrict_top_liquid,
     verdict,
 )
-from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import EngineConfig, get_engine_config
 from tmon.domain.rules import CostModel, RuleBook
@@ -46,7 +44,7 @@ from tmon.engine.exposure import compute_exposure
 from tmon.features.builder import KEYS, build_features
 from tmon.features.store import load_benchmark_inputs, load_inputs
 from tmon.storage.models import Instrument
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import write_artifact
 from tmon.tools import adapt_cycle
 
 KEY = "v2/ranking.json"
@@ -408,11 +406,7 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document()
-    data = json.dumps(doc, ensure_ascii=False).encode("utf-8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
-    if a.out:
-        with open(a.out, "wb") as f:
-            f.write(data)
+    write_artifact(KEY, doc, a.out)
     z = {k: sum(r["zone"] == k for r in doc["rows"]) for k in ("buy", "hold", "avoid")}
     print(f"as_of={doc['as_of']} rows={len(doc['rows'])} zones={z}")
     print(f"recommendation_allowed={doc['recommendation_allowed']}")

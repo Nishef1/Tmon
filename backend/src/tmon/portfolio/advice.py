@@ -12,7 +12,6 @@ cost would eat the gain. When the ranking itself has not passed its validation g
 from __future__ import annotations
 
 import datetime as dt
-import json
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -21,10 +20,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.routers.dashboard import _turning_doc, final_verdict
-from tmon.core.config import get_settings
 from tmon.portfolio import liveprice
 from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import read_artifact
 from tmon.tools.v2_ranking import KEY
 
 log = logging.getLogger(__name__)
@@ -41,12 +39,10 @@ ZONE_FA = {"buy": "خرید", "hold": "نگهداری", "avoid": "فروش", Non
 
 def ranking_doc() -> dict[str, Any] | None:
     try:
-        raw = get_object_store().get(get_settings().minio_artifact_bucket, KEY)
+        return read_artifact(KEY)
     except Exception:
         log.info("ranking document not available", exc_info=True)
         return None
-    doc: dict[str, Any] = json.loads(raw)
-    return doc
 
 
 def last_prices(

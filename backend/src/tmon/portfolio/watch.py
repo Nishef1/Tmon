@@ -23,6 +23,7 @@ Market-wide: ``index_drop`` on the main index (sent to every portfolio that hold
 
 from __future__ import annotations
 
+import math
 import re
 from collections import deque
 from dataclasses import dataclass, field
@@ -110,7 +111,7 @@ def _f(x: Any) -> float | None:
         v = float(x)
     except (TypeError, ValueError):
         return None
-    return v if v == v else None
+    return v if not math.isnan(v) else None
 
 
 def parse_quote(row: dict[str, Any]) -> Quote:

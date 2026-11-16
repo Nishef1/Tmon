@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from tmon.api.routers.dashboard import dashboard
 from tmon.api.schemas import ApiModel
 from tmon.core.db import get_session
+from tmon.core.timeutil import tehran_today
 from tmon.features.adjustment import apply_adjustments
 from tmon.storage.models import Base, Instrument, PriceDaily, TrackedPick
 
@@ -120,7 +121,7 @@ def _snapshot(session: Session, instrument_id: int) -> dict[str, Any]:
     d = dashboard(instrument_id, session)
     odds = d.entry.own if d.entry else []
     as_of = (
-        d.entry.as_of.isoformat() if d.entry else (d.decision.as_of or dt.date.today().isoformat())
+        d.entry.as_of.isoformat() if d.entry else (d.decision.as_of or tehran_today().isoformat())
     )
     return {
         "as_of": as_of,

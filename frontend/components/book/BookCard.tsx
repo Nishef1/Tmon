@@ -4,7 +4,7 @@ import { faNumber, faPercent, jalali } from "@/lib/format";
 import { Num } from "@/components/Num";
 
 /** Where the book leans, in words, from the day's percentile among the stocks with a stored book. */
-export function lean(p: number | null | undefined): { text: string; cls: string } {
+function lean(p: number | null | undefined): { text: string; cls: string } {
   if (p == null) return { text: "نامشخص", cls: "text-muted" };
   if (p >= 0.8) return { text: "خریدارمحورتر از اغلب نمادها", cls: "text-up" };
   if (p <= 0.2) return { text: "فروشنده‌محورتر از اغلب نمادها", cls: "text-down" };

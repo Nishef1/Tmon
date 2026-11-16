@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from datetime import date
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy import func, select
 
 from tmon.core.db import session_scope
+from tmon.core.timeutil import tehran_today
 from tmon.storage.models import (
     ClientTypeDaily,
     CodalLetter,
@@ -44,22 +44,20 @@ def collect() -> dict[str, Any]:
                 ).group_by(PriceDaily.instrument_id)
             )
         }
-        ct = {
-            iid: n
-            for iid, n in s.execute(
+        ct = dict(
+            s.execute(
                 select(ClientTypeDaily.instrument_id, func.count()).group_by(
                     ClientTypeDaily.instrument_id
                 )
-            )
-        }
-        letters = {
-            iid: n
-            for iid, n in s.execute(
+            ).all()
+        )
+        letters = dict(
+            s.execute(
                 select(CodalLetter.instrument_id, func.count())
                 .where(CodalLetter.instrument_id.is_not(None))
                 .group_by(CodalLetter.instrument_id)
-            )
-        }
+            ).all()
+        )
         reports = s.scalar(select(func.count()).select_from(CodalReport)) or 0
         n_letters = s.scalar(select(func.count()).select_from(CodalLetter)) or 0
         n_shares = s.scalar(select(func.count()).select_from(ShareChange)) or 0
@@ -108,7 +106,8 @@ def render(d: dict[str, Any]) -> str:
     out = [
         "# Data completeness audit",
         "",
-        f"Counted from the database on {date.today().isoformat()}; newest price bar {d['newest']}.",
+        f"Counted from the database on {tehran_today().isoformat()}; "
+        f"newest price bar {d['newest']}.",
         "",
         f"- instruments stored: {d['instruments']} (of them in the official full list: "
         f"{d['in_full_list']})",

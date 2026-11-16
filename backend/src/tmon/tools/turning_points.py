@@ -8,18 +8,16 @@ The API adds the symbol's part to ``/instruments/{id}/dashboard``.
 from __future__ import annotations
 
 import argparse
-import json
 from collections import Counter
 from datetime import date
 from typing import Any
 
 from tmon.backtest import turning as tp
-from tmon.core.config import get_settings
 from tmon.core.db import session_scope
 from tmon.core.engine_config import get_engine_config
 from tmon.domain.rules import CostModel, RuleBook
 from tmon.features.store import load_inputs
-from tmon.storage.objectstore import get_object_store
+from tmon.storage.objectstore import write_artifact
 
 KEY = "v2/turning.json"
 
@@ -63,11 +61,7 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document()
-    data = json.dumps(doc, ensure_ascii=False).encode("utf-8")
-    get_object_store().put(get_settings().minio_artifact_bucket, KEY, data, "application/json")
-    if a.out:
-        with open(a.out, "wb") as f:
-            f.write(data)
+    write_artifact(KEY, doc, a.out)
     counts = Counter(v["state"] for v in doc["symbols"].values())
     print(f"as_of={doc['as_of']} symbols={len(doc['symbols'])} states={dict(counts)}")
     nan = float("nan")

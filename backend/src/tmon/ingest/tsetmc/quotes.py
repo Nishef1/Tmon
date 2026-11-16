@@ -13,6 +13,7 @@ Naming (TSETMC): ``last`` is the last trade price (آخرین), ``close`` the of
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 # field -> names to try, live layout first
@@ -36,7 +37,7 @@ def _num(x: Any) -> float | None:
         v = float(x)
     except (TypeError, ValueError):
         return None
-    return v if v == v and v > 0 else None
+    return v if not math.isnan(v) and v > 0 else None
 
 
 def read(row: dict[str, Any]) -> dict[str, Any]:
