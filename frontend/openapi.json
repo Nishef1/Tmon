@@ -9050,6 +9050,28 @@
             ],
             "title": "Annual Bench"
           },
+          "annual_buy_hold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Buy Hold"
+          },
+          "annual_official": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Official"
+          },
           "candidate": {
             "title": "Candidate",
             "type": "string"
@@ -9107,6 +9129,8 @@
           "days",
           "annual",
           "annual_bench",
+          "annual_official",
+          "annual_buy_hold",
           "max_drawdown",
           "max_drawdown_bench",
           "verdict",

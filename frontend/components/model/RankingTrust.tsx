@@ -42,8 +42,17 @@ export function RankingTrust({ d }: { d: Ranking }) {
               {jalali(c.first)} تا {jalali(c.last)}، {faNumber(c.days)} روز): بازده سالانه{" "}
               <Num value={c.annual} kind="percent" term="realized_return" digits={1} /> در برابر
               شاخص سبد{" "}
-              <Num value={c.annual_bench} kind="percent" term="realized_return" digits={1} /> ·
-              حداکثر افت{" "}
+              <Num value={c.annual_bench} kind="percent" term="realized_return" digits={1} /> (همان
+              ۱۰۰ سهم با خرید و فروش مکرر و کارمزد). اگر همان ۱۰۰ سهم را بدون معامله مکرر نگه
+              می‌داشتید{" "}
+              <Num value={c.annual_buy_hold} kind="percent" term="realized_return" digits={1} /> و
+              شاخص هم‌وزن رسمی{" "}
+              <Num value={c.annual_official} kind="percent" term="realized_return" digits={1} />{" "}
+              سالانه می‌شد
+              {c.annual != null && c.annual_buy_hold != null && c.annual < c.annual_buy_hold && (
+                <strong data-testid="below-buy-hold"> ؛ یعنی این روش از نگه‌داشتن ساده عقب است</strong>
+              )}{" "}
+              · حداکثر افت{" "}
               <Num value={c.max_drawdown} kind="percent" term="max_drawdown" digits={1} /> در برابر{" "}
               <Num value={c.max_drawdown_bench} kind="percent" term="max_drawdown" digits={1} />.{" "}
               <span className="font-semibold">{faDigits(c.verdict)}</span>
@@ -78,8 +87,8 @@ export function RankingTrust({ d }: { d: Ranking }) {
                 <th>
                   <Link href="/glossary/t_stat">t</Link> (IC)
                 </th>
-                <th>۱۰٪ بالا نسبت به بازار</th>
-                <th>۱۰٪ پایین نسبت به بازار</th>
+                <th>۱۰٪ بالا نسبت به میانگین ۱۰۰ سهم پرنقد</th>
+                <th>۱۰٪ پایین نسبت به میانگین ۱۰۰ سهم پرنقد</th>
                 <th>روز</th>
               </tr>
             </thead>

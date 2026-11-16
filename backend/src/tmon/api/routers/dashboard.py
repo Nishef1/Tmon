@@ -346,8 +346,9 @@ def _horizon_decision(
     if top is not None and ev.get("n_days"):
         reasons.append(
             f"اعداد بالا از {ev.get('n_days')} روز معاملاتی گذشته به دست آمده‌اند: در هر روز، "
-            f"ده درصد بالای فهرست امتیاز را به‌صورت فرضی خریده‌ایم و بازدهی {label} بعد را با "
-            "بازار سنجیده‌ایم."
+            "بین ۱۰۰ سهم پرنقد (بدون سهم‌های قفل صف خرید که خریدنی نیستند) ده درصد بالای فهرست "
+            f"امتیاز را به‌صورت فرضی خریده‌ایم و بازدهی {label} بعد را با میانگین همان ۱۰۰ سهم "
+            "سنجیده‌ایم."
         )
     for k, name in SIGNAL_FA.items():
         s_ev = (ev.get("signals") or {}).get(k)
@@ -396,7 +397,7 @@ def _horizon_decision(
         verdict = "sell"
         head = (
             f"برای {label}: نخرید و اگر دارید فروش را بسنجید؛ در گذشته سهم‌های کم‌امتیاز از "
-            f"بازار عقب مانده‌اند ({_signed(bot)})."
+            f"میانگین سهم‌های پرنقد عقب مانده‌اند ({_signed(bot)})."
         )
     else:
         # a low score the past does not back up: not a sell, but not a "wait" either

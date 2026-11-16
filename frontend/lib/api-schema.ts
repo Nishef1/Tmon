@@ -3792,6 +3792,10 @@ export interface components {
       annual: number | null;
       /** Annual Bench */
       annual_bench: number | null;
+      /** Annual Buy Hold */
+      annual_buy_hold: number | null;
+      /** Annual Official */
+      annual_official: number | null;
       /** Candidate */
       candidate: string;
       /** Days */

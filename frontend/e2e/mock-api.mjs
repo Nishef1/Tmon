@@ -211,6 +211,8 @@ const RANKING = {
       days: 495,
       annual: 0.64,
       annual_bench: 0.5,
+      annual_official: 0.55,
+      annual_buy_hold: 0.5,
       max_drawdown: -0.157,
       max_drawdown_bench: -0.239,
       verdict: "رد شد: G4، G6",

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
@@ -27,7 +28,7 @@ from tmon.backtest.signal_decay import (
     daily_ic,
     forward_returns,
     summarize_ic,
-    top_decile_spread,
+    tradable_spread,
 )
 from tmon.backtest.v2_gates import (
     basket_index,
@@ -304,10 +305,11 @@ def build_document() -> dict[str, Any]:
     as_of = day
     universe = universe_scores(feats, adj, cfg, as_of, weights)
     rows = rows_for(universe, names)
+    liquidity = feats.select("instrument_id", "date", "median_value_20")
     evidence = []
     for h in HORIZONS:
         ic = summarize_ic(daily_ic(panel, "r_composite", h), h)
-        sp = top_decile_spread(panel, h)
+        sp = tradable_spread(panel, liquidity, h)
         evidence.append(
             {
                 "horizon_days": h,
@@ -335,6 +337,22 @@ def build_document() -> dict[str, Any]:
     sell_share = sell_queue_share(feats)
     bench = basket_index(m, cfg.v2.portfolio.review_every_days)
     js, info = evaluate(m, ew, rf_daily, sell_share, rf_annual, cfg, bench)
+    # what a buyer who simply buys and holds would have got over the same days: the official
+    # equal-weight index and the same basket without any trading cost
+    free = basket_index(
+        replace(m, buy_cost=m.buy_cost * 0.0, sell_cost=m.sell_cost * 0.0),
+        cfg.v2.portfolio.review_every_days,
+    )
+
+    def _span_annual(
+        series: pl.DataFrame, col: str, first: Any, last: Any, *, level: bool
+    ) -> float | None:
+        part = series.filter((pl.col("date") >= first) & (pl.col("date") <= last))[col].to_numpy()
+        if len(part) < 2:
+            return None
+        growth = part[-1] / part[0] if level else float(np.prod(1.0 + part))
+        return _f(growth ** (252.0 / len(part)) - 1.0)
+
     gates = [
         {
             "candidate": j.name,
@@ -343,6 +361,8 @@ def build_document() -> dict[str, Any]:
             "days": j.days,
             "annual": _f(j.cand.get("annualized_return")),
             "annual_bench": _f(j.ew.get("annualized_return")),
+            "annual_official": _span_annual(ew, "close", j.first, j.last, level=True),
+            "annual_buy_hold": _span_annual(free, "ret", j.first, j.last, level=False),
             "max_drawdown": _f(j.cand.get("max_drawdown")),
             "max_drawdown_bench": _f(j.ew.get("max_drawdown")),
             "verdict": verdict(j),

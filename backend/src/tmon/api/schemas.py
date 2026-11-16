@@ -513,7 +513,9 @@ class RankingCandidate(ApiModel):
     last: str
     days: int
     annual: float | None = None
-    annual_bench: float | None = None
+    annual_bench: float | None = None  # the basket's own costed index (what the gate uses)
+    annual_official: float | None = None  # official equal-weight index, same days
+    annual_buy_hold: float | None = None  # the basket held without trading cost, same days
     max_drawdown: float | None = None
     max_drawdown_bench: float | None = None
     verdict: str

@@ -204,6 +204,71 @@ def top_decile_spread(panel: pl.DataFrame, horizon: int) -> dict[str, Any]:
     }
 
 
+TRADABLE_TOP_N = 100  # the liquid basket the gates and the book are judged on
+
+
+def tradable_spread(
+    panel: pl.DataFrame,
+    liquidity: pl.DataFrame,
+    horizon: int,
+    top_n: int = TRADABLE_TOP_N,
+) -> dict[str, Any]:
+    """What a buyer could have got: per date, the ``top_n`` names with the highest 20-day median
+    traded value (known that day), without those closed in a buy queue (nobody can buy them), are
+    re-ranked by the composite; the mean return of the top decile minus the mean of the whole
+    group (the equal-weight benchmark, not the median, which a right-skewed decile beats on
+    skew alone), and the same for the bottom decile. ``t`` uses n/horizon independent
+    observations (overlapping windows); a non-overlapping sample agrees with it.
+    ``liquidity`` needs ``KEYS`` and ``median_value_20``."""
+    fwd = f"fwd_{horizon}"
+    d = (
+        panel.join(liquidity.select(*KEYS, "median_value_20"), on=list(KEYS), how="left")
+        .filter(
+            pl.col(fwd).is_not_null()
+            & pl.col(fwd).is_finite()
+            & pl.col("median_value_20").is_not_null()
+            & (pl.col("queue_state") != "buy_queue")
+        )
+        .with_columns(
+            pl.col("median_value_20").rank("ordinal", descending=True).over("date").alias("_liq")
+        )
+        .filter(pl.col("_liq") <= top_n)
+        .with_columns(
+            (
+                (pl.col("composite").rank("average").over("date") - 0.5)
+                / pl.col("composite").count().over("date")
+            ).alias("_rr")
+        )
+    )
+    per = (
+        d.group_by("date")
+        .agg(
+            pl.len().alias("n"),
+            pl.col(fwd).mean().alias("avg"),
+            pl.col(fwd).filter(pl.col("_rr") > 0.9).mean().alias("top"),
+            pl.col(fwd).filter(pl.col("_rr") <= 0.1).mean().alias("bottom"),
+        )
+        .filter(pl.col("n") >= MIN_CROSS_SECTION)
+        .with_columns(
+            (pl.col("top") - pl.col("avg")).alias("top_excess"),
+            (pl.col("bottom") - pl.col("avg")).alias("bottom_excess"),
+        )
+    )
+    n = per.height
+    if not n:
+        return {"n_days": 0, "top_excess": None, "bottom_excess": None, "t": None}
+    top = per["top_excess"].drop_nulls()
+    sd = top.std()
+    eff = max(n / horizon, 1.0)
+    t = None if not sd else float(top.mean()) / (float(sd) / math.sqrt(eff))  # type: ignore[arg-type]
+    return {
+        "n_days": n,
+        "top_excess": float(top.mean()),  # type: ignore[arg-type]
+        "bottom_excess": float(per["bottom_excess"].drop_nulls().mean()),  # type: ignore[arg-type]
+        "t": t,
+    }
+
+
 @dataclass(frozen=True)
 class DecayResult:
     horizons: tuple[int, ...]
