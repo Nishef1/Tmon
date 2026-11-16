@@ -92,8 +92,8 @@ function Range({ lo, hi, v }: { lo: number | null; hi: number | null; v: number 
 }
 
 /** Everything a visitor needs in the first seconds: the stock, its price and move, today's range,
- *  volume, real-money flow, buyer power and valuation, in one dense block. No dates unless the
- *  data is not from the latest day. */
+ *  volume, real-money flow, buyer power and valuation, in one dense block. The data date is
+ *  always shown, in warning colour when price, flow and book come from different days. */
 export function StockHeader({
   d,
   dash,
@@ -124,7 +124,7 @@ export function StockHeader({
           <span className="min-w-0 truncate text-sm text-muted">{d.instrument.name}</span>
         )}
         {chips.map((c) => (
-          <span key={c} className="chip max-w-48 truncate">
+          <span key={c} className="chip whitespace-nowrap">
             {c}
           </span>
         ))}
@@ -149,18 +149,20 @@ export function StockHeader({
       {p?.close != null && (
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <span
-              className="text-4xl font-extrabold tracking-tight sm:text-5xl"
-              data-testid="header-close"
-            >
-              {faNumber(p.close)}
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-sm text-muted">ریال</span>
+              <span
+                className="text-4xl font-extrabold tracking-tight sm:text-5xl"
+                data-testid="header-close"
+              >
+                {faNumber(p.close)}
+              </span>
             </span>
             {p.close_change != null && (
               <span className={`text-xl font-bold ${signTone(p.close_change)}`}>
                 {faPercent(p.close_change, 2, true)}
               </span>
             )}
-            <span className="text-xs text-muted">ریال</span>
             {p.last != null && Math.round(p.last) !== Math.round(p.close) && (
               <span
                 className="text-sm text-muted"
@@ -175,9 +177,13 @@ export function StockHeader({
                 )}
               </span>
             )}
-            {mixed && p.date && (
-              <span className="text-xs text-warn" data-testid="header-close-date">
-                قیمت پایانی {jalali(p.date, "short")}
+            {p.date && (
+              <span
+                className={`text-xs ${mixed ? "text-warn" : "text-muted"}`}
+                data-testid="header-close-date"
+              >
+                {mixed ? "قیمت پایانی" : "دادهٔ"} {jalali(p.date, "weekday")}{" "}
+                {jalali(p.date, "long")}
               </span>
             )}
           </div>

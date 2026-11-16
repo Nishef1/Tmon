@@ -33,15 +33,15 @@ export function JumpNav({ items }: { items: JumpItem[] }) {
     <nav
       aria-label="بخش‌های صفحه"
       data-testid="jump-nav"
-      className="jump-nav sticky top-[3.9rem] z-20 -mx-4 overflow-x-auto border-b border-line bg-surface/95 px-4 backdrop-blur"
+      className="jump-nav sticky top-[4.4rem] z-20 overflow-x-auto py-2"
     >
-      <ul className="flex w-max min-w-full gap-1 py-1.5">
+      <ul className="mx-auto flex w-max gap-1 rounded-full border border-line bg-surface/85 p-1 shadow-sm backdrop-blur-md">
         {items.map((i) => (
           <li key={i.id}>
             <a
               href={`#${i.id}`}
               aria-current={active === i.id ? "true" : undefined}
-              className="block whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:bg-accent-soft hover:text-ink aria-[current=true]:bg-accent-soft aria-[current=true]:text-accent"
+              className="block whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-ink aria-[current=true]:bg-accent aria-[current=true]:text-white aria-[current=true]:shadow-sm"
             >
               {i.label}
             </a>
