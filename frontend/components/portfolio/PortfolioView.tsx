@@ -248,9 +248,19 @@ function Holdings({
       <p className="mt-1 text-sm text-muted">
         ارزش بازار {faToman(p.market_value)} تومان؛ اگر الان فروخته شود، پس از کارمزد و مالیات{" "}
         {faToman(p.liquidation_value)} تومان به دست می‌آید · سود باز{" "}
-        <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان) با
-        احتساب همین هزینهٔ فروش.
+        <b className={signTone(p.pnl)}>{signedPct(p.pnl_pct)}</b> ({faToman(p.pnl)} تومان) با احتساب
+        همین هزینهٔ فروش.
       </p>
+      {p.holdings.some(
+        (h) => h.last != null && h.close != null && Math.round(h.last) !== Math.round(h.close),
+      ) && (
+        <p className="mt-1 text-xs text-muted" data-testid="close-vs-last-note">
+          چرا عدد کارگزاری فرق دارد؟ ایزی‌تریدر و بیشتر کارگزاری‌ها هر سهم را با قیمت پایانی
+          (میانگین وزنی معاملات روز) می‌شمارند؛ اینجا با آخرین معامله شمرده می‌شود، چون همان قیمتی
+          است که با فروش فوری می‌گیرید. اگر قیمت آخر از پایانی پایین‌تر باشد، زیان اینجا بیشتر از
+          کارگزاری دیده می‌شود.
+        </p>
+      )}
       {p.holdings.length > 0 && <MeetingAlerts holdings={p.holdings} />}
       {p.holdings.length > 0 && (
         <div className="mt-2 overflow-x-auto">
@@ -779,7 +789,9 @@ function BriefingCard({ id, pkey }: { id: number; pkey: string }) {
                   {h.action_fa}
                 </b>{" "}
                 <span className="text-muted">(اطمینان {faNumber(h.confidence * 100)}٪)</span>
-                {h.why.length > 0 && <p className="mt-1 text-muted">{faDigits(h.why.join(" · "))}</p>}
+                {h.why.length > 0 && (
+                  <p className="mt-1 text-muted">{faDigits(h.why.join(" · "))}</p>
+                )}
                 {h.macro && Math.abs(h.macro.total) >= 0.005 && (
                   <p className={`mt-1 ${signTone(h.macro.total)}`}>
                     فشار دلار/کالا از آخرین معامله (اندازه‌گیری‌شده): {signedPct(h.macro.total)}
