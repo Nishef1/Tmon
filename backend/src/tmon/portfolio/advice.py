@@ -19,6 +19,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.routers.dashboard import final_verdict
 from tmon.core.config import get_settings
 from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
 from tmon.storage.objectstore import get_object_store
@@ -29,6 +30,10 @@ log = logging.getLogger(__name__)
 ROUND_TRIP = 0.017512
 SWITCH_GAP = 0.25  # score gap (share of the basket) a switch must clear
 MAX_BUYS = 5
+NO_BUY_FA = (
+    "امروز هیچ نمادی هم در محدودهٔ خرید است و هم آزمون ماهانه پس از کارمزد برتری‌اش را تأیید کرده؛ "
+    "همان حکمی که صفحهٔ هر سهم نشان می‌دهد. نقد نگه دارید و عجله نکنید."
+)
 ZONE_FA = {"buy": "خرید", "hold": "نگهداری", "avoid": "فروش", None: "بدون امتیاز"}
 
 
@@ -42,8 +47,12 @@ def ranking_doc() -> dict[str, Any] | None:
     return doc
 
 
-def last_closes(session: Session, ids: list[int]) -> dict[int, tuple[float, str]]:
-    """Last close and its date per instrument."""
+def last_prices(session: Session, ids: list[int]) -> dict[int, tuple[float, float | None, str]]:
+    """Newest day's ``(last trade, official close, date)`` per instrument.
+
+    The last trade (آخرین) is what a seller gets, so values and stop levels use it; the official
+    close (پایانی, a volume-weighted average) can sit above it on a day that "closed green" while
+    the last trades were lower. Where a day has no last trade the close stands in."""
     if not ids:
         return {}
     sub = (
@@ -53,11 +62,16 @@ def last_closes(session: Session, ids: list[int]) -> dict[int, tuple[float, str]
         .subquery()
     )
     rows = session.execute(
-        select(PriceDaily.instrument_id, PriceDaily.close, PriceDaily.date).join(
+        select(PriceDaily.instrument_id, PriceDaily.last, PriceDaily.close, PriceDaily.date).join(
             sub, (sub.c.instrument_id == PriceDaily.instrument_id) & (sub.c.d == PriceDaily.date)
         )
     )
-    return {int(i): (float(c), d.isoformat()) for i, c, d in rows if c}
+    out: dict[int, tuple[float, float | None, str]] = {}
+    for i, last, close, d in rows:
+        price = float(last) if last else (float(close) if close else 0.0)
+        if price:
+            out[int(i)] = (price, float(close) if close else None, d.isoformat())
+    return out
 
 
 @dataclass(frozen=True)
@@ -70,6 +84,7 @@ class Scored:
     rank: int | None  # 1 = best among the scored
     partial: bool = False  # scored from fewer than the four signals (short history)
     signals_as_of: str | None = None
+    verdict: str | None = None  # the verdict the stock page shows: buy / hold / sell
 
 
 def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
@@ -78,6 +93,12 @@ def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
     uni = doc.get("universe") or []
     ordered = sorted((u for u in uni if u.get("score") is not None), key=lambda u: -u["score"])
     rank = {int(u["id"]): i + 1 for i, u in enumerate(ordered)}
+
+    def verdict(u: dict[str, Any]) -> str | None:
+        sig = {k: x for k, x in (u.get("signals") or {}).items() if x is not None}
+        v = final_verdict(doc, u.get("zone"), sig)
+        return v if v in ("buy", "hold", "sell") else None
+
     return {
         int(u["id"]): Scored(
             int(u["id"]),
@@ -88,6 +109,7 @@ def _scored(doc: dict[str, Any] | None) -> dict[int, Scored]:
             rank.get(int(u["id"])),
             bool(u.get("partial")),
             u.get("signals_as_of"),
+            verdict(u),
         )
         for u in uni
     }
@@ -101,11 +123,17 @@ def _edge(doc: dict[str, Any] | None) -> float | None:
     return None
 
 
-def _holding_verdict(h: Holding, sc: Scored | None, close: float | None) -> tuple[str, list[str]]:
+def _holding_verdict(h: Holding, sc: Scored | None, price: float | None) -> tuple[str, list[str]]:
+    """One verdict per holding, from the same ``final_verdict`` the stock page shows.
+
+    ``strong``  the page says buy (the held stock is in the model's buy zone and the tested month
+                supports it);  ``hold`` the page says hold;  ``weak`` the page says sell;
+    ``sell``    an urgent exit (stop level reached, or the sell queue);  ``watch`` no score.
+    The price is the last trade, the one a seller gets."""
     reasons: list[str] = []
-    pnl = (close / h.avg_price - 1) if close and h.avg_price else None
-    if h.stop_price and close and close <= h.stop_price:
-        return "sell", [f"قیمت ({close:,.0f}) به حد ضرر تعیین‌شده ({h.stop_price:,.0f}) رسیده است."]
+    pnl = (price / h.avg_price - 1) if price and h.avg_price else None
+    if h.stop_price and price and price <= h.stop_price:
+        return "sell", [f"قیمت ({price:,.0f}) به حد ضرر تعیین‌شده ({h.stop_price:,.0f}) رسیده است."]
     if sc is None or sc.score is None:
         reasons.append(
             "مدل برای این نماد امتیازی ندارد (کم‌معامله یا داده ناقص)؛ فقط هشدارهای لحظه‌ای فعال است."
@@ -120,19 +148,22 @@ def _holding_verdict(h: Holding, sc: Scored | None, close: float | None) -> tupl
         reasons.append("در صف فروش است؛ فروش فوری ممکن نیست و خطر ادامهٔ ریزش هست.")
         return "sell", reasons
     if pnl is not None:
-        reasons.append(f"سود/زیان فعلی {pnl * 100:+.1f}٪ نسبت به میانگین خرید.")
-    if sc.zone == "avoid":
+        reasons.append(f"سود/زیان فعلی {pnl * 100:+.1f}٪ نسبت به میانگین خرید (آخرین معامله).")
+    if sc.verdict == "sell":
         return "weak", reasons
-    if sc.zone == "buy":
+    if sc.verdict == "buy":
         return "strong", reasons
+    if sc.zone == "buy":
+        # the zone says buy but the tested month does not carry it: same as the stock page, wait
+        reasons.append("امتیاز بالاست ولی آزمون ماه گذشته پس از کارمزد برتری را تأیید نکرده است.")
     return "hold", reasons
 
 
 VERDICT_FA = {
-    "strong": "قوی — نگه دار",
-    "hold": "متوسط — نگه دار",
-    "weak": "ضعیف — جایگزین بهتری بیابید",
-    "sell": "فروش",
+    "strong": "نگهداری — در محدودهٔ خرید مدل",
+    "hold": "نگهداری",
+    "weak": "فروش — مدل آن را در محدودهٔ فروش می‌بیند",
+    "sell": "فروش فوری",
     "watch": "زیر نظر",
 }
 
@@ -150,7 +181,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         (
             s
             for s in scored.values()
-            if s.zone == "buy"
+            if s.verdict == "buy"
             and s.score is not None
             and not s.halted
             and s.queue_state == "none"
@@ -159,7 +190,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         key=lambda s: -(s.score or 0),
     )
     ids = sorted(held | {c.id for c in candidates[:20]})
-    closes = last_closes(session, ids)
+    prices = last_prices(session, ids)
     names = {
         i.id: (i.symbol_fa, i.name_fa)
         for i in session.scalars(select(Instrument).where(Instrument.id.in_(ids)))
@@ -170,7 +201,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
 
     def cand_out(s: Scored) -> dict[str, Any]:
         sym, name = names.get(s.id, (str(s.id), None))
-        c = closes.get(s.id)
+        c = prices.get(s.id)
         return {
             "instrument_id": s.id,
             "symbol": sym,
@@ -178,7 +209,9 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
             "score": s.score,
             "rank": s.rank,
             "zone": s.zone,
-            "close": c[0] if c else None,
+            "verdict": s.verdict,
+            "last": c[0] if c else None,
+            "close": c[1] if c else None,
         }
 
     out_h: list[dict[str, Any]] = []
@@ -187,11 +220,12 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
     value = 0.0
     for h in holdings:
         sc = scored.get(h.instrument_id)
-        c = closes.get(h.instrument_id)
-        close = c[0] if c else None
-        verdict, reasons = _holding_verdict(h, sc, close)
+        c = prices.get(h.instrument_id)
+        last = c[0] if c else None
+        close = c[1] if c else None
+        verdict, reasons = _holding_verdict(h, sc, last)
         sym, name = names.get(h.instrument_id, (str(h.instrument_id), None))
-        mv = (close or h.avg_price) * h.shares
+        mv = (last or h.avg_price) * h.shares
         value += mv
         out_h.append(
             {
@@ -201,10 +235,12 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
                 "name": name,
                 "shares": h.shares,
                 "avg_price": h.avg_price,
+                "last": last,
                 "close": close,
-                "close_date": c[1] if c else None,
+                "close_date": c[2] if c else None,
                 "market_value": mv,
-                "pnl_pct": (close / h.avg_price - 1) if close and h.avg_price else None,
+                "pnl_pct": (last / h.avg_price - 1) if last and h.avg_price else None,
+                "pnl_pct_close": (close / h.avg_price - 1) if close and h.avg_price else None,
                 "score": sc.score if sc else None,
                 "rank": sc.rank if sc else None,
                 "zone": sc.zone if sc else None,
@@ -249,7 +285,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         per = cash / len(picks)
         for pick in picks:
             row = cand_out(pick)
-            price = row["close"]
+            price = row["last"]
             shares = int(per // (price * (1 + cost / 2))) if price else 0
             if shares > 0:
                 buys.append({**row, "shares": shares, "amount": shares * price})
@@ -267,5 +303,6 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         "holdings": out_h,
         "switches": switches,
         "buys": buys,
+        "buy_note": None if candidates else NO_BUY_FA,
         "candidates": [cand_out(c) for c in candidates[:10]],
     }

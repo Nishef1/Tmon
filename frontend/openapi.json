@@ -6359,6 +6359,17 @@
             ],
             "title": "Instrument Type"
           },
+          "last": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last"
+          },
           "liquidation_value": {
             "default": 0.0,
             "title": "Liquidation Value",
@@ -6487,6 +6498,7 @@
           "bought_on",
           "stop_price",
           "note",
+          "last",
           "close",
           "close_date",
           "market_value",
@@ -12425,6 +12437,67 @@
         ]
       }
     },
+    "/instruments/{instrument_id}/entry": {
+      "get": {
+        "description": "Is now a sensible moment and price to buy this symbol? Today's range comes from the\nexchange for this request (nothing kept); the answer weighs the gap, the place in the day's\nrange, the model's tested edge after cost, the history of days that opened like today and the\norder book. With ``paid`` it also grades a purchase made at that price today.",
+        "operationId": "instrument_entry_instruments__instrument_id__entry_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "paid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Paid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Instrument Entry Instruments  Instrument Id  Entry Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Instrument Entry",
+        "tags": [
+          "instruments"
+        ]
+      }
+    },
     "/instruments/{instrument_id}/live": {
       "get": {
         "description": "The latest stored intraday snapshot and 5-level order book. ``available=false`` is a normal\nstate (market closed, or the live poller is not running).",
@@ -13278,6 +13351,77 @@
           }
         },
         "summary": "Run Briefing",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/{portfolio_id}/entries": {
+      "get": {
+        "description": "How each recent purchase was timed: the gap it paid, its place in that day's range, the\nlast trade against the price paid, the edge the model promised after cost and what was left\nof it. Today's purchases are read against today's live range.",
+        "operationId": "get_entries_portfolios__portfolio_id__entries_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portfolio_id",
+            "required": true,
+            "schema": {
+              "title": "Portfolio Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 45,
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Portfolio-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Portfolio-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Entries Portfolios  Portfolio Id  Entries Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Entries",
         "tags": [
           "portfolios"
         ]

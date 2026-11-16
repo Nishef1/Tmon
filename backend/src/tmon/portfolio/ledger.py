@@ -166,6 +166,33 @@ def close_on(session: Session, instrument_id: int, day: dt.date) -> tuple[float,
     return None
 
 
+def mark_on(
+    session: Session, instrument_id: int, day: dt.date
+) -> tuple[float, float | None, dt.date] | None:
+    """``(last trade, official close, date)`` of the newest day up to ``day``.
+
+    A holding is worth what its last trade says: that is the price a sell order meets. The
+    official close (پایانی) is a volume-weighted average and can sit above it on a day that
+    "closed green"; it stays in the tuple for display. The close stands in where there is no
+    last trade."""
+    row = session.execute(
+        select(PriceDaily.last, PriceDaily.close, PriceDaily.date)
+        .where(
+            PriceDaily.instrument_id == instrument_id,
+            PriceDaily.date <= day,
+            PriceDaily.close.is_not(None),
+        )
+        .order_by(PriceDaily.date.desc())
+        .limit(1)
+    ).first()
+    if row is None:
+        return None
+    last = float(row[0]) if row[0] else None
+    close = float(row[1]) if row[1] else None
+    price = last or close
+    return (price, close, row[2]) if price else None
+
+
 @dataclass(frozen=True)
 class Action:
     """A market event that changes what one share held the day before is worth in shares and
@@ -448,7 +475,7 @@ def summarize(session: Session, p: Portfolio, positions: dict[int, Position]) ->
     any_estimated = False
     for iid, pos in positions.items():
         inst = instruments.get(iid)
-        c = close_on(session, iid, today)
+        c = mark_on(session, iid, today)
         realized_row = {
             "instrument_id": iid,
             "symbol": inst.symbol_fa if inst else str(iid),
@@ -473,7 +500,7 @@ def summarize(session: Session, p: Portfolio, positions: dict[int, Position]) ->
         unreal = net - pos.cost
         estimated = pos.size_estimated or pos.price_estimated
         any_estimated |= estimated
-        stale = bool(c and latest and c[1] < latest)
+        stale = bool(c and latest and c[2] < latest)
         sector = inst.sector_code if inst else None
         holdings.append(
             {
@@ -485,8 +512,9 @@ def summarize(session: Session, p: Portfolio, positions: dict[int, Position]) ->
                 "shares": pos.shares,
                 "avg_cost": pos.cost / pos.shares,
                 "cost": pos.cost,
-                "close": price,
-                "close_date": c[1].isoformat() if c else None,
+                "last": price,
+                "close": c[1] if c else None,
+                "close_date": c[2].isoformat() if c else None,
                 "stale": stale,
                 "price_missing": price_missing,
                 "market_value": mv,

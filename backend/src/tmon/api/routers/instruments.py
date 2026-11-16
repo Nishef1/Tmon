@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import re
-from typing import Annotated
+from typing import Annotated, Any
 
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -393,6 +393,102 @@ def instrument_live(instrument_id: int, session: SessionDep) -> LiveOut:
         book=tsetmc_book or ([BookLevelOut(**lv) for lv in book_row.levels] if book_row else []),
         source="tsetmc" if tsetmc_book else "stored",
     )
+
+
+@router.get("/instruments/{instrument_id}/entry")
+def instrument_entry(
+    instrument_id: int, session: SessionDep, paid: float | None = None
+) -> dict[str, Any]:
+    """Is now a sensible moment and price to buy this symbol? Today's range comes from the
+    exchange for this request (nothing kept); the answer weighs the gap, the place in the day's
+    range, the model's tested edge after cost, the history of days that opened like today and the
+    order book. With ``paid`` it also grades a purchase made at that price today."""
+    from tmon.portfolio import entry as ent
+    from tmon.portfolio import liveprice
+    from tmon.portfolio.advice import ranking_doc
+
+    inst = session.get(Instrument, instrument_id)
+    if inst is None:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    bar = liveprice.fetch(inst.ins_code)
+    live = bar is not None
+    if bar is None:
+        row = session.scalars(
+            select(PriceDaily)
+            .where(PriceDaily.instrument_id == instrument_id)
+            .order_by(PriceDaily.date.desc())
+            .limit(1)
+        ).first()
+        bar = ent.bar_from_row(row) if row else None
+    if bar is None:
+        return {"available": False, "message": "قیمت امروز در دسترس نیست."}
+    doc = ranking_doc()
+    edge, cost = ent.edge_and_cost(doc)
+    verdict = None
+    for u in (doc or {}).get("universe") or []:
+        if int(u["id"]) == instrument_id:
+            from tmon.api.routers.dashboard import final_verdict
+
+            sig = {k: x for k, x in (u.get("signals") or {}).items() if x is not None}
+            v = final_verdict(doc or {}, u.get("zone"), sig)
+            verdict = v if v in ("buy", "hold", "sell") else None
+            break
+    fade = ent.bucket_for(ent.fade_table(session), bar.gap)
+    drift = ent.drift_from_model(
+        ent.fit_open_model(session), ent.open_features(session, instrument_id, bar)
+    )
+    now = utcnow().astimezone(TEHRAN)
+    minutes = None
+    if live and bar.day == now.date() and 8 * 60 + 30 <= now.hour * 60 + now.minute <= 12 * 60 + 30:
+        minutes = now.hour * 60 + now.minute - 9 * 60
+    book = _tsetmc_book(inst) if live else []
+    imbalance = None
+    queue = None
+    if book:
+        bid = sum(lv.bid_volume or 0 for lv in book)
+        ask = sum(lv.ask_volume or 0 for lv in book)
+        imbalance = (bid - ask) / (bid + ask) if bid + ask else None
+        top = book[0]
+        if bar.limit_up and top.bid_price and top.bid_price >= bar.limit_up and not top.ask_volume:
+            queue = "buy_queue"
+        elif (
+            bar.limit_down
+            and top.ask_price
+            and top.ask_price <= bar.limit_down
+            and not top.bid_volume
+        ):
+            queue = "sell_queue"
+    g = ent.guard(
+        bar,
+        edge=edge if verdict == "buy" else None,
+        cost=cost,
+        fade=fade,
+        drift=drift,
+        queue=queue,
+        book_imbalance=imbalance,
+        now_minutes=minutes,
+        verdict=verdict,
+    )
+    return {
+        "available": True,
+        "live": live,
+        "day": bar.day.isoformat() if bar.day else None,
+        "verdict": verdict,
+        "bar": {
+            "first": bar.first,
+            "high": bar.high,
+            "low": bar.low,
+            "last": bar.last,
+            "close": bar.close,
+            "yesterday": bar.yesterday,
+            "limit_up": bar.limit_up,
+            "limit_down": bar.limit_down,
+        },
+        "guard": g,
+        "review": ent.review_entry(paid, bar, edge=edge, cost=cost, fade=fade, queue=queue)
+        if paid
+        else None,
+    }
 
 
 def _prev_close(session: Session, instrument_id: int) -> float | None:

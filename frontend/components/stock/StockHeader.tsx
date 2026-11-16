@@ -161,6 +161,20 @@ export function StockHeader({
               </span>
             )}
             <span className="text-xs text-muted">ریال</span>
+            {p.last != null && Math.round(p.last) !== Math.round(p.close) && (
+              <span
+                className="text-sm text-muted"
+                data-testid="header-last"
+                title="آخرین معامله قیمتی است که فروشنده همان لحظه می‌گیرد؛ پایانی میانگین وزنی معاملات است"
+              >
+                آخرین معامله {faNumber(p.last)}
+                {p.last_change != null && (
+                  <span className={`mr-1 ${signTone(p.last_change)}`}>
+                    {faPercent(p.last_change, 2, true)}
+                  </span>
+                )}
+              </span>
+            )}
             {mixed && p.date && (
               <span className="text-xs text-warn" data-testid="header-close-date">
                 قیمت پایانی {jalali(p.date, "short")}

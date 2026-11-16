@@ -220,7 +220,9 @@ def test_portfolio_flow(
         "as_of": "2026-11-14",
         "recommendation_allowed": False,
         "round_trip_cost": 0.017512,
-        "evidence": [{"horizon_days": 20, "top_excess": 0.06, "bottom_excess": -0.04}],
+        "evidence": [
+            {"horizon_days": 20, "top_excess": 0.06, "bottom_excess": -0.04, "excess_t": 4.0}
+        ],
         "universe": [
             {"id": weak, "score": 0.1, "zone": "avoid", "queue_state": "none"},
             {"id": strong, "score": 0.95, "zone": "buy", "queue_state": "none"},
@@ -364,3 +366,16 @@ def test_only_real_shocks_raise_market_news() -> None:
     assert f is not None and f.severity == WARN and not f.ask_exit
     calm = NewsRaw(id=2, source="irna", url="u", title="افتتاح نمایشگاه", title_norm="x")
     assert news_finding(1, calm, None, None) is None
+
+
+def test_entries_empty_portfolio(client: TestClient) -> None:
+    r = client.post("/portfolios", json={"name": "ورود", "cash": 1_000_000})
+    pid, key = r.json()["id"], r.json()["key"]
+    body = client.get(f"/portfolios/{pid}/entries", headers={"X-Portfolio-Key": key})
+    assert body.status_code == 200
+    doc = body.json()
+    assert doc["reviews"] == [] and doc["skipped"] == [] and doc["lessons"] == []
+    assert (
+        client.get(f"/portfolios/{pid}/entries", headers={"X-Portfolio-Key": "x"}).status_code
+        == 404
+    )

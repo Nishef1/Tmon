@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LiveQuote } from "@/components/LiveQuote";
+import { EntryGuard } from "./EntryGuard";
 
 const tehran = new Intl.DateTimeFormat("en-US", {
   timeZone: "Asia/Tehran",
@@ -29,5 +30,10 @@ export function LiveWhenOpen({ instrumentId }: { instrumentId: number }) {
     const t = setInterval(tick, 30_000);
     return () => clearInterval(t);
   }, []);
-  return open ? <LiveQuote instrumentId={instrumentId} /> : null;
+  return open ? (
+    <>
+      <EntryGuard instrumentId={instrumentId} />
+      <LiveQuote instrumentId={instrumentId} />
+    </>
+  ) : null;
 }

@@ -11,6 +11,7 @@ import {
   type Alert,
   type Briefing,
   type BriefingDoc,
+  type Entries,
   type Forecast,
   type Portfolio,
 } from "@/lib/portfolio";
@@ -243,7 +244,7 @@ function Holdings({
                 <th>نماد</th>
                 <th>تعداد</th>
                 <th>میانگین خرید (ریال)</th>
-                <th>آخرین (ریال)</th>
+                <th>آخرین معامله (ریال)</th>
                 <th>ارزش (تومان)</th>
                 <th>وزن</th>
                 <th>حد ضرر</th>
@@ -279,7 +280,16 @@ function Holdings({
                   </td>
                   <td>{faNumber(h.shares)}</td>
                   <td>{faPrice(h.avg_price)}</td>
-                  <td>{h.close != null ? faPrice(h.close) : "—"}</td>
+                  <td>
+                    {(h.last ?? h.close) != null ? faPrice((h.last ?? h.close) as number) : "—"}
+                    {h.last != null &&
+                      h.close != null &&
+                      Math.round(h.last) !== Math.round(h.close) && (
+                        <div className="text-xs text-muted" title="پایانی میانگین وزنی معاملات است">
+                          پایانی {faPrice(h.close)}
+                        </div>
+                      )}
+                  </td>
                   <td>{faToman(h.market_value)}</td>
                   <td>{h.weight != null ? faPercent(h.weight, 0) : "—"}</td>
                   <td>{h.stop_price ? faPrice(h.stop_price) : "پیش‌فرض"}</td>
@@ -445,7 +455,123 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
       )}
       {a.candidates.length > 0 && (
         <p className="mt-3 text-sm text-muted">
-          بهترین‌های ناحیهٔ خرید (بیرون از صف): {a.candidates.map((c) => c.symbol).join("، ")}
+          سهم‌هایی که حکم صفحهٔ خودشان «خرید» است (بیرون از صف):{" "}
+          {a.candidates.map((c) => c.symbol).join("، ")}
+        </p>
+      )}
+      {a.buy_note && (
+        <p className="mt-3 text-sm" data-testid="buy-note">
+          {a.buy_note}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// -- entry quality ----------------------------------------------------------------------------
+const GRADE_FA = { good: "ورود خوب", fair: "ورود متوسط", poor: "ورود ضعیف" } as const;
+const GRADE_TONE = { good: "text-up", fair: "text-warn", poor: "text-down" } as const;
+
+/** How each recent purchase was timed. The model's score starts from the previous official close,
+ *  so a buy that paid the opening gap or the day's top has already given away part of the promised
+ *  gain; this lists what happened purchase by purchase and what they have in common. */
+function EntriesCard({ id, pkey, version }: { id: number; pkey: string; version: number }) {
+  const [e, setE] = useState<Entries | null>(null);
+  useEffect(() => {
+    call<Entries>(`/${id}/entries`, pkey)
+      .then(setE)
+      .catch(() => setE(null));
+  }, [id, pkey, version]);
+  if (!e || (e.reviews.length === 0 && e.skipped.length === 0)) return null;
+  return (
+    <section className="card" data-testid="entries">
+      <h2 className="font-bold">کیفیت ورود خریدهای اخیر</h2>
+      <p className="mt-1 text-sm text-muted">
+        امتیاز مدل از پایانی دیروز حساب می‌شود، نه از قیمتی که واقعاً پرداخت می‌کنید. اینجا هر خرید
+        با بازهٔ همان روز سنجیده شده است: شکاف بازگشایی، جای قیمت در بازه و آخرین معاملهٔ امروز
+        (قیمت فروش واقعی)، نه فقط رنگ کندل.
+      </p>
+      {e.lessons.length > 0 && (
+        <ul className="mt-2 list-disc pr-5 text-sm" data-testid="entry-lessons">
+          {e.lessons.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-2 overflow-x-auto">
+        <table className="tbl w-full min-w-[44rem] text-sm">
+          <thead>
+            <tr>
+              <th>نماد</th>
+              <th>روز</th>
+              <th>قیمت خرید</th>
+              <th>از پایانی دیروز</th>
+              <th>جای قیمت در بازه</th>
+              <th>اکنون (آخرین)</th>
+              <th>ارزیابی</th>
+            </tr>
+          </thead>
+          <tbody>
+            {e.reviews.map((r) => (
+              <tr key={r.trade_id}>
+                <td>
+                  <Link href={`/instruments/${r.instrument_id}`} className="font-bold">
+                    {r.symbol}
+                  </Link>
+                </td>
+                <td>
+                  {jalali(r.date)}
+                  {r.live && <span className="badge mr-1">امروز</span>}
+                </td>
+                <td>{faPrice(r.paid)}</td>
+                <td>{signedPct(r.premium)}</td>
+                <td>{r.range_pos != null ? faPercent(r.range_pos, 0) : "—"}</td>
+                <td className={signTone(r.pnl_last)}>{signedPct(r.pnl_last)}</td>
+                <td>
+                  <b className={GRADE_TONE[r.grade]}>{GRADE_FA[r.grade]}</b>
+                  {r.flags.length > 0 && (
+                    <ul className="list-disc pr-4 text-xs text-muted">
+                      {r.flags.map((f) => (
+                        <li key={f.key}>{f.text}</li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {e.fade && e.fade.rows.length > 0 && (
+        <details className="mt-2 text-sm">
+          <summary className="cursor-pointer">
+            شواهد: روزهای باز شده با شکاف ({faNumber(e.fade.days)} روز بورس)
+          </summary>
+          <table className="tbl mt-1 w-full text-sm">
+            <thead>
+              <tr>
+                <th>بازگشایی نسبت به دیروز</th>
+                <th>تعداد روز</th>
+                <th>میانگین بازگشایی تا آخرین</th>
+                <th>روزهای زیر قیمت بازگشایی</th>
+              </tr>
+            </thead>
+            <tbody>
+              {e.fade.rows.map((r) => (
+                <tr key={r.label}>
+                  <td>{r.label}</td>
+                  <td>{faNumber(r.n)}</td>
+                  <td className={signTone(r.open_to_last)}>{signedPct(r.open_to_last, 2)}</td>
+                  <td>{faPercent(r.share_below_open, 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+      {e.skipped.length > 0 && (
+        <p className="mt-2 text-xs text-muted">
+          بازهٔ قیمت این روزها پیدا نشد: {e.skipped.join("، ")}
         </p>
       )}
     </section>
@@ -893,6 +1019,7 @@ export function PortfolioView({ id }: { id: number }) {
       <Holdings p={p} pkey={pkey} onChange={changed} />
       <MofidCard p={p} pkey={pkey} onChange={changed} />
       <Trades p={p} pkey={pkey} version={version} onChange={changed} />
+      <EntriesCard id={id} pkey={pkey} version={version} />
       <HistoryCard id={id} pkey={pkey} version={version} />
       <HoldingEvents p={p} />
       <BriefingCard id={id} pkey={pkey} />

@@ -199,6 +199,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/instruments/{instrument_id}/entry": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Instrument Entry
+     * @description Is now a sensible moment and price to buy this symbol? Today's range comes from the
+     *     exchange for this request (nothing kept); the answer weighs the gap, the place in the day's
+     *     range, the model's tested edge after cost, the history of days that opened like today and the
+     *     order book. With ``paid`` it also grades a purchase made at that price today.
+     */
+    get: operations["instrument_entry_instruments__instrument_id__entry_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}/live": {
     parameters: {
       query?: never;
@@ -422,6 +445,28 @@ export interface paths {
      * @description Run the review now (with the news and letters already collected) and push its alerts.
      */
     post: operations["run_briefing_portfolios__portfolio_id__briefing_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/portfolios/{portfolio_id}/entries": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Entries
+     * @description How each recent purchase was timed: the gap it paid, its place in that day's range, the
+     *     last trade against the price paid, the edge the model promised after cost and what was left
+     *     of it. Today's purchases are read against today's live range.
+     */
+    get: operations["get_entries_portfolios__portfolio_id__entries_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2908,6 +2953,8 @@ export interface components {
       instrument_id: number;
       /** Instrument Type */
       instrument_type: string | null;
+      /** Last */
+      last: number | null;
       /**
        * Liquidation Value
        * @default 0
@@ -4902,6 +4949,41 @@ export interface operations {
       };
     };
   };
+  instrument_entry_instruments__instrument_id__entry_get: {
+    parameters: {
+      query?: {
+        paid?: number | null;
+      };
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   instrument_live_instruments__instrument_id__live_get: {
     parameters: {
       query?: never;
@@ -5408,6 +5490,43 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["BriefingOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_entries_portfolios__portfolio_id__entries_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: {
+        "X-Portfolio-Key"?: string | null;
+      };
+      path: {
+        portfolio_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Validation Error */

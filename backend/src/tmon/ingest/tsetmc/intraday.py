@@ -27,6 +27,7 @@ from tmon.core.db import session_scope
 from tmon.core.timeutil import TEHRAN, utcnow
 from tmon.domain.rules import MissingRuleError, RuleBook
 from tmon.ingest.tsetmc.pipeline import SOURCE
+from tmon.ingest.tsetmc.quotes import read as read_quote
 from tmon.storage.models import (
     Instrument,
     IntradaySnapshot,
@@ -118,16 +119,17 @@ def store_quotes(
     for q in quotes:
         code = str(q["insCode"])
         iid = ids.get(code)
-        volume = float(q.get("qTotTran5J") or 0)
+        r = read_quote(q)
+        volume = float(r["volume"] or 0)
         if iid is None or volume <= 0 or state.last_volume.get(code) == volume:
             continue  # unknown instrument, nothing traded, or no new trade since the last poll
         state.last_volume[code] = volume
-        fresh.append((float(q.get("qTotCap") or 0), q, iid))
+        fresh.append((float(r["value"] or 0), q, iid))
         rows.append(
             {
                 "instrument_id": iid,
                 "ts": fetched_at,
-                "last_price": q.get("pDrCotVal"),
+                "last_price": r["last"],
                 "cum_volume": volume,
                 "source_url": URL,
                 "fetched_at": fetched_at,

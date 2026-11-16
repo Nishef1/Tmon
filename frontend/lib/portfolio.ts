@@ -117,6 +117,9 @@ export type AdviceHolding = {
   verdict_fa: string;
   reasons: string[];
   pnl_pct: number | null;
+  last?: number | null;
+  close?: number | null;
+  pnl_pct_close?: number | null;
 };
 export type Candidate = {
   instrument_id: number;
@@ -124,7 +127,9 @@ export type Candidate = {
   name: string | null;
   score: number | null;
   rank: number | null;
+  last?: number | null;
   close: number | null;
+  verdict?: string | null;
   shares?: number;
   amount?: number;
 };
@@ -142,7 +147,49 @@ export type Advice = {
     reason: string;
   }[];
   buys: Candidate[];
+  buy_note?: string | null;
   candidates: Candidate[];
+};
+export type EntryReview = {
+  trade_id: number;
+  instrument_id: number;
+  symbol: string;
+  date: string;
+  shares: number | null;
+  live: boolean;
+  paid: number;
+  yesterday: number | null;
+  first: number | null;
+  high: number | null;
+  low: number | null;
+  last: number | null;
+  close: number | null;
+  gap: number | null;
+  premium: number | null;
+  range_pos: number | null;
+  vs_close: number | null;
+  pnl_last: number | null;
+  pnl_close: number | null;
+  flags: { key: string; text: string }[];
+  score: number;
+  grade: "good" | "fair" | "poor";
+};
+export type Entries = {
+  reviews: EntryReview[];
+  skipped: string[];
+  lessons: string[];
+  edge: number | null;
+  round_trip_cost: number;
+  fade: {
+    days: number;
+    rows: {
+      label: string;
+      n: number;
+      open_to_last: number;
+      share_below_open: number;
+      share_open_near_high: number;
+    }[];
+  } | null;
 };
 export type ForecastHorizon = {
   key: string;

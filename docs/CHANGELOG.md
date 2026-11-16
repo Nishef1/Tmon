@@ -1,5 +1,14 @@
 # تغییرات
 
+## 2026-11-16 — Why the day's buys lost: entry price, last vs close, live feed
+
+- Cause 1: the market-watch parser read only the legacy field names (`pDrCotVal`, `pClosing`, ...), which the feed now fills with zeros; the live values are `pdv/pcl/py/qtj/qtc/pf/pmx/pmn`. Prices and volumes read as 0, so no snapshot or alert was stored. `ingest/tsetmc/quotes.py` reads both layouts.
+- Cause 2: portfolio value, stops and advice used the official close (پایانی, a volume-weighted average) while a sale fills at the last trade (آخرین). A "green candle" can coexist with a loss. Holdings now carry `last` and `close`; value, P&L and the forecast start use `last`.
+- Cause 3: the model's score and forecast are close-to-close; a buy at an opening gap above yesterday's close has already paid part of the edge. New `portfolio/entry.py`: gap-fade table measured on stored history (open to last by gap bucket), an adaptive open-to-last model (daily ridge, Fama-MacBeth, EW half-life 60 d, coefficients with |t| < 1.5 zeroed, refit when the price table changes), a per-purchase review (`GET /portfolios/{id}/entries`) with flags and a grade, and a live entry guard (`GET /instruments/{id}/entry`) giving wait/avoid/ok and a maximum entry price (yesterday's close times 1 + net edge).
+- Order-book imbalance, time of day and market breadth enter the guard as labelled priors, not validated weights, until stored snapshots allow fitting them. Breadth is not wired yet.
+- Contradiction fixed: portfolio advice used the score zone, the stock page the tested-month verdict. Holdings and buy candidates now use `final_verdict`; a "buy" candidate needs the same evidence as the stock page.
+- Frontend: stock page shows the entry guard while the market is open; the portfolio shows the last trade (with the official close when it differs), the buy note, and a new "entry quality" card with the lessons.
+
 ## 2026-11-16 — Small inconsistencies found by reading the live pages
 
 - The collapsed "decision" block on the home page grouped by score zone and showed 50 "buy" while the table above showed 0. It now uses the same per-row `verdict` (shared `rowVerdict` in `lib/ui.ts`), says «صبر» for hold, and the zone tables are renamed to score groups (high / middle / low) so only one place says buy.

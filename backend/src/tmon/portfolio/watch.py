@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from tmon.ingest.tsetmc import quotes
+
 DEFAULTS: dict[str, Any] = {
     "drop_warn_pct": -3.0,  # day change at or below: warning
     "drop_urgent_pct": -5.0,  # urgent (and always urgent at the lower limit)
@@ -118,16 +120,17 @@ def parse_quote(row: dict[str, Any]) -> Quote:
         )
         for b in sorted(row.get("blDs") or [], key=lambda b: int(b.get("n") or 0))
     )
+    r = quotes.read(row)
     return Quote(
         ins_code=str(row["insCode"]),
-        symbol=str(row.get("lVal18AFC") or "").strip(),
-        last=_f(row.get("pDrCotVal")),
-        close=_f(row.get("pClosing")),
-        yesterday=_f(row.get("priceYesterday")),
-        limit_up=_f(row.get("pMax")),
-        limit_down=_f(row.get("pMin")),
-        volume=_f(row.get("qTotTran5J")) or 0.0,
-        value=_f(row.get("qTotCap")) or 0.0,
+        symbol=r["symbol"],
+        last=r["last"],
+        close=r["close"],
+        yesterday=r["yesterday"],
+        limit_up=r["limit_up"],
+        limit_down=r["limit_down"],
+        volume=r["volume"] or 0.0,
+        value=r["value"] or 0.0,
         levels=levels,
     )
 

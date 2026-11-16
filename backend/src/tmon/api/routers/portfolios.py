@@ -18,10 +18,11 @@ from sqlalchemy.orm import Session
 from tmon.api.schemas import ApiModel
 from tmon.core.config import get_settings
 from tmon.core.db import get_session
-from tmon.core.timeutil import utcnow
+from tmon.core.timeutil import TEHRAN, utcnow
 from tmon.portfolio import alerts as alert_store
-from tmon.portfolio import keys, ledger, mofid
-from tmon.portfolio.advice import advise, last_closes
+from tmon.portfolio import entry as ent
+from tmon.portfolio import keys, ledger, liveprice, mofid
+from tmon.portfolio.advice import advise, last_prices, ranking_doc
 from tmon.portfolio.briefing import run_one
 from tmon.portfolio.forecast import Position, portfolio_forecast
 from tmon.portfolio.notify import Message, deliver, masked, validate
@@ -33,6 +34,7 @@ from tmon.storage.models import (
     PortfolioAlert,
     PortfolioBriefing,
     PortfolioTrade,
+    PriceDaily,
 )
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
@@ -124,7 +126,8 @@ class HoldingOut(ApiModel):
     bought_on: dt.date | None = None
     stop_price: float | None = None
     note: str | None = None
-    close: float | None = None
+    last: float | None = None  # last trade: what a sell order meets, the price the value uses
+    close: float | None = None  # official final price (volume-weighted); can sit above ``last``
     close_date: str | None = None
     market_value: float
     cost: float
@@ -270,6 +273,7 @@ def _out(session: Session, p: Portfolio) -> PortfolioOut:
                 bought_on=h.bought_on,
                 stop_price=h.stop_price,
                 note=h.note,
+                last=x["last"],
                 close=x["close"],
                 close_date=x["close_date"],
                 market_value=x["market_value"],
@@ -722,13 +726,80 @@ def get_advice(portfolio_id: int, session: SessionDep, key: Auth = None) -> dict
     return advise(session, _auth(session, portfolio_id, key))
 
 
+@router.get("/{portfolio_id}/entries")
+def get_entries(
+    portfolio_id: int, session: SessionDep, key: Auth = None, days: int = 45
+) -> dict[str, Any]:
+    """How each recent purchase was timed: the gap it paid, its place in that day's range, the
+    last trade against the price paid, the edge the model promised after cost and what was left
+    of it. Today's purchases are read against today's live range."""
+    p = _auth(session, portfolio_id, key)
+    today = utcnow().astimezone(TEHRAN).date()
+    doc = ranking_doc()
+    edge, cost = ent.edge_and_cost(doc)
+    fade_all = ent.fade_table(session)
+    trades = list(
+        session.scalars(
+            select(PortfolioTrade)
+            .where(
+                PortfolioTrade.portfolio_id == p.id,
+                PortfolioTrade.side == "buy",
+                PortfolioTrade.date >= today - dt.timedelta(days=max(1, min(days, 400))),
+                PortfolioTrade.price.is_not(None),
+            )
+            .order_by(PortfolioTrade.date.desc(), PortfolioTrade.id.desc())
+        )
+    )
+    reviews: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    for t in trades:
+        inst = session.get(Instrument, t.instrument_id)
+        if inst is None or not t.price:
+            continue
+        row = session.scalars(
+            select(PriceDaily).where(
+                PriceDaily.instrument_id == t.instrument_id, PriceDaily.date == t.date
+            )
+        ).first()
+        bar = ent.bar_from_row(row) if row else None
+        live = False
+        if bar is None and t.date >= today:
+            bar = liveprice.fetch(inst.ins_code)
+            live = bar is not None
+        if bar is None:
+            skipped.append(inst.symbol_fa)
+            continue
+        r = ent.review_entry(
+            float(t.price), bar, edge=edge, cost=cost, fade=ent.bucket_for(fade_all, bar.gap)
+        )
+        reviews.append(
+            {
+                "trade_id": t.id,
+                "instrument_id": t.instrument_id,
+                "symbol": inst.symbol_fa,
+                "date": t.date.isoformat(),
+                "shares": t.shares,
+                "live": live,
+                **r,
+            }
+        )
+    return {
+        "reviews": reviews,
+        "skipped": skipped,
+        "lessons": ent.lessons(reviews),
+        "edge": edge,
+        "round_trip_cost": cost,
+        "fade": fade_all,
+    }
+
+
 @router.get("/{portfolio_id}/forecast")
 def get_forecast(portfolio_id: int, session: SessionDep, key: Auth = None) -> dict[str, Any]:
     """Return bands for a week to a year, for the portfolio and each holding, with the coverage
     of those bands measured on the portfolio's own history."""
     p = _auth(session, portfolio_id, key)
     rows = [(h, i) for h, i in _holdings(session, p) if h.shares > 0]
-    closes = last_closes(session, [h.instrument_id for h, _ in rows])
+    closes = last_prices(session, [h.instrument_id for h, _ in rows])
     positions = [
         Position(h.instrument_id, i.symbol_fa, h.shares, closes[h.instrument_id][0], h.avg_price)
         for h, i in rows
