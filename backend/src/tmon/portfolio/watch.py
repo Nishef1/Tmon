@@ -23,12 +23,15 @@ Market-wide: ``index_drop`` on the main index (sent to every portfolio that hold
 
 from __future__ import annotations
 
+import re
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from tmon.core.timeutil import TEHRAN
 from tmon.ingest.tsetmc import quotes
+from tmon.ingest.tsetmc.parsers import normalize_fa
 
 DEFAULTS: dict[str, Any] = {
     "drop_warn_pct": -3.0,  # day change at or below: warning
@@ -450,14 +453,47 @@ def detect_state(
 NEGATIVE_WORDS = ("توقف", "تعلیق", "زیان", "کاهش", "تعدیل منفی", "ممنوع", "محدودیت", "احتیاط")
 
 
+ZWNJ = chr(0x200C)
+MESSAGE_MAX_AGE = timedelta(
+    hours=18
+)  # an older notice is history, not something to wake anyone for
+
+
+def names_symbol(symbol: str, text: str) -> bool:
+    """True when ``text`` names ``symbol`` as a word of its own (also ``حفارس1``, ``(خمحور)``).
+
+    A substring test is wrong: the gold fund «طلا» sits inside «اطلاعیه» (notice), so every
+    general announcement would have been an urgent alert for its holder."""
+    sym = normalize_fa(symbol).replace(ZWNJ, " ")
+    if not sym:
+        return False
+    body = normalize_fa(text).replace(ZWNJ, " ")
+    pattern = rf"(?<![\w\u0600-\u06ff]){re.escape(sym)}\d?(?![\w\u0600-\u06ff])"
+    return re.search(pattern, body) is not None
+
+
+def _message_time(msg: dict[str, Any]) -> datetime | None:
+    try:
+        d, t = int(msg["dEven"]), int(msg["hEven"])
+        return datetime(
+            d // 10000, d // 100 % 100, d % 100, t // 10000, t // 100 % 100, t % 100, tzinfo=TEHRAN
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def detect_message(
     h: HoldingView, msg: dict[str, Any], state: WatchState, at: datetime
 ) -> Finding | None:
-    """A supervisor message (``Msg/GetMsgByFlow``) whose title or text names the holding."""
+    """A supervisor message (``Msg/GetMsgByFlow``) that names the holding as a word, posted within
+    the last ``MESSAGE_MAX_AGE`` (a restart must not replay yesterday's notices as alarms)."""
     title = str(msg.get("tseTitle") or "")
     text = str(msg.get("tseDesc") or "")
     ident = f"{msg.get('dEven')}-{msg.get('hEven')}-{title[:40]}"
-    if not h.symbol or (h.symbol not in title and h.symbol not in text):
+    if not h.symbol or not (names_symbol(h.symbol, title) or names_symbol(h.symbol, text)):
+        return None
+    posted = _message_time(msg)
+    if posted is not None and at - posted > MESSAGE_MAX_AGE:
         return None
     if f"{h.portfolio_id}:{ident}" in state.seen_messages:
         return None

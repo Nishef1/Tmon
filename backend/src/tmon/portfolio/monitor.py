@@ -24,6 +24,7 @@ import argparse
 import asyncio
 import logging
 import re
+from collections.abc import Coroutine
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -174,6 +175,7 @@ class Monitor:
     meeting_day: date | None = None
     last_news: datetime | None = None
     last_prune: date | None = None
+    background: dict[str, asyncio.Task[Any]] = field(default_factory=dict)
     briefed: set[str] = field(default_factory=set)
 
     # -- the session -------------------------------------------------------------------------
@@ -445,6 +447,22 @@ class Monitor:
             n += await self._emit(pid, found, now)
         return n
 
+    def _spawn(self, name: str, coro: Coroutine[Any, Any, Any]) -> None:
+        """Codal and the news feeds can hang for minutes (Codal is unreachable from the server and
+        retries); they run beside the loop so a minute-level alert is never waiting behind them."""
+        running = self.background.get(name)
+        if running is not None and not running.done():
+            coro.close()
+            return
+        self.background[name] = asyncio.create_task(self._guard(name, coro), name=f"monitor-{name}")
+
+    @staticmethod
+    async def _guard(name: str, coro: Coroutine[Any, Any, Any]) -> None:
+        try:
+            await coro
+        except Exception:
+            log.exception("monitor %s failed", name)
+
     # -- housekeeping ------------------------------------------------------------------------
     def prune_tick(self, now: datetime) -> None:
         """Once a day, outside the session: keep the intraday tables bounded."""
@@ -504,12 +522,12 @@ class Monitor:
                         self.last_codal is None
                         or now - self.last_codal >= timedelta(minutes=codal_gap)
                     ):
-                        await self.codal_tick(views, now)
+                        self._spawn("codal", self.codal_tick(views, now))
                     if views and (
                         self.last_news is None
                         or now - self.last_news >= timedelta(minutes=news_gap)
                     ):
-                        await self.news_tick(views, now)
+                        self._spawn("news", self.news_tick(views, now))
                 except Exception:
                     log.exception("monitor tick failed")
                 if not open_now:
@@ -517,6 +535,7 @@ class Monitor:
                     self.intraday = IntradayState()
                     self.state = WatchState(seen_messages=self.state.seen_messages)
                 if once:
+                    await asyncio.gather(*self.background.values(), return_exceptions=True)
                     break
                 await asyncio.sleep(s.monitor_interval_seconds if open_now else IDLE_SECONDS)
         finally:
