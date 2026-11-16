@@ -1,6 +1,8 @@
-# استقرار روی سرور (VPS ایران)
+# ۱۵ — استقرار روی سرور (VPS ایران)
 
-معماری: فقط پورت‌های ۲۲، ۸۰ و ۴۴۳ باز است. nginx با HTTPS و ورود (نام کاربری و رمز) جلوی سایت است؛ API (پورت ۸۰۰۰) و وب (۳۰۰۰) فقط روی `127.0.0.1` گوش می‌دهند. اجرا با systemd، با کاربر بی‌دسترسی `tmon`. چرخهٔ روزانه با تایمر systemd (شنبه تا چهارشنبه ۱۹:۳۰) اجرا می‌شود. Docker و Celery نیستند.
+به‌روز: ۲۶ آبان ۱۴۰۵.
+
+معماری: فقط پورت‌های ۲۲، ۸۰ و ۴۴۳ باز است. nginx با HTTPS و ورود (نام کاربری و رمز) جلوی سایت است؛ API (پورت ۸۰۰۰) و وب (۳۰۰۰) فقط روی `127.0.0.1` گوش می‌دهند. اجرا با systemd، با کاربر بی‌دسترسی `tmon`. چرخهٔ روزانه روی PC اجرا می‌شود و تایمر `tmon-cycle` روی سرور خاموش است («تقسیم کار» پایین). Docker و Celery نیستند.
 
 ## مراحل
 1. روی ویندوز (Git Bash، ریشهٔ ریپو): `bash deploy/pack.sh` ← `deploy/tmon-app.tar.gz` (فقط کد).
@@ -12,15 +14,15 @@
 بعد از **هر** کامیت و پوش: `bash deploy/release.sh` (حدود ۴ تا ۶ دقیقه؛ ساخت سایت روی سرور). کد را می‌فرستد، سایت را می‌سازد، `tmon-api` و `tmon-web` را دوباره بالا می‌آورد و سلامتشان را می‌سنجد؛ شمارهٔ کامیت در `/opt/tmon/RELEASE` ثبت می‌شود. دادهٔ جدید جداگانه با `deploy/sync-data.sh` می‌رود (بعد از پایان چرخهٔ PC).
 
 ## امنیت
-- رمز root در چت فرستاده شد: **همین حالا عوضش کن** (`passwd`) و بعد با کلید SSH وارد شو و ورود با رمز را ببند (`PasswordAuthentication no` در `/etc/ssh/sshd_config`، سپس `systemctl restart ssh`) — اول مطمئن شو ورود با کلید کار می‌کند.
+- ورود SSH با کلید (`~/.ssh/tmon_vps`) است. اگر ورود با رمز هنوز باز است، پس از اطمینان از کلید آن را ببند (`PasswordAuthentication no` در `/etc/ssh/sshd_config`، سپس `systemctl restart ssh`).
 - گواهی خودامضاست (بدون دامنه). با داشتن دامنه، certbot گواهی معتبر می‌دهد.
 - تغییر رمز سایت: `htpasswd -B /etc/nginx/tmon/htpasswd tmon && systemctl reload nginx`.
-- لاگ‌ها: `journalctl -u tmon-api -u tmon-web -u tmon-cycle`.
+- لاگ‌ها: `journalctl -u tmon-api -u tmon-web -u tmon-monitor`.
 
 ## یادداشت‌های نصب واقعی (Ubuntu 24.04)
 - Node از nodesource (۲۶ یا ۲۴)، pnpm با npm؛ `corepack` در Node جدید نیست. وب روی سرور بیلد می‌شود.
 - `libgomp1` برای lightgbm لازم است.
-- ورود SSH با رمز و کلید هر دو فعال است (به درخواست مالک)؛ fail2ban بعد از ۵ تلاش اشتباه یک ساعت بن می‌کند. پیشنهاد: رمز قوی و بعداً فقط کلید.
+- fail2ban بعد از ۵ تلاش اشتباه یک ساعت بن می‌کند.
 - پورت SSH روی **1415** است (۲۲ بسته). اتصال: `ssh -p 1415 -i ~/.ssh/tmon_vps root@185.7.172.67`. در Ubuntu 24.04 باید `ssh.socket` خاموش باشد تا پورت sshd_config اعمال شود.
 
 ## تقسیم کار: محاسبه روی PC، نمایش روی سرور (از ۲۵ آبان ۱۴۰۵)
@@ -63,4 +65,4 @@
 ### منابعی که از سرور در دسترس نیستند (آزمون ۲۵ آبان ۱۴۰۵)
 - در دسترس: `cdn.tsetmc.com` (MarketWatch، ClientTypeAll، تاریخچهٔ قیمت و حقیقی/حقوقی هر نماد)، `api.tgju.org`، yahoo، boursenews، irna، donya-e-eqtesad، oilprice، pypi، npm.
 - بسته (timeout): `old.tsetmc.com` و `service.tsetmc.com` (گرفتن دادهٔ روزانهٔ فعلی از این‌هاست)، `codal.ir`، `fipiran.ir`، `sena.ir`.
-- برای چرخه روی سرور، گرفتن دادهٔ روزانه باید به endpointهای `cdn.tsetmc.com` منتقل شود. کدال و فیپیران از سرور ممکن نیست.
+- برای چرخه روی سرور، گرفتن دادهٔ روزانه باید به endpointهای `cdn.tsetmc.com` منتقل شود. فیپیران از سرور ممکن نیست. کدال روی سرور از فید کدالِ خود TSETMC خوانده می‌شود ([17](17-portfolios-and-alerts.md)) و `isna.ir` جای `sena.ir` آمده است.

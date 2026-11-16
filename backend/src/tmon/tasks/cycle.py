@@ -254,7 +254,7 @@ def tick(
 
 
 def main() -> None:
-    """``python -m tmon.tasks.cycle``: today's whole cycle once, without Redis or Celery (the
+    """``python -m tmon.tasks.cycle``: today's whole cycle once (the
     Windows scheduled task). Exits non-zero only if a required step failed."""
     import sys
 

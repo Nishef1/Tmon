@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs ON THE SERVER (release.sh pipes it in; idempotent): installs the 24/7 watcher that raises
 # the urgent alerts and records the intraday tape. It idles outside the trading hours, so it stays
-# enabled all the time; docs/17-advisor-spec.md item 1.
+# enabled all the time; docs/17-portfolios-and-alerts.md («اجرا روی سرور»).
 set -euo pipefail
 grep -q '^TMON_PUBLIC_WEB_URL=' /etc/tmon.env || echo 'TMON_PUBLIC_WEB_URL=https://185.7.172.67' >> /etc/tmon.env
 # the raw 4 MB market-watch payload every few polls would add ~250 MB a day here; the typed

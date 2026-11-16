@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="TMON_", env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://tmon:tmon@localhost:5432/tmon"
-    redis_url: str = "redis://localhost:6379/0"
     # Chrome profile per Mofid-linked portfolio; empty means <repo>/data/mofid-profile
     mofid_profile_dir: str = ""
 
@@ -65,7 +64,7 @@ class Settings(BaseSettings):
     # Where the web UI is reachable, for links in pushed alerts (None: no link).
     public_web_url: str | None = "http://localhost:3000"
     # Days the scheduler wakes the ingest jobs (scheduling only; whether a day was a trading day is
-    # derived from data into trading_calendar). Celery day names.
+    # derived from data into trading_calendar). Three-letter day names.
     schedule_days: str = "sat,sun,mon,tue,wed"
     # The daily cycle starts this many minutes after the last session of the day closes (hours
     # come from market_rules; see tmon.tasks.schedule) and is retried at most this many times.

@@ -49,7 +49,7 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 .venv/Scripts/python.exe -m tmon.ingest.codal.cli letters --symbol فملی
 .venv/Scripts/python.exe -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 20
 .venv/Scripts/python.exe -m tmon.tools.adapt_cycle [--replay]
-.venv/Scripts/python.exe -m tmon.tools.autopilot [--deep]
+.venv/Scripts/python.exe -m tmon.tools.autopilot
 .venv/Scripts/python.exe -m tmon.tools.data_audit
 ```
 

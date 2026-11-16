@@ -1,6 +1,6 @@
 """Daily engine run: dataset -> backtest gate -> final model -> signals -> database.
 
-``train_and_publish`` is the one entry point (Celery calls it after the day's features are
+``train_and_publish`` is the one entry point (the daily cycle calls it after the day's features are
 computed). It never fabricates a recommendation: when nothing passes the thresholds, or the data
 is too short to train, it records a :class:`SignalNote` saying so and writes no ``Signal`` rows.
 

@@ -1,16 +1,8 @@
 import Link from "next/link";
-import type {
-  Adapt,
-  AdaptCandidate,
-  AdaptHorizon,
-  AdaptReplayHorizon,
-  Autopilot,
-  Deep,
-} from "@/lib/api";
+import type { Adapt, AdaptCandidate, AdaptHorizon, AdaptReplayHorizon, Autopilot } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { Num } from "@/components/Num";
 import { AutopilotStatus } from "@/components/model/AutopilotStatus";
-import { DeepStudy } from "@/components/model/DeepStudy";
 import { methodLabel } from "@/components/model/methods";
 
 export { methodLabel };
@@ -165,15 +157,7 @@ function HorizonCard({ h, d }: { h: AdaptHorizon; d: Adapt }) {
 
 /** The living ranking: champion per horizon behind the promotion gate, weights against equal
  *  weights, how the reference weights drift, the cycle history and the replay on the past. */
-export function AdaptSection({
-  d,
-  deep,
-  autopilot,
-}: {
-  d: Adapt;
-  deep?: Deep | null;
-  autopilot?: Autopilot | null;
-}) {
+export function AdaptSection({ d, autopilot }: { d: Adapt; autopilot?: Autopilot | null }) {
   const replay = d.replay;
   const allEqual = d.horizons.every((h) => h.champion === "equal");
   const h5 = d.horizons.find((h) => h.horizon_days === 5);
@@ -357,8 +341,6 @@ export function AdaptSection({
           </table>
         </div>
       </section>
-
-      {deep?.available && <DeepStudy d={deep} />}
     </section>
   );
 }

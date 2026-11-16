@@ -1,4 +1,4 @@
-"""The autopilot: regime reading, what counts as an event, when the deep study is due."""
+"""The autopilot: regime reading and what counts as an event."""
 
 from __future__ import annotations
 
@@ -70,70 +70,27 @@ def _state(as_of: str, champions: dict[str, str], stress: bool = False) -> dict[
     }
 
 
-def _deep(last: str, passed: tuple[str, ...] = ()) -> dict[str, Any]:
-    cells = {m.split("@")[0]: {"gate": {"passed": True}} for m in passed}
-    return {"last": last, "results": {"5": {"equal": {"gate": None}, **cells}}}
-
-
-def _assess(
-    state: dict[str, Any],
-    deep: dict[str, Any] | None,
-    previous: dict[str, Any] | None = None,
-    can_run: bool = True,
-) -> dict[str, Any]:
-    return autopilot.assess(
-        state, deep, previous, checked_at="2026-11-14T10:00:00", refresh_days=28, can_run=can_run
-    )
-
-
-def test_a_fresh_study_is_not_due_and_an_old_one_is() -> None:
-    s = _state("2026-11-14", {"5": "equal"})
-    fresh = _assess(s, _deep("2026-11-10"))
-    assert fresh["deep"]["due"] is False and fresh["deep"]["age_days"] == 4
-    old = _assess(s, _deep("2026-10-01"))
-    assert old["deep"]["due"] is True and old["deep"]["reason"] == autopilot.OLD
-    assert _assess(s, None)["deep"]["reason"] == autopilot.NO_STUDY
+def _assess(state: dict[str, Any], previous: dict[str, Any] | None = None) -> dict[str, Any]:
+    return autopilot.assess(state, previous, checked_at="2026-11-14T10:00:00")
 
 
 def test_a_champion_change_and_a_regime_flip_are_events() -> None:
-    first = _assess(_state("2026-11-13", {"5": "equal"}), _deep("2026-11-10"))
+    first = _assess(_state("2026-11-13", {"5": "equal"}))
     assert first["events"] == []  # nothing to compare with yet
-    second = _assess(
-        _state("2026-11-14", {"5": "ridge4_x120"}, stress=True), _deep("2026-11-10"), first
-    )
+    second = _assess(_state("2026-11-14", {"5": "ridge4_x120"}, stress=True), first)
     kinds = {e["kind"] for e in second["events"]}
     assert kinds == {"champion", "regime"}
     champ = next(e for e in second["events"] if e["kind"] == "champion")
     assert (champ["horizon"], champ["before"], champ["after"]) == (5, "equal", "ridge4_x120")
 
 
-def test_a_regime_flip_makes_an_otherwise_fresh_study_due_until_it_is_redone() -> None:
-    calm = _assess(_state("2026-11-13", {"5": "equal"}), _deep("2026-11-12"))
-    flipped = _assess(_state("2026-11-14", {"5": "equal"}, stress=True), _deep("2026-11-12"), calm)
-    assert flipped["deep"]["due"] and flipped["deep"]["reason"] == autopilot.REGIME
-    again = _assess(_state("2026-11-15", {"5": "equal"}, stress=True), _deep("2026-11-12"), flipped)
-    assert again["deep"]["due"], "still due: the study predates the flip"
-    redone = _assess(_state("2026-11-16", {"5": "equal"}, stress=True), _deep("2026-11-16"), again)
-    assert not redone["deep"]["due"] and redone["forced_since"] is None
-
-
-def test_a_new_study_is_an_event_with_who_passed_and_who_was_lost() -> None:
-    base = _assess(_state("2026-11-14", {"5": "equal"}), _deep("2026-10-01", ("gbm@5",)))
-    after = _assess(_state("2026-12-20", {"5": "equal"}), _deep("2026-12-19", ("gru@5",)), base)
-    by_kind = {e["kind"]: e for e in after["events"]}
-    assert by_kind["deep_refreshed"]["passed"] == ["gru@5"]
-    assert by_kind["deep_passed"]["methods"] == ["gru@5"]
-    assert by_kind["deep_lost"]["methods"] == ["gbm@5"]
-
-
 def test_events_are_capped() -> None:
     prev: dict[str, Any] = {
         "champions": {"5": "equal"},
         "regime": {"stress": False},
-        "deep": {"last": "2026-11-01", "passed": []},
         "events": [{"at": "2026-01-01", "kind": "champion"}] * autopilot.EVENTS_KEEP,
     }
-    out = _assess(_state("2026-11-14", {"5": "gbm"}), _deep("2026-11-10"), prev)
+    out = _assess(_state("2026-11-14", {"5": "gbm"}), prev)
     assert len(out["events"]) == autopilot.EVENTS_KEEP and any(
         e.get("after") == "gbm" for e in out["events"]
     )
@@ -153,38 +110,10 @@ def test_run_without_a_state_does_nothing(store: dict[str, dict[str, Any]]) -> N
     assert autopilot.KEY not in store
 
 
-def test_run_without_torch_records_that_the_study_is_old_and_does_not_start_it(
-    store: dict[str, dict[str, Any]], monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_run_stores_one_check(store: dict[str, dict[str, Any]]) -> None:
     store["state"] = _state("2026-11-14", {"5": "equal"})
-    store[autopilot.DEEP_KEY] = _deep("2026-09-01")
-    monkeypatch.setattr(autopilot, "torch_available", lambda: False)
-    started: list[int] = []
-    monkeypatch.setattr(autopilot, "_run_deep_study", lambda: started.append(1))
-    autopilot.run(refresh_deep=True)
-    autopilot.run(refresh_deep=True)  # the same data date: still one event
-    doc = store[autopilot.KEY]
-    assert started == [] and doc["deep"]["due"] and doc["deep"]["can_run"] is False
-    assert [e["kind"] for e in doc["events"]].count("deep_skipped") == 1
-
-
-def test_run_with_torch_redoes_the_study_and_the_page_data_follows(
-    store: dict[str, dict[str, Any]], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    store["state"] = _state("2026-11-14", {"5": "equal"})
-    store[autopilot.DEEP_KEY] = _deep("2026-09-01")
-    monkeypatch.setattr(autopilot, "torch_available", lambda: True)
-
-    def redo() -> None:
-        store[autopilot.DEEP_KEY] = _deep("2026-11-14", ("gbm@5",))
-
-    monkeypatch.setattr(autopilot, "_run_deep_study", redo)
-    autopilot.run()  # the cheap daily check never starts the study
-    assert store[autopilot.KEY]["deep"]["due"]
-    autopilot.run(refresh_deep=True)
-    doc = store[autopilot.KEY]
-    assert doc["deep"]["due"] is False and doc["deep"]["passed"] == ["gbm@5"]
-    assert "deep_refreshed" in {e["kind"] for e in doc["events"]}
+    assert autopilot.run() == {"as_of": "2026-11-14", "events": 0}
+    assert store[autopilot.KEY]["champions"] == {"5": "equal"}
 
 
 def test_the_daily_cycle_has_an_optional_autopilot_step_after_adapt() -> None:
@@ -207,8 +136,8 @@ def test_api_serves_the_stored_check_newest_event_first_and_says_so_when_there_i
     from tmon.api.autopilot import autopilot_out
 
     assert autopilot_out(None).available is False
-    doc = _assess(_state("2026-11-13", {"5": "equal"}), _deep("2026-11-10", ("gbm@5",)))
-    doc = _assess(_state("2026-11-14", {"5": "gbm"}), _deep("2026-11-10", ("gbm@5",)), doc)
+    doc = _assess(_state("2026-11-13", {"5": "equal"}))
+    doc = _assess(_state("2026-11-14", {"5": "gbm"}), doc)
     doc["regime"] = {
         "as_of": "2026-11-14",
         "drawdown": 0.01,
@@ -221,6 +150,6 @@ def test_api_serves_the_stored_check_newest_event_first_and_says_so_when_there_i
         "stress_drawdown": 0.2,
     }
     out = autopilot_out(doc)
-    assert out.available and out.deep is not None and out.deep.passed == ["gbm@5"]
+    assert out.available
     assert out.regime is not None and out.regime.bullish_only
     assert out.events[0].kind == "champion" and out.events[0].after == "gbm"

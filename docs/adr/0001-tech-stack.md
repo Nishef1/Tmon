@@ -2,6 +2,7 @@
 
 - وضعیت: **پذیرفته‌شده (تثبیت)**
 - تاریخ: ۲۰ آبان ۱۴۰۵
+- **اصلاح (۲۶ آبان ۱۴۰۵):** بخش اجرا جایگزین شد. پایگاه داده SQLite است، فایل خام در ذخیره‌ساز فایل محلی، چرخه با زمان‌بند ویندوز روی PC، و سرور با systemd فقط نمایش می‌دهد ([11](../11-architecture-and-data-model.md)، [15](../15-deploy.md)). ردیف‌های Celery، Redis، PostgreSQL/TimescaleDB، MinIO و Docker Compose پایین فقط سابقه‌اند. بقیهٔ جدول (Python، uv، FastAPI، SQLAlchemy، Polars، LightGBM، Next.js، ابزارهای تست و کیفیت) هنوز برقرار است.
 
 ## تصمیم
 

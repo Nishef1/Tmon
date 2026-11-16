@@ -1,33 +1,47 @@
-# مستندات پروژه Tmon
+# مستندات Tmon
 
-این پوشه منبع واحد حقیقت (SSOT) برای طراحی و پیاده‌سازی فاز اول است. هر تصمیم فنی که اینجا «تثبیت‌شده» علامت خورده، بدون ADR جدید تغییر نمی‌کند.
+به‌روز: ۲۶ آبان ۱۴۰۵. برای کار روی کد اول [AGENTS.md](../AGENTS.md) را بخوان. اگر سندی با کد نخواند، کد درست است و سند باید اصلاح شود. `backend/tests/test_docs_links.py` پیوندهای این پوشه و مسیرهای `docs/...` در کد را بررسی می‌کند.
 
-| فایل | موضوع |
+## محصول و سامانه
+
+| سند | موضوع |
 | --- | --- |
-| [00-overview.md](00-overview.md) | هدف محصول، تعریف «پیشنهاد خرید»، محدوده فاز ۱ و ۲ |
-| [01-market-structure-and-rules.md](01-market-structure-and-rules.md) | بورس‌ها، انواع اوراق، ساعات، دامنه نوسان، حجم مبنا، صف |
-| [02-data-sources.md](02-data-sources.md) | منابع داده، تناوب، روش دریافت |
-| [03-fundamental-analysis.md](03-fundamental-analysis.md) | صورت‌های مالی، نسبت‌ها، ارزش‌گذاری |
-| [04-technical-and-orderbook.md](04-technical-and-orderbook.md) | اندیکاتورها و تابلوخوانی |
-| [05-corporate-events.md](05-corporate-events.md) | مجامع، سود نقدی، افزایش سرمایه |
-| [06-funds.md](06-funds.md) | صندوق‌های سرمایه‌گذاری |
-| [07-commodity-and-futures.md](07-commodity-and-futures.md) | بورس کالا، گواهی سپرده، آتی |
-| [08-news-and-macro.md](08-news-and-macro.md) | تبدیل خبر، مصوبه و داده کلان به ویژگی |
-| [09-sectors-and-allocation.md](09-sectors-and-allocation.md) | صنایع و تخصیص سرمایه بر اساس سناریو |
-| [10-recommendation-engine.md](10-recommendation-engine.md) | **هسته:** موتور پیشنهاد، احتمال، رتبه‌بندی، ریسک، بک‌تست |
-| [11-architecture-and-data-model.md](11-architecture-and-data-model.md) | معماری، ساختار ریپو، اسکیما |
-| [12-roadmap.md](12-roadmap.md) | مراحل و معیار پذیرش هر مرحله |
-| [13-self-critique.md](13-self-critique.md) | ریسک‌ها و محدودیت‌ها |
-| [14-local-run.md](14-local-run.md) | اجرای محلی بدون Docker: دموی مصنوعی و اجرای زنده |
-| [glossary.md](glossary.md) | واژه‌نامه آکادمی سایت |
-| [adr/0001-tech-stack.md](adr/0001-tech-stack.md) | **تصمیم تثبیت‌شده:** زبان‌ها و ابزارها |
-| [adr/0002-engine-and-data-decisions.md](adr/0002-engine-and-data-decisions.md) | **تصمیم تثبیت‌شده:** جهان توصیه، هزینه، آستانه‌ها، تعریف پایان |
-| [adr/0003-engine-v2-relative-rank-and-exposure.md](adr/0003-engine-v2-relative-rank-and-exposure.md) | **جهت تثبیت‌شده:** موتور v2 با رتبهٔ نسبی، لایهٔ مواجهه و سبد کم‌گردش؛ انتشار مشروط به دروازه |
-| [reports/research-engine-v2.md](reports/research-engine-v2.md) | پژوهش پشتیبان ADR 0003: چرا v1 شکست خورد، ادبیات، طراحی و دروازهٔ پذیرش |
-| [prompts/build-phase1.md](prompts/build-phase1.md) | پرامپت ساخت M0–M5 (اجرا شده) |
-| [prompts/finish-phase1.md](prompts/finish-phase1.md) | پرامپت تکمیل فاز ۱ تا ۱۰۰٪ |
-| [prompts/continue-phase1.md](prompts/continue-phase1.md) | پرامپت ادامه پس از بازبینی (C1 تا C6) |
+| [00-overview](00-overview.md) | هدف، وضعیت امروز، اصل «ممتنع بودن»، محدوده، ریسک‌ها و محدودیت‌ها |
+| [10-recommendation-engine](10-recommendation-engine.md) | آنچه سایت نشان می‌دهد (رتبه‌بندی v2، حکم هر نماد، چرخهٔ روزانه) و مسیر v1 |
+| [11-architecture-and-data-model](11-architecture-and-data-model.md) | اجزا، بسته‌ها، جهت وابستگی، جریان داده، جدول‌ها |
+| [12-roadmap](12-roadmap.md) | چه انجام شده و چه مانده، با شواهد |
+| [14-local-run](14-local-run.md) | اجرا روی PC: چرخهٔ روزانه، فرمان‌ها، تست |
+| [15-deploy](15-deploy.md) | سرور، انتشار کد، همگام‌سازی داده، امنیت |
+| [16-data-completeness](16-data-completeness.md) | تشخیص روز ناقص و دکمهٔ تکمیل |
+| [17-portfolios-and-alerts](17-portfolios-and-alerts.md) | پرتفوی، مفید، هشدار، پیش‌بینی بازه، دیدبان سرور |
+| [OPEN_QUESTIONS](OPEN_QUESTIONS.md) | پرسش‌های باز و تصمیم‌های مالک (شماره‌ها در کد ارجاع دارند) |
+| [glossary](glossary.md) | واژه‌نامه؛ `frontend/tests/glossary.test.ts` آن را با سایت تطبیق می‌دهد |
 
-تاریخ آخرین بازبینی: ۲۱ آبان ۱۴۰۵ (۱۲ نوامبر ۲۰۲۶).
+## دانش دامنه
 
-> این مستندات تحلیل فنی و آموزشی است، نه توصیه سرمایه‌گذاری.
+هر کدام در بالا یادداشت «وضعیت در کد» دارد.
+
+| سند | موضوع |
+| --- | --- |
+| [01](01-market-structure-and-rules.md) | ساختار بازار و قواعد |
+| [02](02-data-sources.md) | منابع داده |
+| [03](03-fundamental-analysis.md) | تحلیل بنیادی |
+| [04](04-technical-and-orderbook.md) | تکنیکال و تابلوخوانی |
+| [05](05-corporate-events.md) | مجمع، سود نقدی، افزایش سرمایه |
+| [06](06-funds.md) | صندوق‌ها |
+| [07](07-commodity-and-futures.md) | بورس کالا و آتی |
+| [08](08-news-and-macro.md) | خبر و کلان |
+| [09](09-sectors-and-allocation.md) | صنایع و تخصیص |
+
+## تصمیم‌ها و شواهد
+
+| سند | موضوع |
+| --- | --- |
+| [ADR 0001](adr/0001-tech-stack.md) | زبان‌ها و ابزارها (بخش اجرا اصلاح شده) |
+| [ADR 0002](adr/0002-engine-and-data-decisions.md) | هزینه، آستانه‌ها و تعریف پایان در v1 |
+| [ADR 0003](adr/0003-engine-v2-relative-rank-and-exposure.md) | موتور v2 و دروازه‌های G1 تا G6 |
+| [reports/](reports/README.md) | همهٔ گزارش‌ها با یک خط نتیجه |
+
+تاریخچهٔ تغییرات در `git log` است.
+
+> این مستندات تحلیل فنی و آموزشی است، نه توصیهٔ سرمایه‌گذاری.

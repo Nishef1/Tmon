@@ -19,16 +19,6 @@ function doc(over: Partial<Autopilot> = {}): Autopilot {
       stress: false,
       stress_drawdown: 0.2,
     },
-    deep: {
-      present: true,
-      last: "2026-11-11",
-      age_days: 3,
-      refresh_days: 28,
-      due: false,
-      reason: null,
-      can_run: true,
-      passed: ["gbm@5"],
-    },
     events: [],
     disclaimer: "x",
     ...over,
@@ -36,23 +26,10 @@ function doc(over: Partial<Autopilot> = {}): Autopilot {
 }
 
 describe("AutopilotStatus", () => {
-  it("says the study is current, who passed and that the regime is still one", () => {
+  it("says the regime is still one and that nothing changed", () => {
     render(<AutopilotStatus a={doc()} />);
-    const deep = screen.getByTestId("autopilot-deep").textContent ?? "";
-    expect(deep).toContain("به‌روز است");
-    expect(deep).toContain("درخت تقویتی (GBM) در افق ۵ روز");
     expect(screen.getByTestId("autopilot-regime").textContent).toContain("یک رژیم صعودی");
     expect(screen.getByTestId("autopilot-no-events")).toBeTruthy();
-  });
-
-  it("flags an old study that this host cannot redo, never as current", () => {
-    const a = doc();
-    a.deep = { ...a.deep!, age_days: 40, due: true, reason: "old", can_run: false };
-    render(<AutopilotStatus a={a} />);
-    const deep = screen.getByTestId("autopilot-deep").textContent ?? "";
-    expect(deep).toContain("منتظر بازآموزی است");
-    expect(deep).toContain("torch را ندارد");
-    expect(deep).not.toContain("به‌روز است");
   });
 
   it("lists events newest first in plain words, and a stress reading", () => {
@@ -64,8 +41,6 @@ describe("AutopilotStatus", () => {
           horizon: 5,
           before: "equal",
           after: "gbm",
-          methods: [],
-          passed: [],
         },
         {
           at: "2026-11-13",
@@ -73,8 +48,6 @@ describe("AutopilotStatus", () => {
           after: "stress",
           before: null,
           horizon: null,
-          methods: [],
-          passed: [],
         },
       ],
     });

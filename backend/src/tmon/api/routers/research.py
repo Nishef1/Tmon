@@ -8,13 +8,10 @@ from tmon.api.autopilot import KEY as AUTOPILOT_KEY
 from tmon.api.autopilot import autopilot_out
 from tmon.api.book import KEY as BOOK_KEY
 from tmon.api.book import research_out as book_research_out
-from tmon.api.deep import KEY as DEEP_KEY
-from tmon.api.deep import deep_out
 from tmon.api.entry import entry_doc, entry_odds_out
 from tmon.api.schemas import (
     AdaptOut,
     AutopilotOut,
-    DeepOut,
     EntryOddsOut,
     OrderbookResearchOut,
     TaSignalsOut,
@@ -54,18 +51,9 @@ def adapt() -> AdaptOut:
     return adapt_out(load_doc(ADAPT_KEY))
 
 
-@router.get("/research/deep", response_model=DeepOut)
-def deep() -> DeepOut:
-    """The deep-learning, autoregressive and diffusion study: every method against equal weights
-    over the whole out-of-sample period, in two halves, with the gate verdict. Read fresh from
-    the stored document (``python -m tmon.backtest.deep_study``). The past, not advice."""
-    return deep_out(load_doc(DEEP_KEY))
-
-
 @router.get("/research/autopilot", response_model=AutopilotOut)
 def autopilot() -> AutopilotOut:
-    """What the system saw when it last checked itself: the regime reading of the official index,
-    how current the deep study is, and the events since (a champion changed, the regime flipped, a
-    method passed or lost the gate). Read fresh from the stored document
-    (``python -m tmon.tools.autopilot``). The past, not advice."""
+    """What the system saw when it last checked itself: the regime reading of the official index
+    and the events since (a champion changed, the regime flipped). Read fresh from the stored
+    document (``python -m tmon.tools.autopilot``). The past, not advice."""
     return autopilot_out(load_doc(AUTOPILOT_KEY))

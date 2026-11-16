@@ -754,34 +754,11 @@ export interface paths {
     };
     /**
      * Autopilot
-     * @description What the system saw when it last checked itself: the regime reading of the official index,
-     *     how current the deep study is, and the events since (a champion changed, the regime flipped, a
-     *     method passed or lost the gate). Read fresh from the stored document
-     *     (``python -m tmon.tools.autopilot``). The past, not advice.
+     * @description What the system saw when it last checked itself: the regime reading of the official index
+     *     and the events since (a champion changed, the regime flipped). Read fresh from the stored
+     *     document (``python -m tmon.tools.autopilot``). The past, not advice.
      */
     get: operations["autopilot_research_autopilot_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/research/deep": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Deep
-     * @description The deep-learning, autoregressive and diffusion study: every method against equal weights
-     *     over the whole out-of-sample period, in two halves, with the gate verdict. Read fresh from
-     *     the stored document (``python -m tmon.backtest.deep_study``). The past, not advice.
-     */
-    get: operations["deep_research_deep_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1217,31 +1194,6 @@ export interface components {
        */
       answer: "exit" | "reduce" | "hold";
     };
-    /**
-     * AutopilotDeep
-     * @description How current the deep study is, and whether it is due again.
-     */
-    AutopilotDeep: {
-      /** Age Days */
-      age_days: number | null;
-      /** Can Run */
-      can_run: boolean;
-      /** Due */
-      due: boolean;
-      /** Last */
-      last: string | null;
-      /**
-       * Passed
-       * @default []
-       */
-      passed: string[];
-      /** Present */
-      present: boolean;
-      /** Reason */
-      reason: string | null;
-      /** Refresh Days */
-      refresh_days: number;
-    };
     /** AutopilotEvent */
     AutopilotEvent: {
       /** After */
@@ -1257,16 +1209,6 @@ export interface components {
       horizon: number | null;
       /** Kind */
       kind: string;
-      /**
-       * Methods
-       * @default []
-       */
-      methods: string[];
-      /**
-       * Passed
-       * @default []
-       */
-      passed: string[];
     };
     /**
      * AutopilotOut
@@ -1279,7 +1221,6 @@ export interface components {
       available: boolean;
       /** Checked At */
       checked_at: string | null;
-      deep: components["schemas"]["AutopilotDeep"] | null;
       /**
        * Disclaimer
        * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
@@ -2448,86 +2389,6 @@ export interface components {
       prices: number;
       /** Prices Ok */
       prices_ok: boolean;
-    };
-    /** DeepGate */
-    DeepGate: {
-      /** Passed */
-      passed: boolean;
-      /**
-       * Reasons
-       * @default []
-       */
-      reasons: string[];
-    };
-    /** DeepHorizon */
-    DeepHorizon: {
-      /** Horizon Days */
-      horizon_days: number;
-      /** Methods */
-      methods: {
-        [key: string]: components["schemas"]["DeepMethod"];
-      };
-    };
-    /**
-     * DeepMethod
-     * @description One method over the whole out-of-sample period, against equal weights.
-     */
-    DeepMethod: {
-      d_ex: components["schemas"]["AdaptStat"] | null;
-      d_ic: components["schemas"]["AdaptStat"] | null;
-      d_ic_early: components["schemas"]["AdaptStat"] | null;
-      d_ic_late: components["schemas"]["AdaptStat"] | null;
-      ex: components["schemas"]["AdaptStat"];
-      gate: components["schemas"]["DeepGate"] | null;
-      ic: components["schemas"]["AdaptStat"];
-      /** Seed Ic */
-      seed_ic: (number | null)[] | null;
-    };
-    /**
-     * DeepOut
-     * @description The deep-learning study: what each method did out of sample, and who passed the gate.
-     */
-    DeepOut: {
-      /** Available */
-      available: boolean;
-      /** Device */
-      device: string | null;
-      /**
-       * Disclaimer
-       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
-       */
-      disclaimer: string;
-      /** First */
-      first: string | null;
-      /**
-       * Horizons
-       * @default []
-       */
-      horizons: components["schemas"]["DeepHorizon"][];
-      /** Last */
-      last: string | null;
-      /** Mid */
-      mid: string | null;
-      /** Min T */
-      min_t: number | null;
-      /** Oos From */
-      oos_from: string | null;
-      /** Round Trip Cost */
-      round_trip_cost: number | null;
-      /**
-       * Seeds
-       * @default []
-       */
-      seeds: number[];
-      /**
-       * Settings
-       * @default {}
-       */
-      settings: {
-        [key: string]: number;
-      };
-      /** Torch */
-      torch: string | null;
     };
     /**
      * DiagnosisOut
@@ -6104,26 +5965,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AutopilotOut"];
-        };
-      };
-    };
-  };
-  deep_research_deep_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["DeepOut"];
         };
       };
     };

@@ -14,7 +14,7 @@
 | پایشگر | `python -m tmon.portfolio.monitor` (روی سرور، `tmon-monitor.service`) | در ساعت بازار هشدار فوری پرتفوی و نوار لحظه‌ای |
 | سرور | systemd روی VPS: `tmon-api`، `tmon-web`، `tmon-monitor`، nginx | فقط نمایش؛ داده از PC با `deploy/sync-data.sh` می‌آید ([15-deploy](15-deploy.md)) |
 
-Docker، Postgres، MinIO و Celery دیگر اجرا نمی‌شوند. `tasks/celery_app.py` و `tasks/jobs.py` هنوز در کد هستند ولی هیچ مسیر اجرایی فعلی از آن‌ها استفاده نمی‌کند.
+Docker، Postgres، Redis و Celery کنار گذاشته شده‌اند. ذخیره‌ساز MinIO هنوز در `storage/objectstore.py` به‌عنوان گزینه هست، ولی PC و سرور هر دو `TMON_OBJECT_STORE=file` دارند.
 
 ## بسته‌های بک‌اند (`backend/src/tmon`)
 
@@ -29,7 +29,7 @@ Docker، Postgres، MinIO و Celery دیگر اجرا نمی‌شوند. `tasks/
 | `models` | LightGBM، تقسیم walk-forward، توضیح SHAP (v1) |
 | `engine` | انتشار v1 (`service.py`)، دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم |
 | `backtest` | بک‌تست و مطالعه‌ها؛ هر گزارش `docs/reports` از یکی از این‌ها می‌آید |
-| `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health`، `deep_doc` |
+| `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health` |
 | `portfolio` | پرتفوی: دفتر، مفید، توصیه، پیش‌بینی بازه، هشدار، گزارش پیش از گشایش، پایشگر |
 | `tasks` | چرخهٔ روزانه و زمان‌بندی آن |
 | `api` | FastAPI و روترها |

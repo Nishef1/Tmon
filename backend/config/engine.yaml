@@ -176,7 +176,7 @@ v2:
     pbo_splits: 8
     survivorship_resolved: false  # G6: OQ 65 is open; flip only with an official source
 
-# Living ranking (docs/ROADMAP-live-and-deep.md): which way of weighting the signals the market
+# Living ranking (docs/12-roadmap.md): which way of weighting the signals the market
 # currently rewards. Candidates are tested on the latest `window_dates` out-of-sample dates and only
 # a candidate that beats the fixed equal weights in BOTH halves of that window is promoted.
 adapt:
@@ -187,7 +187,6 @@ adapt:
   history_keep: 240             # cycles kept in the state document
   replay_every_dates: 21        # replay: how often the gate is re-run on the past
   replay_refresh_days: 28       # the daily cycle redoes the (slow) replay when it is older than this
-  deep_refresh_days: 28         # the autopilot redoes the deep study when it is this much older than the data
   stress_days: 120              # regime watch: look-back (trading days) of the index return
   stress_drawdown: 0.2          # regime watch: index drawdown from its peak that counts as stress
   candidates: [ridge4_x60, ridge4_x120, ridge4_x250, icw_x250, hedge_k30, step6, ridgeall_x250, gbm]

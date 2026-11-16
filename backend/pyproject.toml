@@ -17,8 +17,6 @@ dependencies = [
     "lightgbm>=4.7.0",
     "scikit-learn>=1.9.1",
     "shap>=0.54.1",
-    "celery[redis]>=5.7.0",
-    "redis>=8.1.0",
     "httpx>=0.28.1",
     "playwright>=1.65.2",  # Mofid login in the owner's Chrome
     "minio>=7.2.20",
@@ -32,11 +30,6 @@ dependencies = [
     "arch>=9.0.0",
     "apprise>=2.2.0",
 ]
-
-[project.optional-dependencies]
-# Deep-learning study (tmon.backtest.deep_study). On Windows with an NVIDIA GPU install the CUDA wheel:
-#   python -m pip install torch --index-url https://download.pytorch.org/whl/cu130 --extra-index-url https://pypi.org/simple
-deep = ["torch>=2.14.1"]
 
 [dependency-groups]
 dev = [
@@ -93,14 +86,6 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = "tmon.core.*"
 strict = true
-
-[[tool.mypy.overrides]]
-# torch is an optional extra (not installed in CI): its types are Any there and real locally, so
-# the checks that differ between the two cases are off for this one module.
-module = "tmon.backtest.deep_study"
-disallow_subclassing_any = false
-warn_unused_ignores = false
-warn_return_any = false
 
 [[tool.mypy.overrides]]
 module = "tmon.tasks.*"

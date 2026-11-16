@@ -1425,47 +1425,6 @@ class AdaptOut(ApiModel):
     disclaimer: str = DISCLAIMER
 
 
-class DeepGate(ApiModel):
-    passed: bool
-    reasons: list[str] = []
-
-
-class DeepMethod(ApiModel):
-    """One method over the whole out-of-sample period, against equal weights."""
-
-    ic: AdaptStat  # mean daily rank IC of the score
-    ex: AdaptStat  # top-decile excess return
-    d_ic: AdaptStat | None = None  # IC gain over equal weights (paired, same dates)
-    d_ex: AdaptStat | None = None
-    d_ic_early: AdaptStat | None = None  # the same gain in the first half of the period
-    d_ic_late: AdaptStat | None = None  # ... and in the second half
-    seed_ic: list[float | None] | None = None  # IC of each training seed (deep models only)
-    gate: DeepGate | None = None  # None for equal weights itself
-
-
-class DeepHorizon(ApiModel):
-    horizon_days: int
-    methods: dict[str, DeepMethod]
-
-
-class DeepOut(ApiModel):
-    """The deep-learning study: what each method did out of sample, and who passed the gate."""
-
-    available: bool
-    first: dt.date | None = None
-    oos_from: dt.date | None = None
-    mid: dt.date | None = None  # the split between the two halves
-    last: dt.date | None = None
-    device: str | None = None
-    torch: str | None = None
-    seeds: list[int] = []
-    settings: dict[str, int | float] = {}
-    round_trip_cost: float | None = None
-    min_t: float | None = None
-    horizons: list[DeepHorizon] = []
-    disclaimer: str = DISCLAIMER
-
-
 class AutopilotRegime(ApiModel):
     """The regime reading of the official index (``tmon.engine.regime``)."""
 
@@ -1480,27 +1439,12 @@ class AutopilotRegime(ApiModel):
     stress_drawdown: float
 
 
-class AutopilotDeep(ApiModel):
-    """How current the deep study is, and whether it is due again."""
-
-    present: bool
-    last: dt.date | None = None
-    age_days: int | None = None
-    refresh_days: int
-    due: bool
-    reason: str | None = None  # no_study | old | regime
-    can_run: bool  # this host has torch and can redo it
-    passed: list[str] = []  # method@horizon that passed the gate
-
-
 class AutopilotEvent(ApiModel):
     at: dt.date
-    kind: str  # champion | regime | deep_refreshed | deep_passed | deep_lost | deep_skipped
+    kind: str  # champion | regime
     horizon: int | None = None
     before: str | None = None
     after: str | None = None
-    methods: list[str] = []
-    passed: list[str] = []
 
 
 class AutopilotOut(ApiModel):
@@ -1510,6 +1454,5 @@ class AutopilotOut(ApiModel):
     checked_at: str | None = None
     as_of: dt.date | None = None
     regime: AutopilotRegime | None = None
-    deep: AutopilotDeep | None = None
     events: list[AutopilotEvent] = []
     disclaimer: str = DISCLAIMER
