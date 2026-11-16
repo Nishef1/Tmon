@@ -1,3 +1,4 @@
+import { QueueBadge } from "@/components/QueueBadge";
 import Link from "next/link";
 import type { Ranking, RankingRow } from "@/lib/api";
 import { faNumber, faPercent, faPrice } from "@/lib/format";
@@ -111,7 +112,13 @@ function Zone({
                       <Num value={r.signals[k]} term="rank_score" digits={2} />
                     </td>
                   ))}
-                  <td className="text-xs">{QUEUE[r.queue_state ?? ""] ?? "عادی"}</td>
+                  <td className="text-xs">
+                    {r.queue_ratio != null ? (
+                      <QueueBadge r={r} />
+                    ) : (
+                      (QUEUE[r.queue_state ?? ""] ?? "عادی")
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

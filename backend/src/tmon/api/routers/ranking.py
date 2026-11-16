@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.queue_size import queue_readings
 from tmon.api.returns import day_change
 from tmon.api.schemas import OutsideRow, RankingOut
 from tmon.api.trade_state import market_days, trade_state
@@ -57,6 +58,13 @@ def ranking(session: SessionDep) -> RankingOut:
             r.close = close
             r.change_pct = day_change(close, prev)
         _mark_idle(session, out, by_symbol)
+        readings = queue_readings(
+            session, [r.instrument_id for r in out.rows if r.instrument_id], last
+        )
+        for r in out.rows:
+            got = readings.get(r.instrument_id or -1)
+            if got is not None:
+                r.queue_ratio, r.queue_level, r.queue_orders = got
     return out
 
 

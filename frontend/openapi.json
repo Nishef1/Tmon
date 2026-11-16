@@ -9553,6 +9553,44 @@
             ],
             "title": "Name"
           },
+          "queue_level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "weak",
+                  "medium",
+                  "heavy"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Level"
+          },
+          "queue_orders": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Orders"
+          },
+          "queue_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Ratio"
+          },
           "queue_state": {
             "anyOf": [
               {
@@ -9646,7 +9684,10 @@
           "change_pct",
           "trade_state",
           "idle_days",
-          "last_trade_date"
+          "last_trade_date",
+          "queue_ratio",
+          "queue_level",
+          "queue_orders"
         ],
         "title": "RankingRow",
         "type": "object"

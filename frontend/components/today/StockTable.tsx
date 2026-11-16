@@ -1,5 +1,6 @@
 "use client";
 
+import { QueueBadge } from "@/components/QueueBadge";
 import Link from "next/link";
 import { TradeBadge } from "@/components/TradeBadge";
 import { useMemo, useState } from "react";
@@ -170,11 +171,7 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
                   ) : (
                     "—"
                   )}
-                  {r.queue_state === "buy_queue" && (
-                    <span className="ms-1 rounded bg-up-soft px-1 text-[10px] text-up">
-                      صف خرید
-                    </span>
-                  )}
+                  <QueueBadge r={r} className="ms-1" />
                   {r.in_basket === false && (
                     <span className="ms-1 rounded bg-warn-soft px-1 text-[10px] text-warn">
                       کم‌معامله

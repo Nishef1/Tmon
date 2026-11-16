@@ -476,6 +476,9 @@ class RankingRow(ApiModel):
     trade_state: Literal["active", "idle", "halted"] = "active"
     idle_days: int = 0
     last_trade_date: dt.date | None = None
+    queue_ratio: float | None = None  # buy line at the close / usual daily volume; None = no line
+    queue_level: Literal["weak", "medium", "heavy"] | None = None
+    queue_orders: int | None = None  # orders in the line (level 1 bid count)
 
 
 class OutsideRow(ApiModel):

@@ -1,3 +1,4 @@
+import { QueueBadge } from "@/components/QueueBadge";
 import { verdictPill, verdictTone } from "@/lib/ui";
 import { TradeBadge } from "@/components/TradeBadge";
 import Link from "next/link";
@@ -128,9 +129,7 @@ function Chip({ r }: { r: RankingRow }) {
         <span className="flex items-baseline gap-2">
           <span className="font-bold">{r.symbol}</span>
           <TradeBadge state={r.trade_state} idleDays={r.idle_days} lastTrade={r.last_trade_date} />
-          {r.queue_state === "buy_queue" && (
-            <span className="rounded bg-up-soft px-1 text-[10px] text-up">صف خرید</span>
-          )}
+          <QueueBadge r={r} />
           {r.in_basket === false && (
             <span className="rounded bg-warn-soft px-1 text-[10px] text-warn">کم‌معامله‌تر</span>
           )}

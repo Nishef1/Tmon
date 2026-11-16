@@ -3939,6 +3939,12 @@ export interface components {
       median_value: number | null;
       /** Name */
       name: string | null;
+      /** Queue Level */
+      queue_level: ("weak" | "medium" | "heavy") | null;
+      /** Queue Orders */
+      queue_orders: number | null;
+      /** Queue Ratio */
+      queue_ratio: number | null;
       /** Queue State */
       queue_state: string | null;
       /** Rank */
