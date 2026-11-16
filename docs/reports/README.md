@@ -22,6 +22,7 @@
 | [deep-learning](deep-learning.md) | MLP، GRU، TCN و دیفیوژن: هیچ‌کدام از دروازه نگذشتند؛ فقط GBM در افق ۵ روی کل دوره |
 | [combined-strategy-and-critique-2026-11-16](combined-strategy-and-critique-2026-11-16.md) | راهبرد ترکیبی چندسیگنالی و خودنقد دور دوم |
 | [v2-ranking-page](v2-ranking-page.md) | صفحهٔ «خرید / نگهداری / پرهیز» |
+| [project-audit-2026-11-16](project-audit-2026-11-16.md) | بازبینی کد (نه بک‌تست): چرا سایت هرگز «خرید» نمی‌گوید، نقص‌های شبیه‌ساز سبد و مهندسی؛ پایهٔ ADR 0004 |
 
 ## سیگنال‌ها و رفتار بازار
 
