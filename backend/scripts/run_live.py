@@ -30,6 +30,8 @@ from datetime import date, timedelta
 
 import run_demo as demo
 
+from tmon.core.timeutil import tehran_today
+
 ROOT_DATA = demo.ROOT / "data"
 DATA = ROOT_DATA
 DB = DATA / "tmon-live.sqlite3"
@@ -44,7 +46,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backfill", action="store_true")
     ap.add_argument(
-        "--since", type=date.fromisoformat, default=date.today() - timedelta(days=5 * 366)
+        "--since", type=date.fromisoformat, default=tehran_today() - timedelta(days=5 * 366)
     )
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--skip-probe", action="store_true")
@@ -91,7 +93,7 @@ def main() -> None:
         print(f"→ backfilling history since {args.since} (this takes a long time)…")
         cmd = ["-m", "tmon.ingest.tsetmc.cli", "backfill", "--since", args.since.isoformat()]
         py(*cmd, *(["--limit", str(args.limit)] if args.limit else []))
-        MARK.write_text(date.today().isoformat())
+        MARK.write_text(tehran_today().isoformat())
     else:
         print("→ refreshing the last days…")
         py("-m", "tmon.ingest.tsetmc.cli", "eod")

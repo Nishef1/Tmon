@@ -23,3 +23,7 @@ data/
 
 # TypeScript incremental build cache (dirties the tree on every typecheck)
 *.tsbuildinfo
+
+# built by deploy/release.sh on every release; never tracked
+deploy/tmon-app.tar.gz
+deploy/stage/
