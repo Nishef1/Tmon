@@ -495,6 +495,13 @@ async def end_of_day(ctx: Ctx, *, full: bool = False) -> dict[str, int]:
         totals = await _end_of_day_full(ctx, since, held)
     else:
         totals = await _end_of_day_fast(ctx, since, held)
+    # the bulk feed can publish today hours late; the per-symbol closing endpoint has it already
+    from tmon.ingest.tsetmc.today_cdn import fill_today
+
+    try:
+        totals["bars_from_closing_info"] = fill_today(ctx.session)["stored"]
+    except Exception:  # a failing fallback must not stop the rest of the cycle
+        log.exception("filling today from the closing endpoint failed")
     try:
         totals["client_rows_today"] = await fill_today_client_types(ctx)
     except (FetchError, parsers.ParseError) as exc:
