@@ -1,151 +1,79 @@
-# اجرای محلی بدون Docker
+# ۱۴ — اجرا روی PC
 
-این سند دو حالت را توضیح می‌دهد: **دموی مصنوعی** (برای دیدن رابط، بدون هیچ دسترسی شبکه) و **اجرای زنده** (داده واقعی TSETMC، از شبکه‌ای که به آن دسترسی دارد). مسیر تولید همچنان Docker Compose است ([11](11-architecture-and-data-model.md)).
+به‌روز: ۲۶ آبان ۱۴۰۵. همهٔ محاسبه روی PC انجام می‌شود و سرور فقط نمایش می‌دهد ([15-deploy](15-deploy.md)). Docker، Celery و Redis کنار گذاشته شده‌اند.
 
-> همهٔ خروجی‌ها تحلیل فنی و آموزشی است، نه توصیه سرمایه‌گذاری.
+> همهٔ خروجی‌ها تحلیل فنی و آموزشی است، نه توصیهٔ سرمایه‌گذاری.
 
 ## پیش‌نیازها
 
-- Python 3.13 با محیط `backend/.venv` (با `uv sync` ساخته می‌شود)، Node.js 26، pnpm 12 و `pnpm install` در `frontend/`.
-- پایگاه‌داده SQLite و ذخیره‌ساز فایلی جای PostgreSQL/TimescaleDB، Redis و MinIO را می‌گیرند. برای حجم کامل بازار و استفادهٔ چندکاربره از Compose استفاده کنید.
+- Python 3.13 با `backend/.venv` (`cd backend && uv sync`)، Node.js 26، pnpm 12 و `pnpm install` در `frontend/`.
+- دسترسی به TSETMC و کدال فقط از `python.exe` (اسپلیت تونل برنامه‌ای VPN) ممکن است. `curl` روی همین ماشین به آن‌ها نمی‌رسد.
 
-## دموی مصنوعی (یک دستور)
-
-از ریشهٔ پروژه:
+## محیط دادهٔ زنده
 
 ```bash
-backend/.venv/Scripts/python.exe backend/scripts/run_demo.py
+export TMON_DATABASE_URL="sqlite:///D:/Data/Tmon/data/tmon-live.sqlite3"
+export TMON_OBJECT_STORE=file
+export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 ```
 
-- اولین اجرا دیتابیس دمو (`demo/tmon-demo.sqlite3`) و بیلد فرانت را می‌سازد (چند دقیقه)؛ اجراهای بعدی فوری است.
-- رابط روی <http://127.0.0.1:3000> و مستندات API روی <http://127.0.0.1:8000/docs> باز می‌شود. `Ctrl+C` هر دو را می‌بندد.
-- گزینه‌ها: `--rebuild` (ساخت دوباره)، `--no-browser`.
-- **داده کاملاً مصنوعی است:** نمادها «نمونه N» هستند و قیمت‌ها گام تصادفی با لبهٔ کاشته‌شده‌اند. چیزی دربارهٔ بازار واقعی نمی‌گویند.
-- برای اینکه کارت توصیه دیده شود، فقط در اسکریپت دمو آستانه‌ها شل شده‌اند (`margin=-1`، `p_floor=0.15`، `ev_min_abs=0` در `backend/scripts/demo_db.py`؛ آستانهٔ واقعی طبق [ADR 0002](adr/0002-engine-and-data-decisions.md) سربه‌سر + ۰٫۰۵ با کف ۰٫۳۵ و EV خالص ≥ ۰٫۵٪ است). با آستانه‌های واقعی روی داده مصنوعی توصیه‌ای نمی‌آید و دروازهٔ سطح A بسته می‌ماند.
+همهٔ وضعیت در `data/` است (در `.gitignore`). متغیرهای دیگر (`TMON_HTTP_PROXY`، `TMON_INTRADAY_INTERVAL_SECONDS`، `TMON_BOOK_TOP_N`، `TMON_LLM_API_KEY`) در `backend/src/tmon/core/config.py` تعریف شده‌اند.
 
-اجزا: `backend/scripts/demo_db.py` (ساخت دیتابیس)، `serve_demo.py` (API)، `run_demo.py` (همه با هم).
+## چرخهٔ روزانه
 
-## اجرای زنده با داده واقعی TSETMC (یک دستور)
+دو کار زمان‌بندی‌شدهٔ ویندوز `backend/scripts/run_collectors.ps1` را اجرا می‌کنند:
 
-> **وضعیت راستی‌آزمایی:** نشانی‌ها و ستون‌های TSETMC روی سرویس واقعی آزموده شده‌اند (۲۰ آبان ۱۴۰۵): `probe` با ۶ از ۷ بررسی سبز شد و بک‌فیل کامل بازار بدون خطا انجام شد (← [OPEN_QUESTIONS](OPEN_QUESTIONS.md) بندهای ۶۰ و ۶۱). بررسی هفتم، تطبیق دیدبان با تاریخچه، فقط در ساعت بازار اجرا می‌شود و هنوز باز است (بند ۴۹). `probe` همچنان قدم اول است، چون دسترسی به TSETMC به شبکهٔ شما بستگی دارد.
+| کار | زمان | دستور |
+| --- | --- | --- |
+| `Tmon-Intraday` | ساعت بازار | `python -m tmon.ingest.tsetmc.cli intraday --follow` |
+| `Tmon-EOD` | ۱۹:۳۰، شنبه تا چهارشنبه | `run_collectors.ps1 -Eod` |
 
-از ریشهٔ پروژه، **از شبکه‌ای که به tsetmc.com دسترسی دارد**:
+`-Eod` به‌ترتیب اجرا می‌کند:
 
-```bash
-backend/.venv/Scripts/python.exe backend/scripts/run_live.py
-```
+1. `python -m tmon.tasks.cycle`: قیمت و حقیقی/حقوقی، شاخص‌ها، تابلو، اخزا، دلار و طلا و نفت، اخبار، ویژگی‌ها، وزن زنده، و آموزش و انتشار D1/W1/M1. گام D1 اجباری است و بقیه اختیاری. زمان هر گام در `data-health` ثبت می‌شود.
+2. `python -m tmon.tools.v2_ranking`، سپس `turning_points`، `stock_drivers`، `ta_signals` و `entry_odds`. هر کدام یک سند `v2/*.json` می‌نویسد.
+3. `python -m tmon.ingest.codal.cli events` و `meetings`؛ پنج‌شنبه‌ها `tmon.ingest.tsetmc.cli info` (EPS و P/E گروه).
 
-این دستور به‌ترتیب:
+بعد از پایان چرخه: `bash deploy/sync-data.sh`.
 
-1. **probe**: دسترسی، فهرست بازار، قیمت‌های لحظه‌ای، تاریخچهٔ روزانه، حقیقی/حقوقی، اطلاعات نماد و صف خرید/فروش را می‌سنجد و ستون‌های «بازار لحظه‌ای» را با آخرین کندل تاریخچه تطبیق می‌دهد. اگر شبکه در دسترس نباشد با پیام روشن متوقف می‌شود و چیزی ساخته نمی‌شود.
-2. **بک‌فیل** (بار اول، طولانی): فهرست نمادها و تاریخچهٔ روزانه از `--since` (پیش‌فرض ۵ سال). اجراهای بعدی فقط چند روز اخیر را تازه می‌کنند (`eod`).
-3. ویژگی‌ها ← آموزش و انتشار سیگنال‌های امروز (`train_and_publish`).
-4. بیلد فرانت (در صورت نبود)، سپس **API**، **رابط وب** (<http://127.0.0.1:3000>) و **دریافت لحظه‌ای** (`intraday --follow`) هم‌زمان بالا می‌آیند. `Ctrl+C` همه را می‌بندد.
+اجرای دستی همان چرخه: `powershell -File backend/scripts/run_collectors.ps1 -Eod`.
 
-گزینه‌ها: `--backfill` (بازسازی کامل تاریخچه)، `--since YYYY-MM-DD`، `--limit N` (فقط N نماد اول؛ برای آزمایش سریع)، `--skip-probe`، `--no-browser`.
-
-### فایل‌ها و تنظیمات
-
-- همهٔ وضعیت در `data/` است (در `.gitignore`): `tmon-live.sqlite3`، ذخیره‌ساز فایلی `data/objects/` برای payload خام و عکس‌های فوری، و نشانهٔ `.backfilled`. با حذف پوشه از صفر شروع می‌شود.
-- متغیرهای محیطی (پیشوند `TMON_`): `TMON_HTTP_PROXY` (پروکسی خروجی خودتان، اگر شبکه‌تان لازم دارد؛ ما خودمان هیچ پروکسی ثالثی نمی‌گذاریم و محدودیت جغرافیایی را دور نمی‌زنیم)، `TMON_INTRADAY_INTERVAL_SECONDS` (پیش‌فرض ۳۰)، `TMON_BOOK_TOP_N` (پیش‌فرض ۱۵)، `TMON_OBJECT_STORE=file|minio`، `TMON_OBJECT_STORE_DIR`.
-
-### فرمان‌های جداگانه
+## فرمان‌های جداگانه (از `backend/`)
 
 ```bash
-cd backend
-.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli probe
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli probe          # سلامت دسترسی و قالب پاسخ‌ها
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod            # قیمت دسته‌ای و حقیقی/حقوقی سراسری
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod --full     # همهٔ نمادها یکی‌یکی (حدود یک ساعت)
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli backfill --since 2021-01-01 --limit 20
-.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod          # سریع: قیمت دسته‌ای و حقیقی/حقوقی سراسری
-.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod --full   # همهٔ نمادها یکی‌یکی (حدود یک ساعت)
-.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli intraday --once --force
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.book_history --top 60 --days 60
+.venv/Scripts/python.exe -m tmon.ingest.codal.cli letters --symbol فملی
+.venv/Scripts/python.exe -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 20
+.venv/Scripts/python.exe -m tmon.tools.adapt_cycle [--replay]
+.venv/Scripts/python.exe -m tmon.tools.autopilot [--deep]
+.venv/Scripts/python.exe -m tmon.tools.data_audit
 ```
 
-### دریافت لحظه‌ای: چه می‌کند و چه نمی‌کند
+- جست‌وجوی کدال پس از چند ده درخواست پاسخ 429 می‌دهد. دستور با همان داده متوقف می‌شود و اجرای بعدی ادامه می‌دهد ([OPEN_QUESTIONS](OPEN_QUESTIONS.md) ۷۱). صفحهٔ کپچای `Decision.aspx` دور زده نمی‌شود؛ بدنهٔ گزارش از خروجی Excel خوانده می‌شود (۷۵).
+- دریافت لحظه‌ای هر ۳۰ ثانیه یک درخواست دیدبان می‌فرستد و فقط نمادهایی را که حجمشان تغییر کرده ذخیره می‌کند. صف ۵ سطحی فقط برای ۱۵ نماد پرمعامله گرفته می‌شود.
 
-- هر ۳۰ ثانیه یک درخواست «دیدبان بازار» برای کل بازار؛ فقط نمادهایی که حجمشان تغییر کرده در `intraday_snapshots` ذخیره می‌شوند. payload خام هر ۱۰ بار دریافتِ یک‌بار نگه داشته می‌شود.
-- صف خرید/فروش ۵ سطحی فقط برای ۱۵ نماد پرمعامله‌تر لحظه (نه ۷۰۰ نماد) گرفته می‌شود تا از سقف نرخ درخواست رد نشویم.
-- فقط در ساعت معاملات (`market_rules.trading_hours`، به وقت تهران) کار می‌کند؛ با `--follow` بیرون از ساعت منتظر می‌ماند و در بازگشایی ادامه می‌دهد. روزهای تعطیل مدل نشده‌اند؛ در آن روزها معاملهٔ جدیدی نیست و ردیفی ذخیره نمی‌شود.
-- در رابط، صفحهٔ هر نماد بخش «قیمت لحظه‌ای» دارد که هر ۱۵ ثانیه `/instruments/{id}/live` را می‌خواند: آخرین قیمت، تغییر نسبت به پایانی دیروز، حجم، ۵ سطح صف و **سن داده**. داده‌ای قدیمی‌تر از ۵ دقیقه با هشدار «قدیمی» نمایش داده می‌شود و اگر چیزی ذخیره نشده باشد صریحاً همین گفته می‌شود. این مقادیر آخرین چیزی‌اند که دریافت‌کننده نوشته، نه عبور مستقیم از بورس.
-- با Docker، همین کار تسک Celery `snapshot_intraday` است که هر دقیقه در ساعت ۹ تا ۱۲ زمان‌بندی می‌شود.
-
-### چه چیزی راستی‌آزمایی شده است
-
-- منطق ما (تجزیه، تشخیص تغییر، ساعت معاملات، حکم probe، ذخیره‌ساز فایلی، API و پنل) با تست‌های خودکار آزموده شده است.
-- اتصال واقعی: `probe`، بک‌فیل کامل (۳٬۷۶۸ نماد) و چرخهٔ روزانه روی دادهٔ واقعی اجرا شده‌اند (OPEN_QUESTIONS ۶۰ و ۶۱). تست‌های `pytest -m network` همین را روی شبکهٔ شما می‌سنجند.
-- تعدیل قیمت با سری تعدیل‌شدهٔ خود TSETMC برای ۲۰ نماد مقایسه شده است ([adjustment-check](reports/adjustment-check.md)).
-- مسیر Docker Compose اجرا و یک چرخهٔ کامل در لاگ دیده شده است (بخش «دیدن یک چرخه در لاگ»).
-- هنوز باز: تطبیق ستون‌های دیدبان با تاریخچه در ساعت بازار (بند ۴۹).
-
-## اجرای زنده روی «شبیه‌ساز TSETMC» (وقتی سایت اصلی در دسترس نیست)
+## سرور API و وب روی PC
 
 ```bash
-backend/.venv/Scripts/python.exe backend/scripts/run_live.py --stand-in
+cd backend && .venv/Scripts/python.exe -m uvicorn tmon.api.main:app --port 8000
+cd frontend && pnpm dev        # http://127.0.0.1:3000 ، NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
 ```
 
-یک سرور محلی **مصنوعی** (`tmon.devtools.fake_tsetmc`) با همان قالب پاسخ‌های مرجع بالا می‌آید و کل زنجیره روی HTTP واقعی اجرا می‌شود: probe ← بک‌فیل ← ویژگی‌ها ← مدل ← API و وب ← دریافت لحظه‌ای (قیمت و صف خرید/فروش در صفحهٔ هر نماد تازه می‌شود). داده در `data/standin/` است و **داده بازار نیست**؛ فقط ثابت می‌کند کد ما با قالب‌های مستند کار می‌کند. همین سرور را می‌توان جدا اجرا کرد: `python -m tmon.devtools.fake_tsetmc [--live]` و با `TMON_TSETMC_OLD_URL` / `TMON_TSETMC_CDN_URL` به آن اشاره داد.
+## دمو و شبیه‌ساز (بدون شبکه)
 
-## زمان‌بندی و چرخهٔ روزانه (Celery، فعلاً غیرفعال)
+- `backend/.venv/Scripts/python.exe backend/scripts/run_demo.py`: دیتابیس مصنوعی `demo/tmon-demo.sqlite3`، API و وب. نمادها «نمونه N» هستند و آستانه‌ها فقط در `demo_db.py` شل شده‌اند. چیزی دربارهٔ بازار واقعی نمی‌گوید.
+- `backend/.venv/Scripts/python.exe backend/scripts/run_live.py --stand-in`: سرور ساختگی TSETMC (`tmon.devtools.fake_tsetmc`) با قالب پاسخ‌های واقعی. فقط ثابت می‌کند کد با این قالب‌ها کار می‌کند.
 
-Docker از این پروژه کنار گذاشته شده است: نه Dockerfile هست نه Compose. همهٔ اجراها محلی و با SQLite و ذخیره‌ساز فایلی است. کد Celery (چرخهٔ روزانه و `deep_refresh`) مانده ولی هیچ worker یا beat‌ای بالا نمی‌آید؛ همان گام‌ها را می‌شود دستی اجرا کرد (`python -m tmon.tools.adapt_cycle`، `python -m tmon.tools.autopilot [--deep]`). متن زیر توضیح همان زمان‌بندی است برای وقتی که بخواهند فعالش کنند.
-
-### زمان‌بندی روزانه (Celery beat، به وقت تهران)
-
-| تسک | زمان | نقش |
-|---|---|---|
-| `ingest-instruments-daily` | ۰۷:۳۰ | تازه‌سازی فهرست نمادها |
-| `snapshot-intraday` | هر دقیقه، ساعت ۹ تا ۱۲ | یک دریافت لحظه‌ای |
-| `daily-cycle-tick` | هر ۵ دقیقه، روزهای `TMON_SCHEDULE_DAYS` | چرخهٔ پایان روز، فقط یک بار در هر روز |
-| `deep-study-refresh` | ۲۰:۰۰، روزهای `TMON_SCHEDULE_DAYS` | مطالعهٔ عمیق را فقط اگر «خودکار» بگوید موعدش رسیده دوباره انجام می‌دهد؛ بدون torch فقط ثبت می‌کند (`python -m tmon.tools.autopilot --deep` روی ماشین GPU) |
-
-زمان چرخهٔ پایان روز **ثابت نیست**: از `market_rules` خوانده می‌شود. پایان آخرین نشست (جلسهٔ پایانی `closing_session_tal`، وگرنه `trading_hours`) به‌علاوهٔ `TMON_EOD_DELAY_MINUTES` (پیش‌فرض ۳۰) = لحظهٔ آماده بودن. با قوانین فعلی ۱۳:۳۰. هر بار که tick اجرا می‌شود و چرخهٔ امروز آماده و ادعا‌نشده باشد، آن را در Redis (`tmon:cycle:<تاریخ>:lock`) ادعا می‌کند و به‌ترتیب اجرا می‌کند:
-
-1. `ingest_eod`: قیمت‌ها و حقیقی/حقوقی
-2. `indices` و `risk_free`: شاخص‌ها و بازده اخزا (اختیاری؛ شکستشان چرخه را متوقف نمی‌کند)
-3. `features`
-4. سه گام انتشار، یکی برای هر تایم‌فریم در `engine.yaml: publish_timeframes`. هر گام مدل همان تایم‌فریم را آموزش می‌دهد، سیگنال‌های امروز را منتشر می‌کند و نتیجهٔ سیگنال‌های قدیمی را تعیین می‌کند:
-   - `publish_and_resolve_outcomes_D1`: **اجباری**؛ شکستش چرخه را متوقف می‌کند.
-   - `publish_and_resolve_outcomes_W1`: اختیاری؛ شکستش ثبت می‌شود و چرخه ادامه می‌یابد.
-   - `publish_and_resolve_outcomes_M1`: اختیاری، مثل W1.
-
-اگر یک گام اجباری شکست بخورد ادعا آزاد می‌شود و tick بعدی دوباره تلاش می‌کند، حداکثر `TMON_CYCLE_MAX_ATTEMPTS` (پیش‌فرض ۳) بار در روز. پس از موفقیت `tmon:cycle:<تاریخ>:done` ثبت می‌شود و tick‌های بعدی همان روز چیزی اجرا نمی‌کنند.
-
-### دیدن یک چرخه در لاگ
+## تست و بررسی
 
 ```bash
-docker compose --env-file ../.env logs -f worker | grep "cycle day="
+cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest
+cd backend && uv run pytest -m network         # فقط از شبکه‌ای که به TSETMC می‌رسد
+cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 
-نمونهٔ واقعی، چرخهٔ ۲۰ آبان ۱۴۰۵ (2026-11-11) روی Compose، ادعا شده با tick ساعت ۲۱:۲۵ تهران:
-
-| گام | وضعیت | ثانیه | نتیجه |
-|---|---|---|---|
-| `ingest_eod` | ok | 3687.8 | ۱٬۸۴۰ نماد، ۸٬۷۲۷ کندل، ۰ شکست |
-| `indices` | ok | 1.5 | tedpix ۴٬۳۲۶، equal_weight ۳٬۰۴۲ ردیف |
-| `risk_free` | ok | 17.3 | ۱۸ اخزا، ۶۹۱ ردیف نرخ |
-| `features` | ok | 13.6 | ۶۳٬۷۳۰ ردیف |
-| `publish_and_resolve_outcomes_D1` | ok | 67.9 | ۰ توصیه (هیچ نمادی از آستانه‌ها عبور نکرد) |
-| `publish_and_resolve_outcomes_W1` | ok | 69.1 | ۱ توصیه |
-| `publish_and_resolve_outcomes_M1` | ok | 31.9 | ۵ توصیه |
-
-و در پایان `status=complete`. گام `ingest_eod` بیشترین زمان را می‌گیرد چون هر نماد جداگانه و با محدودیت نرخ دریافت می‌شود.
-
-### کدال
-
-```bash
-docker compose --env-file ../.env exec -T backend python -m tmon.ingest.codal.cli letters --symbol فملی
-docker compose --env-file ../.env exec -T backend python -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 20
-```
-
-جستجوی کدال پس از حدود ۵۵ درخواست پاسخ 429 می‌دهد؛ دستور متوقف می‌شود و اجرای بعدی از همان‌جا ادامه می‌دهد. صفحهٔ `Decision.aspx` کپچا دارد و دور زده نمی‌شود؛ بدنهٔ گزارش از خروجی Excel خوانده می‌شود (OPEN_QUESTIONS ۷۵).
-
-هر گام `status=start` و `status=ok seconds=… result=…` (یا `failed`) دارد و پایان چرخه `status=complete` است. وضعیت ادعا:
-
-```bash
-docker compose --env-file ../.env exec redis redis-cli --scan --pattern 'tmon:cycle:*'
-```
-
-### تعطیلی و خرابی
-
-- روز تعطیل یا بدون معامله: ingest چیزی جدید نمی‌گیرد؛ چرخه همچنان اجرا و «توصیه‌ای برای امروز نیست» را منتشر می‌کند. تقویم تعطیلات هنوز مدل نشده است (← OPEN_QUESTIONS).
-- اگر `ingest_eod` به‌خاطر شبکه شکست بخورد، لاگ `status=failed` با خطا می‌دهد و ادعا آزاد می‌شود؛ اصلاح شبکه و منتظر tick بعدی بمانید.
-- توقف: `docker compose --env-file ../.env down` (داده در volumeها می‌ماند؛ `down -v` همه را پاک می‌کند).
+همین‌ها در `.github/workflows/ci.yml` اجرا می‌شوند. CI همچنین بررسی می‌کند که `frontend/openapi.json` و `frontend/lib/api-schema.ts` با API بخوانند.

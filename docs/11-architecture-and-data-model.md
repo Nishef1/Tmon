@@ -1,78 +1,65 @@
 # ۱۱ — معماری و مدل داده
 
-## جریان
+به‌روز: ۲۶ آبان ۱۴۰۵. این سند همان چیزی را می‌گوید که در کد هست. اگر با کد نخواند، کد درست است و این سند باید اصلاح شود.
+
+## اجزا
+
+| جزء | کجا | چه می‌کند |
+| --- | --- | --- |
+| پایگاه داده | SQLite (`TMON_DATABASE_URL`)، مهاجرت با Alembic در `backend/migrations` | همهٔ جدول‌های پایین |
+| ذخیره‌ساز فایل | `TMON_OBJECT_STORE=file`، پوشهٔ `TMON_OBJECT_STORE_DIR` (`storage/objectstore.py`) | payload خام، snapshot مدل‌ها، و سندهای JSON که API می‌خواند (`v2/*.json`، `models/`، `scores/`، `data-health/`) |
+| API | FastAPI، `backend/src/tmon/api` (روترها در `api/routers`) | فقط می‌خواند و جمله می‌سازد؛ هیچ محاسبهٔ سنگینی ندارد |
+| وب | Next.js، `frontend/app` | صفحه‌ها؛ نوع‌های API از `frontend/openapi.json` ساخته می‌شوند (`pnpm gen:api`) |
+| چرخهٔ روزانه | `python -m tmon.tasks.cycle` و ابزارهای `tmon.tools.*` (از `backend/scripts/run_collectors.ps1 -Eod`) | گرفتن داده تا انتشار؛ روی PC |
+| پایشگر | `python -m tmon.portfolio.monitor` (روی سرور، `tmon-monitor.service`) | در ساعت بازار هشدار فوری پرتفوی و نوار لحظه‌ای |
+| سرور | systemd روی VPS: `tmon-api`، `tmon-web`، `tmon-monitor`، nginx | فقط نمایش؛ داده از PC با `deploy/sync-data.sh` می‌آید ([15-deploy](15-deploy.md)) |
+
+Docker، Postgres، MinIO و Celery دیگر اجرا نمی‌شوند. `tasks/celery_app.py` و `tasks/jobs.py` هنوز در کد هستند ولی هیچ مسیر اجرایی فعلی از آن‌ها استفاده نمی‌کند.
+
+## بسته‌های بک‌اند (`backend/src/tmon`)
+
+| بسته | نقش |
+| --- | --- |
+| `core` | تنظیمات (`config.py`، `engine_config.py` برای `config/engine.yaml`)، اتصال پایگاه داده، زمان |
+| `domain` | قواعد بازار (`rules.py`: کارمزد، دامنه، ساعت)، تقویم، مجمع، مقایسه با تورم |
+| `storage` | مدل‌های SQLAlchemy (`models.py`)، seed قواعد، ذخیره‌ساز فایل |
+| `ingest` | `tsetmc` (قیمت، حقیقی/حقوقی، تابلو، لحظه‌ای)، `codal`، `macro` (fipiran، tgju، yahoo، تورم)، `news` |
+| `features` | ساخت ویژگی‌ها، تعدیل قیمت، اندیکاتورها، تابلو، کیفیت داده |
+| `labeling` | برچسب triple-barrier و نسبی (v1) |
+| `models` | LightGBM، تقسیم walk-forward، توضیح SHAP (v1) |
+| `engine` | انتشار v1 (`service.py`)، دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم |
+| `backtest` | بک‌تست و مطالعه‌ها؛ هر گزارش `docs/reports` از یکی از این‌ها می‌آید |
+| `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health`، `deep_doc` |
+| `portfolio` | پرتفوی: دفتر، مفید، توصیه، پیش‌بینی بازه، هشدار، گزارش پیش از گشایش، پایشگر |
+| `tasks` | چرخهٔ روزانه و زمان‌بندی آن |
+| `api` | FastAPI و روترها |
+
+جهت مجاز وابستگی‌ها را `backend/tests/test_layering.py` نگه می‌دارد: یال تازه بین بسته‌ها تست را می‌شکند.
+
+## جریان داده
 
 ```
-منابع (TSETMC, Codal, IME, Fipiran, CBI, SCI, News)
-  → ingest workers (Celery)  → raw payloads (MinIO)
-  → parsers/normalizers      → PostgreSQL + TimescaleDB
-  → feature builder (Polars, point-in-time) → features
-  → models per timeframe (LightGBM + isotonic) → signals
-  → FastAPI → Next.js (داشبورد، صفحه نماد، تقویم مجامع، مقایسه با تورم، آکادمی)
+TSETMC / کدال / fipiran / tgju / yahoo / RSS
+  → ingest (+ payload خام در ذخیره‌ساز)
+  → prices_daily, client_types_daily, order_book_daily, codal_*, macro_series, news_*
+  → features (جدول features)
+  → engine (v1: signals, model_runs)  و  tools (v2/*.json در ذخیره‌ساز)
+  → api → وب
 ```
 
-موتورها فقط از DB می‌خوانند و فقط در DB می‌نویسند؛ هیچ موتوری مستقیم موتور دیگر را صدا نمی‌زند.
+هر سند `v2/*.json` یک نسخه از داده است. API آن را بدون کش زمانی می‌خواند و تازگی را با روز داده می‌سنجد، نه با ساعت.
 
-## ساختار ریپو (تثبیت‌شده)
+## جدول‌ها (`storage/models.py`)
 
-```
-/
-├─ docs/                    # همه مستندات (این پوشه)
-├─ backend/
-│  ├─ pyproject.toml        # uv
-│  ├─ src/tmon/
-│  │  ├─ core/              # config, logging, time (Jalali/Tehran), db session
-│  │  ├─ domain/            # Pydantic models, enums (instrument_type, timeframe)
-│  │  ├─ ingest/
-│  │  │  ├─ tsetmc/  codal/  ime/  fipiran/  macro/  news/
-│  │  ├─ storage/           # SQLAlchemy models, repositories
-│  │  ├─ features/          # technical.py, orderbook.py, fundamental.py, events.py, macro.py
-│  │  ├─ labeling/          # triple_barrier.py
-│  │  ├─ models/            # baseline.py, lgbm.py, calibration.py, registry.py
-│  │  ├─ engine/            # universe.py, scoring.py, sizing.py, recommend.py
-│  │  ├─ backtest/          # walk_forward.py, costs.py, metrics.py, report.py
-│  │  ├─ api/               # FastAPI routers
-│  │  └─ tasks/             # Celery tasks + beat schedule
-│  ├─ migrations/           # Alembic
-│  ├─ config/engine.yaml    # همه آستانه‌ها و پارامترها
-│  └─ tests/
-├─ frontend/                # Next.js + TS, RTL, فونت وزیرمتن
-├─ infra/docker-compose.yml
-└─ .github/workflows/
-```
+| گروه | جدول‌ها |
+| --- | --- |
+| نماد و قواعد | `instruments`، `sector_names`، `market_rules`، `trading_calendar` |
+| بازار روزانه | `prices_daily`، `price_adjustments`، `client_types_daily`، `market_index_daily`، `order_book_daily`، `intraday_profile_daily` |
+| لحظه‌ای | `intraday_snapshots`، `order_book_snapshots` |
+| رویداد و کدال | `corporate_events`، `share_changes`، `shareholders`، `codal_letters`، `codal_reports`، `codal_report_cells` |
+| کلان، صندوق، خبر | `macro_series`، `fund_nav`، `news_raw`، `news_events` |
+| مدل v1 | `features`، `labels`، `model_runs`، `signals`، `signal_runs`، `backtests` |
+| پرتفوی | `portfolios`، `holdings`، `portfolio_trades`، `broker_links`، `portfolio_alerts`، `portfolio_briefings`، `tracked_picks` |
+| خام | `raw_payloads` |
 
-**هیچ README در ریشه ریپو توضیح محصول نمی‌دهد** (ریپو فعلاً عمومی است).
-
-## اسکیما (جداول اصلی)
-
-| جدول | نوع | کلید | ستون‌های کلیدی |
-| --- | --- | --- | --- |
-| `instruments` | عادی | `id` | `ins_code` (TSETMC)، `symbol_fa`, `name_fa`, `isin`, `market`, `board`, `instrument_type`, `sector_code`, `tags jsonb`, `listed_at`, `delisted_at` |
-| `market_rules` | عادی | `id` | `market`, `rule`, `value jsonb`, `valid_from`, `valid_to`, `source_url` |
-| `trading_calendar` | عادی | `(market, date)` | `is_open`, `halt_reason` |
-| `prices_daily` | hypertable | `(instrument_id, date)` | OHLC، `last`, `close`, `prev_close`, `volume`, `value`, `trades`, `base_volume`, `limit_up`, `limit_down`, `status` |
-| `prices_adjusted` | view/materialized | — | `adj_factor` تجمعی |
-| `client_types_daily` | hypertable | `(instrument_id, date)` | حجم/ارزش/تعداد خرید و فروش حقیقی و حقوقی |
-| `intraday_snapshots` | hypertable | `(instrument_id, ts)` | آخرین قیمت، حجم تجمعی، حقیقی/حقوقی تجمعی |
-| `order_book_snapshots` | hypertable | `(instrument_id, ts)` | ۵ ردیف قیمت/حجم/تعداد هر طرف |
-| `financial_statements` | عادی | `id` | `instrument_id`, `period_end`, `period_type`, `statement`, `items jsonb`, `version`, `codal_letter_id`, `published_at` |
-| `monthly_activity` | عادی | `id` | فروش محصولات، `published_at`, `version` |
-| `corporate_events` | عادی | `id` | `type`, تاریخ‌ها، `dps`, `increase_pct`, `source`, `payment_schedule jsonb` |
-| `funds`, `fund_nav_daily` | عادی/hypertable | — | `trade_method`, `nav_issue`, `nav_redeem`, `aum`, `flow` |
-| `futures_contracts`, `futures_daily` | عادی/hypertable | — | `underlying`, `expiry`, `settlement`, `open_interest` |
-| `macro_series` | hypertable | `(series, source, ref_period)` | `value`, `release_date` |
-| `news_raw` | عادی | `id` | `source`, `url`, `published_at`, `fetched_at`, `text`, `hash` |
-| `events` | عادی | `id` | خروجی ساختاریافته [08](08-news-and-macro.md) |
-| `features` | hypertable | `(instrument_id, date, feature_set_version)` | `values jsonb` یا ستونی (Parquet در MinIO برای آموزش) |
-| `labels` | عادی | `(instrument_id, date, timeframe)` | `y`, `realized_return`, `exit_reason`, `exit_date` |
-| `model_runs` | عادی | `id` | `timeframe`, `version`, `train_window`, `metrics jsonb`, `artifact_uri` |
-| `signals` | عادی | `id` | فیلدهای [10 §۸](10-recommendation-engine.md) + `outcome` |
-| `backtests` | عادی | `id` | پیکربندی، معیارها، `report_uri` |
-
-## اصول
-
-- **Point-in-time:** هر ردیف `published_at`/`release_date`/`fetched_at` دارد؛ ساخت ویژگی فقط با `<= as_of`.
-- **زمان:** ذخیره UTC؛ نمایش Asia/Tehran و تاریخ شمسی (کتابخانه `jdatetime`).
-- **نسخه:** صورت مالی اصلاحیه و مدل جدید هرگز بازنویسی نمی‌شوند.
-- **قابلیت تکرار:** `data_snapshot_id` و `model_version` روی هر سیگنال.
-- **میزبانی:** سرور ایران برای دسترسی پایدار به منابع داخلی؛ فاز ۲ ناحیه دوم خارج کشور.
+هر ردیف دریافتی `source_url` و `fetched_at` دارد. قیمت‌ها خام ذخیره می‌شوند و تعدیل هنگام خواندن اعمال می‌شود (`price_adjustments`).
