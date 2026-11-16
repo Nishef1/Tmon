@@ -148,6 +148,15 @@ def _per_capita(r: ClientTypeDaily) -> tuple[float | None, float | None]:
     return b, s
 
 
+def _volume_power(r: ClientTypeDaily) -> float | None:
+    """Buyer power from shares per buyer over shares per seller. The latest day often comes from a
+    source that has volumes and counts but no values; the two ratios agree because one day's buy and
+    sell prices are close."""
+    if not (r.buy_volume_i and r.buy_count_i and r.sell_volume_i and r.sell_count_i):
+        return None
+    return (float(r.buy_volume_i) / r.buy_count_i) / (float(r.sell_volume_i) / r.sell_count_i)
+
+
 def _flow(rows: list[ClientTypeDaily]) -> DashFlow | None:
     if not rows:
         return None
@@ -180,7 +189,7 @@ def _flow(rows: list[ClientTypeDaily]) -> DashFlow | None:
         sell_count_n=c.sell_count_n,
         per_capita_buy=b0,
         per_capita_sell=s0,
-        power=(b0 / s0) if b0 and s0 else None,
+        power=(b0 / s0) if b0 and s0 else _volume_power(c),
         net_real_value=net_v,
         net_real_volume=net_q,
         avg10_per_capita_buy=ab,
@@ -622,8 +631,9 @@ def decide(
         )
     bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
     if bt and ht:
+        top = f"{bt * 100:g}".replace(".", "٫")  # 10 not 10.0
         reasons.append(
-            f"قاعدهٔ کار: امتیاز {(1 - bt) * 100:.0f} و بالاتر ({_pct(bt)} بالای کل بازار) «خرید»، "
+            f"قاعدهٔ کار: امتیاز {(1 - bt) * 100:.0f} و بالاتر ({top}٪ بالای کل بازار) «خرید»، "
             f"{(1 - ht) * 100:.0f} تا {(1 - bt) * 100:.0f} «نگهداری یا صبر» و زیر "
             f"{(1 - ht) * 100:.0f} «فروش» است."
         )

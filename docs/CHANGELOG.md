@@ -1,5 +1,13 @@
 # تغییرات
 
+## 2026-11-16 — Small inconsistencies found by reading the live pages
+
+- The collapsed "decision" block on the home page grouped by score zone and showed 50 "buy" while the table above showed 0. It now uses the same per-row `verdict` (shared `rowVerdict` in `lib/ui.ts`), says «صبر» for hold, and the zone tables are renamed to score groups (high / middle / low) so only one place says buy.
+- The industries table and its filter said «نگهداری» for hold; the home table says «صبر». Both say «صبر» now.
+- The checklist printed "better than 100% of stocks" for a 99.6 gauge (rounded up); it is capped at 99. A negative net edge no longer carries "(اطمینان زیاد)": it says the ranking power is statistically solid but does not cover costs.
+- The rule sentence said "۱۰٫۰٪"; now "۱۰٪".
+- The latest day's client-type rows carry volumes and counts but no values, so net real inflow and buyer power showed "—" for every stock. Power falls back to shares per buyer over shares per seller; the net inflow tile shows shares when there is no value.
+
 ## 2026-11-16 — One verdict and one rank everywhere
 
 - The home table showed the score zone (Shekam: "buy") while its own page showed the tested-month verdict (hold on every horizon). `final_verdict` in `dashboard.py` is now the single definition; `/v2/ranking` rows carry `verdict` and the home table, tabs and counts use it.

@@ -34,7 +34,7 @@ import { heatProps, signTone, signedPct, verdictPill } from "@/lib/ui";
 
 const VERDICTS: [Verdict, string][] = [
   ["buy", "خرید"],
-  ["hold", "نگهداری"],
+  ["hold", "صبر"],
   ["sell", "فروش"],
   ["none", "تصمیمی نیست"],
 ];
@@ -72,7 +72,7 @@ const COLS: Col[] = [
         <Gauge value={r.gauge} size="sm" label="امتیاز ترکیبی مدل" />
         <div className="leading-tight">
           <span className={`${verdictPill(r.verdict)}`} data-verdict={r.verdict}>
-            {r.verdictLabel || "—"}
+            {r.verdict === "hold" ? "صبر" : r.verdictLabel || "—"}
           </span>
           <div className="text-xs text-muted">
             {r.gauge == null ? gaugeWhy(r.gaugeNote) : faNumber(r.gauge)}

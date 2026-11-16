@@ -6,7 +6,7 @@ import { TradeBadge } from "@/components/TradeBadge";
 import { useMemo, useState } from "react";
 import type { RankingRow } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
-import { verdictPill } from "@/lib/ui";
+import { rowVerdict, verdictPill } from "@/lib/ui";
 
 type Zone = "all" | V;
 type Key = "rank" | "change" | "close" | "value";
@@ -16,8 +16,7 @@ type V = keyof typeof LABEL;
 
 /** The verdict the stock's own page shows (zone softened by the tested month); falls back to the
  *  zone for an older API that has no `verdict`. */
-const verdictOf = (r: RankingRow): V | null =>
-  r.verdict ?? (r.zone === "buy" ? "buy" : r.zone === "hold" ? "hold" : r.zone === "avoid" ? "sell" : null);
+const verdictOf = (r: RankingRow): V | null => rowVerdict(r);
 const PAGE = 40;
 
 /** One sortable, filterable table of the liquid stocks: what a visitor scans first. */

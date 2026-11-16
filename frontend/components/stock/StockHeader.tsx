@@ -192,10 +192,12 @@ export function StockHeader({
           <Tile
             k="ورود پول حقیقی"
             hint="ارزش خرید حقیقی‌ها منهای ارزش فروش حقیقی‌ها در امروز؛ مثبت یعنی پول حقیقی وارد سهم شده است"
-            tone={(f.net_real_value ?? 0) >= 0 ? "text-up" : "text-down"}
+            tone={(f.net_real_value ?? f.net_real_volume ?? 0) >= 0 ? "text-up" : "text-down"}
             sub={realShare == null ? undefined : `${faPercent(realShare, 0)} خرید حقیقی`}
           >
-            {toman(f.net_real_value)}
+            {f.net_real_value == null && f.net_real_volume != null
+              ? `${f.net_real_volume < 0 ? "−" : ""}${qty(Math.abs(f.net_real_volume))} سهم`
+              : toman(f.net_real_value)}
           </Tile>
         )}
         {f && (

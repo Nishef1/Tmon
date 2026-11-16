@@ -296,3 +296,21 @@ def test_rank_counts_only_liquid_basket_rows() -> None:
     doc["rows"][0]["in_basket"] = False  # a thin stock ranked above the others
     d = dash.decide(_inst("ب"), doc, 8e11)
     assert d.rank == 1 and d.basket_size == 3
+
+
+def test_flow_power_falls_back_to_volumes_when_the_day_has_no_values() -> None:
+    row = ClientTypeDaily(
+        instrument_id=1,
+        date=dt.date(2026, 11, 15),
+        buy_count_i=2712,
+        sell_count_i=1575,
+        buy_volume_i=81326935.0,
+        sell_volume_i=57086973.0,
+        buy_value_i=None,
+        sell_value_i=None,
+    )
+    flow = dash._flow([row])
+    assert flow is not None
+    assert flow.power == pytest.approx((81326935 / 2712) / (57086973 / 1575))
+    assert flow.net_real_value is None
+    assert flow.net_real_volume == pytest.approx(81326935 - 57086973)

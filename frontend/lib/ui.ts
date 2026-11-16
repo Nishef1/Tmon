@@ -14,6 +14,22 @@ export const verdictPill = (v: string | null | undefined) => `pill v-${asVerdict
 /** Tinted panel for a decision. */
 export const verdictTone = (v: string | null | undefined) => `tone-${asVerdict(v)}`;
 
+/** The verdict the stock's own page shows (score zone softened by the tested month). Falls back to
+ *  the zone for an older API without `verdict`; `null` when the stock has no decision. */
+export const rowVerdict = (r: {
+  verdict?: "buy" | "hold" | "sell" | null;
+  zone?: string | null;
+}): "buy" | "hold" | "sell" | null =>
+  r.verdict !== undefined
+    ? r.verdict
+    : r.zone === "buy"
+      ? "buy"
+      : r.zone === "hold"
+        ? "hold"
+        : r.zone === "avoid"
+          ? "sell"
+          : null;
+
 /** Text colour class for a signed number: up, down, or muted when missing. */
 export const signTone = (n: number | null | undefined) =>
   n == null ? "text-muted" : n > 0 ? "text-up" : n < 0 ? "text-down" : "";

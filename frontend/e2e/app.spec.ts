@@ -343,7 +343,7 @@ test("industries table shows one decision per symbol with its gauge and flow col
   const table = page.getByTestId("industry-table");
   await expect(table).toContainText("قدرت خریدار");
   await expect(table.getByTestId("gauge").first()).toBeVisible();
-  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("نگهداری");
+  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("صبر");
 });
 
 test("header search finds a symbol by name or industry and opens its page", async ({ page }) => {

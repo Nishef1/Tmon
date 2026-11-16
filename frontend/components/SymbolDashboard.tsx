@@ -437,7 +437,15 @@ export function SymbolFlow({ d }: { d: D }) {
           v={f.power == null ? "—" : faNumber(f.power, 2)}
           tone={f.power != null ? (f.power >= 1 ? "text-up" : "text-down") : ""}
         />
-        <Row k="خالص ورود پول حقیقی" v={toman(f.net_real_value)} tone={sign(f.net_real_value)} />
+        {f.net_real_value == null && f.net_real_volume != null ? (
+          <Row
+            k="خالص ورود حقیقی‌ها (به سهم)"
+            v={`${f.net_real_volume < 0 ? "−" : ""}${qty(Math.abs(f.net_real_volume))} سهم`}
+            tone={sign(f.net_real_volume)}
+          />
+        ) : (
+          <Row k="خالص ورود پول حقیقی" v={toman(f.net_real_value)} tone={sign(f.net_real_value)} />
+        )}
       </dl>
     </section>
   );

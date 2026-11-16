@@ -42,7 +42,7 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       ask: "امروز از بقیهٔ سهم‌ها قوی‌تر است؟",
       answer: (
         <>
-          از <b>{faNumber(g, 0)}٪</b> سهم‌های بازار بهتر است
+          از <b>{faNumber(Math.min(99, Math.round(g)), 0)}٪</b> سهم‌های بازار بهتر است
           {d.decision.rank != null && <> (رتبهٔ {faNumber(d.decision.rank)} امروز)</>}.
         </>
       ),
@@ -66,7 +66,13 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
               : `${signedPct(h.net_excess)} کمتر از بازار`}
           </b>{" "}
           سود می‌کردید
-          {trust && <> (اطمینان {trust})</>}.
+          {trust &&
+            (h.net_excess >= 0 ? (
+              <> (اطمینان {trust})</>
+            ) : (
+              <> (قدرت رتبه‌بندی از نظر آماری {trust} است، ولی کارمزد را پوشش نمی‌دهد)</>
+            ))}
+          .
         </>
       ),
     });
@@ -144,8 +150,8 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       ask: "کوتاه‌مدت داغ نیست؟",
       answer: (
         <>
-          {parts.join(" و ")}. کوتاه‌مدت اشباع خرید است و ممکن است چند روز اصلاح شود؛ این هشدار
-          حکم بالا را عوض نمی‌کند، ولی ورود را بهتر است پله‌پله یا نزدیک سطح خروج انجام دهید.
+          {parts.join(" و ")}. کوتاه‌مدت اشباع خرید است و ممکن است چند روز اصلاح شود؛ این هشدار حکم
+          بالا را عوض نمی‌کند، ولی ورود را بهتر است پله‌پله یا نزدیک سطح خروج انجام دهید.
         </>
       ),
     });

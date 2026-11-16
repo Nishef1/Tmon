@@ -1,5 +1,5 @@
 import { QueueBadge } from "@/components/QueueBadge";
-import { verdictPill, verdictTone } from "@/lib/ui";
+import { rowVerdict, verdictPill, verdictTone } from "@/lib/ui";
 import { TradeBadge } from "@/components/TradeBadge";
 import Link from "next/link";
 import type { Ranking, RankingRow } from "@/lib/api";
@@ -30,25 +30,26 @@ export function TradableRanking({ d }: { d: Ranking }) {
     {
       zone: "buy",
       title: "خرید",
-      why: `بالاترین ${d.buy_top_frac == null ? "بخش" : faPercent(d.buy_top_frac, 0)} رتبه‌بندی ترکیبی قدرت خریدار، کم‌نوسان بودن قیمت، نزدیکی به سقف یک‌ساله و روند ۱۲ ماهه.`,
+      why: `بالاترین ${d.buy_top_frac == null ? "بخش" : faPercent(d.buy_top_frac, 0)} رتبه‌بندی ترکیبی و آزمون یک‌ماههٔ پس از کارمزد هم تأییدش کرده است.`,
     },
     {
       zone: "hold",
-      title: "نگهداری",
-      why: `تا ${d.hold_top_frac == null ? "محدودهٔ بعدی" : `${faPercent(d.hold_top_frac, 0)} برتر`} رتبه‌بندی؛ اگر دارید نگه دارید، ولی خرید تازه نکنید.`,
+      title: "صبر",
+      why: `امتیاز تا ${d.hold_top_frac == null ? "محدودهٔ بعدی" : `${faPercent(d.hold_top_frac, 0)} برتر`}، یا بالاتر ولی بدون تأیید آزمون یک‌ماهه؛ خرید تازه نکنید و اگر دارید نگه دارید.`,
     },
     {
       zone: "avoid",
       title: "فروش",
-      why: "پایین‌تر از محدودهٔ نگهداری؛ نخرید و اگر دارید فروش را بسنجید.",
+      why: "امتیاز پایین؛ نخرید و اگر دارید فروش را بسنجید.",
     },
   ];
   return (
     <section className="card space-y-3" data-testid="tradable-ranking">
-      <h2 className="text-lg font-bold">تصمیم امروز: خرید، نگهداری یا فروش (توصیه نیست)</h2>
+      <h2 className="text-lg font-bold">تصمیم امروز: خرید، صبر یا فروش (توصیه نیست)</h2>
       <p className="text-sm text-muted">
-        هر سهم فقط یکی از این سه حالت را دارد؛ اغلب روزها محدودهٔ خرید خالی است یا آزمون‌های پذیرش
-        مدل نگذشته‌اند و آن‌وقت این فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}:{" "}
+        همان حکم جدول بالا و صفحهٔ هر سهم؛ هر سهم یکی از این سه حالت را دارد (جز نمادهای بدون
+        امتیاز). اغلب روزها محدودهٔ خرید خالی است یا آزمون‌های پذیرش مدل نگذشته‌اند و آن‌وقت این
+        فهرست فقط رتبه‌بندی است. داده تا {jalali(d.as_of)}:{" "}
         {d.basket_size == null ? "نمادهای پرمعامله" : `${faNumber(d.basket_size)} نماد پرمعامله`}
         {extra > 0 &&
           ` و ${faNumber(extra)} نماد محدودهٔ خرید بیرون از آن‌ها («کم‌معامله‌تر»)`}.{" "}
@@ -64,7 +65,11 @@ export function TradableRanking({ d }: { d: Ranking }) {
       )}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {cols.map((c) => (
-          <Column key={c.zone} c={c} rows={tradable.filter((r) => r.zone === c.zone)} />
+          <Column
+            key={c.zone}
+            c={c}
+            rows={tradable.filter((r) => rowVerdict(r) === ZONE[c.zone])}
+          />
         ))}
       </div>
       <p className="text-xs text-muted">
