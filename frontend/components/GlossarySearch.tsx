@@ -10,6 +10,7 @@ export type GlossaryItem = {
   category: string;
   categoryLabel: string;
   text: string;
+  plain: string;
 };
 
 /** Persian digits and the Arabic forms of ی/ک are folded so «كالیبراسیون» finds «کالیبراسیون». */
@@ -27,7 +28,7 @@ export function GlossarySearch({ items }: { items: GlossaryItem[] }) {
   const needle = fold(q.trim());
   const shown = useMemo(
     () =>
-      needle ? items.filter((i) => fold(`${i.fa} ${i.en} ${i.text}`).includes(needle)) : items,
+      needle ? items.filter((i) => fold(`${i.fa} ${i.en} ${i.text} ${i.plain}`).includes(needle)) : items,
     [items, needle],
   );
   const groups = useMemo(() => {
@@ -57,16 +58,24 @@ export function GlossarySearch({ items }: { items: GlossaryItem[] }) {
       {groups.length === 0 && <p className="card text-muted">واژه‌ای با این نام پیدا نشد.</p>}
       {groups.map(([category, g]) => (
         <section key={category} aria-labelledby={`g-${category}`}>
-          <h2 id={`g-${category}`} className="mb-2 font-bold">
+          <h2 id={`g-${category}`} className="mb-3 text-lg font-extrabold">
             {g.label}
           </h2>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {g.rows.map((i) => (
               <li key={i.key}>
-                <Link href={`/glossary/${i.key}`} className="chip block w-full">
-                  <span className="font-semibold">{i.fa}</span>
-                  <span className="block text-xs text-muted" dir="ltr">
-                    {i.en}
+                <Link
+                  href={`/glossary/${i.key}`}
+                  className="card block h-full transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+                >
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="font-bold">{i.fa}</span>
+                    <span className="truncate text-[11px] text-muted" dir="ltr">
+                      {i.en}
+                    </span>
+                  </span>
+                  <span className="mt-1.5 line-clamp-2 block text-sm leading-7 text-muted">
+                    {i.plain}
                   </span>
                 </Link>
               </li>

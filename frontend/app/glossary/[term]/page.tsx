@@ -5,6 +5,7 @@ import { TermTests } from "@/components/TermTests";
 import { taSignals } from "@/lib/api";
 import { GLOSSARY, GLOSSARY_KEYS, glossaryEntry, CATEGORY_LABEL } from "@/lib/glossary";
 import { placesFor } from "@/lib/glossary-places";
+import { PLAIN } from "@/lib/glossary-plain";
 import { SHOWN_ON } from "@/lib/glossary-usage";
 
 type Props = { params: Promise<{ term: string }> };
@@ -28,30 +29,54 @@ export default async function GlossaryTerm({ params }: Props) {
   const shown = SHOWN_ON[term];
   const places = placesFor(term);
   const tests = shown ? await taSignals() : null;
+  const simple = PLAIN[e.key];
   return (
-    <main className="max-w-2xl space-y-5">
-      <Link href="/glossary" className="text-sm text-accent">
-        ← واژه‌نامه
+    <main className="gloss mx-auto max-w-3xl space-y-6">
+      <Link href="/glossary" className="text-sm text-accent hover:underline">
+        → همهٔ واژه‌ها
       </Link>
-      <header>
-        <p className="text-xs text-muted">{CATEGORY_LABEL[e.category]}</p>
-        <h1 className="text-2xl font-extrabold">{e.fa}</h1>
-        <p className="text-sm text-muted" dir="ltr">
-          {e.en}
+      <header className="space-y-2">
+        <span className="chip">{CATEGORY_LABEL[e.category]}</span>
+        <h1 className="text-3xl font-extrabold leading-tight">{e.fa}</h1>
+        <p className="text-sm text-muted">
+          <bdi dir="ltr">{e.en}</bdi>
         </p>
         {e.aliases && e.aliases.length > 0 && (
-          <p className="mt-1 text-xs text-muted">نام‌های دیگر: {e.aliases.join("، ")}</p>
+          <p className="text-xs text-muted">نام‌های دیگر: {e.aliases.join("، ")}</p>
         )}
       </header>
-      <Section title="تعریف">{e.definition}</Section>
-      {e.formula && (
-        <section>
-          <h2 className="mb-1 font-bold">فرمول</h2>
-          <p className="tile text-sm">{e.formula}</p>
+
+      <section className="gloss-simple" data-testid="term-plain">
+        <h2 className="gloss-h">به زبان ساده</h2>
+        <p className="gloss-lead">{simple.plain}</p>
+        <div className="gloss-example">
+          <h3 className="gloss-h">مثال</h3>
+          <p>{simple.example}</p>
+        </div>
+      </section>
+
+      <section className="card space-y-4" data-testid="term-technical">
+        <h2 className="gloss-h">تعریف دقیق</h2>
+        <p className="gloss-body">{e.definition}</p>
+        {e.formula && (
+          <div>
+            <h3 className="gloss-h">فرمول</h3>
+            <p className="gloss-formula">{e.formula}</p>
+          </div>
+        )}
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <section className="card">
+          <h2 className="gloss-h">چرا مهم است؟</h2>
+          <p className="gloss-body">{e.why}</p>
         </section>
-      )}
-      <Section title="چرا مهم است؟">{e.why}</Section>
-      <Section title="محدودیت‌ها">{e.limits}</Section>
+        <section className="card">
+          <h2 className="gloss-h">محدودیت‌ها</h2>
+          <p className="gloss-body">{e.limits}</p>
+        </section>
+      </div>
+
       {shown && (
         <section data-testid="term-shown-on">
           <h2 className="mb-1 font-bold">کجای سایت دیده می‌شود؟</h2>
@@ -97,11 +122,3 @@ export default async function GlossaryTerm({ params }: Props) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h2 className="mb-1 font-bold">{title}</h2>
-      <p className="text-sm leading-8">{children}</p>
-    </section>
-  );
-}

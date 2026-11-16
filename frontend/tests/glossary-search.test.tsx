@@ -12,6 +12,7 @@ const ITEMS: GlossaryItem[] = [
     category: "model",
     categoryLabel: "مدل",
     text: "خطای پیش‌بینی احتمال",
+    plain: "نمرهٔ خطا",
   },
   {
     key: "drawdown",
@@ -20,6 +21,7 @@ const ITEMS: GlossaryItem[] = [
     category: "risk",
     categoryLabel: "ریسک",
     text: "بیشترین افت سرمایه",
+    plain: "بدترین افت",
   },
 ];
 

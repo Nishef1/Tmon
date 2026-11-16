@@ -814,3 +814,44 @@ input[type="radio"] {
     oklch(0.38 0.15 152)
   );
 }
+
+/* glossary: long reading text, so larger line height and a measured line length */
+.gloss-h {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.gloss-lead {
+  font-size: 1.15rem;
+  line-height: 2.1;
+  font-weight: 500;
+}
+.gloss-body {
+  font-size: 1rem;
+  line-height: 2.05;
+  max-width: 68ch;
+}
+.gloss-simple {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  padding: 1.25rem 1.5rem;
+}
+.gloss-example {
+  margin-top: 1rem;
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  line-height: 2;
+}
+.gloss-formula {
+  border-radius: 0.6rem;
+  background: var(--surface-2);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.95rem;
+  line-height: 1.9;
+  unicode-bidi: plaintext;
+}

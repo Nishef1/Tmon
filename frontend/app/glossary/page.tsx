@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { GlossarySearch, type GlossaryItem } from "@/components/GlossarySearch";
 import { CATEGORY_LABEL, GLOSSARY, GLOSSARY_KEYS } from "@/lib/glossary";
+import { PLAIN } from "@/lib/glossary-plain";
 
 export const metadata: Metadata = { title: "واژه‌نامه" };
 
@@ -16,14 +17,15 @@ export default function GlossaryIndex() {
     category: GLOSSARY[k].category,
     categoryLabel: CATEGORY_LABEL[GLOSSARY[k].category],
     text: [GLOSSARY[k].definition, ...aliasesOf(GLOSSARY[k])].join(" "),
+    plain: PLAIN[k].plain,
   }));
   return (
     <main className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold">واژه‌نامه</h1>
-        <p className="mt-1 text-sm text-muted">
-          هر عدد در سایت به مدخل خودش در این صفحه پیوند دارد: تعریف، فرمول، دلیل اهمیت، محدودیت‌ها و
-          صفحه‌هایی که آن را نشان می‌دهند.
+        <h1 className="text-3xl font-extrabold">واژه‌نامه</h1>
+        <p className="mt-2 max-w-[68ch] leading-8 text-muted">
+          هر عدد سایت به مدخل خودش پیوند دارد. هر مدخل اول به زبان ساده و با مثال توضیح می‌دهد، بعد
+          تعریف دقیق، فرمول، دلیل اهمیت و محدودیت‌ها را می‌آورد.
         </p>
       </div>
       <GlossarySearch items={items} />
