@@ -211,7 +211,7 @@ function Decision({
         </p>
       )}
 
-      <details className="mt-3 border-t border-line pt-3" data-testid="checks-details">
+      <details className="mt-3 border-t border-line pt-3" data-testid="checks-details" open>
         <summary className="cursor-pointer select-none text-sm font-semibold text-accent">
           چرا؟ چک‌لیست تصمیم
         </summary>

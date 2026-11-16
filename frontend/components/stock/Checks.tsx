@@ -130,6 +130,26 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       ),
     });
   }
+  const rsi = d.technical?.values.find((x) => x.key === "rsi")?.value;
+  const green = d.entry?.green ?? 0;
+  const hot = typeof rsi === "number" && rsi > 80;
+  if (hot || green >= 6) {
+    const parts = [
+      hot ? `RSI ۱۴ روزه ${faNumber(rsi, 0)} است (بالای ۸۰)` : null,
+      green >= 6 ? `${faNumber(green)} کندل سبز پشت هم آمده` : null,
+    ].filter(Boolean);
+    out.push({
+      key: "heat",
+      status: "warn",
+      ask: "کوتاه‌مدت داغ نیست؟",
+      answer: (
+        <>
+          {parts.join(" و ")}. کوتاه‌مدت اشباع خرید است و ممکن است چند روز اصلاح شود؛ این هشدار
+          حکم بالا را عوض نمی‌کند، ولی ورود را بهتر است پله‌پله یا نزدیک سطح خروج انجام دهید.
+        </>
+      ),
+    });
+  }
   const q = d.decision.queue_state;
   if (q === "buy_queue" || q === "sell_queue") {
     out.push({
