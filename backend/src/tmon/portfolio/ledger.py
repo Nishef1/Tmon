@@ -29,6 +29,7 @@ from sqlalchemy import and_, func, inspect, select, text
 from sqlalchemy.orm import Session
 
 from tmon.core.timeutil import utcnow
+from tmon.portfolio import liveprice
 from tmon.storage.models import (
     Base,
     BrokerLink,
@@ -473,9 +474,14 @@ def summarize(session: Session, p: Portfolio, positions: dict[int, Position]) ->
     closed: list[dict[str, Any]] = []
     tot: defaultdict[str, float] = defaultdict(float)
     any_estimated = False
+    open_ids = [iid for iid, pos in positions.items() if pos.shares > 0]
+    marks = {iid: mark_on(session, iid, today) for iid in open_ids}
+    # While the market is open (or before the evening cycle stores the day) the stored price is
+    # yesterday's: value the holding at the exchange's last trade instead.
+    fresh = liveprice.live_marks(session, {iid: (m[2] if m else None) for iid, m in marks.items()})
     for iid, pos in positions.items():
         inst = instruments.get(iid)
-        c = mark_on(session, iid, today)
+        c = fresh.get(iid) or marks.get(iid) or mark_on(session, iid, today)
         realized_row = {
             "instrument_id": iid,
             "symbol": inst.symbol_fa if inst else str(iid),
@@ -515,6 +521,7 @@ def summarize(session: Session, p: Portfolio, positions: dict[int, Position]) ->
                 "last": price,
                 "close": c[1] if c else None,
                 "close_date": c[2].isoformat() if c else None,
+                "live": iid in fresh,
                 "stale": stale,
                 "price_missing": price_missing,
                 "market_value": mv,

@@ -1,5 +1,13 @@
 # تغییرات
 
+## 2026-11-16 — Best entry planner, live portfolio prices, adaptive forecast drift
+
+- Best entry (`portfolio/entry.py::entry_plan`, in `GET /instruments/{id}/entry` as `plan`): the day's low against yesterday's close is read from the stored history (liquid symbols that opened in the same gap bucket, blended with the symbol's own days, weight n/(n+40)). Each ladder step is a price the low reached on a known share of days; the recommended limit maximises `P(fill) x (target/price - 1 - cost)` with target = yesterday's close x (1 + tested edge). It does not look at the candle's colour; an unfilled order is cancelled, not chased. No price is suggested when the model's verdict is not buy. Outside the session it plans the next session from the official close. The time-left discount on fill odds is a labelled prior. Shown in the stock page entry panel and beside each "buy with free cash" suggestion.
+- Live prices: portfolio value, advice and the forecast start were priced from the previous stored day while the market was open. `liveprice.live_marks` asks the exchange (parallel, no cache) and replaces a stored price only when the exchange day is newer than the stored one.
+- Forecast: the drift (mean standardized shock, shrunk halfway to the group's) was extrapolated in full, giving a +95% median year for two gold funds. The backtest now scores bands with drift weights 0, 0.25, 0.5 and 1 by pinball loss and keeps the smallest weight within 1% of the best (0.25 when the history is too short). Each horizon reports `drift_weight` and the `no_trend` band. One simulation serves every weight (the drift is added analytically). The slow backtest is cached by (price history, weights rounded to 1%), so a price tick no longer reruns it.
+- Symbol resolution: when several instruments share a symbol, the one with the newest and most stored prices is used (فزرین resolved to an empty twin and showed "no price").
+- Not done: market breadth is still not wired into the guard; picks are not reviewed by the entry module; Mofid's average cost for طلا stays "doubtful".
+
 ## 2026-11-16 — Why the day's buys lost: entry price, last vs close, live feed
 
 - Cause 1: the market-watch parser read only the legacy field names (`pDrCotVal`, `pClosing`, ...), which the feed now fills with zeros; the live values are `pdv/pcl/py/qtj/qtc/pf/pmx/pmn`. Prices and volumes read as 0, so no snapshot or alert was stored. `ingest/tsetmc/quotes.py` reads both layouts.

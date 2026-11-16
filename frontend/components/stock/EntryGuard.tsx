@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { faPercent, faPrice } from "@/lib/format";
+import { faNumber, faPercent, faPrice } from "@/lib/format";
+import { signTone } from "@/lib/ui";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const POLL_MS = 20_000;
@@ -27,6 +28,29 @@ type Guard = {
   max_price?: number | null;
   gap?: number | null;
 };
+type Step = {
+  fill_prob: number;
+  day_fill_prob: number;
+  price: number;
+  vs_now: number;
+  vs_ref: number;
+  touched_today: boolean;
+  ev: number | null;
+};
+type Plan =
+  | { available: false; message?: string }
+  | {
+      available: true;
+      mode: "today" | "next";
+      reference: number;
+      now: number;
+      headline: string;
+      ladder: Step[];
+      recommended: Step | null;
+      market_now: { price: number; ev: number } | null;
+      basis: { market_days: number; own_days: number; gap_bucket: string | null };
+      notes: string[];
+    };
 type Entry =
   | { available: false; message?: string }
   | {
@@ -35,6 +59,7 @@ type Entry =
       verdict: "buy" | "hold" | "sell" | null;
       bar: { last: number | null; close: number | null; yesterday: number | null };
       guard: Guard;
+      plan?: Plan;
       review: Review | null;
     };
 
@@ -151,6 +176,7 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
           </div>
         )}
       </dl>
+      {entry.plan?.available && <PlanBlock plan={entry.plan} />}
       <p className="mt-2 text-xs text-muted">
         امتیاز مدل از پایانی دیروز شروع می‌شود؛ هر ریالی که بالاتر از آن بخرید از سود پیش‌بینی‌شده
         کم می‌شود. برای خرید، سفارش حدی در قیمت بالا نبرید و دقایق اول بازگشایی را کنار بگذارید.
@@ -183,5 +209,60 @@ export function EntryGuard({ instrumentId }: { instrumentId: number }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** The cheapest entry the history supports: prices to leave a limit order at, how often the
+ *  day's low reached each one, and the one worth most after fees. Independent of the candle's
+ *  colour; an order that is not filled by the close is cancelled, not chased. */
+function PlanBlock({ plan }: { plan: Extract<Plan, { available: true }> }) {
+  const best = plan.recommended;
+  return (
+    <div className="mt-3 rounded-lg bg-surface-2 p-3" data-testid="entry-plan">
+      <h3 className="font-bold">
+        بهترین ورود {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
+      </h3>
+      <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>{plan.headline}</p>
+      {plan.ladder.length > 0 && (
+        <div className="mt-2 overflow-x-auto">
+          <table className="tbl w-full min-w-[22rem] text-sm">
+            <thead>
+              <tr>
+                <th>قیمت سفارش حدی</th>
+                <th>ارزان‌تر از {plan.mode === "next" ? "پایانی" : "قیمت فعلی"}</th>
+                <th>شانس پرشدن</th>
+                <th>ارزش مورد انتظار پس از کارمزد</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plan.ladder.map((st) => (
+                <tr key={st.price} className={best?.price === st.price ? "font-bold" : ""}>
+                  <td>
+                    {faPrice(st.price)}
+                    {best?.price === st.price && <span className="text-up"> ← پیشنهاد</span>}
+                    {st.touched_today && <span className="text-muted"> (امروز لمس شده)</span>}
+                  </td>
+                  <td>{faPercent(-st.vs_now, 1)}</td>
+                  <td>{faPercent(st.fill_prob, 0)}</td>
+                  <td className={st.ev != null ? signTone(st.ev) : "text-muted"}>
+                    {st.ev == null ? "—" : faPercent(st.ev, 2, true)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ul className="mt-2 list-disc pr-5 text-xs text-muted">
+        {plan.notes.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+        <li>
+          مبنا: {faNumber(plan.basis.market_days)} روز مشابه بازار
+          {plan.basis.own_days >= 25 ? ` و ${faNumber(plan.basis.own_days)} روز خودِ این نماد` : ""}
+          {plan.basis.gap_bucket ? ` (بازگشایی: ${plan.basis.gap_bucket})` : ""}.
+        </li>
+      </ul>
+    </div>
   );
 }

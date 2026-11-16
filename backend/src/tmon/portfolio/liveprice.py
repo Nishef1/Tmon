@@ -9,12 +9,16 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from tmon.ingest.tsetmc.endpoints import CDN
+from tmon.storage.models import Instrument
 
 log = logging.getLogger(__name__)
 
@@ -108,3 +112,38 @@ def fetch(ins_code: str) -> Bar | None:
         log.info("live price for %s unavailable", ins_code, exc_info=True)
         return None
     return parse_info(info, threshold)
+
+
+def fetch_many(codes: dict[int, str], *, workers: int = 8) -> dict[int, Bar]:
+    """Today's bar for several instruments at once, ``{instrument id: bar}``; symbols the
+    exchange cannot answer for are left out."""
+    if not codes:
+        return {}
+    with ThreadPoolExecutor(max_workers=min(workers, len(codes))) as pool:
+        bars = list(pool.map(fetch, codes.values()))
+    return {iid: b for iid, b in zip(codes, bars, strict=True) if b is not None}
+
+
+def live_marks(
+    session: Session, stored: dict[int, dt.date | None]
+) -> dict[int, tuple[float, float | None, dt.date]]:
+    """``(last trade, official close, day)`` for the instruments whose exchange day is newer than
+    the stored one (the market is open, or the evening cycle has not stored the day yet).
+
+    ``stored`` maps instrument id to the date of its newest stored price. An instrument whose
+    stored day is already today's is left out: the stored row is then the final word."""
+    if not stored:
+        return {}
+    codes = {
+        i.id: i.ins_code
+        for i in session.scalars(select(Instrument).where(Instrument.id.in_(list(stored))))
+        if i.ins_code
+    }
+    out: dict[int, tuple[float, float | None, dt.date]] = {}
+    for iid, bar in fetch_many(codes).items():
+        have = stored.get(iid)
+        price = bar.last or bar.close
+        if bar.day is None or not price or (have is not None and bar.day <= have):
+            continue
+        out[iid] = (price, bar.close, bar.day)
+    return out

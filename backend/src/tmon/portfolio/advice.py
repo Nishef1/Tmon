@@ -11,6 +11,7 @@ cost would eat the gain. When the ranking itself has not passed its validation g
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from tmon.api.routers.dashboard import final_verdict
 from tmon.core.config import get_settings
+from tmon.portfolio import liveprice
 from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
 from tmon.storage.objectstore import get_object_store
 from tmon.tools.v2_ranking import KEY
@@ -47,12 +49,17 @@ def ranking_doc() -> dict[str, Any] | None:
     return doc
 
 
-def last_prices(session: Session, ids: list[int]) -> dict[int, tuple[float, float | None, str]]:
+def last_prices(
+    session: Session, ids: list[int], *, live: bool = False
+) -> dict[int, tuple[float, float | None, str]]:
     """Newest day's ``(last trade, official close, date)`` per instrument.
 
     The last trade (آخرین) is what a seller gets, so values and stop levels use it; the official
     close (پایانی, a volume-weighted average) can sit above it on a day that "closed green" while
-    the last trades were lower. Where a day has no last trade the close stands in."""
+    the last trades were lower. Where a day has no last trade the close stands in.
+
+    With ``live`` an instrument whose exchange day is newer than the stored one (market open, or
+    the evening cycle not yet run) is priced from the exchange instead of the previous day."""
     if not ids:
         return {}
     sub = (
@@ -71,6 +78,11 @@ def last_prices(session: Session, ids: list[int]) -> dict[int, tuple[float, floa
         price = float(last) if last else (float(close) if close else 0.0)
         if price:
             out[int(i)] = (price, float(close) if close else None, d.isoformat())
+    if live:
+        have = {i: dt.date.fromisoformat(v[2]) for i, v in out.items()}
+        fresh = liveprice.live_marks(session, {i: have.get(i) for i in ids})
+        for i, (price, close, day) in fresh.items():
+            out[i] = (price, close, day.isoformat())
     return out
 
 
@@ -190,7 +202,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         key=lambda s: -(s.score or 0),
     )
     ids = sorted(held | {c.id for c in candidates[:20]})
-    prices = last_prices(session, ids)
+    prices = last_prices(session, ids, live=True)
     names = {
         i.id: (i.symbol_fa, i.name_fa)
         for i in session.scalars(select(Instrument).where(Instrument.id.in_(ids)))

@@ -173,3 +173,93 @@ def test_wide_static_band_is_not_a_daily_limit() -> None:
     assert normal.limit_up == 5320.0 and normal.limit_down == 5020.0
     wide = parse_info(info, {"psGelStaMax": 1_000_000.0, "psGelStaMin": 1.0})
     assert wide.limit_up is None and wide.limit_down is None
+
+
+def test_live_marks_only_replace_an_older_stored_day(session, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """While the market is open the portfolio is priced at the exchange's last trade; once the
+    stored day is today's, the stored row stands and the feed is ignored."""
+    import datetime as dt
+
+    from tmon.portfolio import advice, liveprice
+    from tmon.storage.models import Instrument, PriceDaily
+
+    ins = Instrument(ins_code="777", symbol_fa="تست")
+    session.add(ins)
+    session.flush()
+    stored = dt.date(2026, 11, 14)
+    session.add(
+        PriceDaily(
+            instrument_id=ins.id,
+            date=stored,
+            close=1000.0,
+            last=990.0,
+            prev_close=1000.0,
+            volume=1e6,
+            value=1e9,
+            fetched_at=dt.datetime(2026, 11, 14, tzinfo=dt.UTC),
+        )
+    )
+    session.flush()
+
+    def feed(day: dt.date):  # type: ignore[no-untyped-def]
+        return lambda code: Bar(day, 1010.0, 1030.0, 1005.0, 1020.0, 1015.0, 1000.0)
+
+    monkeypatch.setattr(liveprice, "fetch", feed(dt.date(2026, 11, 16)))
+    got = advice.last_prices(session, [ins.id], live=True)
+    assert got[ins.id] == (1020.0, 1015.0, "2026-11-16")
+    assert advice.last_prices(session, [ins.id])[ins.id][0] == 990.0  # not asked for live
+
+    monkeypatch.setattr(liveprice, "fetch", feed(stored))
+    assert advice.last_prices(session, [ins.id], live=True)[ins.id][0] == 990.0
+
+
+def test_entry_plan_ladder_and_recommendation(session) -> None:  # type: ignore[no-untyped-def]
+    from tmon.portfolio import entry
+    from tmon.storage.models import Instrument
+
+    _history(session)
+    iid = session.query(Instrument).first().id
+    bar = Bar(None, 1010.0, 1018.0, 1000.0, 1008.0, 1008.0, 1000.0, 1050.0, 950.0)
+    plan = entry.entry_plan(
+        session, iid, bar, edge=0.04, cost=0.0175, in_session=True, now_minutes=30, verdict="buy"
+    )
+    assert plan["available"] and plan["mode"] == "today"
+    ladder = plan["ladder"]
+    assert ladder, "some level must sit below the current price"
+    prices = [s["price"] for s in ladder]
+    probs = [s["day_fill_prob"] for s in ladder]
+    assert prices == sorted(prices, reverse=True)  # deeper levels cost less
+    assert probs == sorted(probs, reverse=True)  # and fill less often
+    assert all(s["price"] < 1008.0 for s in ladder)
+    assert all(abs(s["price"] % 10) < 1e-9 for s in ladder)
+    best = plan["recommended"]
+    assert best is not None and best["ev"] > 0 and best["price"] < 1008.0
+    assert best["ev"] == max(s["ev"] for s in ladder)
+
+
+def test_entry_plan_has_no_price_when_the_model_does_not_say_buy(session) -> None:  # type: ignore[no-untyped-def]
+    from tmon.portfolio import entry
+    from tmon.storage.models import Instrument
+
+    _history(session)
+    iid = session.query(Instrument).first().id
+    bar = Bar(None, 1010.0, 1018.0, 1000.0, 1008.0, 1008.0, 1000.0)
+    plan = entry.entry_plan(
+        session, iid, bar, edge=0.04, cost=0.0175, in_session=True, verdict="hold"
+    )
+    assert plan["recommended"] is None and plan["ladder"]
+    assert all(s["ev"] is None for s in plan["ladder"])
+
+
+def test_entry_plan_for_tomorrow_uses_the_official_close(session) -> None:  # type: ignore[no-untyped-def]
+    from tmon.portfolio import entry
+    from tmon.storage.models import Instrument
+
+    _history(session)
+    iid = session.query(Instrument).first().id
+    bar = Bar(None, 1010.0, 1018.0, 1000.0, 1008.0, 1006.0, 1000.0)
+    plan = entry.entry_plan(
+        session, iid, bar, edge=0.04, cost=0.0175, in_session=False, verdict="buy"
+    )
+    assert plan["mode"] == "next" and plan["reference"] == 1006.0
+    assert all(s["touched_today"] is False for s in plan["ladder"])

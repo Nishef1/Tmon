@@ -21,6 +21,7 @@ their data fingerprint changes.
 from __future__ import annotations
 
 import datetime as dt
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -651,4 +652,152 @@ def lessons(reviews: list[dict[str, Any]]) -> list[str]:
         out.append(
             "همهٔ خریدهای این دوره با آخرین معامله در زیان‌اند؛ این الگوی ورود است، نه بدشانسی."
         )
+    return out
+
+
+# ---------------------------------------------------------------------------------------------
+# the best entry: where a limit order is worth leaving, whatever colour the candle ends up
+
+LADDER_P = (0.85, 0.70, 0.55, 0.40, 0.25, 0.12)  # how often the day's low reached the level
+SESSION_MINUTES = 210  # 09:00 to 12:30
+TICK = 10.0  # rial; limit prices are placed on this step
+MIN_OWN_DAYS = 25
+OWN_PRIOR_DAYS = 40.0  # own history counts n / (n + 40) against the market's days like today's
+
+
+def _wquantile(x: np.ndarray, w: np.ndarray, q: float) -> float:
+    order = np.argsort(x)
+    x, w = x[order], w[order]
+    cum = np.cumsum(w) - 0.5 * w
+    cum /= w.sum()
+    return float(np.interp(q, cum, x))
+
+
+def _tick(price: float) -> float:
+    return round(price / TICK) * TICK
+
+
+def entry_plan(
+    session: Session,
+    instrument_id: int,
+    bar: Bar,
+    *,
+    edge: float | None,
+    cost: float,
+    in_session: bool,
+    now_minutes: int | None = None,
+    verdict: str | None = None,
+) -> dict[str, Any]:
+    """Where to leave a buy limit so the entry is as cheap as the evidence allows.
+
+    The day's lowest price against yesterday's close is read from the stored history: the days of
+    all liquid symbols that opened like today (same gap bucket) blended with this symbol's own
+    days. From that distribution each ladder step is a price the day's low reached on a known
+    share of days. The expected net return of leaving the order at a price is
+    ``P(fill) x (target / price - 1 - cost)`` where the target is yesterday's close plus the
+    model's tested edge; the step that maximises it is the recommended limit. A limit that is
+    not filled by the close is cancelled, not chased. Nothing here looks at the candle's colour.
+    """
+    p = panel(session)
+    ref = bar.yesterday if in_session else (bar.close or bar.last)
+    if p is None or not ref:
+        return {"available": False, "message": "تاریخچهٔ کافی برای برنامهٔ ورود نیست."}
+    gap = bar.gap if in_session else None
+    last = bar.last if in_session and bar.last else ref
+    dip = p.lo / p.pc - 1
+    gaps = p.o / p.pc - 1
+    keep = (p.adj_ok > 0) & (np.abs(gaps) < 0.055)
+    uni = keep.copy()
+    label = None
+    if gap is not None:
+        for i, text in enumerate(GAP_LABELS):
+            if GAP_EDGES[i] < gap <= GAP_EDGES[i + 1]:
+                uni = keep & (gaps > GAP_EDGES[i]) & (gaps <= GAP_EDGES[i + 1])
+                label = text
+                break
+    if uni.sum() < 200:  # too thin a bucket: all days
+        uni, label = keep.copy(), None
+    own_all = keep & (p.iid == instrument_id)
+    own = own_all & uni if (own_all & uni).sum() >= MIN_OWN_DAYS else own_all
+    n_uni, n_own = int(uni.sum()), int(own.sum())
+    x = dip[uni]
+    w = np.full(n_uni, 1.0 / n_uni)
+    if n_own >= MIN_OWN_DAYS:
+        share = n_own / (n_own + OWN_PRIOR_DAYS)
+        x = np.concatenate([x, dip[own]])
+        w = np.concatenate([w * (1 - share), np.full(n_own, share / n_own)])
+    rem = None
+    factor = 1.0
+    if in_session and now_minutes is not None and now_minutes >= 0:
+        rem = max(0, SESSION_MINUTES - now_minutes)
+        factor = math.sqrt(rem / SESSION_MINUTES)
+    target = ref * (1 + edge) if edge is not None and verdict == "buy" else None
+    ladder: list[dict[str, Any]] = []
+    for prob in LADDER_P:
+        price = _tick(ref * (1 + _wquantile(x, w, prob)))
+        if bar.limit_down and price < bar.limit_down:
+            price = _tick(bar.limit_down)
+        if price >= last:  # at or above where it trades now: that is a market buy, not a limit
+            continue
+        fill = prob * factor if in_session else prob
+        ev = None if target is None else fill * (target / price - 1 - cost)
+        ladder.append(
+            {
+                "fill_prob": fill,
+                "day_fill_prob": prob,
+                "price": price,
+                "vs_now": price / last - 1,
+                "vs_ref": price / ref - 1,
+                "touched_today": bool(in_session and bar.low and bar.low <= price),
+                "ev": ev,
+            }
+        )
+    best = None
+    if target is not None:
+        pos = [s for s in ladder if (s["ev"] or 0) > 0]
+        best = max(pos, key=lambda s: s["ev"]) if pos else None
+    now_ev = None if target is None else target / last - 1 - cost
+    out: dict[str, Any] = {
+        "available": True,
+        "mode": "today" if in_session else "next",
+        "reference": ref,
+        "now": last,
+        "ladder": ladder,
+        "recommended": best,
+        "market_now": {"price": last, "ev": now_ev} if now_ev is not None else None,
+        "basis": {
+            "market_days": n_uni,
+            "own_days": n_own,
+            "gap_bucket": label,
+            "minutes_left": rem,
+        },
+        "notes": [
+            "احتمال پرشدن از روی کمترین قیمت روزهای گذشته نسبت به پایانی روز قبل به‌دست آمده؛ "
+            "سفارشی که تا پایان روز پر نشد لغو می‌شود و دنبال قیمت نروید.",
+        ],
+    }
+    if rem is not None and rem < SESSION_MINUTES:
+        out["notes"].append(
+            "احتمال‌ها با گذشت وقت کم شده‌اند (برآورد اولیه، هنوز روی دادهٔ دقیقه‌ای آزموده نشده)."
+        )
+    if target is None:
+        out["notes"].append(
+            "مدل برای این سهم خرید نمی‌گوید؛ نردبان فقط نشان می‌دهد هر قیمت با چه احتمالی پر "
+            "می‌شود و قیمت پیشنهادی ندارد."
+        )
+        out["headline"] = "مدل خرید نمی‌گوید؛ قیمت پیشنهادی ندارد."
+    elif best is not None:
+        save = -best["vs_now"]
+        out["headline"] = (
+            f"سفارش حدی را روی {best['price']:,.0f} بگذارید؛ در گذشته در "
+            f"{_pct(best['day_fill_prob'], 0)} روزها کمینهٔ روز به آن رسیده و "
+            f"{_pct(save)} ارزان‌تر از قیمت فعلی است."
+        ).replace(",", "٬")
+        if now_ev is not None and now_ev > 0 and best["ev"] is not None:
+            out["notes"].append(
+                "خرید همین حالا هم هنوز برتری دارد؛ اگر نگران جاماندن هستید، بخشی را حالا و "
+                "بخشی را در قیمت پیشنهادی بخرید."
+            )
+    else:
+        out["headline"] = "در هیچ قیمتی که امروز با احتمال معقول پر شود برتری باقی نمی‌ماند."
     return out

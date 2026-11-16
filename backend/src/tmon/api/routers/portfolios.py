@@ -12,7 +12,7 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.schemas import ApiModel
@@ -221,6 +221,25 @@ def _norm(s: str) -> str:
     return s.replace("ي", "ی").replace("ك", "ک").replace("‌", "").strip()
 
 
+def _best_candidate(session: Session, cands: list[Instrument]) -> Instrument | None:
+    """Several instruments can share one symbol (a duplicate listing with no prices). The one with
+    the newest stored price wins, then the one with more rows, so a holding never lands on an
+    empty twin."""
+    if len(cands) < 2:
+        return cands[0] if cands else None
+    ids = [c.id for c in cands]
+    stats = {
+        iid: (last, n)
+        for iid, last, n in session.execute(
+            select(PriceDaily.instrument_id, func.max(PriceDaily.date), func.count())
+            .where(PriceDaily.instrument_id.in_(ids))
+            .group_by(PriceDaily.instrument_id)
+        )
+    }
+    empty = (dt.date.min, 0)
+    return max(cands, key=lambda c: (stats.get(c.id, empty), -c.id))
+
+
 def _instrument(session: Session, h: HoldingIn | TradeIn) -> Instrument:
     if h.instrument_id is not None:
         inst = session.get(Instrument, h.instrument_id)
@@ -229,7 +248,7 @@ def _instrument(session: Session, h: HoldingIn | TradeIn) -> Instrument:
         cands = list(session.scalars(select(Instrument).where(Instrument.symbol_fa == want)))
         if not cands:
             cands = [i for i in session.scalars(select(Instrument)) if _norm(i.symbol_fa) == want]
-        inst = cands[0] if cands else None
+        inst = _best_candidate(session, cands)
     else:
         raise HTTPException(422, "symbol or instrument_id is required")
     if inst is None:
@@ -799,7 +818,7 @@ def get_forecast(portfolio_id: int, session: SessionDep, key: Auth = None) -> di
     of those bands measured on the portfolio's own history."""
     p = _auth(session, portfolio_id, key)
     rows = [(h, i) for h, i in _holdings(session, p) if h.shares > 0]
-    closes = last_prices(session, [h.instrument_id for h, _ in rows])
+    closes = last_prices(session, [h.instrument_id for h, _ in rows], live=True)
     positions = [
         Position(h.instrument_id, i.symbol_fa, h.shares, closes[h.instrument_id][0], h.avg_price)
         for h, i in rows

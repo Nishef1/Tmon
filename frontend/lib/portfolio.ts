@@ -197,6 +197,10 @@ export type ForecastHorizon = {
   days: number;
   portfolio: Band;
   calibrated: Band;
+  /** The same horizon without assuming past trends continue (drift weight 0). */
+  no_trend?: Band;
+  /** Share of each symbol's past trend the band assumes, chosen by backtest (0 to 1). */
+  drift_weight?: number;
   value: Band;
   backtest: {
     n: number;

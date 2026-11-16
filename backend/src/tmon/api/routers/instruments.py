@@ -485,6 +485,16 @@ def instrument_entry(
             "limit_down": bar.limit_down,
         },
         "guard": g,
+        "plan": ent.entry_plan(
+            session,
+            instrument_id,
+            bar,
+            edge=edge,
+            cost=cost,
+            in_session=minutes is not None and minutes >= 0 and bar.first is not None,
+            now_minutes=minutes,
+            verdict=verdict,
+        ),
         "review": ent.review_entry(paid, bar, edge=edge, cost=cost, fade=fade, queue=queue)
         if paid
         else None,

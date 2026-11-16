@@ -16,6 +16,7 @@ import {
   type Portfolio,
 } from "@/lib/portfolio";
 import { signedPct, signTone } from "@/lib/ui";
+import { BuyPlan } from "./BuyPlan";
 import { ForecastCandles } from "./ForecastCandles";
 import { HistoryCard, HoldingEvents, MofidCard, Summary, Trades } from "./Ledger";
 
@@ -448,6 +449,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
                 </Link>{" "}
                 {faNumber(b.shares ?? 0)} سهم ≈ {faToman(b.amount)} تومان (امتیاز{" "}
                 {faNumber((b.score ?? 0) * 100)})
+                <BuyPlan instrumentId={b.instrument_id} />
               </li>
             ))}
           </ul>
@@ -607,6 +609,15 @@ function ForecastCard({ id, pkey, version }: { id: number; pkey: string; version
         سهم‌ها دیده می‌شود. تصمیم را حکم مدل («خرید/نگهداری/فروش» در صفحهٔ نماد) می‌دهد؛ این کندل‌ها
         فقط اندازهٔ ریسک و دامنهٔ نوسان را نشان می‌دهند. اگر حکم و کندل‌ها با هم نمی‌خوانند، به حکم
         مدل و حد ضرر تکیه کنید، نه به سبزیِ کندل.
+      </p>
+      <p className="mt-1 text-sm" data-testid="forecast-trend">
+        میزان ادامهٔ روند گذشته در این کندل‌ها را آزمون روی تاریخچهٔ همین سبد تعیین کرده است:{" "}
+        {(f.horizons ?? [])
+          .map((h) => `${h.label} ${faPercent(h.drift_weight ?? 0, 0)}`)
+          .join("، ")}
+        . بدون هیچ فرض ادامهٔ روند، میانهٔ ماه{" "}
+        {signedPct(f.horizons?.find((h) => h.key === "month")?.no_trend?.q50)} و میانهٔ سال{" "}
+        {signedPct(f.horizons?.find((h) => h.key === "year")?.no_trend?.q50)} است.
       </p>
       <ForecastCandles
         title="بازهٔ بازدهٔ پرتفوی در هر افق"

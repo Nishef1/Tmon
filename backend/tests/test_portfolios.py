@@ -379,3 +379,59 @@ def test_entries_empty_portfolio(client: TestClient) -> None:
         client.get(f"/portfolios/{pid}/entries", headers={"X-Portfolio-Key": "x"}).status_code
         == 404
     )
+
+
+def test_duplicate_symbol_resolves_to_the_instrument_with_prices(session: Session) -> None:
+    """A listing twin without prices must not shadow the real one (it showed 'no price')."""
+    from tmon.api.routers.portfolios import _best_candidate
+
+    empty = Instrument(ins_code="9001", symbol_fa="فزرین")
+    real = Instrument(ins_code="9002", symbol_fa="فزرین")
+    session.add_all([empty, real])
+    session.flush()
+    for k in range(3):
+        session.add(
+            PriceDaily(
+                instrument_id=real.id,
+                date=dt.date(2026, 11, 10 + k),
+                close=12_000.0,
+                prev_close=12_000.0,
+                volume=1e6,
+                value=1e10,
+                fetched_at=AT,
+            )
+        )
+    session.flush()
+    assert _best_candidate(session, [empty, real]) is real
+    assert _best_candidate(session, [real, empty]) is real
+    assert _best_candidate(session, [empty]) is empty
+    assert _best_candidate(session, []) is None
+
+
+def _series(drifts: list[float], sigma: float = 0.012, seed: int = 5) -> tuple[list, np.ndarray]:
+    rng = np.random.default_rng(seed)
+    lr = np.concatenate([rng.normal(m, sigma, size=(n, 1)) for n, m in drifts])
+    closes = 1000 * np.exp(np.vstack([np.zeros((1, 1)), np.cumsum(lr, axis=0)]))
+    dates = [dt.date(2022, 1, 1) + dt.timedelta(days=i) for i in range(len(closes))]
+    return dates, closes
+
+
+def test_a_trend_that_did_not_persist_is_not_extrapolated() -> None:
+    """A strong run followed by a long fall: the drift weight must come out low, and the band
+    without any trend is reported next to the one with it."""
+    dates, closes = _series([(400, 0.004), (500, -0.003)])
+    pos = [Position(1, "الف", 100, float(closes[-1, 0]), 1000.0)]
+    doc = forecast(pos, dates, closes)
+    month = next(h for h in doc["horizons"] if h["key"] == "month")
+    assert month["drift_weight"] <= 0.25
+    assert {"q10", "q50", "q90"} <= set(month["no_trend"])
+    assert abs(month["no_trend"]["q50"]) < abs(0.02 * 20)  # no trend: the median stays near zero
+
+
+def test_a_trend_that_kept_going_keeps_a_larger_weight() -> None:
+    dates, closes = _series([(900, 0.003)], sigma=0.006)
+    pos = [Position(1, "الف", 100, float(closes[-1, 0]), 1000.0)]
+    doc = forecast(pos, dates, closes)
+    month = next(h for h in doc["horizons"] if h["key"] == "month")
+    assert month["drift_weight"] >= 0.5
+    assert month["portfolio"]["q50"] > month["no_trend"]["q50"]

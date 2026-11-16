@@ -36,3 +36,11 @@ def _no_live_tsetmc(monkeypatch: pytest.MonkeyPatch) -> None:
     from tmon.api.routers import instruments
 
     monkeypatch.setattr(instruments, "_tsetmc_book", lambda inst: [])
+
+
+@pytest.fixture(autouse=True)
+def _no_live_price_feed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The portfolio overlays the exchange's live price; tests stay offline (no bar = stored price)."""
+    from tmon.portfolio import liveprice
+
+    monkeypatch.setattr(liveprice, "fetch", lambda ins_code: None)
