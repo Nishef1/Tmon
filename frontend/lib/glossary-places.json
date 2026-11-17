@@ -127,6 +127,12 @@
       "href": "/compare"
     }
   ],
+  "invested_reference": [
+    {
+      "label": "صفحهٔ مدل",
+      "href": "/model"
+    }
+  ],
   "last_price": [
     {
       "label": "مقایسه",

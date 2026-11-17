@@ -33,7 +33,16 @@ const text = (n: unknown): string => {
 describe("rank and history wording", () => {
   const dash = (gauge: number) =>
     ({
-      decision: { gauge, rank: 1, verdict: "hold", horizons: [], queue_state: "none" },
+      decision: {
+        gauge,
+        rank: 1,
+        verdict: "hold",
+        band: "candidate",
+        grade: "unproven",
+        grade_label: "ثابت‌نشده",
+        horizons: [],
+        queue_state: "none",
+      },
     }) as unknown as InstrumentDashboard;
   it("never says a stock beats 100% of the market", () => {
     const row = buildChecks(dash(99.6), undefined).find((c) => c.key === "rank");
@@ -52,5 +61,12 @@ describe("rank and history wording", () => {
     const t = text(row?.answer);
     expect(t).toContain("کارمزد را پوشش نمی‌دهد");
     expect(t).not.toContain("(اطمینان زیاد)");
+    expect(t).toContain("ثابت‌نشده");
+  });
+  it("is silent for a stock in the middle of the list", () => {
+    const d = dash(60);
+    (d.decision as { band: string }).band = "middle";
+    const h = { label: "سه ماه", top_excess: 0.01, net_excess: 0.01, cost: 0.0175, ic_t: 1 };
+    expect(buildChecks(d, h as never).some((c) => c.key === "history")).toBe(false);
   });
 });

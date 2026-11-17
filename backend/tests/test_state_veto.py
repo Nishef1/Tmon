@@ -1,27 +1,12 @@
-"""A high score does not become a "buy" for a symbol whose own state trailed the market."""
+"""A high score does not become a buy for a symbol whose own state trailed the market."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from tmon.api.routers import dashboard as dash
-from tmon.api.routers.dashboard import _horizon_decision, _horizons, final_verdict, state_veto
+from tmon.api.routers.dashboard import final_verdict, state_veto
 
 COST = 0.017512
-SIG = {"ind_buy_power": 0.9}
-
-
-def _ev(days: int = 20) -> dict[str, Any]:
-    return {
-        "horizon_days": days,
-        "top_excess": 0.04,
-        "bottom_excess": 0.0,
-        "excess_t": 4.5,
-        "n_days": 1000,
-        "ic": 0.05,
-        "ic_t": 4.0,
-        "signals": {},
-    }
 
 
 def _stat(mean: float, n: int = 40000, dn: float = 0.11) -> dict[str, Any]:
@@ -35,7 +20,7 @@ def _turning(symbol_state: str | None, mean: float, n: int = 40000) -> dict[str,
         "history": {
             "states": {
                 "hot": {"n": n, "h20": _stat(mean, n), "h60": _stat(mean, n)},
-                "normal": {"n": 500000, "h20": _stat(-0.001, 500000), "h60": None},
+                "normal": {"n": 500000, "h20": _stat(-0.001, 500000), "h60": _stat(-0.001, 500000)},
                 "uptrend_high": {"n": 170000, "h20": _stat(0.008, 170000, 0.04), "h60": None},
             },
             "base": {"h20": _stat(0.0, 1000000, 0.05), "h60": _stat(0.0, 1000000, 0.13)},
@@ -43,45 +28,55 @@ def _turning(symbol_state: str | None, mean: float, n: int = 40000) -> dict[str,
     }
 
 
-def test_a_state_that_trailed_the_market_vetoes_the_buy_at_the_month() -> None:
-    v = state_veto(_turning("hot", -0.002), 7, 20)
+def _doc(grade: str = "proven") -> dict[str, Any]:
+    return {
+        "verdict": {
+            "horizon_days": 60,
+            "candidate_top_frac": 0.5,
+            "avoid_bottom_frac": 0.4,
+            "candidate_grade": grade,
+            "avoid_grade": "unproven",
+        },
+        "exposure": {"exposure": 0.9},
+        "round_trip_cost": COST,
+        "zones": {},
+    }
+
+
+def test_a_state_that_trailed_the_market_vetoes_the_buy() -> None:
+    v = state_veto(_turning("hot", -0.002), 7, 60)
     assert v is not None and v["key"] == "hot" and v["title"] == "رشد بسیار تند"
-    h = _horizon_decision(20, _ev(), "buy", COST, SIG, True, v)
-    assert h.verdict == "hold"
-    assert "فعلاً نخرید" in h.headline and "رشد بسیار تند" in h.headline
-    assert "۱۱" in h.headline and "۵" in h.headline  # 11 in 100 fell by 20%, market 5 in 100
+    out = final_verdict(_doc(), {"band": "candidate"}, _turning("hot", -0.002), 7)
+    assert out is not None and out.code == "wait" and out.vetoed
+    assert "فعلاً نخرید" in out.headline and "رشد بسیار تند" in out.headline
+    assert "۱۱" in out.headline and "۱۳" in out.headline  # 11 in 100 fell by 20%, market 13 in 100
 
 
 def test_a_state_that_beat_the_market_keeps_the_buy() -> None:
     assert state_veto(_turning("uptrend_high", 0.008), 7, 20) is None
-    assert _horizon_decision(20, _ev(), "buy", COST, SIG, True, None).verdict == "buy"
+    out = final_verdict(_doc(), {"band": "candidate"}, _turning("hot", 0.01), 7)
+    assert out is not None and out.code == "buy"
 
 
 def test_the_baseline_state_and_thin_evidence_never_veto() -> None:
-    assert state_veto(_turning("normal", -0.001), 7, 20) is None
-    assert state_veto(_turning("hot", -0.01, n=500), 7, 20) is None
+    assert state_veto(_turning("normal", -0.001), 7, 60) is None
+    assert state_veto(_turning("hot", -0.01, n=500), 7, 60) is None
 
 
 def test_horizons_without_a_state_table_and_unknown_symbols_are_not_vetoed() -> None:
     doc = _turning("hot", -0.01)
     assert state_veto(doc, 7, 5) is None and state_veto(doc, 7, 1) is None
-    assert state_veto(doc, 99, 20) is None and state_veto(None, 7, 20) is None
+    assert state_veto(doc, 99, 60) is None and state_veto(None, 7, 60) is None
 
 
-def test_the_veto_only_lowers_a_buy() -> None:
-    v = state_veto(_turning("hot", -0.01), 7, 20)
-    h = _horizon_decision(20, _ev(), "hold", COST, SIG, True, v)
-    assert h.verdict == "hold" and "فعلاً نخرید" not in h.headline
-    avoid = _horizon_decision(20, {**_ev(), "bottom_excess": -0.03}, "avoid", COST, SIG, True, v)
-    assert avoid.verdict == "sell"
-
-
-def test_final_verdict_and_horizons_agree_with_the_page() -> None:
-    doc = {"round_trip_cost": COST, "evidence": [_ev(20)]}
-    turn = _turning("hot", -0.002)
-    assert final_verdict(doc, "buy", SIG) == "buy"  # no state document: unchanged
-    assert final_verdict(doc, "buy", SIG, turn, 7) == "hold"
-    assert final_verdict(doc, "buy", SIG, turn, 8) == "buy"  # another symbol, no veto
-    month = _horizons(doc, "buy", SIG, turn, 7)[0]
-    assert month.verdict == final_verdict(doc, "buy", SIG, turn, 7)
-    assert dash.HOLD_DAYS == 20
+def test_the_veto_only_lowers_a_candidate() -> None:
+    turn = _turning("hot", -0.01)
+    for band in ("middle", "avoid"):
+        out = final_verdict(_doc(), {"band": band}, turn, 7)
+        assert out is not None and not out.vetoed and out.code != "wait"
+    # for an owner nothing changes
+    held = final_verdict(_doc(), {"band": "candidate"}, turn, 7)
+    assert held is not None and held.holder_code == "hold"
+    # the list and the page agree: same call, same answer
+    assert final_verdict(_doc(), {"band": "candidate"}, turn, 7).code == "wait"  # type: ignore[union-attr]
+    assert final_verdict(_doc(), {"band": "candidate"}, turn, 8).code == "buy"  # type: ignore[union-attr]

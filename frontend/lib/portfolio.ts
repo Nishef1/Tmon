@@ -130,6 +130,11 @@ type Candidate = {
   last?: number | null;
   close: number | null;
   verdict?: string | null;
+  code?: string | null;
+  band?: string | null;
+  grade_label?: string | null;
+  queue_state?: string | null;
+  buyable?: boolean;
   shares?: number;
   amount?: number;
 };
@@ -148,6 +153,11 @@ export type Advice = {
   }[];
   buys: Candidate[];
   buy_note?: string | null;
+  exposure?: number | null;
+  /** When free cash is positive, the exposure is positive and no candidate can be bought: the
+   *  market itself (basket or equity fund) is proposed, untested. */
+  market_buy?: { amount: number; text: string } | null;
+  market?: S["MarketCard"] | null;
   candidates: Candidate[];
 };
 type EntryReview = {

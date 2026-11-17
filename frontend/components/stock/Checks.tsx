@@ -1,7 +1,7 @@
 import type { InstrumentDashboard } from "@/lib/api";
 import { trustWord } from "@/components/PlainSummary";
 import { faNumber, faPercent } from "@/lib/format";
-import { signedPct } from "@/lib/ui";
+import { shortLabel, signedPct } from "@/lib/ui";
 
 type D = InstrumentDashboard;
 type H = D["decision"]["horizons"][number];
@@ -16,9 +16,6 @@ const WORD: Record<Status, string> = {
   bad: "منفی",
   info: "اطلاعات",
 };
-
-/** "یک ماه (۲۰ روز معاملاتی)" -> "یک ماه". */
-export const shortLabel = (label: string) => label.split(" (")[0];
 
 /** Six-month share of similar past cases that beat the market, and the same share for all stocks. */
 function regime(d: D): { rate: number; base: number } | null {
@@ -48,17 +45,33 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       ),
     });
   }
-  if (h && h.top_excess != null && h.net_excess != null) {
+  const band = d.decision.band;
+  if (h && h.net_excess != null && band && band !== "middle") {
     const trust = trustWord(h.ic_t);
+    const avoid = band === "avoid";
+    const grade = d.decision.grade;
     const status: Status =
-      h.net_excess >= 0.01 && (h.ic_t ?? 0) >= 3 ? "ok" : h.net_excess > 0 ? "warn" : "bad";
+      grade === "proven" ? "ok" : grade === "probable" || h.net_excess > 0 ? "warn" : "bad";
+    const word = d.decision.grade_label;
     out.push({
       key: "history",
       status,
-      ask: "در گذشته چنین قدرتی سود اضافه داده؟",
-      answer: (
+      ask: avoid ? "در گذشته پرهیز از چنین سهمی سود داده؟" : "در گذشته چنین قدرتی سود اضافه داده؟",
+      answer: avoid ? (
         <>
-          اگر هر روز ۱۰٪ بالای فهرست را می‌خریدید و {shortLabel(h.label)} نگه می‌داشتید، بعد از
+          اگر از ناحیهٔ پایین فهرست پرهیز می‌کردید و به‌جایش بازار را {shortLabel(h.label)} نگه
+          می‌داشتید، بعد از کارمزد ({faPercent(h.cost ?? 0, 2)}) به‌طور میانگین{" "}
+          <b>
+            {h.net_excess >= 0
+              ? `${signedPct(h.net_excess)} بیشتر`
+              : `${signedPct(h.net_excess)} کمتر`}
+          </b>{" "}
+          سود می‌کردید
+          {word && <> (شواهد این ناحیه: {word})</>}.
+        </>
+      ) : (
+        <>
+          اگر هر روز نیمهٔ بالای فهرست را می‌خریدید و {shortLabel(h.label)} نگه می‌داشتید، بعد از
           کارمزد و مالیات ({faPercent(h.cost ?? 0, 2)}) به‌طور میانگین{" "}
           <b>
             {h.net_excess >= 0
@@ -66,12 +79,10 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
               : `${signedPct(h.net_excess)} کمتر از بازار`}
           </b>{" "}
           سود می‌کردید
-          {trust &&
-            (h.net_excess >= 0 ? (
-              <> (اطمینان {trust})</>
-            ) : (
-              <> (قدرت رتبه‌بندی از نظر آماری {trust} است، ولی کارمزد را پوشش نمی‌دهد)</>
-            ))}
+          {word && <> (شواهد این ناحیه: {word})</>}
+          {trust && h.net_excess < 0 && (
+            <> (قدرت رتبه‌بندی از نظر آماری {trust} است، ولی کارمزد را پوشش نمی‌دهد)</>
+          )}
           .
         </>
       ),
@@ -87,8 +98,8 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       answer: (
         <>
           سهم‌های هم‌حالت{d.turning ? ` («${d.turning.state.title}»)` : ""} در گذشته{" "}
-          <b>{per100(r.rate)} بار از هر ۱۰۰ بار</b> در شش ماه از بازار جلو زدند؛ برای همهٔ سهم‌ها
-          این عدد {per100(r.base)} است.
+          <b>{per100(r.rate)} بار از هر ۱۰۰ بار</b> در شش ماه از بازار جلو زدند؛ برای همهٔ سهم‌ها این
+          عدد {per100(r.base)} است.
         </>
       ),
     });
@@ -188,48 +199,65 @@ function agreement(checks: Check[]): { text: string; tone: string } | null {
   };
 }
 
-/** The one paragraph that reads the rows together, for the chosen holding period. */
+/** The one paragraph that reads the rows together, for the answer the page gives. */
 function bottomLine(
   d: D,
   h: H | undefined,
   checks: Check[],
 ): { text: string; tone: string } | null {
-  const v = h?.verdict ?? d.decision.verdict;
+  const code = d.decision.code;
   const period = h ? shortLabel(h.label) : "این بازه";
   const state = checks.find((c) => c.key === "state")?.status;
   const worse = state === "warn";
   const better = state === "ok";
-  if (v === "buy") {
-    return worse
-      ? {
-          text: `برای ${period} قوی است، ولی سهم‌هایی که در همین حالت بودند در شش ماه بعد کمتر از بازار جلو زدند. اگر می‌خرید، کوتاه‌مدت و با سطح خروج پایین بخرید.`,
-          tone: "bg-warn-soft",
-        }
-      : {
-          text: `امتیاز امروز و سابقهٔ ${period} هم‌جهت‌اند؛ نشانهٔ خرید محکم‌تر است. باز هم سطح خروج را از پیش مشخص کنید.`,
-          tone: "bg-up-soft",
-        };
+  const grade = d.decision.grade_label ?? "ثابت‌نشده";
+  switch (code) {
+    case "buy":
+      return worse
+        ? {
+            text: `برای ${period} قوی است، ولی سهم‌هایی که در همین حالت بودند در شش ماه بعد کمتر از بازار جلو زدند. اگر می‌خرید، کم‌حجم و با سطح خروج پایین بخرید.`,
+            tone: "bg-warn-soft",
+          }
+        : {
+            text: `امتیاز امروز و سابقهٔ ${period} هم‌جهت‌اند و شواهد این ناحیه ${grade} است. باز هم سطح خروج را از پیش مشخص کنید.`,
+            tone: "bg-up-soft",
+          };
+    case "candidate":
+      return {
+        text: `نامزد خرید است، نه توصیه: شواهد این ناحیه ${grade} است. اگر می‌خرید، کم‌حجم و با سطح خروج مشخص بخرید.`,
+        tone: "bg-accent-soft",
+      };
+    case "candidate_queue":
+      return {
+        text: "نامزد خرید است، ولی در صف خرید است؛ خرید امروز عملاً ممکن نیست و به قیمت سقف صف نباید خرید.",
+        tone: "bg-warn-soft",
+      };
+    case "wait":
+      return {
+        text: "امتیاز بالاست، ولی حالت فعلی سهم در گذشته از بازار جلو نزده است؛ فعلاً صبر کنید. اگر دارید، نگه دارید.",
+        tone: "bg-warn-soft",
+      };
+    case "wait_market":
+      return {
+        text: "بازار امروز می‌گوید سهام نخرید؛ صبر کنید تا سهم سرمایه در سهام دوباره مثبت شود. اگر دارید، هشدارهای پرتفوی را دنبال کنید.",
+        tone: "bg-warn-soft",
+      };
+    case "avoid":
+      return {
+        text: `امتیاز در ناحیهٔ پایین است و عقب‌ماندگی این ناحیه شواهد دارد (${grade}). خرید تازه نکنید؛ اگر دارید، فروش را بسنجید.`,
+        tone: "bg-down-soft",
+      };
+    case "with_market":
+      return {
+        text:
+          d.decision.band === "avoid"
+            ? `امتیاز پایین است، ولی عقب‌ماندگی این ناحیه هنوز ثابت نشده (${grade}). خرید تازه دلیلی ندارد و فروش هم لازم نیست؛ همراه بازار بمانید${better ? "، و حالت فعلی سهم در گذشته بد نبوده" : ""}.`
+            : `برای ${period} نه نامزد خرید است نه دلیلی برای پرهیز دارد؛ همراه بازار بمانید. اگر دارید، نگه دارید.`,
+        tone: "bg-accent-soft",
+      };
+    default:
+      return null;
   }
-  if (v === "hold") {
-    return {
-      text: better
-        ? `برای ${period} برتری ثابت‌شده‌ای برای خرید تازه نیست، ولی حالت فعلی سهم در گذشته از بازار جلو زده است. اگر دارید نگه دارید.`
-        : `برای ${period} دلیل محکمی برای خرید تازه نیست. اگر دارید، نگه دارید و هشدارها را دنبال کنید.`,
-      tone: "bg-accent-soft",
-    };
-  }
-  if (v === "sell") {
-    return better
-      ? {
-          text: `امتیاز ضعیف است، ولی حالت فعلی سهم در گذشته بد نبوده؛ خرید تازه نکنید، اما عجله‌ای هم برای فروش نیست.`,
-          tone: "bg-accent-soft",
-        }
-      : {
-          text: `امتیاز ضعیف است و سابقهٔ حالت فعلی هم منفی است. اگر دارید، فروش را جدی بسنجید.`,
-          tone: "bg-down-soft",
-        };
-  }
-  return null;
 }
 
 /** The answers behind the verdict: one row per question with a ✓ / ! / ✕ mark, a one-line

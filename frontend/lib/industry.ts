@@ -3,7 +3,7 @@
 
 import type { ScreenerRow } from "./api";
 
-export type Verdict = "buy" | "hold" | "sell" | "none";
+export type Verdict = "buy" | "candidate" | "hold" | "sell" | "none";
 
 /** One stock, flattened from the screener row to what the table needs. */
 export type Row = {
@@ -271,7 +271,7 @@ export function industries(rows: Row[], by: IndustrySort = "value"): Industry[] 
   const list: Industry[] = [];
   for (const [name, rs] of groups) {
     const scored = rs.filter((r) => r.gauge != null);
-    const verdicts: Record<Verdict, number> = { buy: 0, hold: 0, sell: 0, none: 0 };
+    const verdicts: Record<Verdict, number> = { buy: 0, candidate: 0, hold: 0, sell: 0, none: 0 };
     for (const r of rs) verdicts[r.verdict] += 1;
     list.push({
       name,

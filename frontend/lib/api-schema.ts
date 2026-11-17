@@ -1705,12 +1705,31 @@ export interface components {
       advice_allowed: boolean;
       /** As Of */
       as_of: string | null;
+      /** Band */
+      band: ("candidate" | "middle" | "avoid") | null;
       /** Basket Size */
       basket_size: number | null;
+      /** Code */
+      code: string | null;
       /** Gauge */
       gauge: number | null;
+      /** Grade */
+      grade: ("proven" | "probable" | "unproven") | null;
+      /** Grade Label */
+      grade_label: string | null;
       /** Headline */
       headline: string;
+      /** Holder Code */
+      holder_code: string | null;
+      /**
+       * Holder Headline
+       * @default
+       */
+      holder_headline: string;
+      /** Holder Label */
+      holder_label: string | null;
+      /** Holder Verdict */
+      holder_verdict: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
       holding: components["schemas"]["DashHolding"] | null;
       /**
        * Horizons
@@ -1724,6 +1743,11 @@ export interface components {
       in_basket: boolean;
       /** Label */
       label: string;
+      /**
+       * Market Warning
+       * @default false
+       */
+      market_warning: boolean;
       /** Queue State */
       queue_state: string | null;
       /** Rank */
@@ -1749,7 +1773,7 @@ export interface components {
        * Verdict
        * @enum {string}
        */
-      verdict: "buy" | "hold" | "sell" | "none";
+      verdict: "buy" | "candidate" | "hold" | "sell" | "none";
       /**
        * Weak
        * @default false
@@ -2012,7 +2036,7 @@ export interface components {
        * Verdict
        * @enum {string}
        */
-      verdict: "buy" | "hold" | "sell" | "none";
+      verdict: "buy" | "candidate" | "hold" | "sell" | "none";
       /** Verdict Label */
       verdict_label: string;
       /**
@@ -2050,8 +2074,22 @@ export interface components {
      * @description One stock of the same industry group, for picking the best of the group.
      */
     DashPeer: {
+      /** Band */
+      band: ("candidate" | "middle" | "avoid") | null;
+      /** Code */
+      code: string | null;
       /** Dd */
       dd: number | null;
+      /** Grade */
+      grade: ("proven" | "probable" | "unproven") | null;
+      /** Grade Label */
+      grade_label: string | null;
+      /** Holder Code */
+      holder_code: string | null;
+      /** Holder Label */
+      holder_label: string | null;
+      /** Holder Verdict */
+      holder_verdict: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
       /** Id */
       id: number;
       /**
@@ -2085,7 +2123,7 @@ export interface components {
        * @default none
        * @enum {string}
        */
-      verdict: "buy" | "hold" | "sell" | "none";
+      verdict: "buy" | "candidate" | "hold" | "sell" | "none";
     };
     /**
      * DashPeers
@@ -3053,6 +3091,25 @@ export interface components {
       /** Symbol */
       symbol: string;
     };
+    /**
+     * InvestedReference
+     * @description What buying and holding the liquid basket (S0) and the official index returned in the
+     *     Phase 2 report's window, to show beside any annual return.
+     */
+    InvestedReference: {
+      /** Bill Annual */
+      bill_annual: number;
+      /** First */
+      first: string;
+      /** Last */
+      last: string;
+      /** Official Annual */
+      official_annual: number;
+      /** Report */
+      report: string;
+      /** S0 Annual */
+      s0_annual: number;
+    };
     /** IssueOut */
     IssueOut: {
       /**
@@ -3207,6 +3264,33 @@ export interface components {
       /** Label */
       label: string;
     };
+    /**
+     * MarketCard
+     * @description The share of capital the model keeps in equities today, why, and the funds to hold it.
+     */
+    MarketCard: {
+      /** Date */
+      date: string | null;
+      /** Exposure */
+      exposure: number;
+      /**
+       * Funds
+       * @default []
+       */
+      funds: components["schemas"]["MarketFund"][];
+      /**
+       * Funds Note
+       * @default
+       */
+      funds_note: string;
+      /** Positive */
+      positive: boolean;
+      /**
+       * Reasons
+       * @default []
+       */
+      reasons: string[];
+    };
     /** MarketFlow */
     MarketFlow: {
       /** Date */
@@ -3229,6 +3313,28 @@ export interface components {
       real_net: number;
       /** Real Sell Value */
       real_sell_value: number;
+    };
+    /**
+     * MarketFund
+     * @description An equity fund of the market card: no verdict, never tested (ADR 0004 section 7).
+     */
+    MarketFund: {
+      /** Close */
+      close: number | null;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Name */
+      name: string | null;
+      /** Nav */
+      nav: number | null;
+      /** Nav Date */
+      nav_date: string | null;
+      /** Premium */
+      premium: number | null;
+      /** Symbol */
+      symbol: string;
+      /** Value */
+      value: number;
     };
     /** MarketIndexPoint */
     MarketIndexPoint: {
@@ -3806,6 +3912,8 @@ export interface components {
       gates: components["schemas"]["RankingCandidate"][];
       /** Hold Top Frac */
       hold_top_frac: number | null;
+      invested_reference: components["schemas"]["InvestedReference"] | null;
+      market_card: components["schemas"]["MarketCard"] | null;
       /**
        * Outside
        * @default []
@@ -3823,6 +3931,7 @@ export interface components {
       rows: components["schemas"]["RankingRow"][];
       /** Universe Size */
       universe_size: number | null;
+      verdict: components["schemas"]["RankingVerdictRule"] | null;
       /**
        * Weights
        * @default {}
@@ -3837,13 +3946,36 @@ export interface components {
       weights_champion: string;
       /** Weights Note */
       weights_note: string | null;
+      /**
+       * Zones
+       * @default {}
+       */
+      zones: {
+        [key: string]: components["schemas"]["ZoneProfile"];
+      };
     };
     /** RankingRow */
     RankingRow: {
+      /** Band */
+      band: ("candidate" | "middle" | "avoid") | null;
+      /** Basket Pct */
+      basket_pct: number | null;
       /** Change Pct */
       change_pct: number | null;
       /** Close */
       close: number | null;
+      /** Code */
+      code: string | null;
+      /** Grade */
+      grade: ("proven" | "probable" | "unproven") | null;
+      /** Grade Label */
+      grade_label: string | null;
+      /** Holder Code */
+      holder_code: string | null;
+      /** Holder Label */
+      holder_label: string | null;
+      /** Holder Verdict */
+      holder_verdict: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
       /**
        * Idle Days
        * @default 0
@@ -3893,12 +4025,34 @@ export interface components {
        */
       trade_state: "active" | "idle" | "halted";
       /** Verdict */
-      verdict: ("buy" | "hold" | "sell") | null;
+      verdict: ("buy" | "candidate" | "hold" | "sell") | null;
       /**
        * Zone
        * @enum {string}
        */
       zone: "buy" | "hold" | "avoid" | "excluded" | "no_data";
+    };
+    /**
+     * RankingVerdictRule
+     * @description The fixed numbers of the per-symbol verdict (ADR 0004 section 5), from ``engine.yaml``.
+     */
+    RankingVerdictRule: {
+      /** Avoid Bottom Frac */
+      avoid_bottom_frac: number;
+      /**
+       * Avoid Grade
+       * @enum {string}
+       */
+      avoid_grade: "proven" | "probable" | "unproven";
+      /**
+       * Candidate Grade
+       * @enum {string}
+       */
+      candidate_grade: "proven" | "probable" | "unproven";
+      /** Candidate Top Frac */
+      candidate_top_frac: number;
+      /** Horizon Days */
+      horizon_days: number;
     };
     /** Reason */
     Reason: {
@@ -4021,12 +4175,16 @@ export interface components {
     ScreenerRow: {
       /** Atr 14 Pct */
       atr_14_pct: number | null;
+      /** Band */
+      band: ("candidate" | "middle" | "avoid") | null;
       /** Base Volume */
       base_volume: number | null;
       /** Change Pct */
       change_pct: number | null;
       /** Close */
       close: number | null;
+      /** Code */
+      code: string | null;
       /** Eps */
       eps: number | null;
       /** Ev */
@@ -4039,6 +4197,16 @@ export interface components {
       gauge: number | null;
       /** Gauge Note */
       gauge_note: string | null;
+      /** Grade */
+      grade: ("proven" | "probable" | "unproven") | null;
+      /** Grade Label */
+      grade_label: string | null;
+      /** Holder Code */
+      holder_code: string | null;
+      /** Holder Label */
+      holder_label: string | null;
+      /** Holder Verdict */
+      holder_verdict: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
       /** Ind Buy Power */
       ind_buy_power: number | null;
       /** Ind Net Flow Ratio */
@@ -4097,7 +4265,7 @@ export interface components {
        * @default none
        * @enum {string}
        */
-      verdict: "buy" | "hold" | "sell" | "none";
+      verdict: "buy" | "candidate" | "hold" | "sell" | "none";
       /**
        * Verdict Label
        * @default
@@ -4110,14 +4278,28 @@ export interface components {
     };
     /** SearchHit */
     SearchHit: {
+      /** Band */
+      band: ("candidate" | "middle" | "avoid") | null;
       /** Change Pct */
       change_pct: number | null;
       /** Close */
       close: number | null;
+      /** Code */
+      code: string | null;
       /** Eps */
       eps: number | null;
       /** Gauge */
       gauge: number | null;
+      /** Grade */
+      grade: ("proven" | "probable" | "unproven") | null;
+      /** Grade Label */
+      grade_label: string | null;
+      /** Holder Code */
+      holder_code: string | null;
+      /** Holder Label */
+      holder_label: string | null;
+      /** Holder Verdict */
+      holder_verdict: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
       /**
        * Idle Days
        * @default 0
@@ -4145,7 +4327,7 @@ export interface components {
        * @default none
        * @enum {string}
        */
-      verdict: "buy" | "hold" | "sell" | "none";
+      verdict: "buy" | "candidate" | "hold" | "sell" | "none";
       /**
        * Verdict Label
        * @default
@@ -4521,6 +4703,31 @@ export interface components {
       verdict: string;
       /** Verdict Label */
       verdict_label: string;
+    };
+    /** ZoneProfile */
+    ZoneProfile: {
+      avoid: components["schemas"]["ZoneStat"];
+      candidate: components["schemas"]["ZoneStat"];
+      /** Days */
+      days: number;
+    };
+    /**
+     * ZoneStat
+     * @description The past record of one zone, net of the round trip, in the whole period and each half.
+     */
+    ZoneStat: {
+      /** Deciles */
+      deciles: number[];
+      /** Grade */
+      grade: string;
+      /** Net */
+      net: number | null;
+      /** Net H1 */
+      net_h1: number | null;
+      /** Net H2 */
+      net_h2: number | null;
+      /** T */
+      t: number | null;
     };
   };
   responses: never;
@@ -6048,7 +6255,7 @@ export interface operations {
           | "pe"
           | "eps";
         q?: string | null;
-        verdict?: ("buy" | "hold" | "sell" | "none") | null;
+        verdict?: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
         stocks_only?: boolean;
         limit?: number;
       };

@@ -114,7 +114,7 @@ type Entry =
   | {
       available: true;
       live: boolean;
-      verdict: "buy" | "hold" | "sell" | null;
+      verdict: "buy" | "candidate" | "hold" | "sell" | null;
       bar: { last: number | null; close: number | null; yesterday: number | null };
       guard: Guard;
       plan?: Plan;
@@ -307,8 +307,7 @@ function LadderBlock<R extends Rung>({
       data-testid={buy ? "entry-plan" : "exit-plan"}
     >
       <h3 className="font-bold">
-        {buy ? "بهترین ورود" : "بهترین فروش"}{" "}
-        {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
+        {buy ? "بهترین ورود" : "بهترین فروش"} {plan.mode === "next" ? "(برای جلسهٔ بعد)" : "(امروز)"}
       </h3>
       <p className={`mt-1 text-sm font-bold ${best ? "text-up" : "text-muted"}`}>
         {faDigits(plan.headline)}

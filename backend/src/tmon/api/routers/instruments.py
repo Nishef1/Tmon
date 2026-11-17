@@ -431,9 +431,8 @@ def instrument_entry(
         if int(u["id"]) == instrument_id:
             from tmon.api.routers.dashboard import _turning_doc, final_verdict
 
-            sig = {k: x for k, x in (u.get("signals") or {}).items() if x is not None}
-            v = final_verdict(doc or {}, u.get("zone"), sig, _turning_doc(), instrument_id)
-            verdict = v if v in ("buy", "hold", "sell") else None
+            v = final_verdict(doc or {}, u, _turning_doc(), instrument_id)
+            verdict = v.key if v else None
             break
     fade = ent.bucket_for(ent.fade_table(session), bar.gap)
     drift = ent.drift_from_model(

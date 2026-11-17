@@ -1,12 +1,16 @@
 """What to do with a portfolio: keep, sell, switch, and what to buy with the cash.
 
 Everything comes from the model's daily ranking document (``tmon.tools.v2_ranking``): each scored
-stock has a cross-sectional score (0..1, the share of the basket it beats) and a zone (buy / hold /
-avoid). A holding in the avoid zone, or in a sell queue, is weak. A switch is suggested only when a
-buy-zone stock is far enough ahead that the measured top-minus-bottom excess return of the model
-over 20 days is larger than the round-trip cost of selling one and buying the other; otherwise the
-cost would eat the gain. When the ranking itself has not passed its validation gate
-(``recommendation_allowed`` false) every suggestion is marked as unvalidated.
+stock has a cross-sectional score (0..1, the share of the basket it beats) and a band inside the
+liquid basket (candidate / middle / avoid, ADR 0004 section 5), turned into the verdict of the
+stock page by ``final_verdict``. A holding in the avoid zone, or in a sell queue, is weak. A switch
+is suggested only when a candidate is far enough ahead that the measured top-minus-bottom excess
+return of the model over 20 days is larger than the round-trip cost of selling one and buying the
+other; otherwise the cost would eat the gain. Free cash is offered to candidates only (never one in
+a buy queue), sized by cash times the market's exposure; with a positive exposure and no candidate
+it is offered to the market itself, and with exposure zero nothing is offered. When the ranking
+itself has not passed its validation gate (``recommendation_allowed`` false) every suggestion is
+marked as unvalidated.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.market_card import market_card
 from tmon.api.routers.dashboard import _turning_doc, final_verdict
 from tmon.portfolio import liveprice
 from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
@@ -28,13 +33,24 @@ from tmon.tools.v2_ranking import KEY
 log = logging.getLogger(__name__)
 
 ROUND_TRIP = 0.017512
+GRADE_LABEL = {"proven": "ثابت‌شده", "probable": "احتمالی", "unproven": "ثابت‌نشده"}
 SWITCH_GAP = 0.25  # score gap (share of the basket) a switch must clear
 MAX_BUYS = 5
-NO_BUY_FA = (
-    "امروز هیچ نمادی هم در محدودهٔ خرید است و هم آزمون ماهانه پس از کارمزد برتری‌اش را تأیید کرده؛ "
-    "همان حکمی که صفحهٔ هر سهم نشان می‌دهد. نقد نگه دارید و عجله نکنید."
+NO_CANDIDATE_FA = (
+    "امروز نامزد خریدِ قابل‌خرید نداریم: نامزدها یا در صف خرید هستند یا وضعیت خودشان مانع است."
 )
-ZONE_FA = {"buy": "خرید", "hold": "نگهداری", "avoid": "فروش", None: "بدون امتیاز"}
+MARKET_OFF_FA = (
+    "امروز سهم سرمایه در سهام صفر است (روند یا مومنتوم بازار منفی، یا صف فروش سنگین)؛ "
+    "هیچ خریدی پیشنهاد نمی‌شود. نقد نگه دارید."
+)
+BUYABLE = ("buy", "candidate")  # the codes of ``final_verdict`` that can be ordered today
+SHOWN = ("buy", "candidate", "candidate_queue")  # candidates worth listing, buyable or not
+BAND_FA = {
+    "candidate": "نامزد خرید",
+    "middle": "میانه",
+    "avoid": "ناحیهٔ پایین",
+    None: "بدون امتیاز",
+}
 
 
 def ranking_doc() -> dict[str, Any] | None:
@@ -92,7 +108,13 @@ class Scored:
     rank: int | None  # 1 = best among the scored
     partial: bool = False  # scored from fewer than the four signals (short history)
     signals_as_of: str | None = None
-    verdict: str | None = None  # the verdict the stock page shows: buy / hold / sell
+    verdict: str | None = (
+        None  # colour key of the stock page verdict: buy / candidate / hold / sell
+    )
+    band: str | None = None  # candidate / middle / avoid inside the liquid basket
+    code: str | None = None  # the stock page's answer for someone who does not own it
+    holder_code: str | None = None  # ... and for an owner
+    grade_label: str | None = None  # evidence grade of the band's zone
 
 
 def _scored(doc: dict[str, Any] | None, turn: dict[str, Any] | None = None) -> dict[int, Scored]:
@@ -102,13 +124,10 @@ def _scored(doc: dict[str, Any] | None, turn: dict[str, Any] | None = None) -> d
     ordered = sorted((u for u in uni if u.get("score") is not None), key=lambda u: -u["score"])
     rank = {int(u["id"]): i + 1 for i, u in enumerate(ordered)}
 
-    def verdict(u: dict[str, Any]) -> str | None:
-        sig = {k: x for k, x in (u.get("signals") or {}).items() if x is not None}
-        v = final_verdict(doc, u.get("zone"), sig, turn, int(u["id"]))
-        return v if v in ("buy", "hold", "sell") else None
-
-    return {
-        int(u["id"]): Scored(
+    out: dict[int, Scored] = {}
+    for u in uni:
+        v = final_verdict(doc, u, turn, int(u["id"]))
+        out[int(u["id"])] = Scored(
             int(u["id"]),
             u.get("score"),
             u.get("zone"),
@@ -117,10 +136,13 @@ def _scored(doc: dict[str, Any] | None, turn: dict[str, Any] | None = None) -> d
             rank.get(int(u["id"])),
             bool(u.get("partial")),
             u.get("signals_as_of"),
-            verdict(u),
+            v.key if v else None,
+            v.band if v else None,
+            v.code if v else None,
+            v.holder_code if v else None,
+            GRADE_LABEL.get(v.grade or "") if v and v.grade else None,
         )
-        for u in uni
-    }
+    return out
 
 
 def _edge(doc: dict[str, Any] | None) -> float | None:
@@ -131,13 +153,17 @@ def _edge(doc: dict[str, Any] | None) -> float | None:
     return None
 
 
-def _holding_verdict(h: Holding, sc: Scored | None, price: float | None) -> tuple[str, list[str]]:
+def _holding_verdict(
+    h: Holding, sc: Scored | None, price: float | None, *, market_off: bool = False
+) -> tuple[str, list[str]]:
     """One verdict per holding, from the same ``final_verdict`` the stock page shows.
 
-    ``strong``  the page says buy (the held stock is in the model's buy zone and the tested month
-                supports it);  ``hold`` the page says hold;  ``weak`` the page says sell;
-    ``sell``    an urgent exit (stop level reached, or the sell queue);  ``watch`` no score.
-    The price is the last trade, the one a seller gets."""
+    ``strong``  the held stock is a candidate (top of the liquid basket); ``hold`` the page says
+                keep it; ``weak`` the page says to weigh a sale (its zone lags the market and that
+                is backed by evidence); ``sell`` an urgent exit (stop level reached, or the sell
+                queue);  ``watch`` no score. With ``market_off`` (exposure zero) the verdict stays
+                and a market warning is added. The price is the last trade, the one a seller
+                gets."""
     reasons: list[str] = []
     pnl = (price / h.avg_price - 1) if price and h.avg_price else None
     if h.stop_price and price and price <= h.stop_price:
@@ -148,35 +174,35 @@ def _holding_verdict(h: Holding, sc: Scored | None, price: float | None) -> tupl
         )
         return "watch", reasons
     reasons.append(
-        f"امتیاز مدل {sc.score:.2f} (رتبهٔ {sc.rank}) در ناحیهٔ «{ZONE_FA.get(sc.zone, sc.zone)}»."
+        f"امتیاز مدل {sc.score:.2f} (رتبهٔ {sc.rank}) در ناحیهٔ «{BAND_FA.get(sc.band, '—')}» "
+        "بین سهم‌های پرمعامله."
     )
     if sc.partial:
         reasons.append("امتیاز از بخشی از نشانه‌ها ساخته شده (سابقهٔ کوتاه)؛ با احتیاط بخوانید.")
     if sc.queue_state == "sell_queue":
         reasons.append("در صف فروش است؛ فروش فوری ممکن نیست و خطر ادامهٔ ریزش هست.")
         return "sell", reasons
-    if sc.zone == "avoid" and sc.verdict != "sell":
-        # same as the stock page: a low score the tested month does not back up is not a sell
+    if market_off:
+        reasons.append("هشدار بازار: سهم سرمایه در سهام امروز صفر است؛ بازار در کل خوب نیست.")
+    if sc.band == "avoid" and sc.holder_code != "consider_sell":
+        # same as the stock page: a low score whose lag is not proven is no reason to sell
         reasons.append(
-            "ولی در آزمون گذشته سهم‌های کم‌امتیاز در یک ماه از بازار عقب نمانده‌اند، پس فروش قطعی "
+            f"ولی عقب‌ماندگی این ناحیه در گذشته هنوز ثابت نشده (شواهد: {sc.grade_label})، پس فروش "
             "لازم نیست؛ خرید تازه نکنید و حد ضرر بگذارید."
         )
     if pnl is not None:
         reasons.append(f"سود/زیان فعلی {pnl * 100:+.1f}٪ نسبت به میانگین خرید (آخرین معامله).")
-    if sc.verdict == "sell":
+    if sc.holder_code == "consider_sell":
         return "weak", reasons
-    if sc.verdict == "buy":
+    if sc.band == "candidate":
         return "strong", reasons
-    if sc.zone == "buy":
-        # the zone says buy but the tested month does not carry it: same as the stock page, wait
-        reasons.append("امتیاز بالاست ولی آزمون ماه گذشته پس از کارمزد برتری را تأیید نکرده است.")
     return "hold", reasons
 
 
 VERDICT_FA = {
-    "strong": "نگهداری — در محدودهٔ خرید مدل",
-    "hold": "نگهداری",
-    "weak": "فروش — مدل آن را در محدودهٔ فروش می‌بیند",
+    "strong": "نگه‌دار — نامزد خرید مدل",
+    "hold": "نگه‌دار",
+    "weak": "فروش را بسنجید — ناحیهٔ پایین، با شواهد",
     "sell": "فروش فوری",
     "watch": "زیر نظر",
 }
@@ -191,18 +217,29 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         )
     )
     held = {h.instrument_id for h in holdings}
+    # candidates worth listing; one in a buy queue stays in the list, flagged not buyable, and is
+    # never ordered. With exposure zero the verdict is "wait: market", so nobody is listed.
     candidates = sorted(
         (
             s
             for s in scored.values()
-            if s.verdict == "buy"
-            and s.score is not None
-            and not s.halted
-            and s.queue_state == "none"
-            and s.id not in held
+            if s.code in SHOWN and s.score is not None and not s.halted and s.id not in held
         ),
         key=lambda s: -(s.score or 0),
     )
+    # an equity fund has no verdict of its own (it appears in the market card instead), as on the
+    # ranking page and the symbol page
+    kinds = dict(
+        session.execute(
+            select(Instrument.id, Instrument.instrument_type).where(
+                Instrument.id.in_([c.id for c in candidates])
+            )
+        ).all()
+    )
+    candidates = [c for c in candidates if kinds.get(c.id, "stock") == "stock"]
+    buyable = [c for c in candidates if c.code in BUYABLE and c.queue_state == "none"]
+    exposure = ((doc or {}).get("exposure") or {}).get("exposure")
+    market_off = exposure is not None and exposure <= 1e-9
     ids = sorted(held | {c.id for c in candidates[:20]})
     prices = last_prices(session, ids, live=True)
     names = {
@@ -223,7 +260,12 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
             "score": s.score,
             "rank": s.rank,
             "zone": s.zone,
+            "band": s.band,
             "verdict": s.verdict,
+            "code": s.code,
+            "grade_label": s.grade_label,
+            "queue_state": s.queue_state,
+            "buyable": s in buyable,
             "last": c[0] if c else None,
             "close": c[1] if c else None,
         }
@@ -237,7 +279,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         c = prices.get(h.instrument_id)
         last = c[0] if c else None
         close = c[1] if c else None
-        verdict, reasons = _holding_verdict(h, sc, last)
+        verdict, reasons = _holding_verdict(h, sc, last, market_off=market_off)
         sym, name = names.get(h.instrument_id, (str(h.instrument_id), None))
         mv = (last or h.avg_price) * h.shares
         value += mv
@@ -266,7 +308,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         )
         if verdict not in ("weak", "sell") or sc is None or sc.score is None:
             continue
-        best = next((x for x in candidates if x.id not in used), None)
+        best = next((x for x in buyable if x.id not in used), None)
         if best is None or best.score is None:
             continue
         gap = best.score - sc.score
@@ -294,15 +336,34 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
 
     buys: list[dict[str, Any]] = []
     cash = float(portfolio.cash or 0)
-    picks = [c for c in candidates if c.id not in used][:MAX_BUYS]
-    if cash > 0 and picks:
-        per = cash / len(picks)
+    share = 1.0 if exposure is None else float(exposure)
+    budget = cash * share  # the equity part of the free cash, as the market card states it
+    picks = [c for c in buyable if c.id not in used][:MAX_BUYS]
+    if budget > 0 and picks:
+        per = budget / len(picks)
         for pick in picks:
             row = cand_out(pick)
             price = row["last"]
             shares = int(per // (price * (1 + cost / 2))) if price else 0
             if shares > 0:
                 buys.append({**row, "shares": shares, "amount": shares * price})
+    card = market_card(session, doc) if doc else None
+    market_buy = None
+    if cash > 0 and not market_off and not picks and card is not None:
+        market_buy = {
+            "amount": budget,
+            "text": (
+                "نامزد خریدِ قابل‌خرید نیست؛ پس برای بخش سهامی نقد، خودِ بازار را بگیرید: سبد "
+                "سهم‌های پرمعامله (هم‌وزن) یا یک صندوق سهامی پرمعامله. این پیشنهاد آزموده نشده "
+                "است و سودی را تضمین نمی‌کند؛ بازار هم می‌تواند بیفتد."
+            ),
+        }
+    if market_off:
+        buy_note: str | None = MARKET_OFF_FA
+    elif not buyable:
+        buy_note = NO_CANDIDATE_FA
+    else:
+        buy_note = None
     return {
         "as_of": (doc or {}).get("as_of"),
         "validated": validated,
@@ -317,6 +378,9 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         "holdings": out_h,
         "switches": switches,
         "buys": buys,
-        "buy_note": None if candidates else NO_BUY_FA,
-        "candidates": [cand_out(c) for c in candidates[:10]],
+        "buy_note": buy_note,
+        "exposure": exposure,
+        "market": None if card is None else card.model_dump(mode="json"),
+        "market_buy": market_buy,
+        "candidates": [] if market_off else [cand_out(c) for c in candidates[:10]],
     }

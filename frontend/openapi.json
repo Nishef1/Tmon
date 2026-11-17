@@ -2403,6 +2403,22 @@
             ],
             "title": "As Of"
           },
+          "band": {
+            "anyOf": [
+              {
+                "enum": [
+                  "candidate",
+                  "middle",
+                  "avoid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
           "basket_size": {
             "anyOf": [
               {
@@ -2413,6 +2429,17 @@
               }
             ],
             "title": "Basket Size"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           },
           "gauge": {
             "anyOf": [
@@ -2425,9 +2452,81 @@
             ],
             "title": "Gauge"
           },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proven",
+                  "probable",
+                  "unproven"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
           "headline": {
             "title": "Headline",
             "type": "string"
+          },
+          "holder_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Code"
+          },
+          "holder_headline": {
+            "default": "",
+            "title": "Holder Headline",
+            "type": "string"
+          },
+          "holder_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Label"
+          },
+          "holder_verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "candidate",
+                  "hold",
+                  "sell",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Verdict"
           },
           "holding": {
             "anyOf": [
@@ -2455,6 +2554,11 @@
           "label": {
             "title": "Label",
             "type": "string"
+          },
+          "market_warning": {
+            "default": false,
+            "title": "Market Warning",
+            "type": "boolean"
           },
           "queue_state": {
             "anyOf": [
@@ -2513,6 +2617,7 @@
           "verdict": {
             "enum": [
               "buy",
+              "candidate",
               "hold",
               "sell",
               "none"
@@ -2549,6 +2654,13 @@
           }
         },
         "required": [
+          "code",
+          "holder_code",
+          "holder_verdict",
+          "holder_label",
+          "band",
+          "grade",
+          "grade_label",
           "verdict",
           "label",
           "weak",
@@ -2564,6 +2676,8 @@
           "zone_hold_from",
           "zone_buy_from",
           "queue_state",
+          "holder_headline",
+          "market_warning",
           "summary",
           "signals",
           "holding",
@@ -3403,6 +3517,7 @@
           "verdict": {
             "enum": [
               "buy",
+              "candidate",
               "hold",
               "sell",
               "none"
@@ -3489,6 +3604,33 @@
       "DashPeer": {
         "description": "One stock of the same industry group, for picking the best of the group.",
         "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "enum": [
+                  "candidate",
+                  "middle",
+                  "avoid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
           "dd": {
             "anyOf": [
               {
@@ -3499,6 +3641,73 @@
               }
             ],
             "title": "Dd"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proven",
+                  "probable",
+                  "unproven"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
+          "holder_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Code"
+          },
+          "holder_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Label"
+          },
+          "holder_verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "candidate",
+                  "hold",
+                  "sell",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Verdict"
           },
           "id": {
             "title": "Id",
@@ -3604,6 +3813,7 @@
             "default": "none",
             "enum": [
               "buy",
+              "candidate",
               "hold",
               "sell",
               "none"
@@ -3613,6 +3823,13 @@
           }
         },
         "required": [
+          "code",
+          "holder_code",
+          "holder_verdict",
+          "holder_label",
+          "band",
+          "grade",
+          "grade_label",
           "id",
           "symbol",
           "name",
@@ -6764,6 +6981,45 @@
         "title": "InstrumentOut",
         "type": "object"
       },
+      "InvestedReference": {
+        "description": "What buying and holding the liquid basket (S0) and the official index returned in the\nPhase 2 report's window, to show beside any annual return.",
+        "properties": {
+          "bill_annual": {
+            "title": "Bill Annual",
+            "type": "number"
+          },
+          "first": {
+            "title": "First",
+            "type": "string"
+          },
+          "last": {
+            "title": "Last",
+            "type": "string"
+          },
+          "official_annual": {
+            "title": "Official Annual",
+            "type": "number"
+          },
+          "report": {
+            "title": "Report",
+            "type": "string"
+          },
+          "s0_annual": {
+            "title": "S0 Annual",
+            "type": "number"
+          }
+        },
+        "required": [
+          "report",
+          "first",
+          "last",
+          "s0_annual",
+          "official_annual",
+          "bill_annual"
+        ],
+        "title": "InvestedReference",
+        "type": "object"
+      },
       "IssueOut": {
         "properties": {
           "date": {
@@ -7309,6 +7565,61 @@
         "title": "MarketBand",
         "type": "object"
       },
+      "MarketCard": {
+        "description": "The share of capital the model keeps in equities today, why, and the funds to hold it.",
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "exposure": {
+            "title": "Exposure",
+            "type": "number"
+          },
+          "funds": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MarketFund"
+            },
+            "title": "Funds",
+            "type": "array"
+          },
+          "funds_note": {
+            "default": "",
+            "title": "Funds Note",
+            "type": "string"
+          },
+          "positive": {
+            "title": "Positive",
+            "type": "boolean"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "exposure",
+          "date",
+          "positive",
+          "reasons",
+          "funds",
+          "funds_note"
+        ],
+        "title": "MarketCard",
+        "type": "object"
+      },
       "MarketFlow": {
         "properties": {
           "date": {
@@ -7386,6 +7697,91 @@
           "power"
         ],
         "title": "MarketFlow",
+        "type": "object"
+      },
+      "MarketFund": {
+        "description": "An equity fund of the market card: no verdict, never tested (ADR 0004 section 7).",
+        "properties": {
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "nav": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nav"
+          },
+          "nav_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nav Date"
+          },
+          "premium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Premium"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "symbol",
+          "name",
+          "value",
+          "close",
+          "nav",
+          "nav_date",
+          "premium"
+        ],
+        "title": "MarketFund",
         "type": "object"
       },
       "MarketIndexPoint": {
@@ -9065,6 +9461,26 @@
             ],
             "title": "Hold Top Frac"
           },
+          "invested_reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InvestedReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_card": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketCard"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "outside": {
             "default": [],
             "items": {
@@ -9097,6 +9513,16 @@
             ],
             "title": "Universe Size"
           },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankingVerdictRule"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "weights": {
             "additionalProperties": {
               "type": "number"
@@ -9120,6 +9546,14 @@
               }
             ],
             "title": "Weights Note"
+          },
+          "zones": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ZoneProfile"
+            },
+            "default": {},
+            "title": "Zones",
+            "type": "object"
           }
         },
         "required": [
@@ -9140,13 +9574,44 @@
           "universe_size",
           "weights",
           "weights_champion",
-          "weights_note"
+          "weights_note",
+          "verdict",
+          "zones",
+          "invested_reference",
+          "market_card"
         ],
         "title": "RankingOut",
         "type": "object"
       },
       "RankingRow": {
         "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "enum": [
+                  "candidate",
+                  "middle",
+                  "avoid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
+          "basket_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basket Pct"
+          },
           "change_pct": {
             "anyOf": [
               {
@@ -9168,6 +9633,84 @@
               }
             ],
             "title": "Close"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proven",
+                  "probable",
+                  "unproven"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
+          "holder_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Code"
+          },
+          "holder_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Label"
+          },
+          "holder_verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "candidate",
+                  "hold",
+                  "sell",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Verdict"
           },
           "idle_days": {
             "default": 0,
@@ -9354,6 +9897,7 @@
               {
                 "enum": [
                   "buy",
+                  "candidate",
                   "hold",
                   "sell"
                 ],
@@ -9378,6 +9922,13 @@
           }
         },
         "required": [
+          "code",
+          "holder_code",
+          "holder_verdict",
+          "holder_label",
+          "band",
+          "grade",
+          "grade_label",
           "rank",
           "symbol",
           "name",
@@ -9385,6 +9936,7 @@
           "score",
           "zone",
           "verdict",
+          "basket_pct",
           "queue_state",
           "median_value",
           "in_basket",
@@ -9402,6 +9954,50 @@
           "queue_reach_cases"
         ],
         "title": "RankingRow",
+        "type": "object"
+      },
+      "RankingVerdictRule": {
+        "description": "The fixed numbers of the per-symbol verdict (ADR 0004 section 5), from ``engine.yaml``.",
+        "properties": {
+          "avoid_bottom_frac": {
+            "title": "Avoid Bottom Frac",
+            "type": "number"
+          },
+          "avoid_grade": {
+            "enum": [
+              "proven",
+              "probable",
+              "unproven"
+            ],
+            "title": "Avoid Grade",
+            "type": "string"
+          },
+          "candidate_grade": {
+            "enum": [
+              "proven",
+              "probable",
+              "unproven"
+            ],
+            "title": "Candidate Grade",
+            "type": "string"
+          },
+          "candidate_top_frac": {
+            "title": "Candidate Top Frac",
+            "type": "number"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "candidate_top_frac",
+          "avoid_bottom_frac",
+          "candidate_grade",
+          "avoid_grade"
+        ],
+        "title": "RankingVerdictRule",
         "type": "object"
       },
       "Reason": {
@@ -9783,6 +10379,22 @@
             ],
             "title": "Atr 14 Pct"
           },
+          "band": {
+            "anyOf": [
+              {
+                "enum": [
+                  "candidate",
+                  "middle",
+                  "avoid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
           "base_volume": {
             "anyOf": [
               {
@@ -9815,6 +10427,17 @@
               }
             ],
             "title": "Close"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           },
           "eps": {
             "anyOf": [
@@ -9881,6 +10504,73 @@
               }
             ],
             "title": "Gauge Note"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proven",
+                  "probable",
+                  "unproven"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
+          "holder_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Code"
+          },
+          "holder_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Label"
+          },
+          "holder_verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "candidate",
+                  "hold",
+                  "sell",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Verdict"
           },
           "ind_buy_power": {
             "anyOf": [
@@ -10179,6 +10869,7 @@
             "default": "none",
             "enum": [
               "buy",
+              "candidate",
               "hold",
               "sell",
               "none"
@@ -10215,6 +10906,13 @@
           }
         },
         "required": [
+          "code",
+          "holder_code",
+          "holder_verdict",
+          "holder_label",
+          "band",
+          "grade",
+          "grade_label",
           "instrument",
           "close",
           "change_pct",
@@ -10262,6 +10960,22 @@
       },
       "SearchHit": {
         "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "enum": [
+                  "candidate",
+                  "middle",
+                  "avoid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
           "change_pct": {
             "anyOf": [
               {
@@ -10284,6 +10998,17 @@
             ],
             "title": "Close"
           },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
           "eps": {
             "anyOf": [
               {
@@ -10305,6 +11030,73 @@
               }
             ],
             "title": "Gauge"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proven",
+                  "probable",
+                  "unproven"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
+          "holder_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Code"
+          },
+          "holder_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Label"
+          },
+          "holder_verdict": {
+            "anyOf": [
+              {
+                "enum": [
+                  "buy",
+                  "candidate",
+                  "hold",
+                  "sell",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Verdict"
           },
           "idle_days": {
             "default": 0,
@@ -10377,6 +11169,7 @@
             "default": "none",
             "enum": [
               "buy",
+              "candidate",
               "hold",
               "sell",
               "none"
@@ -10391,6 +11184,13 @@
           }
         },
         "required": [
+          "code",
+          "holder_code",
+          "holder_verdict",
+          "holder_label",
+          "band",
+          "grade",
+          "grade_label",
           "instrument",
           "sector_name",
           "kind",
@@ -11557,6 +12357,97 @@
           "right"
         ],
         "title": "VerdictCheck",
+        "type": "object"
+      },
+      "ZoneProfile": {
+        "properties": {
+          "avoid": {
+            "$ref": "#/components/schemas/ZoneStat"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/ZoneStat"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "candidate",
+          "avoid"
+        ],
+        "title": "ZoneProfile",
+        "type": "object"
+      },
+      "ZoneStat": {
+        "description": "The past record of one zone, net of the round trip, in the whole period and each half.",
+        "properties": {
+          "deciles": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Deciles",
+            "type": "array"
+          },
+          "grade": {
+            "title": "Grade",
+            "type": "string"
+          },
+          "net": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net"
+          },
+          "net_h1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net H1"
+          },
+          "net_h2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net H2"
+          },
+          "t": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T"
+          }
+        },
+        "required": [
+          "deciles",
+          "net",
+          "net_h1",
+          "net_h2",
+          "t",
+          "grade"
+        ],
+        "title": "ZoneStat",
         "type": "object"
       }
     }
@@ -14179,6 +15070,7 @@
                 {
                   "enum": [
                     "buy",
+                    "candidate",
                     "hold",
                     "sell",
                     "none"

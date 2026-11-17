@@ -159,15 +159,24 @@ def test_rank_peers_orders_by_score_and_keeps_the_symbol() -> None:
     peers = [Instrument(id=i, symbol_fa=f"s{i}", tags={"eps": 10.0}) for i in range(1, n + 1)]
     rank = {
         "rows": [{"symbol": "s1"}],
-        "universe": [{"id": i, "score": i / 100, "zone": "buy" if i > 5 else "avoid"}
+        "universe": [{"id": i, "score": i / 100, "zone": "buy" if i > 5 else "avoid",
+                      "band": "candidate" if i > 5 else "avoid"}
                      for i in range(1, n)],  # the last one is not scored
+        "verdict": {"horizon_days": 60, "candidate_top_frac": 0.5, "avoid_bottom_frac": 0.4,
+                    "candidate_grade": "unproven", "avoid_grade": "unproven"},
+        "exposure": {"exposure": 0.8},
     }  # fmt: skip
     out = rank_peers(peers, 1, rank, _doc(), {1: 50.0})
     assert out.scored == out.total == n - 1  # the unscored, stateless one is dropped
     assert [x.id for x in out.items][:2] == [n - 1, n - 2]
     me = out.items[-1]
     assert me.is_self and out.position == n - 1 and len(out.items) == PEERS_SHOWN + 1
-    assert me.verdict == "sell" and me.in_basket and me.pe == pytest.approx(5.0)
+    # the lower zone's lag is not proven yet: "with the market", not a sell
+    assert me.verdict == "hold" and me.code == "with_market" and me.in_basket
+    assert me.pe == pytest.approx(5.0)
+    rank["verdict"]["avoid_grade"] = "probable"
+    backed = rank_peers(peers, 1, rank, _doc(), {1: 50.0}).items[-1]
+    assert backed.verdict == "sell" and backed.code == "avoid"
     assert me.turning_key == "deep_falling" and me.turning_tone == "up" and me.dd == -0.6
 
 

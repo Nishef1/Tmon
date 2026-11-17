@@ -7,6 +7,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import statistics
+from dataclasses import dataclass
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -79,7 +80,6 @@ SIGNAL_WHAT = {
     "dist_high_52w": "قیمت امروز چقدر به بالاترین قیمت یک سال اخیر نزدیک است",
     "mom_12_1": "قیمت در یک سال گذشته (به‌جز ماه آخر) چقدر رشد کرده است",
 }
-HOLD_DAYS = 20  # the horizon the evidence table is read at, in trading days
 LABEL = {"buy": "خرید", "hold": "نگهداری", "sell": "فروش", "none": "تصمیمی نیست"}
 TYPE_FA = {
     "bond": "اوراق بدهی",
@@ -305,10 +305,16 @@ def _signals(sig: dict[str, float]) -> list[DashSignal]:
 
 
 SUMMARY = {
-    "buy": "امتیازش جزو ۱۰٪ بهترین سهم‌های بازار است؛ یعنی چند نشانهٔ خوب را با هم دارد.",
-    "hold": "امتیازش متوسط است: اگر دارید نگه دارید؛ برای خرید تازه صبر کنید تا امتیازش "
-    "به محدودهٔ خرید برسد.",
-    "sell": "امتیازش جزو ضعیف‌ترین سهم‌هاست: نخرید و اگر دارید فروش را بسنجید.",
+    "buy": "امتیازش در نیمهٔ بالای سهم‌های پرمعامله است و شواهد این ناحیه ثابت‌شده است.",
+    "candidate": "امتیازش در نیمهٔ بالای سهم‌های پرمعامله است؛ نامزد خرید است، ولی شواهد این ناحیه "
+    "هنوز ثابت نشده و این توصیه نیست.",
+    "candidate_queue": "نامزد خرید است ولی در صف خرید است؛ خرید امروز عملاً ممکن نیست.",
+    "wait": "امتیازش بالاست، اما وضعیت خود سهم در گذشته از بازار جلو نزده: فعلاً صبر کنید.",
+    "with_market": "امتیازش در ناحیهٔ خرید نیست و عقب‌ماندگی‌اش هم ثابت نشده: همراه بازار بمانید.",
+    "avoid": "امتیازش در ناحیهٔ پایین است و عقب‌ماندگی این ناحیه شواهد دارد: نخرید.",
+    "wait_market": "بازار امروز می‌گوید سهام نخرید: صبر کنید.",
+    "hold": "اگر دارید نگه دارید.",
+    "consider_sell": "اگر دارید فروش را بسنجید.",
 }
 
 
@@ -318,8 +324,6 @@ HORIZONS_FA = {
     20: ("M1", "یک ماه (۲۰ روز معاملاتی)"),
     60: ("Q1", "سه ماه (۶۰ روز معاملاتی)"),
 }
-MIN_NET_EDGE = 0.01  # declared in advance: past net excess must clear 1% (survivorship bias, noise)
-MIN_T = 3.0  # and be statistically solid (Bonferroni-like bar used in the R1 report)
 
 
 def _n(x: float, digits: int = 1, sign: bool = False) -> str:
@@ -387,36 +391,244 @@ def _veto_sentence(v: dict[str, Any], label: str) -> str:
     )
 
 
-def _horizon_decision(
-    h: int,
-    ev: dict[str, Any],
-    zone: str,
-    cost: float,
-    sig: dict[str, float],
-    advice_base: bool,
-    veto: dict[str, Any] | None = None,
-) -> DashHorizon:
-    """Buy / hold / sell for one holding period from the symbol's zone and what that zone's past
-    excess return was at this period, net of the round-trip cost. A buy is lowered to a wait when
-    the symbol's own state speaks against it (``state_veto``). Nothing is fitted here."""
-    key, label = HORIZONS_FA[h]
-    top, bot = ev.get("top_excess"), ev.get("bottom_excess")
-    t = ev.get("excess_t")
-    net = None if top is None else top - cost
-    reasons: list[str] = []
-    weak = False
-    vetoed = False
-    if top is not None and ev.get("n_days"):
-        reasons.append(
-            f"اعداد بالا از {ev.get('n_days')} روز معاملاتی گذشته به دست آمده‌اند: در هر روز، "
-            "بین ۱۰۰ سهم پرنقد (بدون سهم‌های قفل صف خرید که خریدنی نیستند) ده درصد بالای فهرست "
-            f"امتیاز را به‌صورت فرضی خریده‌ایم و بازدهی {label} بعد را با میانگین همان ۱۰۰ سهم "
-            "سنجیده‌ایم."
+GRADE_FA = {"proven": "ثابت‌شده", "probable": "احتمالی", "unproven": "ثابت‌نشده"}
+# The codes of the ADR 0004 section 7 table, with the words each is shown as and a colour key.
+CODE_FA = {
+    "buy": "خرید",
+    "candidate": "نامزد خرید",
+    "candidate_queue": "نامزد، ولی در صف خرید",
+    "wait": "صبر",
+    "with_market": "همراه بازار",
+    "avoid": "پرهیز",
+    "wait_market": "صبر: بازار",
+    "hold": "نگه‌دار",
+    "consider_sell": "فروش را بسنجید",
+}
+CODE_KEY = {
+    "buy": "buy",
+    "candidate": "candidate",
+    "candidate_queue": "candidate",
+    "wait": "hold",
+    "with_market": "hold",
+    "avoid": "sell",
+    "wait_market": "hold",
+    "hold": "hold",
+    "consider_sell": "sell",
+}
+BACKED_GRADES = ("probable", "proven")  # an avoid zone with this grade may say "avoid"
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """The answer for one symbol: ``code`` for someone who does not own it and ``holder_code`` for
+    an owner, as in the ADR 0004 section 7 table."""
+
+    code: str
+    holder_code: str
+    band: str  # candidate / middle / avoid: the place inside the liquid basket
+    grade: str | None  # proven / probable / unproven for the zone of ``band``; None in the middle
+    vetoed: bool  # a candidate lowered to a wait by the symbol's own state
+    market_warning: bool  # exposure is zero: the market itself says stay out
+    headline: str
+    holder_headline: str
+
+    @property
+    def label(self) -> str:
+        return CODE_FA[self.code]
+
+    @property
+    def holder_label(self) -> str:
+        return CODE_FA[self.holder_code]
+
+    @property
+    def key(self) -> str:
+        return CODE_KEY[self.code]
+
+    @property
+    def holder_key(self) -> str:
+        return CODE_KEY[self.holder_code]
+
+    def for_holder(self, held: bool) -> str:
+        """The colour key of the answer the reader should see."""
+        return self.holder_key if held else self.key
+
+
+def verdict_config(doc: dict[str, Any]) -> dict[str, Any]:
+    """The verdict's fixed numbers: from the ranking document, else straight from the config."""
+    return doc.get("verdict") or get_engine_config().v2.verdict.model_dump()
+
+
+def _zone_of(doc: dict[str, Any], band: str, h: int) -> dict[str, Any] | None:
+    zones = (doc.get("zones") or {}).get(str(h)) or {}
+    return zones.get("candidate" if band == "candidate" else "avoid") or None
+
+
+def _zone_sentence(z: dict[str, Any] | None, h: int, what: str, *, avoided: bool = False) -> str:
+    """The zone's measured record net of the round trip: whole period, each half and t. For a zone
+    to avoid, the number is the gain of avoiding it (its shortfall against the market, after cost).
+    """
+    if not z or z.get("net") is None:
+        return ""
+    t = z.get("t")
+    spread = (
+        f"(نیمهٔ اول {_signed(z['net_h1'])}، نیمهٔ دوم {_signed(z['net_h2'])}"
+        + (f"، t = {_n(t)}" if t is not None else "")
+        + ")."
+    )
+    if avoided:
+        return (
+            f"در گذشته پرهیز از {what} پس از کارمزد، {h} روز بعد به‌طور میانگین {_signed(z['net'])} "
+            f"نسبت به نگه‌داشتن بازار سود داشته {spread}"
         )
+    return (
+        f"در گذشته {what} پس از کارمزد، {h} روز بعد به‌طور میانگین {_signed(z['net'])} نسبت به "
+        f"بازار داشته {spread}"
+    )
+
+
+def _market_off(doc: dict[str, Any]) -> bool:
+    exposure = (doc.get("exposure") or {}).get("exposure")
+    return exposure is not None and exposure <= 1e-9
+
+
+def final_verdict(
+    doc: dict[str, Any],
+    entry: dict[str, Any],
+    turn_doc: dict[str, Any] | None = None,
+    instrument_id: int | None = None,
+) -> Verdict | None:
+    """The per-symbol verdict of ADR 0004 section 7 for one ranking entry (a row or a universe
+    item of the ranking document); ``None`` when it has no band (no score, or a sell queue).
+
+    The band is the symbol's place in the liquid basket (candidate / middle / avoid), the grade
+    of that zone comes from the verdict config (the Phase 2 report), exposure from the document.
+    A candidate in a buy queue is never called buyable; the state veto, read at the verdict
+    horizon, only lowers a candidate to a wait; with exposure zero nobody is told to buy. Only a
+    grade "proven" turns a candidate into "buy". A plain "sell" is not made here: it comes from the
+    portfolio switch rule and exit alerts. One definition for every list."""
+    band = entry.get("band")
+    if band not in ("candidate", "middle", "avoid"):
+        return None
+    vc = verdict_config(doc)
+    h = int(vc["horizon_days"])
+    off = _market_off(doc)
+    queue = entry.get("queue_state") == "buy_queue"
+    veto = None if instrument_id is None else state_veto(turn_doc, instrument_id, h)
+    wait_market = "امروز بازار می‌گوید سهام نخرید (سهم سرمایه در سهام صفر است)؛ صبر کنید."
+    grade: str | None = None
+    vetoed = False
+    if band == "candidate":
+        grade = str(vc["candidate_grade"])
+        rec = _zone_sentence(_zone_of(doc, band, h), h, "نیمهٔ بالای سهم‌های پرمعامله")
+        code, holder = "candidate", "hold"
+        if off:
+            code = "wait_market"
+        elif queue:
+            code = "candidate_queue"
+        elif veto is not None:
+            code, vetoed = "wait", True
+        elif grade == "proven":
+            code = "buy"
+        head = {
+            "buy": "بخرید؛ " + rec,
+            "candidate": (
+                f"نامزد خرید است، نه توصیه؛ شواهد این ناحیه {GRADE_FA[grade]} است. " + rec
+            ),
+            "candidate_queue": (
+                "نامزد خرید است ولی در صف خرید است و سفارش امروز احتمالاً پر نمی‌شود؛ به سقف "
+                "صف نخرید. " + rec
+            ),
+            "wait": _veto_sentence(veto, "این سهم") if veto else "",
+            "wait_market": wait_market,
+        }[code]
+        held_head = "اگر دارید، نگه دارید و هشدارهای پرتفوی را دنبال کنید. " + rec
+    elif band == "avoid":
+        grade = str(vc["avoid_grade"])
+        rec = _zone_sentence(_zone_of(doc, band, h), h, "ناحیهٔ پایین (کم‌امتیازها)", avoided=True)
+        backed = grade in BACKED_GRADES
+        code = "avoid" if backed else "with_market"
+        holder = "consider_sell" if backed else "hold"
+        if off and not backed:
+            code = "wait_market"
+        head = {
+            "avoid": "نخرید؛ " + rec,
+            "with_market": (
+                "امتیازش در ناحیهٔ پایین است، ولی عقب‌ماندگی این ناحیه هنوز ثابت نشده "
+                f"(شواهد {GRADE_FA[grade]})؛ نه دلیلی برای پرهیز است نه برای خرید. همراه بازار "
+                "بمانید. " + rec
+            ),
+            "wait_market": wait_market,
+        }[code]
+        held_head = (
+            "فروش را بسنجید؛ " + rec
+            if backed
+            else "اگر دارید نگه دارید؛ عقب‌ماندگی ناحیهٔ پایین هنوز ثابت نشده، پس فروش لازم "
+            "نیست. " + rec
+        )
+    else:
+        code, holder = ("wait_market" if off else "with_market"), "hold"
+        head = (
+            wait_market
+            if off
+            else "امتیازش میانه است: نه نامزد خرید است نه پرهیز؛ همراه بازار بمانید."
+        )
+        held_head = "اگر دارید، نگه دارید."
+    if off:
+        held_head += " هشدار بازار: سهم سرمایه در سهام امروز صفر است؛ بازار در کل خوب نیست."
+    return Verdict(code, holder, band, grade, vetoed, off, head.strip(), held_head.strip())
+
+
+def verdict_fields(v: Verdict | None) -> dict[str, Any]:
+    """The ``VerdictFields`` of a list row (screener, ranking, search, peers) from its verdict."""
+    if v is None:
+        return {}
+    return {
+        "code": v.code,
+        "holder_code": v.holder_code,
+        "holder_verdict": v.holder_key,
+        "holder_label": v.holder_label,
+        "band": v.band,
+        "grade": v.grade,
+        "grade_label": None if v.grade is None else GRADE_FA[v.grade],
+    }
+
+
+def decision_fields(d: DashDecision) -> dict[str, Any]:
+    """The same fields from a symbol page decision (screener and search rows)."""
+    return {
+        k: getattr(d, k)
+        for k in (
+            "code",
+            "holder_code",
+            "holder_verdict",
+            "holder_label",
+            "band",
+            "grade",
+            "grade_label",
+        )
+    }
+
+
+def _verdict_card(doc: dict[str, Any], v: Verdict, sig: dict[str, float]) -> DashHorizon | None:
+    """The one horizon card the page shows: the verdict horizon, its zone record, the signals."""
+    cost = doc.get("round_trip_cost")
+    h = int(verdict_config(doc)["horizon_days"])
+    if cost is None or h not in HORIZONS_FA:
+        return None
+    key, label = HORIZONS_FA[h]
+    ev: dict[str, Any] = next(
+        (e for e in doc.get("evidence", []) if e.get("horizon_days") == h), {}
+    )
+    z = _zone_of(doc, "avoid" if v.band == "avoid" else "candidate", h) or {}
+    net = z.get("net")
+    reasons = [
+        "اعداد این صفحه از روزهای معاملاتی گذشته به دست آمده‌اند: در هر روز، بین ۱۰۰ سهم پرنقد "
+        "(بدون سهم‌های قفل صف خرید که خریدنی نیستند) سهم‌ها را به ده گروه امتیاز تقسیم کرده‌ایم "
+        f"و بازدهی {label} بعد هر گروه را با میانگین همان ۱۰۰ سهم سنجیده‌ایم."
+    ]
     for k, name in SIGNAL_FA.items():
         s_ev = (ev.get("signals") or {}).get(k)
-        v = sig.get(k)
-        if not s_ev or s_ev.get("ic") is None or v is None:
+        if not s_ev or s_ev.get("ic") is None or sig.get(k) is None:
             continue
         solid = (s_ev.get("t") or 0) >= 2.0
         reasons.append(
@@ -429,150 +641,54 @@ def _horizon_decision(
             )
             + f" (برای کارشناس: IC {_n(s_ev['ic'], 3, True)}، t {_n(s_ev.get('t') or 0)})."
         )
-    solid_edge = net is not None and t is not None and net >= MIN_NET_EDGE and t >= MIN_T
-    if zone == "buy":
-        if solid_edge and veto is not None:
-            verdict = "hold"
-            vetoed = True
-            head = _veto_sentence(veto, label)
-        elif solid_edge:
-            verdict = "buy"
-            head = (
-                f"برای {label}: بخرید؛ در گذشته این گروه حتی پس از کسر کارمزد، سود اضافه‌ای داده "
-                "است که از نظر آماری شانسی به نظر نمی‌رسد."
-            )
-        elif net is not None and net > 0:
-            verdict = "hold"
-            why = (
-                f"سود اضافهٔ گذشته پس از کارمزد ({_signed(net)}) از حداقل {_pct(MIN_NET_EDGE)} "
-                "که از پیش تعیین کرده‌ایم کمتر است"
-                if net < MIN_NET_EDGE
-                else "سود گذشته ممکن است شانسی بوده باشد؛ اطمینان آماری کافی نیست "
-                f"(t = {_n(t or 0)}، حداقل {_n(MIN_T, 0)})"
-            )
-            head = f"برای {label}: فعلاً نخرید؛ {why}."
-        else:
-            verdict = "hold"
-            head = f"برای {label}: معامله نکنید؛ سود اضافهٔ گذشته از کارمزد خرید و فروش کمتر است."
-    elif zone == "hold":
-        verdict = "hold"
-        head = (
-            f"برای {label}: اگر ندارید صبر کنید؛ امتیاز این سهم نه جزو بهترین‌هاست نه جزو "
-            "بدترین‌ها. اگر دارید، نگه دارید."
-        )
-    elif bot is not None and bot < -cost / 2:
-        verdict = "sell"
-        head = (
-            f"برای {label}: نخرید و اگر دارید فروش را بسنجید؛ در گذشته سهم‌های کم‌امتیاز از "
-            f"میانگین سهم‌های پرنقد عقب مانده‌اند ({_signed(bot)})."
-        )
-    else:
-        # a low score the past does not back up: not a sell, but not a "wait" either
-        verdict = "hold"
-        weak = True
-        head = (
-            f"برای {label}: نخرید؛ امتیازش پایین است. اگر دارید فروش را بسنجید، ولی در گذشته "
-            "سهم‌های کم‌امتیاز در این مدت از بازار عقب نمانده‌اند"
-            + (f" ({_signed(bot)})" if bot is not None else "")
-            + "؛ پس فروش قطعی لازم نیست."
-        )
     return DashHorizon(
         key=key,
         label=label,
         days=h,
-        verdict=verdict,
-        verdict_label=LABEL[verdict],
-        weak=weak,
-        vetoed=vetoed,
-        headline=head,
+        verdict=v.key,
+        verdict_label=v.label,
+        weak=False,
+        vetoed=v.vetoed,
+        headline=v.headline,
         reasons=reasons,
-        top_excess=top,
-        cost=cost,
+        top_excess=None if net is None or v.band == "avoid" else net + float(cost),
+        cost=float(cost),
         net_excess=net,
         ic=ev.get("ic"),
         ic_t=ev.get("ic_t"),
     )
 
 
-def _horizons(
-    doc: dict[str, Any],
-    zone: str,
-    sig: dict[str, float],
-    turn_doc: dict[str, Any] | None = None,
-    instrument_id: int | None = None,
-) -> list[DashHorizon]:
-    cost = doc.get("round_trip_cost")
-    if cost is None:
-        return []
-    by_h = {e["horizon_days"]: e for e in doc.get("evidence", [])}
-    return [
-        _horizon_decision(
-            h,
-            by_h[h],
-            zone,
-            float(cost),
-            sig,
-            True,
-            None if instrument_id is None else state_veto(turn_doc, instrument_id, h),
-        )
-        for h in HORIZONS_FA
-        if h in by_h
-    ]
-
-
-def final_verdict(
-    doc: dict[str, Any],
-    zone: str | None,
-    sig: dict[str, float],
-    turn_doc: dict[str, Any] | None = None,
-    instrument_id: int | None = None,
-) -> str | None:
-    """The verdict the symbol page shows (buy / hold / sell): the score zone, softened by what the
-    tested month says and, for a buy, by the symbol's own state. ``None`` when the zone gives no
-    decision. One definition for every list: pass the turning document and the instrument id."""
-    if zone not in ("buy", "hold", "avoid"):
-        return None
-    verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
-    cost, ev = doc.get("round_trip_cost"), None
-    for e in doc.get("evidence", []):
-        if e.get("horizon_days") == HOLD_DAYS:
-            ev = e
-    if cost is None or ev is None:
-        return verdict
-    veto = None if instrument_id is None else state_veto(turn_doc, instrument_id, HOLD_DAYS)
-    return _horizon_decision(HOLD_DAYS, ev, zone, float(cost), sig, True, veto).verdict
-
-
-def _holding(verdict: str, doc: dict[str, Any], advice: bool) -> DashHolding:
-    ev = next((e for e in doc.get("evidence", []) if e.get("horizon_days") == HOLD_DAYS), None)
-    edge = ev.get("top_excess") if ev else None
+def _holding(v: Verdict, doc: dict[str, Any], advice: bool) -> DashHolding:
+    h = int(verdict_config(doc)["horizon_days"])
+    z = _zone_of(doc, "avoid" if v.band == "avoid" else "candidate", h) or {}
     lines = [
-        f"این امتیاز برای نگه‌داشتن سهم حدود {HOLD_DAYS} روز کاری بورس (حدود یک ماه) ساخته شده، "
+        f"این ناحیه برای نگه‌داشتن سهم حدود {h} روز کاری بورس (حدود سه ماه) سنجیده شده، "
         "نه برای خرید و فروش در همان روز؛ برای نوسان‌گیری روزانه آزمایش نشده است."
     ]
-    if verdict == "buy":
-        if edge is not None:
+    if v.code in ("buy", "candidate", "candidate_queue"):
+        if z.get("net") is not None:
             lines.append(
-                "سود اضافهٔ بالا میانگین گذشته است، نه قول؛ بعضی از سهم‌های پرامتیاز زیان هم داده‌اند."
+                "سود اضافهٔ بالا میانگین گذشته است، نه قول؛ بعضی از سهم‌های این ناحیه زیان داده‌اند."
             )
         lines.append(
             "زمان فروش: سهم را به یک پرتفوی اضافه کنید تا هشدار خروج دقیقه‌ای (صف فروش، عرضهٔ "
-            "سنگین، خروج پول حقیقی، خبر بد) بگیرید. تا وقتی سهم در محدودهٔ خرید یا نگهداری است "
-            "نگه دارید؛ اگر به محدودهٔ فروش رفت یا زیر سطح خروج بالا بسته شد، بفروشید."
+            "سنگین، خروج پول حقیقی، خبر بد) بگیرید. فروش ساده از روی این صفحه گفته نمی‌شود؛ "
+            "فقط قاعدهٔ جابه‌جایی پرتفوی و هشدارهای خروج می‌گویند «بفروش»."
         )
         lines.append(
             "اگر سهم صف خرید است، خرید عملاً ممکن نیست؛ با سفارش درشت و بدون برنامه وارد صف نشوید."
         )
-    elif verdict == "hold":
+    elif v.code in ("with_market", "wait", "wait_market"):
         lines.append(
             "اگر سهم را دارید نگه دارید و هشدارهای پرتفوی را دنبال کنید؛ خرید تازه وقتی منطقی "
-            "است که امتیاز به محدودهٔ خرید برسد."
+            "است که سهم نامزد خرید شود."
         )
     else:
         lines.append("خرید تازه نکنید. اگر دارید، فروش را بسنجید.")
     if not advice:
         lines.append("این‌ها آمار گذشته‌اند و هنوز توصیهٔ مطمئن نیستند (همهٔ آزمون‌ها تمام نشده).")
-    return DashHolding(horizon_days=HOLD_DAYS, expected_excess=edge, lines=lines)
+    return DashHolding(horizon_days=h, expected_excess=z.get("net"), lines=lines)
 
 
 def _zone_from(top_frac: object) -> float | None:
@@ -695,7 +811,9 @@ def decide(
             else "دادهٔ کافی برای محاسبهٔ امتیاز ندارد."
         )
         return _none(f"امروز تصمیمی نیست: {why}", **base)
-    verdict = {"buy": "buy", "hold": "hold", "avoid": "sell"}[zone]
+    v = final_verdict(doc, src, turn_doc, inst.id)
+    if v is None:
+        return _none("رتبه‌بندی مدل با قاعدهٔ تازه هنوز محاسبه نشده است.", **base)
     if row is not None:
         reasons = [
             f"امتیاز ترکیبی {(score or 0) * 100:.0f} از ۱۰۰ یعنی از حدود "
@@ -713,14 +831,19 @@ def decide(
             "در صف خرید است: سهم قوی است ولی سفارش خرید امروز ممکن است پر نشود؛ "
             "به قیمت سقف صف نخرید مگر بخواهید در نوبت بمانید."
         )
-    bt, ht = doc.get("buy_top_frac"), doc.get("hold_top_frac")
-    if bt and ht:
-        top = f"{bt * 100:g}".replace(".", "٫")  # 10 not 10.0
-        reasons.append(
-            f"قاعدهٔ کار: امتیاز {(1 - bt) * 100:.0f} و بالاتر ({top}٪ بالای کل بازار) «خرید»، "
-            f"{(1 - ht) * 100:.0f} تا {(1 - bt) * 100:.0f} «نگهداری یا صبر» و زیر "
-            f"{(1 - ht) * 100:.0f} «فروش» است."
+    vc = verdict_config(doc)
+    where = {"candidate": "نیمهٔ بالا", "middle": "میانه", "avoid": "ناحیهٔ پایین"}[v.band]
+    reasons.append(
+        f"قاعدهٔ کار: بین ۱۰۰ سهم پرمعامله، {vc['candidate_top_frac'] * 100:.0f}٪ بالا "
+        f"«نامزد خرید»، {vc['avoid_bottom_frac'] * 100:.0f}٪ پایین «ناحیهٔ پایین» و بقیه "
+        "«میانه» است؛ این سهم در "
+        f"«{where}» است"
+        + (
+            f" (جایگاه {round((src.get('basket_pct') or 0) * 100)} از ۱۰۰)."
+            if src.get("basket_pct") is not None
+            else "."
         )
+    )
     if not in_basket:
         floor = get_engine_config().universe.min_median_value_20d
         mv = src.get("median_value")
@@ -740,54 +863,31 @@ def decide(
             "آزمون‌های اعتبار مدل هنوز کامل نگذشته‌اند؛ این جایگاه یک رتبه‌بندی آماری است، "
             "نه توصیهٔ مطمئن."
         )
-    horizons = _horizons(doc, zone, src.get("signals") or {}, turn_doc, inst.id)
-    summary = SUMMARY[verdict]
-    # The headline must not say more than the tested month says: when the score's zone and the
-    # past excess of that zone at HOLD_DAYS disagree, the tested month decides.
-    month = next((h for h in horizons if h.days == HOLD_DAYS), None)
-    softened = month is not None and month.verdict != verdict
-    if softened and month is not None:
-        if verdict == "sell":
-            summary = (
-                "امتیازش ضعیف است، اما در آزمون گذشته سهم‌های کم‌امتیاز در یک ماه بعد از بازار "
-                "عقب نمانده‌اند: خرید تازه نکنید، ولی دلیلی هم برای فروش نیست."
-            )
-        else:
-            summary = (
-                "امتیازش در محدودهٔ خرید است، اما برتری گذشتهٔ این محدوده پس از کارمزد آن‌قدر "
-                "محکم نبوده که خرید را توصیه کند: اگر دارید نگه دارید، خرید تازه را صبر کنید."
-            )
-        reasons.insert(
-            1,
-            f"تصمیم بالا از آزمون بازهٔ یک ماه آمده است؛ امتیاز به‌تنهایی «{LABEL[verdict]}» می‌گفت.",
-        )
-        verdict = month.verdict
-    weak_score = zone == "avoid" and verdict == "hold"
-    head = {
-        "buy": "امتیازش در محدودهٔ خرید است.",
-        "hold": (
-            "امتیازش ضعیف است: نخرید؛ اگر دارید فروش را بسنجید."
-            if weak_score
-            else "امتیازش متوسط است: اگر دارید نگه دارید، ولی خرید تازه نکنید."
-        ),
-        "sell": "امتیازش ضعیف است: نخرید و اگر دارید فروش را بسنجید.",
-    }[verdict]
-    if softened and month is not None:
-        head = month.headline
+    card = _verdict_card(doc, v, src.get("signals") or {})
+    head = v.headline
     if not in_basket:
         head += " (با احتیاط: این سهم کم‌معامله است و مدل روی آن آزموده نشده)"
     advice = allowed and in_basket
     return DashDecision(
-        verdict=verdict,
-        label=LABEL[verdict],
-        weak=weak_score,
+        verdict=v.key,
+        label=v.label,
+        code=v.code,
+        holder_code=v.holder_code,
+        holder_verdict=v.holder_key,
+        holder_label=v.holder_label,
+        holder_headline=v.holder_headline,
+        band=v.band,
+        grade=v.grade,
+        grade_label=None if v.grade is None else GRADE_FA[v.grade],
+        market_warning=v.market_warning,
+        weak=v.band == "avoid" and v.code != "avoid",
         advice_allowed=advice,
         headline=head,
         reasons=reasons,
-        summary=summary,
+        summary=SUMMARY[v.code],
         signals=_signals(src.get("signals") or {}),
-        holding=_holding(verdict, doc, advice),
-        horizons=horizons,
+        holding=_holding(v, doc, advice),
+        horizons=[] if card is None else [card],
         **base,
     )
 
@@ -1117,7 +1217,6 @@ def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning |
 
 
 PEERS_SHOWN = 6
-ZONE_VERDICT = {"buy": "buy", "hold": "hold", "avoid": "sell"}
 
 
 def rank_peers(
@@ -1140,6 +1239,7 @@ def rank_peers(
             continue  # not traded lately: neither ranked nor given a state
         u = uni.get(p.id) or {}
         score = u.get("score")
+        v = final_verdict(rank_doc, u, turn_doc, p.id) if rank_doc and score is not None else None
         st = states.get(str(p.id)) or {}
         key = st.get("state")
         eps = _f((p.tags or {}).get("eps"))
@@ -1150,9 +1250,8 @@ def rank_peers(
                 symbol=p.symbol_fa,
                 name=p.name_fa,
                 score=None if score is None else score * 100,
-                verdict=ZONE_VERDICT.get(u.get("zone") or "", "none")
-                if score is not None
-                else "none",
+                verdict=v.key if v else "none",
+                **verdict_fields(v),
                 in_basket=p.symbol_fa in basket,
                 pe=close / eps if eps and eps > 0 and close else None,
                 ret60=st.get("ret60"),

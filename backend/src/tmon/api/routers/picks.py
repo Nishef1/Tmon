@@ -170,7 +170,9 @@ def _check(p: TrackedPick, inst: Instrument, closes: list[tuple[dt.date, float]]
             continue
         a, _ = at(days)
         net = None if a is None else a - COST
-        right = None if net is None else (net > 0 if h["verdict"] == "buy" else net <= 0)
+        right = (
+            None if net is None else (net > 0 if h["verdict"] in ("buy", "candidate") else net <= 0)
+        )
         verdicts.append(
             VerdictCheck(
                 key=h["key"],

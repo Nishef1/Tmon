@@ -263,26 +263,33 @@ def test_a_row_gets_the_stock_pages_answer_whether_or_not_it_traded_today() -> N
     while their own pages said wait / no decision."""
     from tmon.api.schemas import RankingOut
 
-    stock = {**DOC["rows"][0], "symbol": "الف", "rank": 1}  # type: ignore[index]
+    stock = {**DOC["rows"][0], "symbol": "الف", "rank": 1, "band": "candidate"}  # type: ignore[index]
     fund = {**stock, "symbol": "ب", "rank": 2, "name": "صندوق ب"}
     out = RankingOut(available=True, **{**DOC, "rows": [stock, fund]})
     for r, ident in zip(out.rows, (7, 8), strict=True):
-        r.instrument_id, r.verdict = ident, "buy"
+        r.instrument_id, r.verdict = ident, "candidate"
     hot = {
         "symbols": {"7": {"state": "hot"}},
         "history": {
             "states": {
                 "hot": {
                     "n": 40000,
-                    "h20": {"n": 40000, "excess_mean": -0.002, "p_dn20": 0.11},
-                    "h60": None,
+                    "h20": None,
+                    "h60": {"n": 40000, "excess_mean": -0.002, "p_dn20": 0.11},
                 }
             },
-            "base": {"h20": {"n": 1000000, "excess_mean": 0.0, "p_dn20": 0.05}, "h60": None},
+            "base": {"h20": None, "h60": {"n": 1000000, "excess_mean": 0.0, "p_dn20": 0.05}},
         },
         "states": [],
     }
-    doc = {**DOC, "round_trip_cost": 0.017512}
+    rule = {
+        "horizon_days": 60,
+        "candidate_top_frac": 0.5,
+        "avoid_bottom_frac": 0.4,
+        "candidate_grade": "unproven",
+        "avoid_grade": "unproven",
+    }
+    doc = {**DOC, "round_trip_cost": 0.017512, "verdict": rule}
     rk._settle_verdicts(_Kinds({7: "stock", 8: "etf_equity"}), out, doc, hot)  # type: ignore[arg-type]
-    assert out.rows[0].verdict == "hold"  # the state objects, as on the stock page
+    assert out.rows[0].verdict == "hold" and out.rows[0].code == "wait"  # the state objects
     assert out.rows[1].verdict is None  # a fund has no verdict, as on its page

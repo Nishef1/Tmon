@@ -40,7 +40,7 @@
 | [ADR 0001](adr/0001-tech-stack.md) | زبان‌ها و ابزارها (بخش اجرا اصلاح شده) |
 | [ADR 0002](adr/0002-engine-and-data-decisions.md) | هزینه، آستانه‌ها و تعریف پایان در v1 |
 | [ADR 0003](adr/0003-engine-v2-relative-rank-and-exposure.md) | موتور v2 و دروازه‌های G1 تا G6 |
-| [ADR 0004](adr/0004-two-level-verdict-and-invested-book.md) | حکم دوسطحی، سبد همیشه سرمایه‌گذاری‌شده و معیار «بخر و نگه‌دار» (تصمیم؛ هنوز در کد نیست) |
+| [ADR 0004](adr/0004-two-level-verdict-and-invested-book.md) | حکم دوسطحی، سبد همیشه سرمایه‌گذاری‌شده و معیار «بخر و نگه‌دار» (تصمیم؛ گام ۱ تا ۳ در کد، گام ۴ مانده) |
 | [reports/](reports/README.md) | همهٔ گزارش‌ها با یک خط نتیجه |
 
 تاریخچهٔ تغییرات در `git log` است.

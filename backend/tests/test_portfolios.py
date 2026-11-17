@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 from collections.abc import Iterator
+from typing import Any
 
 import numpy as np
 import pytest
@@ -210,24 +211,43 @@ def _prices(session: Session, symbol: str, code: str, start: float, days: int = 
     return i.id
 
 
-def test_portfolio_flow(
-    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    weak = _prices(session, "ضعیف", "1001", 1000)
-    strong = _prices(session, "قوی", "1002", 2000)
-    store = MemoryStore()
-    doc = {
+VERDICT_RULE = {
+    "horizon_days": 60,
+    "candidate_top_frac": 0.5,
+    "avoid_bottom_frac": 0.4,
+    "candidate_grade": "unproven",
+    "avoid_grade": "probable",
+}
+
+
+def _ranking(
+    universe: list[dict[str, Any]], *, exposure: float = 0.8, **rule: str
+) -> dict[str, Any]:
+    return {
         "as_of": "2026-11-14",
         "recommendation_allowed": False,
         "round_trip_cost": 0.017512,
         "evidence": [
             {"horizon_days": 20, "top_excess": 0.06, "bottom_excess": -0.04, "excess_t": 4.0}
         ],
-        "universe": [
-            {"id": weak, "score": 0.1, "zone": "avoid", "queue_state": "none"},
-            {"id": strong, "score": 0.95, "zone": "buy", "queue_state": "none"},
-        ],
+        "verdict": {**VERDICT_RULE, **rule},
+        "exposure": {"exposure": exposure, "trend": 1.0, "abs_mom": 1.0, "stress": 0.99},
+        "universe": universe,
     }
+
+
+def _u(i: int, score: float, band: str, queue: str = "none") -> dict[str, Any]:
+    zone = {"candidate": "buy", "middle": "hold", "avoid": "avoid"}[band]
+    return {"id": i, "score": score, "zone": zone, "band": band, "queue_state": queue}
+
+
+def test_portfolio_flow(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    weak = _prices(session, "ضعیف", "1001", 1000)
+    strong = _prices(session, "قوی", "1002", 2000)
+    store = MemoryStore()
+    doc = _ranking([_u(weak, 0.1, "avoid"), _u(strong, 0.95, "candidate")])
     monkeypatch.setattr(objectstore, "get_object_store", lambda: store)
     objectstore.write_artifact(KEY, doc)
 
@@ -467,23 +487,117 @@ def test_a_trend_that_kept_going_keeps_a_larger_weight() -> None:
     assert month["portfolio"]["q50"] > month["no_trend"]["q50"]
 
 
-def test_hold_in_sell_zone_explains_why_it_is_not_a_sell() -> None:
-    """The stock page softens a low score the tested month does not back up to «hold»; the
-    portfolio advice must say so next to the sell zone instead of looking self-contradictory."""
+def test_hold_in_the_lower_zone_explains_why_it_is_not_a_sale() -> None:
+    """With the lower zone's lag unproven the stock page says "with the market" and the owner
+    "hold"; the portfolio advice must say so next to the zone instead of looking contradictory."""
     from tmon.portfolio.advice import Scored, _holding_verdict
     from tmon.storage.models import Holding
 
     held = Holding(portfolio_id=1, instrument_id=7, shares=100, avg_price=1000.0)
     sc = Scored(
-        id=7, score=0.27, zone="avoid", queue_state="none", halted=False, rank=606, verdict="hold"
-    )
+        id=7, score=0.27, zone="avoid", queue_state="none", halted=False, rank=606,
+        verdict="hold", band="avoid", code="with_market", holder_code="hold",
+        grade_label="ثابت‌نشده",
+    )  # fmt: skip
     verdict, reasons = _holding_verdict(held, sc, 1026.0)
     assert verdict == "hold"
     text = " ".join(reasons)
-    assert "«فروش»" in text and "فروش قطعی لازم نیست" in text
-    sc_sell = Scored(
-        id=7, score=0.1, zone="avoid", queue_state="none", halted=False, rank=900, verdict="sell"
-    )
-    verdict, reasons = _holding_verdict(held, sc_sell, 1026.0)
+    assert "ناحیهٔ «ناحیهٔ پایین»" in text or "ثابت نشده" in text
+    assert "فروش لازم نیست" in text
+    backed = Scored(
+        id=7, score=0.1, zone="avoid", queue_state="none", halted=False, rank=900,
+        verdict="sell", band="avoid", code="avoid", holder_code="consider_sell",
+        grade_label="احتمالی",
+    )  # fmt: skip
+    verdict, reasons = _holding_verdict(held, backed, 1026.0)
     assert verdict == "weak"
-    assert "فروش قطعی لازم نیست" not in " ".join(reasons)
+    assert "فروش لازم نیست" not in " ".join(reasons)
+    off_verdict, off_reasons = _holding_verdict(held, sc, 1026.0, market_off=True)
+    assert off_verdict == "hold" and any("هشدار بازار" in r for r in off_reasons)
+
+
+def _advice(
+    client: TestClient,
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    universe_of: Any,
+    *,
+    cash: int = 50_000_000,
+    exposure: float = 0.8,
+    fund: bool = False,
+    **rule: str,
+) -> dict[str, Any]:
+    ids = [
+        _prices(session, n, c, p) for n, c, p in (("نامزد", "2001", 1000), ("میانه", "2002", 900))
+    ]
+    if fund:
+        session.get(Instrument, ids[0]).instrument_type = "etf_equity"  # type: ignore[union-attr]
+        session.flush()
+    store = MemoryStore()
+    monkeypatch.setattr(objectstore, "get_object_store", lambda: store)
+    objectstore.write_artifact(KEY, _ranking(universe_of(*ids), exposure=exposure, **rule))
+    r = client.post("/portfolios", json={"name": "من", "cash": cash})
+    pid, hdr = r.json()["id"], {"X-Portfolio-Key": r.json()["key"]}
+    out: dict[str, Any] = client.get(f"/portfolios/{pid}/advice", headers=hdr).json()
+    return out
+
+
+def test_free_cash_buys_a_candidate_sized_by_exposure(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    adv = _advice(
+        client, session, monkeypatch, lambda a, b: [_u(a, 0.9, "candidate"), _u(b, 0.5, "middle")]
+    )
+    assert adv["exposure"] == pytest.approx(0.8) and adv["market_buy"] is None
+    assert [c["symbol"] for c in adv["candidates"]] == ["نامزد"]
+    c = adv["candidates"][0]
+    assert c["buyable"] and c["code"] == "candidate" and c["grade_label"] == "ثابت‌نشده"
+    assert adv["buys"] and adv["buys"][0]["symbol"] == "نامزد"
+    assert sum(b["amount"] for b in adv["buys"]) <= 50_000_000 * 0.8
+
+
+def test_a_candidate_in_a_buy_queue_is_shown_but_never_ordered(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    adv = _advice(
+        client,
+        session,
+        monkeypatch,
+        lambda a, b: [_u(a, 0.9, "candidate", "buy_queue"), _u(b, 0.5, "middle")],
+    )
+    c = adv["candidates"][0]
+    assert c["code"] == "candidate_queue" and c["queue_state"] == "buy_queue"
+    assert c["buyable"] is False and c["verdict"] != "buy"
+    assert adv["buys"] == []
+    assert adv["market_buy"] is not None  # no buyable candidate, exposure positive: the market
+    assert adv["buy_note"]
+
+
+def test_an_equity_fund_is_never_a_candidate_or_a_buy(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    adv = _advice(
+        client,
+        session,
+        monkeypatch,
+        lambda a, b: [_u(a, 0.9, "candidate"), _u(b, 0.5, "middle")],
+        fund=True,
+    )
+    assert adv["candidates"] == [] and adv["buys"] == []
+    assert adv["market_buy"] is not None  # the market itself is offered instead
+
+
+def test_with_exposure_zero_no_candidate_is_shown_as_a_buy(
+    client: TestClient, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    adv = _advice(
+        client,
+        session,
+        monkeypatch,
+        lambda a, b: [_u(a, 0.9, "candidate"), _u(b, 0.5, "middle")],
+        exposure=0.0,
+        candidate_grade="proven",
+    )
+    assert adv["exposure"] == 0.0
+    assert adv["buys"] == [] and adv["candidates"] == [] and adv["market_buy"] is None
+    assert "سهام" in (adv["buy_note"] or "")

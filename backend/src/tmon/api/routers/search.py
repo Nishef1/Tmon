@@ -15,6 +15,7 @@ from tmon.api.routers.dashboard import (
     _ranking_doc,
     _turning_doc,
     decide,
+    decision_fields,
     fundamental_out,
 )
 from tmon.api.routers.recommendations import instrument_out
@@ -107,6 +108,7 @@ def search(
                 change_pct=day_change(close, prev),
                 verdict=d.verdict,
                 verdict_label=d.label,
+                **decision_fields(d),
                 gauge=d.gauge,
                 eps=fa.eps if fa else None,
                 pe=fa.pe if fa else None,

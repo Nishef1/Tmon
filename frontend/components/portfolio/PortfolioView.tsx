@@ -461,9 +461,19 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
           </ul>
         </>
       )}
+      {a.exposure != null && (
+        <p className="mt-3 text-sm" data-testid="advice-exposure">
+          مدل امروز <b>{faPercent(a.exposure, 0)}</b> از سرمایه را در سهام می‌خواهد
+          {a.exposure <= 1e-9 ? "؛ پس امروز هیچ خریدی پیشنهاد نمی‌شود." : "."}
+        </p>
+      )}
       {a.buys.length > 0 && (
         <>
           <h3 className="mt-3 font-bold">خرید با نقد آزاد</h3>
+          <p className="text-xs text-muted">
+            نامزدها فقط «نامزد»‌اند: درجهٔ شواهد کنار هر کدام نوشته شده است. مبلغ = نقد آزاد × سهم
+            سهام مدل، با سقف‌های همیشگی.
+          </p>
           <ul className="mt-1 grid gap-1 text-sm">
             {a.buys.map((b) => (
               <li key={b.instrument_id}>
@@ -473,6 +483,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
                 >
                   {b.symbol}
                 </Link>{" "}
+                {b.grade_label && <span className="chip">شواهد {b.grade_label}</span>}{" "}
                 {faNumber(b.shares ?? 0)} سهم ≈ {faToman(b.amount)} تومان (امتیاز{" "}
                 {faNumber((b.score ?? 0) * 100)})
                 <BuyPlan instrumentId={b.instrument_id} />
@@ -481,11 +492,49 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
           </ul>
         </>
       )}
+      {a.market_buy && (
+        <div className="mt-3 text-sm" data-testid="market-buy">
+          <h3 className="font-bold">
+            خرید خودِ بازار <span className="chip">آزموده نشده</span>
+          </h3>
+          <p>
+            حدود {faToman(a.market_buy.amount)} تومان از نقد آزاد. {faDigits(a.market_buy.text)}
+          </p>
+          {a.market && a.market.funds.length > 0 && (
+            <ul className="mt-1 grid gap-1">
+              {a.market.funds.map((f) => (
+                <li key={f.instrument_id}>
+                  <Link href={`/instruments/${f.instrument_id}`} className="font-bold">
+                    {f.symbol}
+                  </Link>
+                  {f.premium != null ? (
+                    <span className="text-muted">
+                      {" "}
+                      — قیمت {faPercent(f.premium, 1, true)} نسبت به NAV
+                    </span>
+                  ) : (
+                    <span className="text-muted"> — NAV ثبت نشده</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {a.candidates.length > 0 && (
-        <p className="mt-3 text-sm text-muted">
-          سهم‌هایی که حکم صفحهٔ خودشان «خرید» است (بیرون از صف):{" "}
-          {a.candidates.map((c) => c.symbol).join("، ")}
-        </p>
+        <div className="mt-3 text-sm text-muted" data-testid="advice-candidates">
+          نامزدهای امروز مدل:{" "}
+          {a.candidates.map((c, i) => (
+            <span key={c.instrument_id}>
+              {i > 0 && "، "}
+              {c.symbol}
+              {c.grade_label ? ` (شواهد ${c.grade_label})` : ""}
+              {c.buyable === false && c.queue_state === "buy_queue"
+                ? " — در صف خرید، قابل‌خرید نیست"
+                : ""}
+            </span>
+          ))}
+        </div>
       )}
       {a.buy_note && (
         <p className="mt-3 text-sm" data-testid="buy-note">
@@ -516,8 +565,8 @@ function EntriesCard({ id, pkey, version }: { id: number; pkey: string; version:
       <h2 className="font-bold">کیفیت ورود خریدهای اخیر</h2>
       <p className="mt-1 text-sm text-muted">
         امتیاز مدل از پایانی دیروز حساب می‌شود، نه از قیمتی که واقعاً پرداخت می‌کنید. اینجا هر خرید
-        با بازهٔ همان روز سنجیده شده است: شکاف بازگشایی، جای قیمت در بازه و آخرین معاملهٔ امروز
-        (قیمت فروش واقعی)، نه فقط رنگ کندل.
+        با بازهٔ همان روز سنجیده شده است: شکاف بازگشایی، جای قیمت در بازه و آخرین معاملهٔ امروز (قیمت
+        فروش واقعی)، نه فقط رنگ کندل.
       </p>
       {e.lessons.length > 0 && (
         <ul className="mt-2 list-disc pr-5 text-sm" data-testid="entry-lessons">
@@ -921,8 +970,8 @@ function SettingsCard({
       <p className="mt-2 text-sm text-muted">
         برای بله یا تلگرام: یک بات بسازید (در بله از @botfather)، توکن را این‌جا بگذارید و به بات
         «/start» بفرستید تا شناسهٔ گفت‌وگو را برگرداند. هشدارهای فوری با دکمه‌های «خارج می‌شوم / نصف
-        / نگه می‌دارم» می‌آیند. برای سرویس Apprise هر آدرس پشتیبانی‌شده مثلاً ntfy://topic برای
-        اعلان صدادار گوشی یا mailto://.
+        / نگه می‌دارم» می‌آیند. برای سرویس Apprise هر آدرس پشتیبانی‌شده مثلاً ntfy://topic برای اعلان
+        صدادار گوشی یا mailto://.
       </p>
       <div className="mt-2 grid gap-2">
         {channels.map((c, i) => (

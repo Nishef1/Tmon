@@ -14,6 +14,7 @@ from tmon.api.routers.dashboard import (
     _ranking_doc,
     _turning_doc,
     decide,
+    decision_fields,
     fundamental_out,
 )
 from tmon.api.routers.market import _latest_full
@@ -80,7 +81,7 @@ def screener(
     timeframe: Timeframe = "D1",
     sort: SortKey = "ev",
     q: Annotated[str | None, Query(max_length=64)] = None,
-    verdict: Literal["buy", "hold", "sell", "none"] | None = None,
+    verdict: Literal["buy", "candidate", "hold", "sell", "none"] | None = None,
     stocks_only: bool = False,
     limit: Annotated[int, Query(ge=1, le=3000)] = 200,
 ) -> ScreenerOut:
@@ -176,6 +177,7 @@ def screener(
                 ),
                 verdict=d.verdict,
                 verdict_label=d.label,
+                **decision_fields(d),
                 rank=d.rank,
                 gauge=d.gauge,
                 gauge_note=d.headline if d.gauge is None else None,

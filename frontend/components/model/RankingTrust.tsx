@@ -71,6 +71,34 @@ export function RankingTrust({ d }: { d: Ranking }) {
             </li>
           ))}
         </ul>
+        {d.invested_reference && (
+          <p data-testid="invested-reference">
+            مرجع همین صفحه (گزارش {d.invested_reference.report}،{" "}
+            {jalali(d.invested_reference.first)} تا {jalali(d.invested_reference.last)}): نگه‌داشتن
+            سادهٔ همهٔ سهم‌های قابل‌معامله (S0){" "}
+            <Num
+              value={d.invested_reference.s0_annual}
+              kind="percent"
+              term="invested_reference"
+              digits={1}
+            />{" "}
+            سالانه، شاخص هم‌وزن رسمی{" "}
+            <Num
+              value={d.invested_reference.official_annual}
+              kind="percent"
+              term="invested_reference"
+              digits={1}
+            />{" "}
+            و اوراق خزانه{" "}
+            <Num
+              value={d.invested_reference.bill_annual}
+              kind="percent"
+              term="invested_reference"
+              digits={1}
+            />
+            . هر بازدهٔ سالانهٔ بالا را با همین سه عدد بسنجید.
+          </p>
+        )}
         <p className="text-muted">
           یعنی هیچ‌یک از این نمادها «پیشنهاد خرید» نیست. فقط وقتی همهٔ آزمون‌های پذیرش برقرار شوند،
           یا صاحب پروژه صریحاً تصمیم بگیرد، فهرست توصیه شمرده می‌شود.

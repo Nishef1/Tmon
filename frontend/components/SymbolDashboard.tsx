@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { HoldWord } from "@/components/stock/HoldWord";
+import { DecisionShell, Verdict } from "@/components/stock/Verdict";
 import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
-import { Gauge } from "@/components/Gauge";
 import { TrackBuyButton } from "@/components/TrackBuyButton";
 import { TechnicalCard } from "@/components/TechnicalCard";
-import { Checks, shortLabel } from "@/components/stock/Checks";
+import { Checks } from "@/components/stock/Checks";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
-import { signedPct, verdictPill, verdictTone } from "@/lib/ui";
+import { shortLabel, verdictPill } from "@/lib/ui";
 
 type D = InstrumentDashboard;
 
@@ -52,8 +52,8 @@ function SignalBars({ signals }: { signals: D["decision"]["signals"] }) {
     <details data-testid="signal-bars">
       <summary className="cursor-pointer font-semibold">چرا این امتیاز را گرفته؟</summary>
       <p className="mb-2 mt-2 text-muted">
-        مدل چهار چیز را می‌سنجد و هر کدام را با همهٔ سهم‌های بازار مقایسه می‌کند. نوار پرتر یعنی
-        بهتر از سهم‌های بیشتری است.
+        مدل چهار چیز را می‌سنجد و هر کدام را با همهٔ سهم‌های بازار مقایسه می‌کند. نوار پرتر یعنی بهتر
+        از سهم‌های بیشتری است.
       </p>
       <ul className="space-y-3">
         {signals.map((g) => (
@@ -91,66 +91,7 @@ function Holding({ h }: { h: NonNullable<D["decision"]["holding"]> }) {
   );
 }
 
-const DEFAULT_HORIZON = "M1";
-
-/** The verdict for one holding period, with the small gauge beside it. */
-export function Verdict({
-  d,
-  h,
-  id,
-}: {
-  d: D["decision"];
-  h: NonNullable<D["decision"]["horizons"][number]> | undefined;
-  id: number;
-}) {
-  const verdict = h?.verdict ?? d.verdict;
-  const label = h?.verdict_label ?? d.label;
-  const weak = h?.weak ?? d.weak ?? false;
-  return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3" data-testid="verdict-head">
-      <div className="min-w-[15rem] flex-1 space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={`${verdictPill(verdict)} pill-lg`} data-testid="verdict-word">
-            <HoldWord verdict={verdict} label={label} instrumentId={id} weak={weak} />
-          </span>
-          {h && <span className="text-muted">برای {shortLabel(h.label)}</span>}
-        </div>
-        <p className="text-base font-semibold leading-8">
-          {faDigits((h?.headline ?? (d.summary || d.headline)).replace(/^برای [^:]*:\s*/, ""))}
-        </p>
-        {h && verdict !== "buy" && !h.vetoed && d.gauge != null && d.gauge >= 90 && (
-          <p className="rounded-lg bg-warn-soft p-2 text-sm" data-testid="wait-why">
-            چرا با امتیاز بالا «<HoldWord verdict={verdict} label={label} instrumentId={id} />
-            »؟ خودِ سهم قوی است، ولی برای {shortLabel(h.label)} سودِ اضافهٔ گذشته
-            {h.net_excess != null && <> پس از کارمزد ({signedPct(h.net_excess)})</>} کافی نبوده است.
-            بازهٔ دیگری را در بالا انتخاب کنید.
-          </p>
-        )}
-      </div>
-      <div className="w-40 shrink-0" data-testid="gauge-box">
-        <Gauge
-          value={d.gauge}
-          label="جایگاه امروز در بازار"
-          zones={
-            d.zone_hold_from != null && d.zone_buy_from != null
-              ? { hold: d.zone_hold_from, buy: d.zone_buy_from }
-              : undefined
-          }
-        />
-        <p className="text-center text-xs text-muted">
-          {d.gauge == null
-            ? "امتیازی محاسبه نشده"
-            : `جایگاه امروز در بازار${d.rank != null ? ` · رتبهٔ ${faNumber(d.rank)}` : ""}`}
-        </p>
-        {d.gauge != null && verdict !== "buy" && d.gauge >= (d.zone_buy_from ?? 90) && (
-          <p className="text-center text-xs text-muted" data-testid="gauge-not-advice">
-            این فقط رتبه است؛ توصیه همان کلمهٔ کنارش است.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
+const DEFAULT_HORIZON = "Q1";
 
 /** One card for the whole decision, in reading order: the holding period (tabs), its verdict,
  *  the questions behind it with a mark each, the bottom line, and the long explanations closed. */
@@ -170,21 +111,16 @@ function Decision({
     items.find((x) => x.key === horizon) ??
     items.find((x) => x.key === DEFAULT_HORIZON) ??
     items[0];
-  const verdict = h?.verdict ?? d.verdict;
   const more = [...(h?.reasons ?? []), ...d.reasons.slice(1)];
   return (
-    <section
-      className={`card ${verdictTone(verdict)}`}
-      data-testid="symbol-decision"
-      data-verdict={verdict}
-    >
+    <DecisionShell d={d} h={h} id={id}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-extrabold">چه کنم؟</h2>
         <span className="text-xs text-muted">
           {d.as_of ? `بر پایهٔ دادهٔ ${jalali(d.as_of)}` : ""}
         </span>
       </div>
-      {items.length > 0 && (
+      {items.length > 1 && (
         <nav className="mb-3 flex flex-wrap gap-2" aria-label="بازهٔ نگهداری" id="horizon">
           <span className="self-center text-sm text-muted">تا کی نگه می‌دارید؟</span>
           {items.map((x) => (
@@ -198,12 +134,7 @@ function Decision({
             >
               {shortLabel(x.label)}
               <span className={`${verdictPill(x.verdict)} ms-2`}>
-                <HoldWord
-                  verdict={x.verdict}
-                  label={x.verdict_label}
-                  instrumentId={id}
-                  weak={x.weak}
-                />
+                <HoldWord label={x.verdict_label} holderLabel={d.holder_label} instrumentId={id} />
               </span>
             </Link>
           ))}
@@ -252,7 +183,7 @@ function Decision({
           </details>
         )}
       </div>
-    </section>
+    </DecisionShell>
   );
 }
 

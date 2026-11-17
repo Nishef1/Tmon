@@ -6,17 +6,19 @@ import { TradeBadge } from "@/components/TradeBadge";
 import { useMemo, useState } from "react";
 import type { RankingRow } from "@/lib/api";
 import { faNumber, faPercent } from "@/lib/format";
-import { rowVerdict, verdictPill } from "@/lib/ui";
+import { rowVerdict, rowWord, verdictPill } from "@/lib/ui";
 
 type Zone = "all" | V;
 type Key = "rank" | "change" | "close" | "value";
 
-const LABEL = { buy: "خرید", hold: "صبر", sell: "فروش" } as const;
-type V = keyof typeof LABEL;
+type V = "buy" | "hold" | "sell";
 
-/** The verdict the stock's own page shows (zone softened by the tested month); falls back to the
- *  zone for an older API that has no `verdict`. */
-const verdictOf = (r: RankingRow): V | null => rowVerdict(r);
+/** The tab a row belongs to: a candidate stays with "buy" (its pill says «نامزد خرید», not «خرید»,
+ *  until the zone's evidence is proven). */
+const verdictOf = (r: RankingRow): V | null => {
+  const v = rowVerdict(r);
+  return v === "candidate" ? "buy" : v;
+};
 const PAGE = 40;
 
 /** One sortable, filterable table of the liquid stocks: what a visitor scans first. */
@@ -76,9 +78,9 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
   const arrow = (k: Key) => (k === key ? (asc ? " ▲" : " ▼") : "");
   const tabs: { id: Zone; label: string }[] = [
     { id: "all", label: "همه" },
-    { id: "buy", label: "خرید" },
+    { id: "buy", label: "نامزد خرید" },
     { id: "hold", label: "صبر" },
-    { id: "sell", label: "فروش" },
+    { id: "sell", label: "پرهیز" },
   ];
 
   return (
@@ -172,8 +174,11 @@ export function StockTable({ rows }: { rows: RankingRow[] }) {
                 </td>
                 <td className="py-2">
                   {verdictOf(r) ? (
-                    <span className={verdictPill(verdictOf(r) as V)}>
-                      {LABEL[verdictOf(r) as V]}
+                    <span
+                      className={verdictPill(rowVerdict(r))}
+                      title={r.grade_label ? `شواهد این ناحیه: ${r.grade_label}` : undefined}
+                    >
+                      {rowWord(r)}
                     </span>
                   ) : (
                     "—"

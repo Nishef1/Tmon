@@ -18,17 +18,22 @@ from tmon.storage.models import ClientTypeDaily, Instrument, PriceDaily
 DAY = dt.date(2026, 11, 10)
 
 
-def _doc(allowed: bool = False) -> dict[str, Any]:
+ZONE = {"deciles": [6, 7, 8, 9, 10], "net": 0.0017, "net_h1": -0.0085, "net_h2": 0.0118, "t": 2.5}
+
+
+def _doc(
+    allowed: bool = False, *, cand: str = "unproven", avoid: str = "unproven", exposure: float = 0.8
+) -> dict[str, Any]:
     sig = {"ind_buy_power": 0.9, "rv_20": 0.5, "dist_high_52w": 0.7, "mom_12_1": 0.1}
     rows = [
-        {"rank": 1, "symbol": "الف", "zone": "buy", "score": 0.95, "signals": sig,
-         "median_value": 9e11},
-        {"rank": 2, "symbol": "ب", "zone": "hold", "score": 0.8, "signals": sig,
-         "median_value": 8e11},
-        {"rank": 3, "symbol": "ج", "zone": "avoid", "score": 0.2, "signals": sig,
-         "median_value": 7e11},
-        {"rank": 4, "symbol": "د", "zone": "excluded", "score": None, "signals": {},
-         "median_value": 6e11},
+        {"rank": 1, "symbol": "الف", "zone": "buy", "band": "candidate", "basket_pct": 0.95,
+         "score": 0.95, "signals": sig, "median_value": 9e11},
+        {"rank": 2, "symbol": "ب", "zone": "hold", "band": "middle", "basket_pct": 0.55,
+         "score": 0.8, "signals": sig, "median_value": 8e11},
+        {"rank": 3, "symbol": "ج", "zone": "avoid", "band": "avoid", "basket_pct": 0.1,
+         "score": 0.2, "signals": sig, "median_value": 7e11},
+        {"rank": 4, "symbol": "د", "zone": "excluded", "band": None, "score": None,
+         "signals": {}, "median_value": 6e11},
     ]  # fmt: skip
     return {
         "recommendation_allowed": allowed,
@@ -37,6 +42,16 @@ def _doc(allowed: bool = False) -> dict[str, Any]:
         "buy_top_frac": 0.1,
         "hold_top_frac": 0.3,
         "rows": rows,
+        "verdict": {
+            "horizon_days": 60,
+            "candidate_top_frac": 0.5,
+            "avoid_bottom_frac": 0.4,
+            "candidate_grade": cand,
+            "avoid_grade": avoid,
+        },
+        "zones": {"60": {"days": 1000, "candidate": ZONE, "avoid": ZONE}},
+        "exposure": {"exposure": exposure},
+        "round_trip_cost": 0.017512,
     }
 
 
@@ -45,7 +60,8 @@ def _inst(sym: str, kind: str = "stock") -> Instrument:
 
 
 @pytest.mark.parametrize(
-    ("sym", "verdict"), [("الف", "buy"), ("ب", "hold"), ("ج", "sell"), ("د", "none"), ("ه", "none")]
+    ("sym", "verdict"),
+    [("الف", "candidate"), ("ب", "hold"), ("ج", "hold"), ("د", "none"), ("ه", "none")],
 )
 def test_verdict_by_zone(sym: str, verdict: str) -> None:
     d = dash.decide(_inst(sym), _doc(), 1e11)
@@ -148,7 +164,7 @@ def test_endpoint_numbers(
     assert f["per_capita_sell"] == pytest.approx(5e7)
     assert f["power"] == pytest.approx(8.0)
     assert f["net_real_value"] == pytest.approx(3e9)
-    assert j["decision"]["verdict"] == "buy"
+    assert j["decision"]["verdict"] == "candidate" and j["decision"]["code"] == "candidate"
     assert client.get("/instruments/999/dashboard").status_code == 404
 
 
@@ -157,15 +173,19 @@ def _uni_doc() -> dict[str, Any]:
     sig = {"ind_buy_power": 0.9, "rv_20": 0.3, "dist_high_52w": 0.7, "mom_12_1": 0.6}
     doc["universe"] = [
         {"id": 1, "eligible": True, "halted": False, "queue_state": "none", "median_value": 9e11,
-         "missing": [], "score": 0.95, "zone": "buy", "signals": sig},
+         "missing": [], "score": 0.95, "zone": "buy", "band": "candidate", "basket_pct": 0.95,
+         "signals": sig},
         {"id": 7, "eligible": False, "halted": False, "queue_state": "none", "median_value": 3e9,
-         "missing": [], "score": 0.97, "zone": "buy", "signals": sig},
+         "missing": [], "score": 0.97, "zone": "buy", "band": "candidate", "basket_pct": 0.97,
+         "signals": sig},
         {"id": 8, "eligible": False, "halted": False, "queue_state": "none", "median_value": 3e9,
-         "missing": [], "score": 0.1, "zone": "avoid", "signals": sig},
+         "missing": [], "score": 0.1, "zone": "avoid", "band": "avoid", "basket_pct": 0.1,
+         "signals": sig},
         {"id": 9, "eligible": False, "halted": False, "queue_state": "none", "median_value": 3e9,
-         "missing": ["mom_12_1"], "score": None, "zone": None, "signals": {}},
+         "missing": ["mom_12_1"], "score": None, "zone": None, "band": None, "signals": {}},
         {"id": 10, "eligible": False, "halted": False, "queue_state": "buy_queue",
-         "median_value": 3e9, "missing": [], "score": 0.8, "zone": "hold", "signals": sig},
+         "median_value": 3e9, "missing": [], "score": 0.8, "zone": "hold", "band": "candidate",
+         "basket_pct": 0.8, "signals": sig},
     ]  # fmt: skip
     return doc
 
@@ -180,12 +200,12 @@ def test_every_scored_stock_gets_a_gauge_but_only_basket_names_are_advice() -> N
     inside = dash.decide(_with_id(1, "الف"), doc, None)
     assert inside.gauge == pytest.approx(95) and inside.in_basket and inside.advice_allowed
     out = dash.decide(_with_id(7, "ثالث"), doc, 3e9)
-    assert out.verdict == "buy" and out.gauge == pytest.approx(97)
+    assert out.verdict == "candidate" and out.gauge == pytest.approx(97)
     assert not out.in_basket and not out.advice_allowed
     assert "با احتیاط" in out.headline
     assert any("اثبات نشده" in r for r in out.reasons)
     assert any("رتبهٔ" in r and "نماد دارای امتیاز" in r for r in out.reasons)
-    assert dash.decide(_with_id(8, "رابع"), doc, 3e9).verdict == "sell"
+    assert dash.decide(_with_id(8, "رابع"), doc, 3e9).verdict == "hold"  # avoid zone not backed
 
 
 def test_unscored_and_queued_stocks_say_exactly_why() -> None:
@@ -207,14 +227,13 @@ def test_stock_not_traded_on_the_last_day_gets_no_score() -> None:
 
 def test_decision_explains_in_plain_words_and_says_how_long_to_hold() -> None:
     doc = _doc()
-    doc["evidence"] = [{"horizon_days": 20, "top_excess": 0.04}, {"horizon_days": 5}]
     d = dash.decide(_inst("الف"), doc, None)
-    assert "۱۰٪ بهترین" in d.summary
+    assert "نیمهٔ بالا" in d.summary and "توصیه نیست" in d.summary
     assert d.signals[0].key == "ind_buy_power"
     assert d.signals[0].pct == pytest.approx(90)
     assert "از 90٪ سهم‌ها بهتر" in d.signals[0].text
-    assert d.holding is not None and d.holding.horizon_days == 20
-    assert d.holding.expected_excess == pytest.approx(0.04)
+    assert d.holding is not None and d.holding.horizon_days == 60
+    assert d.holding.expected_excess == pytest.approx(0.0017)
     text = " ".join(d.holding.lines)
     assert "همان روز" in text and "نه قول" in text and "پرتفوی" in text
     assert "توصیهٔ مطمئن نیست" in text  # the gates have not passed in this document
@@ -257,38 +276,28 @@ def test_dashboard_shows_the_next_meeting_and_skips_cancelled_or_past_ones(
     assert client.get("/instruments/1/dashboard").json()["meeting"]["days_left"] == 20
 
 
-def test_headline_follows_the_tested_month_when_the_score_says_more() -> None:
-    doc = _uni_doc()
-    doc["round_trip_cost"] = 0.0175
-    doc["evidence"] = [
-        {"horizon_days": 20, "top_excess": 0.04, "excess_t": 4.0, "bottom_excess": 0.003}
-    ]
-    d = dash.decide(_with_id(8, "رابع"), doc, 3e9)
-    # a low score whose zone did not lag the market in the tested month is not a sell
-    assert d.verdict == "hold" and d.label == "نگهداری"
+def test_avoid_zone_says_avoid_only_when_its_lag_has_evidence() -> None:
+    d = dash.decide(_with_id(8, "رابع"), _uni_doc(), 3e9)
+    # the lag of the lower zone is not proven: go with the market, but flag it as weak
+    assert d.verdict == "hold" and d.label == "همراه بازار" and d.code == "with_market"
+    assert d.weak and d.holder_code == "hold" and d.grade == "unproven"
     assert [h.verdict for h in d.horizons] == ["hold"]
-    assert "دلیلی هم برای فروش نیست" in d.summary
-    # ...but it is flagged weak, so the page can say "don't buy" instead of a plain "wait"
-    assert d.weak and d.horizons[0].weak and "نخرید" in d.horizons[0].headline
-    assert any("امتیاز به‌تنهایی «فروش»" in r for r in d.reasons)
-    doc["evidence"][0]["bottom_excess"] = -0.03
-    lag = dash.decide(_with_id(8, "رابع"), doc, 3e9)
-    assert lag.verdict == "sell" and lag.horizons[0].verdict == "sell"
-    assert not lag.weak and not lag.horizons[0].weak
+    for grade in ("probable", "proven"):
+        doc = _uni_doc()
+        doc["verdict"]["avoid_grade"] = grade
+        back = dash.decide(_with_id(8, "رابع"), doc, 3e9)
+        assert back.verdict == "sell" and back.code == "avoid" and not back.weak
+        assert back.holder_code == "consider_sell" and back.horizons[0].verdict == "sell"
 
 
 def test_list_verdict_is_the_one_the_stock_page_shows() -> None:
     doc = _doc()
-    doc["round_trip_cost"] = 0.0175
-    doc["evidence"] = [
-        {"horizon_days": 20, "top_excess": 0.012, "excess_t": 2.0, "bottom_excess": -0.03}
-    ]
-    sig = doc["rows"][0]["signals"]
-    # buy zone, but the tested month is not solid (t 2 < 3): the list says hold, like the page
-    assert dash.final_verdict(doc, "buy", sig) == "hold"
-    assert dash.decide(_inst("الف"), doc, 9e11).verdict == "hold"
-    assert dash.final_verdict(doc, "avoid", sig) == "sell"
-    assert dash.final_verdict(doc, "excluded", sig) is None
+    for sym, band in (("الف", "candidate"), ("ب", "middle"), ("ج", "avoid")):
+        row = next(r for r in doc["rows"] if r["symbol"] == sym)
+        v = dash.final_verdict(doc, row)
+        assert v is not None and v.band == band
+        assert dash.decide(_inst(sym), doc, 9e11).code == v.code
+    assert dash.final_verdict(doc, doc["rows"][3]) is None
 
 
 def test_rank_counts_only_liquid_basket_rows() -> None:

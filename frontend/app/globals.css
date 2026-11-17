@@ -533,6 +533,10 @@ input[type="radio"] {
     background: var(--good);
     color: #fff;
   }
+  .v-candidate {
+    background: color-mix(in srgb, var(--good) 55%, var(--surface));
+    color: #fff;
+  }
   .v-hold {
     background: var(--hold);
     color: #fff;
@@ -548,6 +552,10 @@ input[type="radio"] {
   .tone-buy {
     border-color: color-mix(in srgb, var(--up) 40%, transparent);
     background: var(--up-soft);
+  }
+  .tone-candidate {
+    border-color: color-mix(in srgb, var(--up) 25%, transparent);
+    background: color-mix(in srgb, var(--up-soft) 55%, var(--surface));
   }
   .tone-hold {
     border-color: color-mix(in srgb, var(--warn) 40%, transparent);

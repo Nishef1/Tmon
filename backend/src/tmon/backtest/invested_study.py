@@ -425,16 +425,38 @@ def decile_table(
     return {"dates": dates, "mat": mat, "horizon": horizon}
 
 
+def _mean(a: np.ndarray) -> float:
+    a = a[np.isfinite(a)]
+    return float(a.mean()) if a.size else float("nan")
+
+
+def zone_stats(
+    mat: np.ndarray, idx: list[int], sign: float, horizon: int, round_trip: float, cfg: EngineConfig
+) -> dict[str, Any]:
+    """Net excess of a set of deciles (0-based ``idx`` into the per-date decile matrix), in the
+    full period and in each half of time, its t, and its ADR 0004 section 6 grade. ``sign`` is +1
+    for a zone bought and -1 for a zone avoided (the gain is the shortfall)."""
+    n = mat.shape[0]
+    mid = n // 2
+    s = sign * (np.nanmean(mat[:, idx], axis=1) if idx else np.full(n, np.nan))
+    net = _mean(s) - round_trip
+    n1, n2 = _mean(s[:mid]) - round_trip, _mean(s[mid:]) - round_trip
+    t = _t_stat(s, per=float(horizon))
+    inv = cfg.v2.invested
+    if net >= inv.grade_min_net_edge and t is not None and t >= inv.grade_min_t:
+        g = "ثابت‌شده"
+    elif n1 > 0 and n2 > 0:
+        g = "احتمالی"
+    else:
+        g = "ثابت‌نشده"
+    return {"net": net, "net_h1": n1, "net_h2": n2, "t": t, "grade": g}
+
+
 def profile_summary(tab: dict[str, Any], round_trip: float, cfg: EngineConfig) -> dict[str, Any]:
     mat, h = tab["mat"], tab["horizon"]
     n = mat.shape[0]
     mid = n // 2
     halves = (slice(0, mid), slice(mid, n))
-    inv = cfg.v2.invested
-
-    def mean(a: np.ndarray) -> float:
-        a = a[np.isfinite(a)]
-        return float(a.mean()) if a.size else float("nan")
 
     dec: list[dict[str, Any]] = []
     for k in range(10):
@@ -442,15 +464,12 @@ def profile_summary(tab: dict[str, Any], round_trip: float, cfg: EngineConfig) -
         dec.append(
             {
                 "decile": k + 1,
-                "excess": mean(col),
-                "h1": mean(col[halves[0]]),
-                "h2": mean(col[halves[1]]),
+                "excess": _mean(col),
+                "h1": _mean(col[halves[0]]),
+                "h2": _mean(col[halves[1]]),
                 "t": _t_stat(col, per=float(h)),
             }
         )
-
-    def zone_series(idx: list[int]) -> np.ndarray:
-        return np.nanmean(mat[:, idx], axis=1) if idx else np.full(n, np.nan)
 
     top: list[int] = []
     for k in range(9, -1, -1):
@@ -467,28 +486,15 @@ def profile_summary(tab: dict[str, Any], round_trip: float, cfg: EngineConfig) -
     # a candidate zone may not reach into deciles already claimed by the avoid zone
     bottom = [k for k in bottom if k not in top]
 
-    def grade(series: np.ndarray, sign: float) -> dict[str, Any]:
-        s = sign * series
-        net = mean(s) - round_trip
-        n1, n2 = mean(s[halves[0]]) - round_trip, mean(s[halves[1]]) - round_trip
-        t = _t_stat(s, per=float(h))
-        if net >= inv.grade_min_net_edge and t is not None and t >= inv.grade_min_t:
-            g = "ثابت‌شده"
-        elif n1 > 0 and n2 > 0:
-            g = "احتمالی"
-        else:
-            g = "ثابت‌نشده"
-        return {"net": net, "net_h1": n1, "net_h2": n2, "t": t, "grade": g}
-
     top_idx = sorted(top)
     cand = {
         "deciles": [k + 1 for k in top_idx],
-        **(grade(zone_series(top_idx), 1.0) if top_idx else {}),
+        **(zone_stats(mat, top_idx, 1.0, h, round_trip, cfg) if top_idx else {}),
     }
     avoid_idx = sorted(bottom)
     avoid = {
         "deciles": [k + 1 for k in avoid_idx],
-        **(grade(zone_series(avoid_idx), -1.0) if avoid_idx else {}),
+        **(zone_stats(mat, avoid_idx, -1.0, h, round_trip, cfg) if avoid_idx else {}),
     }
     top1_net = (dec[9]["excess"] - round_trip, dec[9]["h1"] - round_trip, dec[9]["h2"] - round_trip)
     return {

@@ -204,11 +204,24 @@ class InvestedCfg(_Frozen):
     grade_min_t: float  # ... and t at least this
 
 
+class VerdictCfg(_Frozen):
+    """ADR 0004 sections 5-7: the per-symbol verdict. Every number is read off the Phase 2 report
+    (docs/reports/invested-book-2026-11-17.md, profile "within the basket"); a test ties them to
+    ``docs/data/invested-study.json``. Change them only with a new report."""
+
+    horizon_days: int = Field(ge=1)  # the horizon the zones are read at
+    candidate_top_frac: float = Field(gt=0, lt=1)  # candidate zone = top share of the basket
+    avoid_bottom_frac: float = Field(gt=0, lt=1)  # avoid zone = bottom share of the basket
+    candidate_grade: Literal["proven", "probable", "unproven"]
+    avoid_grade: Literal["proven", "probable", "unproven"]
+
+
 class V2Cfg(_Frozen):
     exposure: ExposureCfg
     portfolio: PortfolioCfg
     gates: GatesCfg
     invested: InvestedCfg
+    verdict: VerdictCfg
 
 
 class AdaptCfg(_Frozen):

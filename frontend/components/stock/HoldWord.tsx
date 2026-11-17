@@ -31,23 +31,24 @@ export function useHeld(instrumentId: number): Held[] | null {
   return held;
 }
 
-/** The verdict word: "hold" only makes sense for a stock you own; otherwise it means wait. A
- *  "hold" that exists only because the past does not back a sell (`weak`: the score itself is
- *  low) reads «نخرید» to someone who does not own the stock and «فروش را بسنجید» to an owner. */
-export function HoldWord({
-  verdict,
-  label,
-  instrumentId,
-  weak = false,
-}: {
-  verdict: string;
-  label: string;
-  instrumentId: number;
-  weak?: boolean;
-}) {
+/** True when one of this browser's portfolios holds the symbol. */
+export function useOwned(instrumentId: number): boolean {
   const held = useHeld(instrumentId);
-  if (verdict !== "hold") return <>{label}</>;
-  const owned = !!held && held.length > 0;
-  if (weak) return <>{owned ? "فروش را بسنجید" : "نخرید"}</>;
-  return <>{owned ? "نگهداری" : "صبر"}</>;
+  return !!held && held.length > 0;
+}
+
+/** The verdict word for this reader: the owner's answer (hold / consider selling) when the symbol
+ *  is in one of their portfolios, otherwise the one for someone who does not own it («صبر», never
+ *  «نگه‌دار»). Both words come from the API; nothing is translated here. */
+export function HoldWord({
+  label,
+  holderLabel,
+  instrumentId,
+}: {
+  label: string;
+  holderLabel?: string | null;
+  instrumentId: number;
+}) {
+  const owned = useOwned(instrumentId);
+  return <>{owned && holderLabel ? holderLabel : label}</>;
 }

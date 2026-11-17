@@ -10,8 +10,10 @@ section 7): while any gate fails, the document says so and the page says so.
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -19,6 +21,7 @@ import polars as pl
 from sqlalchemy import select
 
 from tmon.backtest.exposure_eval import sell_queue_share
+from tmon.backtest.invested_study import decile_table, zone_stats
 from tmon.backtest.runner import mean_risk_free, risk_free_daily
 from tmon.backtest.signal_decay import (
     SIGNALS,
@@ -112,6 +115,102 @@ def rows_for(universe: list[dict[str, Any]], names: dict[int, Instrument]) -> li
     for i, r in enumerate(out, 1):
         r["rank"] = i
     return out
+
+
+def assign_bands(
+    rows: list[dict[str, Any]], universe: list[dict[str, Any]], cfg: EngineConfig
+) -> None:
+    """Place every scored name inside the liquid basket's own score distribution (ADR 0004 section
+    5): ``basket_pct`` is its mid-rank percentile among basket names that are not in a buy queue
+    (the profile's universe), and ``band`` is ``candidate`` for the top ``candidate_top_frac``,
+    ``avoid`` for the bottom ``avoid_bottom_frac`` and ``middle`` otherwise. A name in a sell queue
+    or without a score has no band. Done in place on ``rows`` and ``universe``."""
+    vc = cfg.v2.verdict
+    ref = np.sort(
+        np.array(
+            [
+                r["score"]
+                for r in rows
+                if r.get("in_basket")
+                and r["score"] is not None
+                and r["queue_state"] != "buy_queue"
+                and r["zone"] not in ("excluded", "no_data")
+            ],
+            dtype=float,
+        )
+    )
+
+    def place(item: dict[str, Any], excluded: bool) -> None:
+        score = item.get("score")
+        if score is None or excluded or len(ref) == 0:
+            item["basket_pct"], item["band"] = None, None
+            return
+        pct = float(_mid_rank(ref, np.array([score]))[0])
+        item["basket_pct"] = pct
+        item["band"] = (
+            "candidate"
+            if pct > 1.0 - vc.candidate_top_frac
+            else "avoid"
+            if pct <= vc.avoid_bottom_frac
+            else "middle"
+        )
+
+    for r in rows:
+        place(r, r["zone"] in ("excluded", "no_data"))
+    for u in universe:
+        place(u, u["queue_state"] == "sell_queue")
+
+
+def zone_profile(
+    panel: pl.DataFrame, liquidity: pl.DataFrame, cfg: EngineConfig, round_trip: float
+) -> dict[str, Any]:
+    """Statistics of the zones the verdict shows, at each profile horizon: the candidate zone
+    (top ``candidate_top_frac`` of the basket) and the avoid zone (bottom ``avoid_bottom_frac``),
+    with the net excess over the market in the full period and in both halves, its t and its
+    grade. The deciles are the Phase 2 profile's (within the basket, no buy queue)."""
+    vc = cfg.v2.verdict
+    n_top = round(vc.candidate_top_frac * 10)
+    n_bot = round(vc.avoid_bottom_frac * 10)
+    top_idx = list(range(10 - n_top, 10))
+    bot_idx = list(range(n_bot))
+    out: dict[str, Any] = {}
+    for h in cfg.v2.invested.profile_horizons:
+        tab = decile_table(panel, liquidity, h, top_n=cfg.v2.invested.profile_top_n)
+        out[str(h)] = {
+            "days": len(tab["dates"]),
+            "candidate": {
+                "deciles": [k + 1 for k in top_idx],
+                **zone_stats(tab["mat"], top_idx, 1.0, h, round_trip, cfg),
+            },
+            "avoid": {
+                "deciles": [k + 1 for k in bot_idx],
+                **zone_stats(tab["mat"], bot_idx, -1.0, h, round_trip, cfg),
+            },
+        }
+    return out
+
+
+STUDY_JSON = Path(__file__).resolve().parents[4] / "docs" / "data" / "invested-study.json"
+
+
+def invested_reference() -> dict[str, Any] | None:
+    """The always-invested benchmark beside the official index, read from the Phase 2 report data
+    (``docs/data/invested-study.json``): what buying and holding the liquid basket (S0) and the
+    official equal-weight index returned over the report's window. ``None`` when the file is
+    missing."""
+    try:
+        r = json.loads(STUDY_JSON.read_text(encoding="utf-8"))
+        base = r["configs"]["S0"]["base"]
+        return {
+            "report": "invested-book-2026-11-17",
+            "first": r["windows"]["full"]["first"],
+            "last": r["windows"]["full"]["last"],
+            "s0_annual": base["ann"],
+            "official_annual": r["refs"]["full"]["official"]["ann"],
+            "bill_annual": r["refs"]["exposure"]["bill"]["ann"],
+        }
+    except (OSError, KeyError, ValueError):
+        return None
 
 
 def _mid_rank(ref: np.ndarray, x: np.ndarray) -> np.ndarray:
@@ -303,6 +402,7 @@ def build_document() -> dict[str, Any]:
     as_of = day
     universe = universe_scores(feats, adj, cfg, as_of, weights)
     rows = rows_for(universe, names)
+    assign_bands(rows, universe, cfg)
     liquidity = feats.select("instrument_id", "date", "median_value_20")
     evidence = []
     for h in HORIZONS:
@@ -373,6 +473,7 @@ def build_document() -> dict[str, Any]:
     exp = compute_exposure(ew, rf_daily, sell_share, cfg.v2.exposure).tail(1).to_dicts()[0]
     round_trip = CostModel.from_rules(rules, as_of, cfg.costs.slippage_fraction).round_trip
     allowed = all(g["passed"] is True for j in js for g in j.gates.values())
+    vc = cfg.v2.verdict
     return {
         "as_of": str(as_of),
         "basket_size": BASKET,
@@ -391,6 +492,15 @@ def build_document() -> dict[str, Any]:
         "weights_champion": champion,
         "weights_note": note,
         "evidence": evidence,
+        "verdict": {
+            "horizon_days": vc.horizon_days,
+            "candidate_top_frac": vc.candidate_top_frac,
+            "avoid_bottom_frac": vc.avoid_bottom_frac,
+            "candidate_grade": vc.candidate_grade,
+            "avoid_grade": vc.avoid_grade,
+        },
+        "zones": zone_profile(panel, liquidity, cfg, round_trip),
+        "invested_reference": invested_reference(),
         "gates": gates,
         "book": {
             "n_buys": info["n_buys"],

@@ -1,21 +1,21 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Verdict } from "@/components/SymbolDashboard";
+import { Verdict } from "@/components/stock/Verdict";
 import type { InstrumentDashboard } from "@/lib/api";
 
 type D = InstrumentDashboard["decision"];
 
-const month = (over: Record<string, unknown>) =>
+const quarter = (over: Record<string, unknown>) =>
   ({
-    key: "M1",
-    label: "یک ماه",
-    days: 20,
+    key: "Q1",
+    label: "سه ماه",
+    days: 60,
     verdict: "hold",
     verdict_label: "صبر",
     weak: false,
     vetoed: false,
-    headline: "برای یک ماه: فعلاً نخرید؛ سود اضافهٔ گذشته کم بوده است.",
+    headline: "برای این سهم: فعلاً نخرید؛ حالت سهم در گذشته از بازار جلو نزده است.",
     reasons: [],
     top_excess: 0.04,
     cost: 0.0175,
@@ -29,6 +29,14 @@ const decision = (over: Record<string, unknown> = {}) =>
   ({
     verdict: "hold",
     label: "صبر",
+    code: "wait",
+    holder_code: "hold",
+    holder_verdict: "hold",
+    holder_label: "نگه‌دار",
+    holder_headline: "اگر دارید، نگه دارید.",
+    band: "candidate",
+    grade: "unproven",
+    grade_label: "ثابت‌نشده",
     weak: false,
     gauge: 95,
     rank: 5,
@@ -47,30 +55,38 @@ afterEach(() => {
 });
 
 describe("verdict head next to the gauge", () => {
-  it("does not blame a thin edge when the state veto lowered the buy", () => {
-    render(<Verdict d={decision()} h={month({ vetoed: true })} id={1} />);
-    expect(screen.queryByTestId("wait-why")).toBeNull();
-  });
-
-  it("explains a high score with a wait when the edge itself was too thin", () => {
-    render(<Verdict d={decision()} h={month({ net_excess: 0.004 })} id={1} />);
-    expect(screen.getByTestId("wait-why")).toHaveTextContent("کافی نبوده");
-  });
-
   it("says the gauge is a rank, not advice, when it sits in the buy zone but the word is not buy", () => {
-    render(<Verdict d={decision()} h={month({ vetoed: true })} id={1} />);
+    render(<Verdict d={decision()} h={quarter({ vetoed: true })} id={1} />);
     expect(screen.getByTestId("gauge-not-advice")).toHaveTextContent("فقط رتبه");
   });
 
   it("keeps the gauge caption plain when the verdict is a buy", () => {
     render(
       <Verdict
-        d={decision({ verdict: "buy", label: "بخرید" })}
-        h={month({ verdict: "buy", verdict_label: "بخرید" })}
+        d={decision({ verdict: "buy", label: "خرید", code: "buy", grade: "proven" })}
+        h={quarter({ verdict: "buy", verdict_label: "خرید" })}
         id={1}
       />,
     );
     expect(screen.queryByTestId("gauge-not-advice")).toBeNull();
-    expect(screen.queryByTestId("wait-why")).toBeNull();
+  });
+
+  it("uses «صبر» for someone who does not own the stock, and shows the grade of the zone", () => {
+    render(<Verdict d={decision()} h={quarter({ vetoed: true })} id={1} />);
+    expect(screen.getByTestId("verdict-word")).toHaveTextContent("صبر");
+    expect(screen.getByTestId("verdict-word")).not.toHaveTextContent("نگه");
+    expect(screen.getByTestId("verdict-grade")).toHaveTextContent("ثابت‌نشده");
+  });
+
+  it("shows no grade for a stock in the middle of the list", () => {
+    render(
+      <Verdict
+        d={decision({ band: "middle", grade: null, grade_label: null, code: "with_market" })}
+        h={quarter({ verdict_label: "همراه بازار" })}
+        id={1}
+      />,
+    );
+    expect(screen.queryByTestId("verdict-grade")).toBeNull();
+    expect(screen.getByTestId("verdict-word")).toHaveTextContent("همراه بازار");
   });
 });

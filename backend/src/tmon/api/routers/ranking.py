@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.market_card import market_card
 from tmon.api.queue_size import history_odds, odds_for, queue_readings
 from tmon.api.returns import day_change
-from tmon.api.routers.dashboard import _turning_doc, final_verdict
-from tmon.api.schemas import OutsideRow, RankingOut
+from tmon.api.routers.dashboard import Verdict, _turning_doc, final_verdict, verdict_fields
+from tmon.api.schemas import OutsideRow, RankingOut, RankingRow
 from tmon.api.trade_state import market_days, trade_state
 from tmon.core.db import get_session
 from tmon.storage.models import Instrument, PriceDaily
@@ -33,10 +34,10 @@ def ranking(session: SessionDep) -> RankingOut:
         return RankingOut(available=False)
     out = RankingOut(available=True, **doc)
     out.outside = _outside(session, doc)
+    out.market_card = market_card(session, doc)
     turning = _turning_doc()
     for r in out.rows:
-        v = final_verdict(doc, r.zone, {k: x for k, x in r.signals.items() if x is not None})
-        r.verdict = v if v in ("buy", "hold", "sell") else None  # type: ignore[assignment]
+        _set_verdict(r, final_verdict(doc, r.model_dump()))
     out.universe_size = len(doc.get("universe") or []) or None
     # link each row to its instrument page with the latest close and day change
     last = session.scalar(select(func.max(PriceDaily.date)))
@@ -77,6 +78,21 @@ def ranking(session: SessionDep) -> RankingOut:
     return out
 
 
+def _set_verdict(r: RankingRow, v: Verdict | None) -> None:
+    """Put a verdict (or its absence) on a row; the state veto is added later by ``_settle``."""
+    r.verdict = v.key if v else None  # type: ignore[assignment]
+    for k in (
+        "code",
+        "holder_code",
+        "holder_verdict",
+        "holder_label",
+        "band",
+        "grade",
+        "grade_label",
+    ):
+        setattr(r, k, verdict_fields(v).get(k))
+
+
 def _settle_verdicts(
     session: Session,
     out: RankingOut,
@@ -96,16 +112,9 @@ def _settle_verdicts(
         if r.instrument_id is None or r.verdict is None:
             continue
         if kinds.get(r.instrument_id, "stock") != "stock":
-            r.verdict = None
-        elif r.verdict == "buy":
-            again = final_verdict(
-                doc,
-                r.zone,
-                {k: x for k, x in r.signals.items() if x is not None},
-                turning,
-                r.instrument_id,
-            )
-            r.verdict = again if again in ("buy", "hold", "sell") else None  # type: ignore[assignment]
+            _set_verdict(r, None)
+        elif r.verdict in ("buy", "candidate"):
+            _set_verdict(r, final_verdict(doc, r.model_dump(), turning, r.instrument_id))
 
 
 def _mark_idle(

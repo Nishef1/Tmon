@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict
 Timeframe = Literal["D1", "W1", "M1"]
 SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("D1", "W1", "M1")
 
+VerdictKey = Literal["buy", "candidate", "hold", "sell", "none"]
+
 DISCLAIMER = "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست"
 
 
@@ -21,6 +23,21 @@ class ApiModel(BaseModel):
     """
 
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+class VerdictFields(ApiModel):
+    """What every list that shows a per-symbol verdict also carries (ADR 0004 section 7): the code
+    of the answer, the answer for an owner of the symbol, and the zone with its evidence grade."""
+
+    code: str | None = (
+        None  # buy, candidate, candidate_queue, wait, with_market, avoid, wait_market
+    )
+    holder_code: str | None = None  # hold, consider_sell
+    holder_verdict: VerdictKey | None = None  # colour key of the owner's answer
+    holder_label: str | None = None
+    band: Literal["candidate", "middle", "avoid"] | None = None
+    grade: Literal["proven", "probable", "unproven"] | None = None
+    grade_label: str | None = None  # ثابت‌شده / احتمالی / ثابت‌نشده
 
 
 class InstrumentOut(ApiModel):
@@ -397,7 +414,7 @@ class LiveAccuracyOut(ApiModel):
     disclaimer: str = DISCLAIMER
 
 
-class ScreenerRow(ApiModel):
+class ScreenerRow(VerdictFields):
     """One symbol on the latest trading day: market data, a few features and, when a scores
     artifact exists, the model's raw output. ``signal`` true means it passed every threshold."""
 
@@ -411,7 +428,7 @@ class ScreenerRow(ApiModel):
     per_capita_sell: float | None = None
     power: float | None = None
     net_real_value: float | None = None
-    verdict: Literal["buy", "hold", "sell", "none"] = "none"
+    verdict: VerdictKey = "none"
     verdict_label: str = ""
     rank: int | None = None
     gauge: float | None = None
@@ -459,14 +476,15 @@ class ScreenerOut(ApiModel):
     rows: list[ScreenerRow]
 
 
-class RankingRow(ApiModel):
+class RankingRow(VerdictFields):
     rank: int
     symbol: str
     name: str | None = None
     sector_code: str | None = None
     score: float | None = None
     zone: Literal["buy", "hold", "avoid", "excluded", "no_data"]
-    verdict: Literal["buy", "hold", "sell"] | None = None  # what the symbol page says
+    verdict: Literal["buy", "candidate", "hold", "sell"] | None = None  # what the symbol page says
+    basket_pct: float | None = None  # place among the liquid basket's scores, 0 = worst, 1 = best
     queue_state: str | None = None
     median_value: float | None = None
     in_basket: bool = True
@@ -542,6 +560,69 @@ class RankingBook(ApiModel):
     avg_held: float
 
 
+class RankingVerdictRule(ApiModel):
+    """The fixed numbers of the per-symbol verdict (ADR 0004 section 5), from ``engine.yaml``."""
+
+    horizon_days: int
+    candidate_top_frac: float
+    avoid_bottom_frac: float
+    candidate_grade: Literal["proven", "probable", "unproven"]
+    avoid_grade: Literal["proven", "probable", "unproven"]
+
+
+class ZoneStat(ApiModel):
+    """The past record of one zone, net of the round trip, in the whole period and each half."""
+
+    deciles: list[int]
+    net: float | None = None
+    net_h1: float | None = None
+    net_h2: float | None = None
+    t: float | None = None
+    grade: str  # ثابت‌شده / احتمالی / ثابت‌نشده
+
+
+class ZoneProfile(ApiModel):
+    days: int
+    candidate: ZoneStat
+    avoid: ZoneStat
+
+
+class InvestedReference(ApiModel):
+    """What buying and holding the liquid basket (S0) and the official index returned in the
+    Phase 2 report's window, to show beside any annual return."""
+
+    report: str
+    first: str
+    last: str
+    s0_annual: float
+    official_annual: float
+    bill_annual: float
+
+
+class MarketFund(ApiModel):
+    """An equity fund of the market card: no verdict, never tested (ADR 0004 section 7)."""
+
+    instrument_id: int
+    symbol: str
+    name: str | None = None
+    value: float  # traded value on the last day, rial
+    close: float | None = None
+    nav: float | None = None  # redemption NAV, None when the fund's NAV is not stored
+    nav_date: dt.date | None = None
+    premium: float | None = None  # last price over NAV, minus one
+
+
+class MarketCard(ApiModel):
+    """The share of capital the model keeps in equities today, why, and the funds to hold it."""
+
+    exposure: float
+    date: str | None = None
+    positive: bool
+    reasons: list[str] = []
+    funds: list[MarketFund] = []
+    funds_note: str = ""
+
+
 class RankingOut(ApiModel):
     """The v2 model ranking of the liquid basket. ``recommendation_allowed`` is true only when
     every gate of ADR 0003 section 7 passed; until then the list is a ranking, not advice."""
@@ -564,6 +645,10 @@ class RankingOut(ApiModel):
     weights: dict[str, float] = {}  # weights of the four signals in today's score
     weights_champion: str = "equal"  # which method set them ("equal" = the plain mean)
     weights_note: str | None = None
+    verdict: RankingVerdictRule | None = None
+    zones: dict[str, ZoneProfile] = {}  # by horizon in days: the record of both zones
+    invested_reference: InvestedReference | None = None
+    market_card: MarketCard | None = None
 
 
 class MarketIndexPoint(ApiModel):
@@ -747,7 +832,7 @@ class DashHorizon(ApiModel):
     key: str  # D1, W1, M1, Q1
     label: str  # e.g. "یک ماه"
     days: int  # trading days
-    verdict: Literal["buy", "hold", "sell", "none"]
+    verdict: VerdictKey
     verdict_label: str
     weak: bool = False  # hold only because the past does not back a sell; the score itself is low
     vetoed: bool = False  # a buy-zone score lowered to a wait by the symbol's own state
@@ -760,10 +845,10 @@ class DashHorizon(ApiModel):
     ic_t: float | None = None
 
 
-class DashDecision(ApiModel):
+class DashDecision(VerdictFields):
     """The single final answer per symbol: buy, hold, sell or none, with the reasons."""
 
-    verdict: Literal["buy", "hold", "sell", "none"]
+    verdict: VerdictKey
     label: str
     weak: bool = False  # low score, but not backed by the tested past enough to say sell
     advice_allowed: bool = False
@@ -778,6 +863,8 @@ class DashDecision(ApiModel):
     zone_hold_from: float | None = None  # gauge value (0-100) where the hold zone starts
     zone_buy_from: float | None = None  # gauge value (0-100) where the buy zone starts
     queue_state: str | None = None  # buy_queue / sell_queue / none on the ranking day
+    holder_headline: str = ""  # the headline for an owner of the symbol
+    market_warning: bool = False  # exposure is zero today: the market itself says stay out
     summary: str = ""  # one plain sentence on what the verdict means for the reader
     signals: list[DashSignal] = []
     holding: DashHolding | None = None
@@ -856,14 +943,14 @@ class DashTurning(ApiModel):
     warning: TurningWarning | None = None
 
 
-class DashPeer(ApiModel):
+class DashPeer(VerdictFields):
     """One stock of the same industry group, for picking the best of the group."""
 
     id: int
     symbol: str
     name: str | None = None
     score: float | None = None  # composite score 0-100 (v2 ranking), None when not scored
-    verdict: Literal["buy", "hold", "sell", "none"] = "none"
+    verdict: VerdictKey = "none"
     in_basket: bool = False  # inside the validated liquid basket
     pe: float | None = None
     ret60: float | None = None
@@ -1174,13 +1261,13 @@ class InstrumentDashboard(ApiModel):
     entry: DashEntry | None = None
 
 
-class SearchHit(ApiModel):
+class SearchHit(VerdictFields):
     instrument: InstrumentOut
     sector_name: str | None = None
     kind: str
     close: float | None = None
     change_pct: float | None = None
-    verdict: Literal["buy", "hold", "sell", "none"] = "none"
+    verdict: VerdictKey = "none"
     verdict_label: str = ""
     gauge: float | None = None
     eps: float | None = None

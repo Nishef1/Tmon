@@ -34,8 +34,9 @@ import { heatProps, signTone, signedPct, verdictPill } from "@/lib/ui";
 
 const VERDICTS: [Verdict, string][] = [
   ["buy", "خرید"],
+  ["candidate", "نامزد خرید"],
   ["hold", "صبر"],
-  ["sell", "فروش"],
+  ["sell", "پرهیز"],
   ["none", "تصمیمی نیست"],
 ];
 
@@ -72,7 +73,7 @@ const COLS: Col[] = [
         <Gauge value={r.gauge} size="sm" label="امتیاز ترکیبی مدل" />
         <div className="leading-tight">
           <span className={`${verdictPill(r.verdict)}`} data-verdict={r.verdict}>
-            {r.verdict === "hold" ? "صبر" : r.verdictLabel || "—"}
+            {r.verdictLabel || "—"}
           </span>
           <div className="text-xs text-muted">
             {r.gauge == null ? gaugeWhy(r.gaugeNote) : faNumber(r.gauge)}
@@ -83,8 +84,13 @@ const COLS: Col[] = [
     agg: (i) => (
       <span className="text-xs">
         {i.verdicts.buy > 0 && <span className="text-up">{faNumber(i.verdicts.buy)} خرید </span>}
+        {i.verdicts.candidate > 0 && (
+          <span className="text-up">{faNumber(i.verdicts.candidate)} نامزد </span>
+        )}
         {i.verdicts.hold > 0 && <span className="text-hold">{faNumber(i.verdicts.hold)} صبر </span>}
-        {i.verdicts.sell > 0 && <span className="text-down">{faNumber(i.verdicts.sell)} فروش</span>}
+        {i.verdicts.sell > 0 && (
+          <span className="text-down">{faNumber(i.verdicts.sell)} پرهیز</span>
+        )}
         {i.gauge != null && <div className="text-muted">میانگین {faNumber(i.gauge)}</div>}
       </span>
     ),

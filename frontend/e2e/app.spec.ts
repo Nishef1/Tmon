@@ -9,7 +9,7 @@ test.describe("recommendations", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "fa");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("امروز بازار چه شد؟");
     await expect(page.getByTestId("disclaimer").first()).toHaveText(DISCLAIMER);
-    await page.getByTestId("v1-details").locator("summary").click();
+    await page.getByTestId("v1-details").locator("summary").first().click();
     const cards = page.getByTestId("signal-card");
     await expect(cards).toHaveCount(2);
     await expect(cards.first()).toContainText("فولاد");
@@ -26,7 +26,7 @@ test.describe("recommendations", () => {
 
   test("a number links to its glossary entry", async ({ page }) => {
     await page.goto("/");
-    await page.getByTestId("v1-details").locator("summary").click();
+    await page.getByTestId("v1-details").locator("summary").first().click();
     await page.getByTestId("signal-card").first().locator('a[href="/glossary/p_win"]').click();
     await expect(page).toHaveURL(/\/glossary\/p_win$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("احتمال موفقیت");
@@ -37,7 +37,7 @@ test.describe("recommendations", () => {
     page,
   }) => {
     await page.goto("/");
-    await page.getByTestId("v1-details").locator("summary").click();
+    await page.getByTestId("v1-details").locator("summary").first().click();
     for (const [tf, label] of [
       ["W1", "هفتگی (W1)"],
       ["M1", "ماهانه (M1)"],
@@ -78,34 +78,22 @@ test.describe("instrument page", () => {
     await expect(page.getByTestId("disclaimer").first()).toBeVisible();
   });
 
-  test("decides per holding period and explains each one", async ({ page }) => {
+  test("gives one verdict at the 60-day horizon with the grade of its zone", async ({ page }) => {
     await page.goto("/instruments/1");
     const hz = page.getByTestId("horizons");
-    await expect(hz).toHaveAttribute("data-horizon", "M1");
-    await expect(hz).toHaveAttribute("data-verdict", "buy");
+    await expect(hz).toHaveAttribute("data-horizon", "Q1");
+    await expect(hz).toHaveAttribute("data-verdict", "candidate");
+    await expect(page.getByTestId("horizon-D1")).toHaveCount(0);
+    await expect(page.getByTestId("verdict-word")).toHaveText("نامزد خرید");
+    await expect(page.getByTestId("verdict-grade")).toContainText("ثابت‌نشده");
     await expect(page.getByTestId("checks")).toContainText("بعد از کارمزد و مالیات");
-    await page.getByTestId("horizon-D1").click();
-    await expect(page).toHaveURL(/h=D1/);
-    await expect(hz).toHaveAttribute("data-horizon", "D1");
-    await expect(hz).toHaveAttribute("data-verdict", "hold");
-    await expect(page.getByTestId("symbol-decision")).toContainText(
-      "از کارمزد خرید و فروش کمتر است",
-    );
-  });
-
-  test("a low score the past does not back up reads «don't buy», not a plain wait", async ({
-    page,
-  }) => {
-    await page.goto("/instruments/1?h=W1");
-    await expect(page.getByTestId("verdict-word")).toHaveText("نخرید");
-    await expect(page.getByTestId("horizon-W1")).toContainText("نخرید");
   });
 
   test("shows one final decision with its reasons and the per-symbol numbers", async ({ page }) => {
     await page.goto("/instruments/1");
     const decision = page.getByTestId("symbol-decision");
-    await expect(decision).toHaveAttribute("data-verdict", "buy");
-    await expect(decision).toContainText("خرید");
+    await expect(decision).toHaveAttribute("data-verdict", "candidate");
+    await expect(decision).toContainText("نامزد خرید");
     await expect(decision).toContainText("رتبهٔ ۲۰");
     await expect(decision.getByTestId("gauge")).toHaveAttribute("data-value", "81.0");
     await expect(decision.getByTestId("signal-bars")).toContainText("قدرت خریدار حقیقی");
@@ -286,7 +274,7 @@ test("a chart term's glossary entry shows where it is and how it tested", async 
 
 test("glossary index lists terms and each entry opens", async ({ page }) => {
   await page.goto("/glossary");
-  await expect(page.getByRole("link", { name: /سود مورد انتظار/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /سود مورد انتظار/ }).first()).toBeVisible();
   await page.getByRole("link", { name: /امتیاز بریر/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("امتیاز بریر");
 });
@@ -308,6 +296,12 @@ test("home has one ranking table, the gate note and the market map; old ranking 
   await expect(page.getByTestId("gate-note")).toContainText("توصیه نیست");
   await expect(page.getByTestId("today-note")).toContainText("یک هفته");
   await expect(page.getByTestId("stock-table")).toContainText("وبانک");
+  // the market card: share of capital in equities, why, and the funds, labelled untested
+  const card = page.getByTestId("market-card");
+  await expect(card).toContainText("۹۹٫۰٪");
+  await expect(card.getByTestId("market-reasons")).toContainText("روند");
+  await expect(card.getByTestId("market-funds")).toContainText("آزموده نشده");
+  await expect(card.getByTestId("market-funds")).toContainText("اهرم");
   await expect(page.getByTestId("heatmap")).toBeVisible();
 });
 
@@ -326,7 +320,7 @@ test("industries table shows one decision per symbol with its gauge and flow col
   const table = page.getByTestId("industry-table");
   await expect(table).toContainText("قدرت خریدار");
   await expect(table.getByTestId("gauge").first()).toBeVisible();
-  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("صبر");
+  await expect(table.locator('[data-verdict="hold"]').first()).toContainText("همراه بازار");
 });
 
 test("header search finds a symbol by name or industry and opens its page", async ({ page }) => {
@@ -337,7 +331,7 @@ test("header search finds a symbol by name or industry and opens its page", asyn
   await expect(hits).toHaveCount(2);
   await expect(hits.first()).toContainText("فلزات اساسی");
   await expect(hits.first()).toContainText("P/E");
-  await expect(hits.first()).toContainText("نگهداری");
+  await expect(hits.first()).toContainText("همراه بازار");
   await box.fill("فولاد");
   await expect(hits).toHaveCount(1);
   await box.press("Enter");
@@ -458,7 +452,7 @@ test("home opens on the market strip and a sortable stock table", async ({ page 
   await expect(page.getByTestId("market-strip")).toBeVisible();
   const table = page.getByTestId("stock-table");
   await expect(table).toContainText("وبانک");
-  await table.getByRole("tab", { name: /فروش/ }).click();
+  await table.getByRole("tab", { name: /پرهیز/ }).click();
   await expect(table).toContainText("خودرو");
   await expect(table).not.toContainText("وبانک");
 });
