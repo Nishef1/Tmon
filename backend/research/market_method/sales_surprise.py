@@ -55,6 +55,8 @@ def main() -> None:
     ).with_columns(C("pub").str.to_date())
     prev = s.select("symbol", (C("jy") + 1).alias("jy"), "jm", C("month").alias("m_prev"))
     s = s.join(prev, on=["symbol", "jy", "jm"], how="inner").filter((C("month") > 0) & (C("m_prev") > 0))
+    # a base month under 20% of the symbol's median month (seasonal firms) gives absurd growth: drop it
+    s = s.with_columns(typ=C("month").median().over("symbol")).filter(C("m_prev") >= 0.2 * C("typ"))
     s = s.with_columns(yoy=C("month") / C("m_prev") - 1).sort("pub")
     pubs = s["pub"].to_list()
     yoys = s["yoy"].to_numpy()
@@ -78,12 +80,11 @@ def main() -> None:
     ).select("date", G, "f20", "f60")
     b = a.filter(C(G).is_in(list(ids))).group_by("date").agg(b20=C("f20").mean(), b60=C("f60").mean())
     a = a.join(b, on="date").sort("date")
-    # entry row = first trading day strictly after the publication day (its f = close(t+1) -> close(t+1+h) is
-    # measured from the entry close: the row of the entry day itself)
+    # entry row = first trading day on or after the publication day; f20/f60 run from the NEXT close (t+1), so
+    # a report that comes out in the evening is bought at the following close, not at the day's own
     ev = s.sort("pub").join_asof(
         a.sort("date").rename({"date": "d"}), left_on="pub", right_on="d", by=G, strategy="forward"
     )
-    ev = ev.filter(C("d") > C("pub")) if False else ev
     ev = ev.drop_nulls(["f20", "b20"]).with_columns(
         x20=C("f20") - C("b20") - COST, x60=C("f60") - C("b60") - COST
     )
