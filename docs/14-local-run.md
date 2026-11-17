@@ -48,6 +48,7 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod --full     # همهٔ نمادها یکی‌یکی (حدود یک ساعت)
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli backfill --since 2021-01-01 --limit 20
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.book_history --top 60 --days 60
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli statements --basket ../data/liquid-basket.json  # ترازنامه و سود و زیان ۱۰۰ نماد (حدود ۴ دقیقه)
 .venv/Scripts/python.exe -m tmon.ingest.codal.cli letters --symbol فملی
 .venv/Scripts/python.exe -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 20
 .venv/Scripts/python.exe -m tmon.tools.adapt_cycle [--replay]

@@ -56,7 +56,7 @@ TSETMC / کدال / fipiran / tgju / yahoo / RSS
 | نماد و قواعد | `instruments`، `sector_names` (هر بار که حلقهٔ لحظه‌ای شروع می‌شود از `GetStaticData` تازه می‌شود)، `market_rules`، `trading_calendar` |
 | بازار روزانه | `prices_daily`، `price_adjustments`، `client_types_daily`، `market_index_daily`، `order_book_daily`، `intraday_profile_daily` |
 | لحظه‌ای | `intraday_snapshots`، `order_book_snapshots` |
-| رویداد و کدال | `corporate_events`، `share_changes`، `shareholders`، `codal_letters`، `codal_reports`، `codal_report_cells` |
+| رویداد و کدال | `corporate_events`، `share_changes`، `shareholders`، `financial_statements`، `codal_letters`، `codal_reports`، `codal_report_cells` |
 | کلان، صندوق، خبر | `macro_series`، `fund_nav`، `news_raw`، `news_events` |
 | مدل v1 | `features`، `labels`، `model_runs`، `signals`، `signal_runs`، `backtests` |
 | پرتفوی | `portfolios`، `holdings`، `portfolio_trades`، `broker_links`، `portfolio_alerts`، `portfolio_briefings`، `tracked_picks` |

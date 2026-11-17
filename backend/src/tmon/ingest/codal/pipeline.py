@@ -265,9 +265,11 @@ async def sync_reports(
     letter_code: str,
     symbol: str | None = None,
     limit: int = 10,
+    since: datetime | None = None,
 ) -> dict[str, int]:
     """Fetch and parse the Excel export of stored letters with ``letter_code`` that have no
-    parsed report yet, newest first. Stops at the first refusal (429, CAPTCHA) with what it has."""
+    parsed report yet (published on or after ``since`` when given), newest first. Stops at the
+    first refusal (429, CAPTCHA) with what it has."""
     q = (
         select(CodalLetter)
         .outerjoin(CodalReport, CodalReport.tracing_no == CodalLetter.tracing_no)
@@ -281,6 +283,8 @@ async def sync_reports(
     )
     if symbol:
         q = q.where(CodalLetter.symbol == symbol)
+    if since is not None:
+        q = q.where(CodalLetter.published_at >= since)
     totals = {"reports": 0, "cells": 0, "skipped": 0}
     for letter in ctx.session.scalars(q).all():
         serial = endpoints.letter_serial(letter.url)

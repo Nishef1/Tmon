@@ -22,6 +22,7 @@ from tmon.ingest.tsetmc.pipeline import (
     run_reclassify,
     run_risk_free,
     run_shareholders,
+    run_statements,
 )
 
 
@@ -46,6 +47,9 @@ def main() -> None:
     sub.add_parser("risk-free", help="treasury bill history and the one-year yield series")
     sh = sub.add_parser("shareholders", help="major shareholders of every stock")
     sh.add_argument("--limit", type=int, default=None)
+    st = sub.add_parser("statements", help="balance sheet and income statement filings")
+    st.add_argument("--basket", default=None, help="JSON file with a 'symbols' list to fetch")
+    st.add_argument("--limit", type=int, default=None)
     sub.add_parser("indices", help="TEDPIX and equal-weight index daily history")
     sub.add_parser("reclassify", help="re-run the type classifier over stored instruments")
     live = sub.add_parser("intraday", help="live price/volume snapshots and order books")
@@ -79,6 +83,17 @@ def main() -> None:
         return
     if args.cmd == "shareholders":
         print(run_shareholders(args.limit))
+        return
+    if args.cmd == "statements":
+        import json
+        from pathlib import Path
+
+        names = (
+            json.loads(Path(args.basket).read_text(encoding="utf-8"))["symbols"]
+            if args.basket
+            else None
+        )
+        print(run_statements(names, args.limit))
         return
     if args.cmd == "indices":
         print(run_indices())

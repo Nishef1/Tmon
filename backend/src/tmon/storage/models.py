@@ -476,6 +476,27 @@ class Shareholder(Base, Provenance):
     change_amount: Mapped[int | None] = mapped_column(BigInteger)  # shares bought (+) or sold (-)
 
 
+class FinancialStatement(Base, Provenance):
+    """One financial statement filed under a symbol, as TSETMC lists it (balance sheet and income
+    statement tables, million rial; EPS in rial). ``published_at`` is when it became public, so a
+    study can use it point in time. Rows are ``[label, value, value, ...]`` with the columns of the
+    filing: current period, same period last year, last year end (balance sheet: previous year
+    end)."""
+
+    __tablename__ = "financial_statements"
+
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), primary_key=True)
+    published_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16), primary_key=True)  # consolidated | separate
+    title: Mapped[str] = mapped_column(Text)
+    period_end: Mapped[dt.date | None] = mapped_column(Date)
+    fiscal_year_end: Mapped[dt.date | None] = mapped_column(Date)
+    period_months: Mapped[int | None] = mapped_column(Integer)
+    audited: Mapped[bool | None] = mapped_column(Boolean)
+    balance: Mapped[list[Any]] = mapped_column(JsonType, default=list)
+    income: Mapped[list[Any]] = mapped_column(JsonType, default=list)
+
+
 class TrackedPick(Base):
     """A symbol the user marked as bought (or about to buy), with the model forecast frozen on
     that day so it can be compared with what the candles actually did."""

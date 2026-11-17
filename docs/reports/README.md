@@ -39,6 +39,7 @@
 | [orderbook-queue](orderbook-queue.md) | عمق سفارش و صف: چیزی به امتیاز اضافه نکرد؛ برچسب صف |
 | [weekly-outlook-2026-11](weekly-outlook-2026-11.md) | حالت بازار و چشم‌انداز هفته |
 | [research-practices-and-anomalies](research-practices-and-anomalies.md) | روش‌های فعالان بازار و ناهنجاری‌های شناخته‌شده |
+| [market-method-2026-11](market-method-2026-11.md) | آزمون شش ادعای یک آموزگار بازار روی داده خودمان: فقط بنیادی (رشد سود، حاشیه، P/E) در هر دو نیمه همسو بود |
 
 ## داده
 

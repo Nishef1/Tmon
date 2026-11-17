@@ -20,6 +20,8 @@ CLIENT_TYPES = f"{OLD}/tsev2/data/clienttype.aspx?i={{ins_code}}"
 CLIENT_TYPES_ALL = f"{CDN}/api/ClientType/GetClientTypeAll"
 INSTRUMENT_INFO = f"{CDN}/api/Instrument/GetInstrumentInfo/{{ins_code}}"
 SHAREHOLDERS = f"{CDN}/api/Shareholder/GetInstrumentShareHolderLast/{{ins_code}}"
+# last 15 filings listed under a symbol; page 0 = balance sheet, page 1 = income statement
+STATEMENTS = f"{CDN}/api/Codal/GetStatementContentByInsCode/6/6/{{page}}/{{ins_code}}"
 BEST_LIMITS = f"{CDN}/api/BestLimits/{{ins_code}}/{{date}}"
 BEST_LIMITS_LIVE = f"{CDN}/api/BestLimits/{{ins_code}}"  # current order book (reference client)
 # TSETMC's own adjusted series (a=1; a=0 is the raw one). Integer-rounded prices.
@@ -53,6 +55,10 @@ def daily_history_url(ins_code: str) -> str:
 
 def client_types_url(ins_code: str) -> str:
     return CLIENT_TYPES.format(ins_code=ins_code)
+
+
+def statements_url(ins_code: str, page: int) -> str:
+    return STATEMENTS.format(ins_code=ins_code, page=page)
 
 
 def instrument_info_url(ins_code: str) -> str:

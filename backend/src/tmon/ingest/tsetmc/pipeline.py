@@ -617,6 +617,10 @@ async def _run(fn_name: str, **kwargs: object) -> dict[str, int]:
                 from tmon.ingest.tsetmc.shareholders import ingest_shareholders
 
                 return await ingest_shareholders(ctx, **kwargs)  # type: ignore[arg-type]
+            if fn_name == "statements":
+                from tmon.ingest.tsetmc.statements import ingest_statements
+
+                return await ingest_statements(ctx, **kwargs)  # type: ignore[arg-type]
             if fn_name == "indices":
                 from tmon.ingest.tsetmc.indices import ingest_indices
 
@@ -645,6 +649,10 @@ def run_risk_free() -> dict[str, int]:
 
 def run_shareholders(limit: int | None = None) -> dict[str, int]:
     return asyncio.run(_run("shareholders", limit=limit))
+
+
+def run_statements(symbols: list[str] | None = None, limit: int | None = None) -> dict[str, int]:
+    return asyncio.run(_run("statements", symbols=symbols, limit=limit))
 
 
 def run_indices() -> dict[str, int]:
