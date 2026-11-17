@@ -1,4 +1,5 @@
-"""The market-state plan: state reading, confirmation, decision kinds and the frozen log."""
+"""The market-state plan: state reading, confirmation, decision kinds, the frozen log, the slots
+and the sale under the mean."""
 
 from __future__ import annotations
 
@@ -54,6 +55,7 @@ def _panel(breadth: list[float], n: int = 12) -> pl.DataFrame:
                     "q_r120": 4 if k >= n - 3 else 1,
                     "q_pos60": 4,
                     "buy_lock": False,
+                    "under_ma": False,
                 }
             )
     return pl.DataFrame(rows)
@@ -64,28 +66,27 @@ def test_replay_follows_the_state_and_freezes_the_log() -> None:
         update={"start": date(2026, 11, 1), "confirm_days": 2, "top": 2, "capital": 100.0}
     )
     syms = {k: f"S{k}" for k in range(12)}
-    # flat, then falling for 3 days, then rising
+    # flat, then falling for 3 days (cash), then rising (trend)
     a = _panel([0.5, 0.5, 0.25, 0.25, 0.25, 0.9, 0.9, 0.9])
     res = rp.replay(a, {}, cfg, [], syms)
     kinds = [(e["date"], e["state"], e["kind"]) for e in res["log"]]
     assert kinds == [
         ("2026-11-01", "flat", "wait"),
-        ("2026-11-04", "falling", "enter"),
-        ("2026-11-07", "rising", "switch"),
+        ("2026-11-04", "falling", "wait"),
+        ("2026-11-07", "rising", "enter"),
     ]
-    dust = res["log"][1]
-    assert dust["ranked"][:2] == ["S11", "S10"]  # deepest drawdown first
-    assert dust["filled_on"] == "2026-11-05" and dust["names"] == ["S11", "S10"]
+    assert res["log"][1]["names"] == []
     assert res["log"][2]["ranked"][:2] == ["S11", "S10"]  # best 120-day return first
     assert res["log"][2]["filled_on"] == "2026-11-08" and res["pending"] is None
     assert res["holding"] == ["S11", "S10"]
+    assert res["path"][-1]["plan"] < 100  # bought at the last close: only the cost so far
 
     # a later run keeps the logged decisions even if the data now says otherwise
     frozen = [dict(e) for e in res["log"]]
-    frozen[1]["ranked"] = ["S9", "S8"]
+    frozen[2]["ranked"] = ["S9", "S8"]
     again = rp.replay(a, {}, cfg, frozen, syms)
-    assert again["log"][1]["names"] == ["S9", "S8"]
-    assert [e["kind"] for e in again["log"]] == ["wait", "enter", "switch"]
+    assert again["log"][2]["names"] == ["S9", "S8"]
+    assert [e["kind"] for e in again["log"]] == ["wait", "wait", "enter"]
 
 
 def test_buy_locked_name_is_skipped_for_the_next() -> None:
@@ -93,11 +94,37 @@ def test_buy_locked_name_is_skipped_for_the_next() -> None:
         update={"start": date(2026, 11, 1), "confirm_days": 1, "top": 2, "capital": 100.0}
     )
     syms = {k: f"S{k}" for k in range(12)}
-    a = _panel([0.25, 0.25, 0.25]).with_columns(
+    a = _panel([0.9, 0.9, 0.9]).with_columns(
         buy_lock=(pl.col("date") == date(2026, 11, 2)) & (pl.col("instrument_id") == 11)
     )
     res = rp.replay(a, {}, cfg, [], syms)
     assert res["log"][0]["names"] == ["S10", "S9"]
+
+
+def test_name_under_its_mean_is_sold_and_its_slot_stays_cash() -> None:
+    cfg = get_engine_config().regime_plan.model_copy(
+        update={"start": date(2026, 11, 1), "confirm_days": 1, "top": 2, "capital": 100.0}
+    )
+    syms = {k: f"S{k}" for k in range(12)}
+    a = _panel([0.9] * 5).with_columns(
+        under_ma=(pl.col("date") == date(2026, 11, 3)) & (pl.col("instrument_id") == 11)
+    )
+    res = rp.replay(a, {}, cfg, [], syms)
+    assert [(e["date"], e["kind"]) for e in res["log"]] == [
+        ("2026-11-01", "enter"),
+        ("2026-11-03", "sell"),
+    ]
+    assert res["log"][1]["sold"] == ["S11"] and res["log"][1]["filled_on"] == "2026-11-04"
+    assert res["holding"] == ["S10"]
+
+    book = rp.Book(0.0, {1: 50.0, 2: 50.0})
+    book.sell([1])
+    assert book.cash == 50.0 * (1 - rp.SELL) and list(book.hold) == [2]
+    total = book.value
+    book.renew([2, 3], 2)  # 2 is kept at no cost, 3 is bought
+    assert book.cash == 0.0
+    assert book.hold[2] == total / 2
+    assert book.hold[3] == total / 2 * (1 - rp.BUY)
 
 
 def test_api_without_a_document() -> None:

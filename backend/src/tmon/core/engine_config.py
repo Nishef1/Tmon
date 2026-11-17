@@ -126,13 +126,15 @@ class DefensiveCfg(_Frozen):
 
 
 class RegimePlanCfg(_Frozen):
-    """Market-state plan and its forward (paper) test (docs/reports/regime-switch-2026-11.md)."""
+    """Market-state plan and its forward (paper) test (docs/reports/regime-switch-2026-11.md,
+    docs/reports/timing-and-codal-2026-11.md)."""
 
     breadth_low: float = Field(gt=0, lt=1)  # at or below: falling
     breadth_high: float = Field(gt=0, lt=1)  # above: rising
     confirm_days: int = Field(ge=1)  # a new state counts after this many days in a row
     renew_days: int = Field(ge=1)  # names are renewed after this many trading days
     top: int = Field(ge=1)
+    exit_ma: int = Field(ge=2)  # sell a held name closing under its mean of this many days
     start: date  # first decision of the forward test (the plan was frozen on this date)
     capital: float = Field(gt=0)  # toman, for the paper account
 

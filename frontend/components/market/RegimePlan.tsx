@@ -12,6 +12,7 @@ const KIND: Record<string, string> = {
   exit: "خروج",
   switch: "جابجایی",
   wait: "صبر",
+  sell: "فروش",
 };
 
 function mt(toman: number): string {
@@ -36,7 +37,8 @@ export function RegimePlan({ r }: { r: RegimePaper }) {
         پایانی {jalali(r.as_of)} این عدد {faPercent(r.breadth ?? 0, 0)} بود. اگر به{" "}
         {faPercent(lo, 0)} یا کمتر برسد بازار نزولی است، بالای {faPercent(hi, 0)} صعودی، و بین این
         دو خنثی. وضع تازه فقط وقتی پذیرفته می‌شود که {faNumber(r.confirm_days ?? 0)} روز کاری پشت سر
-        هم دیده شود.
+        هم دیده شود. هر سهمی که در دست است، اگر پایانی‌اش زیر میانگین {faNumber(r.exit_ma ?? 20)}{" "}
+        روزهٔ خودش برود، در پایانی روز بعد فروخته می‌شود و پولش تا نوسازی بعدی با سود اوراق می‌ماند.
       </p>
       <p className="text-sm leading-7" data-testid="regime-state">
         خوانش آخرین پایانی: <b>{STATE[r.raw_state ?? ""]}</b>، {faNumber(r.run_days ?? 0)} روز پشت
@@ -73,8 +75,12 @@ export function RegimePlan({ r }: { r: RegimePaper }) {
         {r.pending ? (
           <>
             تصمیم پایانی {jalali(r.pending.date)}: <b>{KIND[r.pending.kind]}</b>
-            {r.pending.names?.length ? ` با ${r.pending.names.join("، ")}` : ""}؛ در پایانی روز کاری
-            بعد اجرا می‌شود.{" "}
+            {r.pending.sold?.length
+              ? ` ${r.pending.sold.join("، ")}`
+              : r.pending.names?.length
+                ? ` با ${r.pending.names.join("، ")}`
+                : ""}
+            ؛ در پایانی روز کاری بعد اجرا می‌شود.{" "}
           </>
         ) : null}
         {r.holding.length > 0
@@ -116,7 +122,7 @@ export function RegimePlan({ r }: { r: RegimePaper }) {
                 <th>وضع</th>
                 <th>فراخی</th>
                 <th>تصمیم</th>
-                <th>خرید شد</th>
+                <th>اجرا</th>
               </tr>
             </thead>
             <tbody>
@@ -127,11 +133,13 @@ export function RegimePlan({ r }: { r: RegimePaper }) {
                   <td>{faPercent(e.breadth, 0)}</td>
                   <td>{KIND[e.kind]}</td>
                   <td className="text-xs">
-                    {e.filled_on
-                      ? e.names?.length
-                        ? e.names.join("، ")
-                        : "نقد"
-                      : "در انتظار پایانی روز بعد"}
+                    {!e.filled_on
+                      ? "در انتظار پایانی روز بعد"
+                      : e.sold?.length
+                        ? `فروخته شد: ${e.sold.join("، ")}`
+                        : e.names?.length
+                          ? `خریده یا نگه داشته شد: ${e.names.join("، ")}`
+                          : "نقد"}
                   </td>
                 </tr>
               ))}
@@ -140,11 +148,13 @@ export function RegimePlan({ r }: { r: RegimePaper }) {
         </div>
       </div>
       <p className="text-xs leading-6 text-muted">
-        برنامه از دادهٔ ۱۳۹۷ تا ۱۴۰۳ انتخاب شد. در ۱۴۰۴ تا آبان ۱۴۰۵ ماهانه حدود ۵٫۷٪ داد، نزدیک
-        داشتن کل سبد (۵٫۵٪)، ولی ماه‌های منفی کمتری داشت (۱۱٪ از ماه‌ها در برابر ۳۲٪) و بیشترین افتش
-        کمتر بود (۲۰٪ در برابر ۲۵٪). آن دوره پیش از ساختن این آزمون دیده شده بود؛ آزمون واقعی فقط
-        روزهای پس از {jalali(r.start)} است. بیشتر داده‌ها از یک دورهٔ صعودی پرتورم است. آزمون کاغذی
-        است و هیچ سفارشی ثبت نمی‌شود. رتبه‌بندی مدل، توصیه نیست.
+        برنامه از دادهٔ ۱۳۹۷ تا ۱۴۰۳ انتخاب شد. نسخهٔ اول در بازار نزولی سهم‌های «به خاک نشسته» را
+        می‌خرید. در ۲۷ آبان ۱۴۰۵، پیش از هیچ خریدی، به نقد در بازار نزولی و فروش زیر میانگین ۲۰ روزه
+        عوض شد. دلیلش این بود که با همان بازده، بیشترین افت را در هر سه دوره تقریباً نصف می‌کرد.
+        اجرای همین کد از دی ۱۴۰۳ ماهانه حدود ۳٫۸٪ داد، با بیشترین افت ۹٪. داشتن کل سبد بیشتر داد،
+        ولی تا ۲۵٪ افت کرد. آن دوره پیش از ساختن این آزمون دیده شده بود؛ آزمون واقعی فقط روزهای پس
+        از {jalali(r.start)} است. بیشتر داده‌ها از یک دورهٔ صعودی پرتورم است. آزمون کاغذی است و هیچ
+        سفارشی ثبت نمی‌شود. رتبه‌بندی مدل، توصیه نیست.
       </p>
     </section>
   );

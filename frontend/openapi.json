@@ -10242,6 +10242,20 @@
             "title": "Ranked",
             "type": "array"
           },
+          "sold": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sold"
+          },
           "state": {
             "title": "State",
             "type": "string"
@@ -10255,7 +10269,8 @@
           "kind",
           "ranked",
           "filled_on",
-          "names"
+          "names",
+          "sold"
         ],
         "title": "RegimeDecision",
         "type": "object"
@@ -10369,6 +10384,17 @@
             "title": "Edges",
             "type": "array"
           },
+          "exit_ma": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Ma"
+          },
           "holding": {
             "default": [],
             "items": {
@@ -10478,6 +10504,7 @@
           "confirm_days",
           "renew_days",
           "plan",
+          "exit_ma",
           "breadth",
           "raw_state",
           "run_days",

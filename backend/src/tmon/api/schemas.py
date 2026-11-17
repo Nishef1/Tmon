@@ -1540,11 +1540,12 @@ class RegimeDecision(ApiModel):
     date: dt.date
     state: str  # falling | flat | rising
     breadth: float  # share of the basket above its 60-day mean
-    action: str  # dust | cash | trend
-    kind: str  # enter | exit | switch | wait
+    action: str  # cash | trend (dust before 2026-11-18) | under_ma20 for a sale
+    kind: str  # enter | exit | switch | wait | sell
     ranked: list[str] = []  # the shortlist in order; the first names not locked up are bought
     filled_on: dt.date | None = None
     names: list[str] | None = None  # what was actually bought on ``filled_on``
+    sold: list[str] | None = None  # a "sell": held names that closed under their mean
 
 
 class RegimePoint(ApiModel):
@@ -1566,6 +1567,7 @@ class RegimePaperOut(ApiModel):
     confirm_days: int | None = None
     renew_days: int | None = None
     plan: dict[str, str] = {}
+    exit_ma: int | None = None  # a held name closing under its mean of this many days is sold
     breadth: float | None = None
     raw_state: str | None = None  # today's reading before confirmation
     run_days: int | None = None  # closes in a row the reading has held

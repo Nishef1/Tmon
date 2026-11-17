@@ -1,18 +1,28 @@
-"""The market-state plan, run forward on paper (docs/reports/regime-switch-2026-11.md).
+"""The market-state plan, run forward on paper (docs/reports/regime-switch-2026-11.md,
+docs/reports/timing-and-codal-2026-11.md).
 
 Every close the plan reads the market state from breadth: the share of the frozen 100-stock liquid
 basket above its 60-day mean. At or below ``breadth_low`` the market is falling, above
 ``breadth_high`` rising, flat in between; a new state counts only after it held ``confirm_days``
-closes in a row. Each state has its own action, chosen in the study from 2019-2024 data:
+closes in a row. Each state has its own action:
 
-  falling  dust   the 10 basket stocks deepest below their own peak (bottom fifth by drawdown)
-  flat     cash   out of stocks, earning the one-year bond yield
+  falling  cash   out of stocks, earning the one-year bond yield
+  flat     cash   the same
   rising   trend  the 10 best 120-day returns among stocks in the upper part of their 60-day range
 
+Until 2026-11-18 a falling market bought "dust" (the 10 stocks deepest below their peak). With
+buy-and-hold accounting dust earned no more than cash and fell twice as far, so it was dropped
+before the paper account had made any trade (timing-and-codal report).
+
+The book is ``top`` equal slots, each holding one name or cash. A held name whose close falls
+under its ``exit_ma``-day mean is sold at the next close and its slot stays in cash until the next
+renewal.
+
 A decision is taken at a close when the state changes or ``renew_days`` trading days have passed
-since the last fill: enter (cash to stocks), exit (stocks to cash), switch (other stocks) or wait
-(stay in cash). It is filled at the next close (a name locked in a buy queue that day is skipped
-for the next one on the list), with 0.62% cost on what is bought and 1.13% on what is sold.
+since the last renewal: enter (cash to stocks), exit (stocks to cash), switch (other stocks) or
+wait (stay in cash); a sale under the mean is "sell". It is filled at the next close (a name
+locked in a buy queue that day is skipped for the next one on the list), with 0.62% cost on what
+is bought and 1.13% on what is sold.
 
 Decisions already logged stay frozen: a later run only appends, so the test cannot be rewritten
 after the fact. The account is compared with holding the whole basket and with cash.
@@ -43,7 +53,7 @@ KEY = "v2/regime_paper.json"
 BASKET_FILE = Path(__file__).resolve().parents[4] / "data" / "liquid-basket.json"
 BUY, SELL = 0.0062, 0.0113
 STATES = ("falling", "flat", "rising")
-PLAN = {"falling": "dust", "flat": "cash", "rising": "trend"}
+PLAN = {"falling": "cash", "flat": "cash", "rising": "trend"}
 SHORTLIST = 20  # ranked names kept per decision, so a queue-locked name can be replaced
 C = pl.col
 G = "instrument_id"
@@ -74,9 +84,10 @@ def kind(in_cash: bool, to_cash: bool) -> str:
     return "enter" if in_cash else "switch"
 
 
-def panel(prices: pl.DataFrame, ids: list[int]) -> pl.DataFrame:
+def panel(prices: pl.DataFrame, ids: list[int], ma: int = 20) -> pl.DataFrame:
     """Per stock and day: return, drawdown from peak, 120-day return, 60-day range position and
-    gap to the 60-day mean, quintiles within the day, and whether the day was locked up."""
+    gap to the 60-day mean, whether the close is under its ``ma``-day mean, quintiles within the
+    day, and whether the day was locked up."""
     a = apply_adjustments(prices).filter((C("close") > 0) & C(G).is_in(ids))
     a = a.with_columns(C("date").cast(pl.Date)).sort(G, "date")
     c = C("adj_close")
@@ -86,6 +97,7 @@ def panel(prices: pl.DataFrame, ids: list[int]) -> pl.DataFrame:
         r120=(c / c.shift(120) - 1).over(G),
         pos60=((c - c.rolling_min(60)) / (c.rolling_max(60) - c.rolling_min(60) + 1e-9)).over(G),
         gap60=(c / c.rolling_mean(60) - 1).over(G),
+        under_ma=(c < c.rolling_mean(ma)).over(G),
         buy_lock=((C("high") == C("low")) & (C("close") > C("close").shift(1))).over(G),
     ).filter(C("date") >= pl.date(2019, 1, 1))
     for f in ("dd", "r120", "pos60"):
@@ -112,12 +124,28 @@ def shortlist(day: pl.DataFrame, action: str) -> list[int]:
 
 @dataclass
 class Book:
-    """The paper account while it is replayed."""
+    """The paper account while it is replayed: one value per held name, the rest in cash."""
 
-    value: float
-    hold: list[int] = field(default_factory=list)
-    age: int = 0  # trading days since the last fill
+    cash: float
+    hold: dict[int, float] = field(default_factory=dict)  # name -> value, in buying order
+    age: int = 0  # trading days since the last renewal
     state: str | None = None  # confirmed state at the last decision
+
+    @property
+    def value(self) -> float:
+        return self.cash + sum(self.hold.values())
+
+    def renew(self, new: list[int], top: int) -> None:
+        """Sell what is not in ``new``, then split the whole book into ``top`` equal slots."""
+        total = self.value - SELL * sum(v for x, v in self.hold.items() if x not in new)
+        per = total / top
+        self.hold = {x: per if x in self.hold else per * (1 - BUY) for x in new}
+        self.cash = per * (top - len(new))
+
+    def sell(self, names: list[int]) -> None:
+        for x in names:
+            if x in self.hold:
+                self.cash += self.hold.pop(x) * (1 - SELL)
 
 
 def replay(
@@ -145,6 +173,10 @@ def replay(
         d: set(g.filter(C("buy_lock").fill_null(False))[G].to_list())
         for (d,), g in a.group_by("date")
     }
+    under = {
+        d: set(g.filter(C("under_ma").fill_null(False))[G].to_list())
+        for (d,), g in a.group_by("date")
+    }
     by_day = {d: g for (d,), g in a.partition_by("date", as_dict=True).items()}
     sym_id = {v: k for k, v in symbols.items()}
     old = {x["date"]: x for x in frozen}
@@ -161,23 +193,21 @@ def replay(
         yld = rf.get(d, yld)
         r_cash = (1 + yld) ** (1 / 250) - 1
         if path:  # earn today's return on what was held since the last close
-            r = (
-                sum(rets[d].get(x, 0.0) for x in book.hold) / len(book.hold)
-                if book.hold
-                else r_cash
-            )
-            book.value *= 1 + r
+            book.hold = {x: v * (1 + rets[d].get(x, 0.0)) for x, v in book.hold.items()}
+            book.cash *= 1 + r_cash
             basket *= 1 + m["m_ret"][i]
             cash *= 1 + r_cash
         else:
             basket *= 1 - BUY
-        if pending is not None:  # fill yesterday's decision at this close
+        if pending is not None and pending["kind"] == "sell":  # fill yesterday's sale
+            book.sell([sym_id[x] for x in pending["sold"]])
+            pending["filled_on"] = str(d)
+            pending = None
+        elif pending is not None:  # fill yesterday's renewal at this close
             locked = locks.get(d, set())
             new = [sym_id[x] for x in pending["ranked"] if sym_id[x] not in locked][: cfg.top]
-            sold = len(set(book.hold) - set(new)) / len(book.hold) if book.hold else 0.0
-            bought = len(set(new) - set(book.hold)) / len(new) if new else 0.0
-            book.value *= (1 - SELL * sold) * (1 - BUY * bought)
-            book.hold, book.age = new, 0
+            book.renew(new, cfg.top)
+            book.age = 0
             pending["filled_on"] = str(d)
             pending["names"] = [symbols[x] for x in new]  # the log entry itself
             pending = None
@@ -195,6 +225,16 @@ def replay(
                 "action": PLAN[st[i]],
                 "kind": kind(not book.hold, not ranked),
                 "ranked": ranked,
+            }
+        elif ds > last_frozen and (out := [x for x in book.hold if x in under.get(d, set())]):
+            entry = {
+                "date": ds,
+                "state": st[i],
+                "breadth": round(float(m["breadth"][i]), 4),
+                "action": f"under_ma{cfg.exit_ma}",
+                "kind": "sell",
+                "ranked": [],
+                "sold": [symbols[x] for x in out],
             }
         if entry is not None:
             book.state = entry["state"]
@@ -214,7 +254,7 @@ def replay(
         "holding": [symbols[x] for x in book.hold],
         "pending": (
             {k: pending[k] for k in ("date", "kind", "action")}
-            | {"names": pending["ranked"][: cfg.top]}
+            | {"names": pending["ranked"][: cfg.top], "sold": pending.get("sold")}
             if pending is not None
             else None
         ),
@@ -248,7 +288,7 @@ def run() -> dict[str, Any]:
     for iid, sym in rows:
         if sym in universe and sym not in symbols.values():
             symbols[iid] = sym
-    a = panel(prices, list(symbols))
+    a = panel(prices, list(symbols), cfg.exit_ma)
     yields = dict(zip(rf["date"].to_list(), rf["value"].to_list(), strict=True))
     res = replay(a, yields, cfg, (previous or {}).get("log") or [], symbols)
     doc = {
@@ -259,6 +299,7 @@ def run() -> dict[str, Any]:
         "confirm_days": cfg.confirm_days,
         "renew_days": cfg.renew_days,
         "plan": PLAN,
+        "exit_ma": cfg.exit_ma,
         "universe": universe,
         **res,
     }

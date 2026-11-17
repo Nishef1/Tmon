@@ -4156,6 +4156,8 @@ export interface components {
        * @default []
        */
       ranked: string[];
+      /** Sold */
+      sold: string[] | null;
       /** State */
       state: string;
     };
@@ -4192,6 +4194,8 @@ export interface components {
        * @default []
        */
       edges: number[];
+      /** Exit Ma */
+      exit_ma: number | null;
       /**
        * Holding
        * @default []

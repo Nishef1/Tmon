@@ -113,6 +113,7 @@ regime_plan:
   confirm_days: 5
   renew_days: 20
   top: 10
+  exit_ma: 20  # sell a held name when its close falls under its mean of this many days (timing-and-codal-2026-11)
   start: 2026-11-16
   capital: 100000000
 
