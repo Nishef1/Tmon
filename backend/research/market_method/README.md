@@ -20,6 +20,7 @@ the app.
 | `mega_winners.py` | Stocks with +300% to +1000% in ~400 days: when were they bought, and which entry features (trend, high, flow, liquidity, sector) lifted the chance? Same write-up | `results_mega_winners.json` |
 | `dividend_yield.py` | The "dividend-income" method from a Telegram educator (P/D 4-5, sound company, hold a year): no DPS in our data, so P/E <= 5 with a debt and profit-growth screen; 250 and 60 day holds against the same-day basket, both halves. Write-up: [dividend-yield-2026-11](../../../docs/reports/dividend-yield-2026-11.md) | `results_dividend_yield.json` |
 | `dividend_pd.py` | Same method with the real dividend per share read from Codal decisions letters: P/D <= 5/4/3, payout > 60%, DPS growth > 50%, the full screen, a high-yield third, and the "floor in a correction" check; 250 and 60 day holds, both halves. Write-up: [dividend-yield-2026-11](../../../docs/reports/dividend-yield-2026-11.md) | `results_dividend_pd.json` |
+| `drawdown_floor.py` | Staged buying at each stock's usual drawdown floor (median of its past episodes), steps at 0.75/1/1.15/1.3 x, with a "sound company" screen and a green-candle control; does the depth repeat? Write-up: [drawdown-floor-2026-11](../../../docs/reports/drawdown-floor-2026-11.md) | `results_drawdown_floor.json` |
 
 Rules every script follows: both halves of time, entry at the close of the day after the signal,
 excess return over the mean of the same universe, round trip cost 1.75% where a return is quoted.
