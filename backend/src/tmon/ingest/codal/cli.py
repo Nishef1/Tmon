@@ -5,14 +5,22 @@ python -m tmon.ingest.codal.cli letters --code ن-۵۲ --pages 5       # one let
 python -m tmon.ingest.codal.cli events [--pages 1]                  # newest page per event code
 python -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 5       # parse stored letters' bodies
 python -m tmon.ingest.codal.cli meetings                            # assembly day of invitations
+python -m tmon.ingest.codal.cli dividends [--symbol فملی]           # dividend per share (decisions)
 """
 
 from __future__ import annotations
 
 import argparse
+from datetime import date
 
 from tmon.core.logging import configure_logging
-from tmon.ingest.codal.pipeline import run_events, run_letters, run_meetings, run_reports
+from tmon.ingest.codal.pipeline import (
+    run_dividends,
+    run_events,
+    run_letters,
+    run_meetings,
+    run_reports,
+)
 
 
 def main() -> None:
@@ -28,6 +36,12 @@ def main() -> None:
     ev = sub.add_parser("events", help="scan every AGM / capital-increase letter code")
     ev.add_argument("--pages", type=int, default=1)
     sub.add_parser("meetings", help="read the assembly date of recent invitation letters")
+    div = sub.add_parser(
+        "dividends", help="read the dividend per share of stored decisions letters"
+    )
+    div.add_argument("--symbol", default=None)
+    div.add_argument("--since", default=None, help="only decisions announced on/after YYYY-MM-DD")
+    div.add_argument("--limit", type=int, default=200)
     rep = sub.add_parser("reports", help="fetch and parse report bodies of stored letters")
     rep.add_argument("--code", required=True, help="letter code, e.g. ن-۳۰ or ن-۱۰")
     rep.add_argument("--symbol", default=None)
@@ -35,6 +49,10 @@ def main() -> None:
     args = parser.parse_args()
     if args.cmd == "reports":
         print(run_reports(letter_code=args.code, symbol=args.symbol, limit=args.limit))
+        return
+    if args.cmd == "dividends":
+        since = date.fromisoformat(args.since) if args.since else None
+        print(run_dividends(symbol=args.symbol, since=since, limit=args.limit))
         return
     if args.cmd == "meetings":
         print(run_meetings())

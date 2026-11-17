@@ -340,6 +340,10 @@ async def _run(kind: str, *, fail_fast: bool = False, **kwargs: Any) -> dict[str
                 return await sync_event_letters(ctx, **kwargs)
             if kind == "reports":
                 return await sync_reports(ctx, **kwargs)
+            if kind == "dividends":
+                from tmon.ingest.codal.dividends import sync_dividends
+
+                return await sync_dividends(ctx, **kwargs)
             if kind == "meetings":
                 from tmon.ingest.codal.meetings import sync_meetings
 
@@ -355,6 +359,10 @@ def run_letters(**kwargs: Any) -> dict[str, int]:
 
 def run_reports(**kwargs: Any) -> dict[str, int]:
     return asyncio.run(_run("reports", **kwargs))
+
+
+def run_dividends(**kwargs: Any) -> dict[str, int]:
+    return asyncio.run(_run("dividends", **kwargs))
 
 
 def run_meetings() -> dict[str, int]:
