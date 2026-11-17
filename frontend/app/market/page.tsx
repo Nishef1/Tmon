@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, type MarketOverview, type MarketMover } from "@/lib/api";
+import { apiGet, regimePaper, type MarketOverview, type MarketMover } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
+import { RegimePlan } from "@/components/market/RegimePlan";
 
 export const metadata: Metadata = { title: "نمای بازار" };
 export const dynamic = "force-dynamic";
@@ -16,15 +17,18 @@ function bt(rial: number, digits = 0): string {
 }
 
 export default async function MarketPage() {
-  const res = await apiGet<MarketOverview>("/market/overview");
+  const [res, regime] = await Promise.all([
+    apiGet<MarketOverview>("/market/overview"),
+    regimePaper(),
+  ]);
   return (
     <main className="space-y-5">
       <div>
         <h1 className="page-title">نمای بازار</h1>
         <p className="lead">
-          خلاصهٔ پایان روز از دادهٔ روزانه: دامنهٔ بازار، پول حقیقی و حقوقی، برترین‌ها. دادهٔ
-          لحظه‌ای (پول هوشمند آنی، سفارش‌های درشت) تازه از امروز جمع‌آوری می‌شود و تا پر شدن تاریخچه
-          نمایش داده نمی‌شود؛ اختیار معامله را هم پوشش نمی‌دهیم.
+          خلاصهٔ پایان روز از دادهٔ روزانه: دامنهٔ بازار، پول حقیقی و حقوقی، برترین‌ها. دادهٔ لحظه‌ای
+          (پول هوشمند آنی، سفارش‌های درشت) تازه از امروز جمع‌آوری می‌شود و تا پر شدن تاریخچه نمایش
+          داده نمی‌شود؛ اختیار معامله را هم پوشش نمی‌دهیم.
         </p>
       </div>
       {!res.ok ? (
@@ -36,6 +40,7 @@ export default async function MarketPage() {
       ) : (
         <Body d={res.data} />
       )}
+      {regime?.available && <RegimePlan r={regime} />}
     </main>
   );
 }
@@ -106,8 +111,8 @@ function Body({ d }: { d: MarketOverview }) {
         <section className="space-y-2" data-testid="market-flow">
           <h2 className="text-lg font-bold">پول حقیقی و حقوقی — {jalali(f.date)}</h2>
           <p className="text-xs text-muted">
-            آخرین روزی که دادهٔ خریدار/فروشنده برای تقریباً همهٔ نمادها ({faNumber(f.n_symbols)}{" "}
-            سهم) ثبت شده است؛ ممکن است یک روز عقب‌تر از قیمت‌ها باشد.
+            آخرین روزی که دادهٔ خریدار/فروشنده برای تقریباً همهٔ نمادها ({faNumber(f.n_symbols)} سهم)
+            ثبت شده است؛ ممکن است یک روز عقب‌تر از قیمت‌ها باشد.
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat label="خرید حقیقی" value={bt(f.real_buy_value)} />

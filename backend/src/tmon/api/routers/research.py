@@ -9,11 +9,14 @@ from tmon.api.autopilot import autopilot_out
 from tmon.api.book import KEY as BOOK_KEY
 from tmon.api.book import research_out as book_research_out
 from tmon.api.entry import entry_doc, entry_odds_out
+from tmon.api.regime_paper import KEY as REGIME_KEY
+from tmon.api.regime_paper import regime_paper_out
 from tmon.api.schemas import (
     AdaptOut,
     AutopilotOut,
     EntryOddsOut,
     OrderbookResearchOut,
+    RegimePaperOut,
     TaSignalsOut,
 )
 from tmon.api.technical import load_doc, signals_out, ta_doc
@@ -57,3 +60,11 @@ def autopilot() -> AutopilotOut:
     and the events since (a champion changed, the regime flipped). Read fresh from the stored
     document (``python -m tmon.tools.autopilot``). The past, not advice."""
     return autopilot_out(load_doc(AUTOPILOT_KEY))
+
+
+@router.get("/research/regime-paper", response_model=RegimePaperOut)
+def regime_paper() -> RegimePaperOut:
+    """The market-state plan run forward on paper: today's state from breadth, the action it
+    calls for, the decision log and the paper account against the basket and cash
+    (``python -m tmon.tools.regime_paper``). A test, not advice; no order is placed."""
+    return regime_paper_out(load_doc(REGIME_KEY))

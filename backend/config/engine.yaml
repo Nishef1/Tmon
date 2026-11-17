@@ -104,6 +104,18 @@ defensive_mode:
   breadth_floor: 0.35
   market_net_flow_negative_days: 3
 
+# Market-state plan (docs/reports/regime-switch-2026-11.md). State = share of the 100 liquid-basket
+# stocks above their 60-day mean; the edges are its terciles over 2019-01..2024-12. Falling: buy the 10
+# deepest drawdowns; flat: cash at the bond yield; rising: 10 trend names. Measured, not tuned on B.
+regime_plan:
+  breadth_low: 0.377
+  breadth_high: 0.836
+  confirm_days: 5
+  renew_days: 20
+  top: 10
+  start: 2026-11-16
+  capital: 100000000
+
 backtest:
   # Provisional (no number in the docs). Portfolio-level limits for the simulator.
   max_new_positions_per_day: 5

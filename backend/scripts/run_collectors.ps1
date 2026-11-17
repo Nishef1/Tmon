@@ -25,6 +25,8 @@ if ($Eod) {
   & $py -m tmon.tools.ta_signals
   # after which candles the next ones were green: streaks, entries from a base, uptrend pullbacks
   & $py -m tmon.tools.entry_odds
+  # market state from breadth and the plan's paper test: enter, exit, switch or wait
+  & $py -m tmon.tools.regime_paper
   # new assembly/capital letters from Codal, then the day each invitation names
   & $py -m tmon.ingest.codal.cli events
   & $py -m tmon.ingest.codal.cli meetings

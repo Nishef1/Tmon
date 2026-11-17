@@ -24,6 +24,7 @@ the app.
 | `drawdown_floor.py` | Staged buying at each stock's usual drawdown floor (median of its past episodes), steps at 0.75/1/1.15/1.3 x, with a "sound company" screen and a green-candle control; does the depth repeat? Write-up: [drawdown-floor-2026-11](../../../docs/reports/drawdown-floor-2026-11.md) | `results_drawdown_floor.json` |
 | `treasure_hunt.py [H]` | Wide search: every quintile of 20 stock features and every pair (with 3 market-state features), discovered on 2019-2024, held out on 2025-2026, judged at lenient/medium/strict bars. Write-up: [treasure-hunt-2026-11](../../../docs/reports/treasure-hunt-2026-11.md) | `results_treasure_hunt_h20.json`, `results_treasure_hunt_h60.json` |
 | `treasure_strategies.py` | Whole strategies from those themes (buying power, trend, breadth timing, the "dust" ideas) with a 100-million account and a 10-million withdrawal every 20 days. Same write-up | `results_treasure_strategies.json` |
+| `regime_switch.py` | Market state (60-day trend, breadth, or both; terciles from 2019-2024; 1- or 5-day confirmation), the best action per state on the weaker of O and A, then a day-by-day policy with enter/exit/switch/wait and costs. Runs forward as `tmon.tools.regime_paper`. Write-up: [regime-switch-2026-11](../../../docs/reports/regime-switch-2026-11.md) | `results_regime_switch.json` |
 
 Rules every script follows: both halves of time, entry at the close of the day after the signal,
 excess return over the mean of the same universe, round trip cost 1.75% where a return is quoted.

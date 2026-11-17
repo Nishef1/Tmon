@@ -75,7 +75,6 @@ export async function taSignals(): Promise<TaSignals | null> {
   }
 }
 
-
 /** Latest stored intraday snapshot + order book (what the poller last wrote). */
 export type LiveQuote = S["LiveOut"];
 
@@ -128,6 +127,19 @@ export async function adaptState(): Promise<Adapt | null> {
   try {
     const res = await fetch(new URL("/research/adapt", API_BASE), { cache: "no-store" });
     return res.ok ? ((await res.json()) as Adapt) : null;
+  } catch (err) {
+    unstable_rethrow(err);
+    return null;
+  }
+}
+
+export type RegimePaper = S["RegimePaperOut"];
+
+/** The market-state plan's paper test. Always read fresh; null when unreachable. */
+export async function regimePaper(): Promise<RegimePaper | null> {
+  try {
+    const res = await fetch(new URL("/research/regime-paper", API_BASE), { cache: "no-store" });
+    return res.ok ? ((await res.json()) as RegimePaper) : null;
   } catch (err) {
     unstable_rethrow(err);
     return null;

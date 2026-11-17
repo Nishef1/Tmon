@@ -10188,6 +10188,341 @@
         "title": "RefillOut",
         "type": "object"
       },
+      "RegimeDecision": {
+        "description": "One decision of the market-state plan: taken at ``date``'s close, filled at the next.",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "breadth": {
+            "title": "Breadth",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "filled_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filled On"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names"
+          },
+          "ranked": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Ranked",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "state",
+          "breadth",
+          "action",
+          "kind",
+          "ranked",
+          "filled_on",
+          "names"
+        ],
+        "title": "RegimeDecision",
+        "type": "object"
+      },
+      "RegimePaperOut": {
+        "description": "The market-state plan run forward on paper from ``start`` (``tmon.tools.regime_paper``).",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "bond_yield": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bond Yield"
+          },
+          "breadth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breadth"
+          },
+          "capital": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capital"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "confirm_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirm Days"
+          },
+          "days_to_renew": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Renew"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "edges": {
+            "default": [],
+            "items": {
+              "type": "number"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "holding": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Holding",
+            "type": "array"
+          },
+          "log": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RegimeDecision"
+            },
+            "title": "Log",
+            "type": "array"
+          },
+          "path": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RegimePoint"
+            },
+            "title": "Path",
+            "type": "array"
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegimeDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Plan",
+            "type": "object"
+          },
+          "raw_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw State"
+          },
+          "renew_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renew Days"
+          },
+          "run_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Days"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "required": [
+          "available",
+          "checked_at",
+          "as_of",
+          "start",
+          "capital",
+          "edges",
+          "confirm_days",
+          "renew_days",
+          "plan",
+          "breadth",
+          "raw_state",
+          "run_days",
+          "state",
+          "action",
+          "holding",
+          "pending",
+          "days_to_renew",
+          "bond_yield",
+          "path",
+          "log",
+          "disclaimer"
+        ],
+        "title": "RegimePaperOut",
+        "type": "object"
+      },
+      "RegimePoint": {
+        "properties": {
+          "basket": {
+            "title": "Basket",
+            "type": "number"
+          },
+          "cash": {
+            "title": "Cash",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "plan": {
+            "title": "Plan",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "plan",
+          "basket",
+          "cash"
+        ],
+        "title": "RegimePoint",
+        "type": "object"
+      },
       "RunOut": {
         "properties": {
           "created_at": {
@@ -14972,6 +15307,28 @@
           }
         },
         "summary": "Orderbook Queue",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/research/regime-paper": {
+      "get": {
+        "description": "The market-state plan run forward on paper: today's state from breadth, the action it\ncalls for, the decision log and the paper account against the basket and cash\n(``python -m tmon.tools.regime_paper``). A test, not advice; no order is placed.",
+        "operationId": "regime_paper_research_regime_paper_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegimePaperOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Regime Paper",
         "tags": [
           "research"
         ]

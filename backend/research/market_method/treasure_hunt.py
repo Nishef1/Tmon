@@ -96,7 +96,7 @@ def basket_ids() -> dict[int, str]:
     return ids
 
 
-def panel() -> tuple[pl.DataFrame, dict[int, str]]:
+def panel(drop_queue: bool = True) -> tuple[pl.DataFrame, dict[int, str]]:
     ids = basket_ids()
     with session_scope() as s:
         prices, clients, sectors = load_inputs(s)
@@ -168,7 +168,8 @@ def panel() -> tuple[pl.DataFrame, dict[int, str]]:
         rel_r20=C("r20") - C("m_r20"),
         sec_r20=C("r20") - C("r20").mean().over("date", "sector_code"),
     )
-    a = a.filter((C("date") >= pl.date(2019, 1, 1)) & C("f20").is_not_null())
+    a = a.filter(C("date") >= pl.date(2019, 1, 1))
+    a = a.filter(C("f20").is_not_null()) if drop_queue else a
     a = a.with_columns(x=C("f20") - C("f20").mean().over("date"))
     for f in STOCK:
         a = a.with_columns(
@@ -192,7 +193,7 @@ def panel() -> tuple[pl.DataFrame, dict[int, str]]:
         .then(pl.lit("A"))
         .otherwise(pl.lit("B"))
     )
-    return a.filter(~C("queue_next")), ids
+    return (a.filter(~C("queue_next")) if drop_queue else a), ids
 
 
 def block_stats(daily: pl.DataFrame) -> dict:

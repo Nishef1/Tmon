@@ -1534,6 +1534,52 @@ class AutopilotEvent(ApiModel):
     after: str | None = None
 
 
+class RegimeDecision(ApiModel):
+    """One decision of the market-state plan: taken at ``date``'s close, filled at the next."""
+
+    date: dt.date
+    state: str  # falling | flat | rising
+    breadth: float  # share of the basket above its 60-day mean
+    action: str  # dust | cash | trend
+    kind: str  # enter | exit | switch | wait
+    ranked: list[str] = []  # the shortlist in order; the first names not locked up are bought
+    filled_on: dt.date | None = None
+    names: list[str] | None = None  # what was actually bought on ``filled_on``
+
+
+class RegimePoint(ApiModel):
+    date: dt.date
+    plan: float  # toman
+    basket: float
+    cash: float
+
+
+class RegimePaperOut(ApiModel):
+    """The market-state plan run forward on paper from ``start`` (``tmon.tools.regime_paper``)."""
+
+    available: bool
+    checked_at: str | None = None
+    as_of: dt.date | None = None
+    start: dt.date | None = None
+    capital: float | None = None
+    edges: list[float] = []  # breadth at or below [0]: falling; above [1]: rising
+    confirm_days: int | None = None
+    renew_days: int | None = None
+    plan: dict[str, str] = {}
+    breadth: float | None = None
+    raw_state: str | None = None  # today's reading before confirmation
+    run_days: int | None = None  # closes in a row the reading has held
+    state: str | None = None  # the confirmed state the plan acts on
+    action: str | None = None
+    holding: list[str] = []
+    pending: RegimeDecision | None = None  # decided at the last close, filled at the next
+    days_to_renew: int | None = None
+    bond_yield: float | None = None
+    path: list[RegimePoint] = []
+    log: list[RegimeDecision] = []
+    disclaimer: str = DISCLAIMER
+
+
 class AutopilotOut(ApiModel):
     """What the system saw when it last checked itself, and what changed since the checks before."""
 

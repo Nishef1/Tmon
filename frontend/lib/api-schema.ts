@@ -810,6 +810,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/research/regime-paper": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Regime Paper
+     * @description The market-state plan run forward on paper: today's state from breadth, the action it
+     *     calls for, the decision log and the paper account against the basket and cash
+     *     (``python -m tmon.tools.regime_paper``). A test, not advice; no order is placed.
+     */
+    get: operations["regime_paper_research_regime_paper_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/research/ta-signals": {
     parameters: {
       query?: never;
@@ -4109,6 +4131,115 @@ export interface components {
        */
       steps: components["schemas"]["StepOut"][];
     };
+    /**
+     * RegimeDecision
+     * @description One decision of the market-state plan: taken at ``date``'s close, filled at the next.
+     */
+    RegimeDecision: {
+      /** Action */
+      action: string;
+      /** Breadth */
+      breadth: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Filled On */
+      filled_on: string | null;
+      /** Kind */
+      kind: string;
+      /** Names */
+      names: string[] | null;
+      /**
+       * Ranked
+       * @default []
+       */
+      ranked: string[];
+      /** State */
+      state: string;
+    };
+    /**
+     * RegimePaperOut
+     * @description The market-state plan run forward on paper from ``start`` (``tmon.tools.regime_paper``).
+     */
+    RegimePaperOut: {
+      /** Action */
+      action: string | null;
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /** Bond Yield */
+      bond_yield: number | null;
+      /** Breadth */
+      breadth: number | null;
+      /** Capital */
+      capital: number | null;
+      /** Checked At */
+      checked_at: string | null;
+      /** Confirm Days */
+      confirm_days: number | null;
+      /** Days To Renew */
+      days_to_renew: number | null;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /**
+       * Edges
+       * @default []
+       */
+      edges: number[];
+      /**
+       * Holding
+       * @default []
+       */
+      holding: string[];
+      /**
+       * Log
+       * @default []
+       */
+      log: components["schemas"]["RegimeDecision"][];
+      /**
+       * Path
+       * @default []
+       */
+      path: components["schemas"]["RegimePoint"][];
+      pending: components["schemas"]["RegimeDecision"] | null;
+      /**
+       * Plan
+       * @default {}
+       */
+      plan: {
+        [key: string]: string;
+      };
+      /** Raw State */
+      raw_state: string | null;
+      /** Renew Days */
+      renew_days: number | null;
+      /** Run Days */
+      run_days: number | null;
+      /** Start */
+      start: string | null;
+      /** State */
+      state: string | null;
+    };
+    /** RegimePoint */
+    RegimePoint: {
+      /** Basket */
+      basket: number;
+      /** Cash */
+      cash: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Plan */
+      plan: number;
+    };
     /** RunOut */
     RunOut: {
       /**
@@ -6212,6 +6343,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OrderbookResearchOut"];
+        };
+      };
+    };
+  };
+  regime_paper_research_regime_paper_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RegimePaperOut"];
         };
       };
     };
