@@ -39,7 +39,8 @@ import fundamental_model as fm  # noqa: E402
 from tmon.core.db import session_scope  # noqa: E402
 from tmon.features.adjustment import apply_adjustments  # noqa: E402
 from tmon.features.store import load_inputs  # noqa: E402
-from tmon.ingest.codal.dividends import parse_dps  # noqa: E402
+from tmon.ingest.codal.tsetmc_content import decisions_of  # noqa: E402
+from tmon.ingest.tsetmc.parsers import normalize_fa  # noqa: E402
 from tmon.ingest.codal.parsers import ascii_digits  # noqa: E402
 
 C = pl.col
@@ -80,6 +81,18 @@ def letters(ids_by_symbol: dict[str, int]) -> pl.DataFrame:
             "where source = 'codal' and source_url like '%Decision.aspx%' order by id"
         ).fetchall()
     )
+    ins = {c: i for i, c in con.execute("select id, ins_code from instruments").fetchall()}
+    eps_ts: dict[tuple[int, str, str], float | None] = {}
+    for url, key in con.execute(
+        "select source_url, object_key from raw_payloads "
+        "where source = 'tsetmc-codal' and source_url like '%/14/0/-1/%' order by id"
+    ).fetchall():
+        iid = ins.get(url.rsplit("/", 1)[1])
+        if iid is None or not (STORE / key).exists():
+            continue
+        for r in decisions_of((STORE / key).read_bytes()):
+            d = str(r["day"])
+            eps_ts[(iid, f"{d[:4]}-{d[4:6]}-{d[6:8]}", r["title"])] = r["eps"]
     out = []
     for sym, ann, dps, title, url in rows:
         iid = ids_by_symbol.get(sym)
@@ -90,6 +103,8 @@ def letters(ids_by_symbol: dict[str, int]) -> pl.DataFrame:
         key = keys.get(url)
         if key and (STORE / key).exists():
             eps = eps_of((STORE / key).read_text(encoding="utf-8", errors="ignore"))
+        if eps is None:
+            eps = eps_ts.get((iid, str(ann)[:10], normalize_fa(title or "")))
         out.append(
             {
                 G: iid,
