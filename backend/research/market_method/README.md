@@ -18,6 +18,7 @@ the app.
 | `income_model.py` | Same withdrawal test, but the 10 names come from the walk-forward v2 composite, the statements score, their mean and LightGBM (out of sample). Write-up: [income-model-2026-11](../../../docs/reports/income-model-2026-11.md) | `results_income_model.json` |
 | `rally_cause.py` | Month-end indices, free dollar, Brent, the equal-weight index in dollars, and the 80-day closure: what moved together since the reopening. Write-up: [mega-winners-2026-11](../../../docs/reports/mega-winners-2026-11.md) | `results_rally_cause.json` |
 | `mega_winners.py` | Stocks with +300% to +1000% in ~400 days: when were they bought, and which entry features (trend, high, flow, liquidity, sector) lifted the chance? Same write-up | `results_mega_winners.json` |
+| `dividend_yield.py` | The "dividend-income" method from a Telegram educator (P/D 4-5, sound company, hold a year): no DPS in our data, so P/E <= 5 with a debt and profit-growth screen; 250 and 60 day holds against the same-day basket, both halves. Write-up: [dividend-yield-2026-11](../../../docs/reports/dividend-yield-2026-11.md) | `results_dividend_yield.json` |
 
 Rules every script follows: both halves of time, entry at the close of the day after the signal,
 excess return over the mean of the same universe, round trip cost 1.75% where a return is quoted.
