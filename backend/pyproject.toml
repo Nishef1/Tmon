@@ -82,6 +82,7 @@ ignore = [
 "src/tmon/backtest/report.py" = ["E501"]  # Persian report strings
 "src/tmon/backtest/exposure_eval.py" = ["E501"]  # Persian report strings
 "src/tmon/backtest/v2_gates.py" = ["E501"]  # Persian report strings
+"src/tmon/tools/invested_study.py" = ["E501"]  # Persian report strings
 "src/tmon/tools/orderbook_research.py" = ["E501"]  # Persian texts
 "src/tmon/backtest/runner.py" = ["E501"]
 "tests/**" = ["E501", "PERF401"]  # long synthetic payload lines; explicit loops in fixtures

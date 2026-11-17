@@ -164,6 +164,24 @@ v2:
     warmup_days: 20               # book still being built: excluded from every statistic
     min_cross_section: 30         # first day with at least this many ranked symbols starts the book
 
+  # ADR 0004 section 4: the seven pre-registered configurations S0-S6, fixed before the data was
+  # seen. S2 is `portfolio` above, S4-S6 are S0/S2/S3 times the exposure layer. Do not tune.
+  invested:
+    core_review_days: 60          # S0 reviews membership and weights this often
+    warmup_days: 60               # = slow book: 4 tranches x 15 days to fill; excluded from statistics
+    s1_drop_bottom_frac: 0.30     # S1: S0 without the bottom 30% of scores at each review
+    slow_n_names: 20              # S3: 20 names, 4 tranches, review every 15 days,
+    slow_n_tranches: 4
+    slow_review_every_days: 15
+    slow_buy_top_frac: 0.20       # buy from the top 20%,
+    slow_hold_top_frac: 0.50      # hold until out of the top 50%
+    min_phase_share: 0.75         # condition 3: share of start phases that beat S0
+    cost_multiplier: 1.5          # condition 4
+    profile_horizons: [20, 60]    # decile profile (section 5)
+    profile_top_n: 100
+    grade_min_net_edge: 0.01      # section 6 "proven": same bar as dashboard.MIN_NET_EDGE ...
+    grade_min_t: 3.0              # ... and dashboard.MIN_T
+
   # Publication gate G1-G6 (ADR 0003 section 7)
   gates:
     min_year_win_share: 0.6       # G1: share of calendar years beating the index

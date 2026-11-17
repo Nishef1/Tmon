@@ -184,10 +184,31 @@ class GatesCfg(_Frozen):
     survivorship_resolved: bool
 
 
+class InvestedCfg(_Frozen):
+    """ADR 0004 section 4: the seven pre-registered configurations S0-S6 (S2 is ``v2.portfolio``)
+    and the rules that judge them. None of these numbers is tuned on the data."""
+
+    core_review_days: int = Field(ge=1)  # S0: membership and weights reviewed this often
+    warmup_days: int = Field(ge=0)  # statistics start this many days after the book starts
+    s1_drop_bottom_frac: float = Field(gt=0, lt=1)  # S1: names in this bottom share of scores
+    slow_n_names: int = Field(ge=1)  # S3 ("slow book")
+    slow_n_tranches: int = Field(ge=1)
+    slow_review_every_days: int = Field(ge=1)
+    slow_buy_top_frac: float = Field(gt=0, le=1)
+    slow_hold_top_frac: float = Field(gt=0, le=1)
+    min_phase_share: float = Field(gt=0, le=1)  # condition 3: share of start phases that beat S0
+    cost_multiplier: float = Field(gt=0)  # condition 4
+    profile_horizons: tuple[int, ...]  # decile profile, trading days
+    profile_top_n: int = Field(ge=10)  # the liquid basket the profile is cut from
+    grade_min_net_edge: float  # ADR section 6, grade "proven": net excess at least this ...
+    grade_min_t: float  # ... and t at least this
+
+
 class V2Cfg(_Frozen):
     exposure: ExposureCfg
     portfolio: PortfolioCfg
     gates: GatesCfg
+    invested: InvestedCfg
 
 
 class AdaptCfg(_Frozen):

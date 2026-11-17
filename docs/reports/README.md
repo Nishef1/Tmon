@@ -23,6 +23,7 @@
 | [combined-strategy-and-critique-2026-11-16](combined-strategy-and-critique-2026-11-16.md) | راهبرد ترکیبی چندسیگنالی و خودنقد دور دوم |
 | [v2-ranking-page](v2-ranking-page.md) | صفحهٔ «خرید / نگهداری / پرهیز» |
 | [project-audit-2026-11-16](project-audit-2026-11-16.md) | بازبینی کد (نه بک‌تست): چرا سایت هرگز «خرید» نمی‌گوید، نقص‌های شبیه‌ساز سبد و مهندسی؛ پایهٔ ADR 0004 |
+| [invested-book-2026-11-17](invested-book-2026-11-17.md) | ADR 0004 مرحلهٔ ۲: سبد همیشه سرمایه‌گذاری‌شده، هفت پیکربندی S0 تا S6، فازهای شروع، نیم‌رخ دهک‌ها. داده: `docs/data/invested-study.json` |
 
 ## سیگنال‌ها و رفتار بازار
 
