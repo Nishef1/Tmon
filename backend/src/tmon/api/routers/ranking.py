@@ -9,10 +9,11 @@ from sqlalchemy.orm import Session
 from tmon.api.market_card import market_card
 from tmon.api.queue_size import history_odds, odds_for, queue_readings
 from tmon.api.returns import day_change
-from tmon.api.routers.dashboard import Verdict, _turning_doc, final_verdict, verdict_fields
+from tmon.api.routers.dashboard import _turning_doc
 from tmon.api.schemas import OutsideRow, RankingOut, RankingRow
 from tmon.api.trade_state import market_days, trade_state
 from tmon.core.db import get_session
+from tmon.engine.verdict import Verdict, final_verdict, verdict_fields
 from tmon.storage.models import Instrument, PriceDaily
 from tmon.storage.objectstore import read_artifact
 from tmon.tools.v2_ranking import KEY

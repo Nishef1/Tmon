@@ -12,7 +12,7 @@ The PC computes everything. The VPS only serves pages and watches portfolios dur
 | Path | What |
 | --- | --- |
 | `backend/src/tmon/` | Python 3.13 package. Its packages and the allowed import direction are in [docs/11](docs/11-architecture-and-data-model.md) |
-| `backend/src/tmon/api/routers/dashboard.py` | `final_verdict`: the **only** place a per-symbol verdict is made |
+| `backend/src/tmon/engine/verdict.py` | `final_verdict`: the **only** place a per-symbol verdict is made (pure functions; routers and portfolio advice import it) |
 | `backend/src/tmon/tools/v2_ranking.py` | Daily v2 ranking: four equal-weight signals, zones, basket |
 | `backend/config/engine.yaml` | Every engine threshold. Change numbers here, not in code |
 | `backend/tests/` | pytest; `-m network` needs a link that reaches TSETMC |

@@ -8,8 +8,8 @@ from typing import Any
 
 import pytest
 
-from tmon.api.routers.dashboard import final_verdict, verdict_fields
 from tmon.core.engine_config import get_engine_config
+from tmon.engine.verdict import final_verdict, verdict_fields
 
 COST = 0.017512
 STUDY = Path(__file__).resolve().parents[2] / "docs" / "data" / "invested-study.json"

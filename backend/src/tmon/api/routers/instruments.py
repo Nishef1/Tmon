@@ -429,7 +429,8 @@ def instrument_entry(
     verdict = None
     for u in (doc or {}).get("universe") or []:
         if int(u["id"]) == instrument_id:
-            from tmon.api.routers.dashboard import _turning_doc, final_verdict
+            from tmon.api.routers.dashboard import _turning_doc
+            from tmon.engine.verdict import final_verdict
 
             v = final_verdict(doc or {}, u, _turning_doc(), instrument_id)
             verdict = v.key if v else None

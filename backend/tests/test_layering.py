@@ -35,7 +35,9 @@ ALLOWED: dict[str, set[str]] = {
     "ingest": {"core", "domain", "features", "storage"},
     "labeling": {"core", "domain", "features"},
     "models": {"backtest", "core", "domain", "engine", "features", "labeling"},
-    "portfolio": {"api", "core", "domain", "ingest", "storage", "tasks", "tools"},
+    # engine: the advice reads the verdict from engine.verdict (ADR 0004 step 4). api stays until
+    # market_card, meetings._meeting and picks._closes also leave the api package.
+    "portfolio": {"api", "core", "domain", "engine", "ingest", "storage", "tasks", "tools"},
     "storage": {"core", "domain"},
     "tasks": {"core", "domain", "engine", "features", "ingest", "storage", "tools"},
     "tools": {"backtest", "core", "domain", "engine", "features", "ingest", "storage"},

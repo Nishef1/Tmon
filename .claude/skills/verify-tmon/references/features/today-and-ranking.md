@@ -4,7 +4,7 @@
 buy-zone names), split into buy, hold and avoid zones. Rows show score, rank, buy-queue size
 («صف خرید سنگین (۲٫۴)») and the verdict. The page also has the market state card, defensive mode
 and the autopilot card. Source: `tools/v2_ranking.py` writes `v2/ranking.json`, and
-`api/routers/ranking.py` serves it. Verdicts come from `final_verdict` in `api/routers/dashboard.py`.
+`api/routers/ranking.py` serves it. Verdicts come from `final_verdict` in `engine/verdict.py`.
 
 **How a user reaches it:** home page.
 

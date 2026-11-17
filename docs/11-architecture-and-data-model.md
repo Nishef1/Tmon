@@ -27,7 +27,7 @@ Docker، Postgres، Redis و Celery کنار گذاشته شده‌اند. ذخ�
 | `features` | ساخت ویژگی‌ها، تعدیل قیمت، اندیکاتورها، تابلو، کیفیت داده |
 | `labeling` | برچسب triple-barrier و نسبی (v1) |
 | `models` | LightGBM، تقسیم walk-forward، توضیح SHAP (v1) |
-| `engine` | انتشار v1 (`service.py`)، دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم |
+| `engine` | انتشار v1 (`service.py`)، دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم، حکم هر نماد (`verdict.py`: توابع خالص روی سندهای ذخیره‌شده) |
 | `backtest` | بک‌تست و مطالعه‌ها؛ هر گزارش `docs/reports` از یکی از این‌ها می‌آید |
 | `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health` |
 | `portfolio` | پرتفوی: دفتر، مفید، توصیه، پیش‌بینی بازه، هشدار، گزارش پیش از گشایش، پایشگر |

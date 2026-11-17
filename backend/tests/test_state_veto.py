@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tmon.api.routers.dashboard import final_verdict, state_veto
+from tmon.engine.verdict import final_verdict, state_veto
 
 COST = 0.017512
 

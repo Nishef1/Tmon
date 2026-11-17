@@ -24,7 +24,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.market_card import market_card
-from tmon.api.routers.dashboard import _turning_doc, final_verdict
+from tmon.api.routers.dashboard import _turning_doc
+from tmon.engine.verdict import final_verdict
 from tmon.portfolio import liveprice
 from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
 from tmon.storage.objectstore import read_artifact
