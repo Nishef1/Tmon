@@ -4,7 +4,7 @@
 
 نه توصیهٔ سرمایه‌گذاری است و نه پیش‌بینی؛ فقط سنجش گذشته است. **مدل تولید تغییری نکرده است.**
 
-کد: `backend/research/indicator_zoo/` (`study.py` همهٔ اندیکاتورها و سنجش تکی، `models.py` ترکیب با LightGBM، `checks.py` آزمون قابل‌معامله بودن). خروجی خام: `docs/data/indicator-zoo.json`.
+کد: کد پژوهشی این مطالعه برای سبک‌ماندن پروژه حذف شد؛ در تاریخچهٔ گیت تا کامیت `1c1f9a3` موجود است. (`study.py` همهٔ اندیکاتورها و سنجش تکی، `models.py` ترکیب با LightGBM، `checks.py` آزمون قابل‌معامله بودن، در پوشهٔ `backend/research/indicator_zoo/`). خروجی خام: `docs/data/indicator-zoo.json`.
 
 ## چه چیزهایی حساب شد
 

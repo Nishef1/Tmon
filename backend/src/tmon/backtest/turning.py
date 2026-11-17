@@ -192,7 +192,7 @@ def build_panel(prices: pl.DataFrame, clients: pl.DataFrame) -> pl.DataFrame:
     sell_flag = (C("volume") / C("vol20") > WARN_VR) & (C("ret1") < 0) & (C("net_i") < 0)
     p = p.with_columns(
         rsi=100 - 100 / (1 + _roll(C("gain"), "mean", 14) / _roll(C("loss"), "mean", 14)),
-        # first day of the run only, as in the study (research/technical_signals/study.py)
+        # first day of the run only, as in docs/reports/technical-signals-2026-11.md
         warn=sell_flag.fill_null(False) & ~sell_flag.shift(1).over(G).fill_null(False),
     )
     entry = C("close").shift(-1).over(G)  # entry at the close of t+1
