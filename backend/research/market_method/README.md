@@ -12,6 +12,7 @@ the app.
 | `stock_study.py` | Does the biggest stock of a sector, the sectors with the best 60-day return, or a stock near its own dollar high keep winning? | `results_stock.json` |
 | `fundamentals_study.py` | Do cheap P/E, growth, margin expansion and low leverage (from the filed statements) predict the next 20 and 60 days? | `results_fundamentals.json`, `symbols_latest.csv` |
 | `fundamental_model.py` | Walk-forward: do the statements, added to the four v2 signals (simple mean or LightGBM), improve the top 10 over 20 days? Write-up: [fundamental-model-2026-11](../../../docs/reports/fundamental-model-2026-11.md) | `results_model.json`, `today_ranking.json` |
+| `small_target.py` | Buy a dip signal, sell a limit at +3% (stop −5%, 10 days): is it a profit after the 1.75% cost? Write-up: [small-target-2026-11](../../../docs/reports/small-target-2026-11.md) | `results_small_target.json` |
 
 Rules every script follows: both halves of time, entry at the close of the day after the signal,
 excess return over the mean of the same universe, round trip cost 1.75% where a return is quoted.
