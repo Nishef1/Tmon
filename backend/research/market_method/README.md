@@ -15,6 +15,7 @@ the app.
 | `small_target.py` | Buy a dip signal, sell a limit at +3% (stop −5%, 10 days): is it a profit after the 1.75% cost? Write-up: [small-target-2026-11](../../../docs/reports/small-target-2026-11.md) | `results_small_target.json` |
 | `regime_plan.py [start_year]` | Market trend filter, staged entry, rank-based selection and switching, and the pieces together (default start 2009). Write-up: [regime-plan-2026-11](../../../docs/reports/regime-plan-2026-11.md) | `results_regime_plan_2009.json`, `results_regime_plan_2001.json` |
 | `income_3y.py` | 100 million in an equal-weight basket of the 10 or 20 most liquid names, a fixed monthly withdrawal, last three years only: how long does the capital last? Write-up: [income-3y-2026-11](../../../docs/reports/income-3y-2026-11.md) | `results_income_3y.json` |
+| `income_model.py` | Same withdrawal test, but the 10 names come from the walk-forward v2 composite, the statements score, their mean and LightGBM (out of sample). Write-up: [income-model-2026-11](../../../docs/reports/income-model-2026-11.md) | `results_income_model.json` |
 
 Rules every script follows: both halves of time, entry at the close of the day after the signal,
 excess return over the mean of the same universe, round trip cost 1.75% where a return is quoted.
