@@ -1,10 +1,13 @@
 """The market-state plan, run forward on paper (docs/reports/regime-switch-2026-11.md,
 docs/reports/timing-and-codal-2026-11.md).
 
-Every close the plan reads the market state from breadth: the share of the frozen 100-stock liquid
-basket above its 60-day mean. At or below ``breadth_low`` the market is falling, above
-``breadth_high`` rising, flat in between; a new state counts only after it held ``confirm_days``
-closes in a row. Each state has its own action:
+Every close the plan reads the market state from breadth: the share of the day's universe above its
+60-day mean. The universe is the ``universe_top`` stocks with the highest ``universe_window``-day
+median traded value up to the previous close, so nothing from the day itself or later picks it
+(docs/reports/survivorship-basket-2026-11.md). Until 2026-11-18 it was a 100-name basket frozen from
+one day's traded value, which flattered every past number. At or below ``breadth_low`` the market
+is falling, above ``breadth_high`` rising, flat in between; a new state counts only after it
+held ``confirm_days`` closes in a row. Each state has its own action:
 
   falling  cash   out of stocks, earning the one-year bond yield
   flat     cash   the same
@@ -16,7 +19,8 @@ before the paper account had made any trade (timing-and-codal report).
 
 The book is ``top`` equal slots, each holding one name or cash. A held name whose close falls
 under its ``exit_ma``-day mean is sold at the next close and its slot stays in cash until the next
-renewal.
+renewal. A held name that leaves the universe keeps earning until it is sold; only new picks come
+from the universe.
 
 A decision is taken at a close when the state changes or ``renew_days`` trading days have passed
 since the last renewal: enter (cash to stocks), exit (stocks to cash), switch (other stocks) or
@@ -25,7 +29,7 @@ locked in a buy queue that day is skipped for the next one on the list), with 0.
 is bought and 1.13% on what is sold.
 
 Decisions already logged stay frozen: a later run only appends, so the test cannot be rewritten
-after the fact. The account is compared with holding the whole basket and with cash.
+after the fact. The account is compared with holding the whole universe and with cash.
 Nothing here places an order.
 """
 
@@ -35,7 +39,6 @@ import json
 import math
 from dataclasses import dataclass, field
 from datetime import date
-from pathlib import Path
 from typing import Any
 
 import polars as pl
@@ -50,7 +53,6 @@ from tmon.storage.models import Instrument
 from tmon.storage.objectstore import read_artifact, write_artifact
 
 KEY = "v2/regime_paper.json"
-BASKET_FILE = Path(__file__).resolve().parents[4] / "data" / "liquid-basket.json"
 BUY, SELL = 0.0062, 0.0113
 STATES = ("falling", "flat", "rising")
 PLAN = {"falling": "cash", "flat": "cash", "rising": "trend"}
@@ -84,10 +86,13 @@ def kind(in_cash: bool, to_cash: bool) -> str:
     return "enter" if in_cash else "switch"
 
 
-def panel(prices: pl.DataFrame, ids: list[int], ma: int = 20) -> pl.DataFrame:
+def panel(
+    prices: pl.DataFrame, ids: list[int], ma: int = 20, top: int = 100, window: int = 20
+) -> pl.DataFrame:
     """Per stock and day: return, drawdown from peak, 120-day return, 60-day range position and
-    gap to the 60-day mean, whether the close is under its ``ma``-day mean, quintiles within the
-    day, and whether the day was locked up."""
+    gap to the 60-day mean, whether the close is under its ``ma``-day mean, whether the day was
+    locked up, ``in_u`` (among the day's ``top`` by ``window``-day median traded value up to the
+    previous close) and quintiles among those members."""
     a = apply_adjustments(prices).filter((C("close") > 0) & C(G).is_in(ids))
     a = a.with_columns(C("date").cast(pl.Date)).sort(G, "date")
     c = C("adj_close")
@@ -99,10 +104,16 @@ def panel(prices: pl.DataFrame, ids: list[int], ma: int = 20) -> pl.DataFrame:
         gap60=(c / c.rolling_mean(60) - 1).over(G),
         under_ma=(c < c.rolling_mean(ma)).over(G),
         buy_lock=((C("high") == C("low")) & (C("close") > C("close").shift(1))).over(G),
+        med=C("value").cast(pl.Float64).rolling_median(window).shift(1).over(G),
     ).filter(C("date") >= pl.date(2019, 1, 1))
+    a = a.with_columns(
+        in_u=(C("med").rank("ordinal", descending=True).over("date") <= top).fill_null(False)
+    )
     for f in ("dd", "r120", "pos60"):
+        v = pl.when(C("in_u")).then(C(f))
         a = a.with_columns(
-            ((C(f).rank("average").over("date") - 1) / (C(f).count().over("date") - 1) * 5)
+            ((v.rank("average").over("date") - 1) / (v.count().over("date") - 1) * 5)
+            .fill_nan(None)
             .floor()
             .clip(0, 4)
             .cast(pl.Int8)
@@ -156,9 +167,12 @@ def replay(
     symbols: dict[int, str],
 ) -> dict[str, Any]:
     """Run the plan from ``cfg.start`` over the data. Logged decisions in ``frozen`` are reused
-    as they were; new decisions are added only after the last logged date."""
+    as they were; new decisions are added only after the last logged date. Breadth, the universe
+    line and new picks use the rows with ``in_u`` (all rows when the column is absent); returns,
+    queues and the sale under the mean use every row."""
+    u = a.filter(C("in_u")) if "in_u" in a.columns else a
     m = (
-        a.group_by("date")
+        u.group_by("date")
         .agg(m_ret=C("ret").clip(-0.15, 0.15).mean(), breadth=(C("gap60") > 0).mean())
         .sort("date")
     )
@@ -177,7 +191,7 @@ def replay(
         d: set(g.filter(C("under_ma").fill_null(False))[G].to_list())
         for (d,), g in a.group_by("date")
     }
-    by_day = {d: g for (d,), g in a.partition_by("date", as_dict=True).items()}
+    by_day = {d: g for (d,), g in u.partition_by("date", as_dict=True).items()}
     sym_id = {v: k for k, v in symbols.items()}
     old = {x["date"]: x for x in frozen}
     last_frozen = max(old) if old else ""
@@ -217,7 +231,7 @@ def replay(
         if ds in old:
             entry = {k: v for k, v in old[ds].items() if k not in ("names", "filled_on")}
         elif ds > last_frozen and (st[i] != book.state or book.age >= cfg.renew_days):
-            ranked = [symbols[x] for x in shortlist(by_day[d], PLAN[st[i]])]
+            ranked = [symbols[x] for x in shortlist(by_day.get(d, u.clear()), PLAN[st[i]])]
             entry = {
                 "date": ds,
                 "state": st[i],
@@ -265,17 +279,9 @@ def replay(
     }
 
 
-def _universe(previous: dict[str, Any] | None) -> list[str]:
-    """The basket is frozen at the first run, so the test always trades the same 100 names."""
-    if previous and previous.get("universe"):
-        return list(previous["universe"])
-    return list(json.loads(BASKET_FILE.read_text(encoding="utf-8"))["symbols"])
-
-
 def run() -> dict[str, Any]:
     cfg = get_engine_config().regime_plan
     previous = read_artifact(KEY)
-    universe = _universe(previous)
     with session_scope() as s:
         prices, _clients, _sectors = load_inputs(s)
         _idx, rf = load_benchmark_inputs(s)
@@ -285,10 +291,10 @@ def run() -> dict[str, Any]:
             .order_by(Instrument.id)
         ).all()
     symbols: dict[int, str] = {}
-    for iid, sym in rows:
-        if sym in universe and sym not in symbols.values():
+    for iid, sym in rows:  # one id per symbol, the lowest
+        if sym not in symbols.values():
             symbols[iid] = sym
-    a = panel(prices, list(symbols), cfg.exit_ma)
+    a = panel(prices, list(symbols), cfg.exit_ma, cfg.universe_top, cfg.universe_window)
     yields = dict(zip(rf["date"].to_list(), rf["value"].to_list(), strict=True))
     res = replay(a, yields, cfg, (previous or {}).get("log") or [], symbols)
     doc = {
@@ -300,7 +306,7 @@ def run() -> dict[str, Any]:
         "renew_days": cfg.renew_days,
         "plan": PLAN,
         "exit_ma": cfg.exit_ma,
-        "universe": universe,
+        "universe": f"top {cfg.universe_top} by {cfg.universe_window}-day median value",
         **res,
     }
     write_artifact(KEY, doc)

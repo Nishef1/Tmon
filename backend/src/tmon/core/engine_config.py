@@ -137,6 +137,8 @@ class RegimePlanCfg(_Frozen):
     exit_ma: int = Field(ge=2)  # sell a held name closing under its mean of this many days
     start: date  # first decision of the forward test (the plan was frozen on this date)
     capital: float = Field(gt=0)  # toman, for the paper account
+    universe_top: int = Field(ge=1)  # the day's universe: this many stocks by median traded value
+    universe_window: int = Field(ge=1)  # days of that median, up to the previous close
 
 
 class ModelCfg(_Frozen):

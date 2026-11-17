@@ -127,5 +127,51 @@ def test_name_under_its_mean_is_sold_and_its_slot_stays_cash() -> None:
     assert book.hold[3] == total / 2 * (1 - rp.BUY)
 
 
+def test_only_the_days_universe_sets_breadth_and_picks() -> None:
+    cfg = get_engine_config().regime_plan.model_copy(
+        update={"start": date(2026, 11, 1), "confirm_days": 1, "top": 2, "capital": 100.0}
+    )
+    syms = {k: f"S{k}" for k in range(12)}
+    a = _panel([0.9, 0.9, 0.9]).with_columns(
+        # S11 is out of the universe all along; S10 drops out after the first day
+        in_u=~(
+            (pl.col("instrument_id") == 11)
+            | ((pl.col("instrument_id") == 10) & (pl.col("date") > date(2026, 11, 1)))
+        ),
+        ret=pl.when(pl.col("instrument_id") == 10).then(0.05).otherwise(0.01),
+    )
+    res = rp.replay(a, {}, cfg, [], syms)
+    assert res["log"][0]["ranked"][:2] == ["S10", "S9"]  # S11 is never picked
+    assert res["breadth"] == round(10 / 10, 4)  # 11 of 12 above, but only members count
+    assert res["holding"] == ["S10", "S9"]  # S10 is kept after it leaves
+    # S10 still earns its own 5% on the last day: plan grows more than the 1% members
+    assert res["path"][-1]["plan"] > res["path"][-2]["plan"] * 1.02
+
+
+def test_universe_is_the_days_top_by_past_median_value() -> None:
+    rows = []
+    d0 = date(2026, 1, 1)
+    for t in range(200):
+        for k in range(3):
+            # stock 2 trades the most until day 150, then nothing; stock 0 the least
+            v = [1.0, 2.0, 3.0 if t < 150 else 0.1][k]
+            rows.append(
+                {
+                    "date": d0 + timedelta(days=t),
+                    "instrument_id": k,
+                    "close": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "value": v,
+                    "prev_close": 100.0,
+                }
+            )
+    prices = pl.DataFrame(rows)
+    a = rp.panel(prices, [0, 1, 2], 20, top=1, window=5)
+    top = dict(a.filter(pl.col("in_u")).select("date", "instrument_id").iter_rows())
+    assert top[d0 + timedelta(days=150)] == 2  # the median up to the day before still says 2
+    assert top[d0 + timedelta(days=160)] == 1
+
+
 def test_api_without_a_document() -> None:
     assert regime_paper_out(None).available is False

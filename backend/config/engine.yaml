@@ -104,18 +104,21 @@ defensive_mode:
   breadth_floor: 0.35
   market_net_flow_negative_days: 3
 
-# Market-state plan (docs/reports/regime-switch-2026-11.md). State = share of the 100 liquid-basket
-# stocks above their 60-day mean; the edges are its terciles over 2019-01..2024-12. Falling: buy the 10
-# deepest drawdowns; flat: cash at the bond yield; rising: 10 trend names. Measured, not tuned on B.
+# Market-state plan (docs/reports/regime-switch-2026-11.md). State = share of the day's top 100 by
+# 20-day median traded value (up to the previous close) above their 60-day mean; the edges are its
+# terciles over 2019-01..2024-12 (docs/reports/survivorship-basket-2026-11.md; 0.377/0.836 on the
+# old fixed basket). Falling and flat: cash at the bond yield; rising: 10 trend names. Not tuned on B.
 regime_plan:
-  breadth_low: 0.377
-  breadth_high: 0.836
+  breadth_low: 0.449
+  breadth_high: 0.848
   confirm_days: 5
   renew_days: 20
   top: 10
   exit_ma: 20  # sell a held name when its close falls under its mean of this many days (timing-and-codal-2026-11)
   start: 2026-11-16
   capital: 100000000
+  universe_top: 100
+  universe_window: 20
 
 backtest:
   # Provisional (no number in the docs). Portfolio-level limits for the simulator.
