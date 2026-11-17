@@ -1,0 +1,26 @@
+{
+ "O": {
+  "days": 1016,
+  "basket_month": 0.06655473311535709,
+  "pit_month": 0.03976955478724209,
+  "overlap_mean": 39.976377952755904,
+  "overlap_min": 26,
+  "overlap_max": 53
+ },
+ "A": {
+  "days": 422,
+  "basket_month": 0.014557642158876005,
+  "pit_month": -0.0001179198938072723,
+  "overlap_mean": 41.40995260663507,
+  "overlap_min": 29,
+  "overlap_max": 55
+ },
+ "B": {
+  "days": 390,
+  "basket_month": 0.07970824126709597,
+  "pit_month": 0.05320842261465297,
+  "overlap_mean": 57.37179487179487,
+  "overlap_min": 35,
+  "overlap_max": 98
+ }
+}

@@ -26,6 +26,7 @@ import polars as pl
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 import fundamental_model as fm  # noqa: E402
+import universe as uv  # noqa: E402
 
 C = pl.col
 G = fm.G
@@ -145,7 +146,7 @@ def main() -> None:
             f"W10 {f['10']['median_early_start']:.0f}/{f['10']['median_late_start']:.0f} "
             f"dead W10 {f['10']['dead_early']:.0%}/{f['10']['dead_late']:.0%}"
         )
-    (HERE / "results_income_model.json").write_text(json.dumps(res, indent=1))
+    (HERE / f"results_income_model{uv.suffix()}.json").write_text(json.dumps(res, indent=1))
 
 
 if __name__ == "__main__":

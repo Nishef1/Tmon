@@ -25,6 +25,7 @@ import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent))
 import fundamental_model as fm  # noqa: E402
+import universe as uv  # noqa: E402
 
 from tmon.core.db import session_scope  # noqa: E402
 from tmon.core.timeutil import from_jalali  # noqa: E402
@@ -38,7 +39,8 @@ HERE = Path(__file__).parent
 
 
 def main() -> None:
-    _p, ids = fm.build()
+    pit = uv.mode() == "pit"
+    ids = uv.stock_ids(fm.DB) if pit else fm.build()[1]
     by_sym = {v: k for k, v in ids.items()}
     rows = list(csv.DictReader(open("D:/Data/Tmon/data/monthly-sales.csv", encoding="utf-8")))
     s = pl.DataFrame(
@@ -78,13 +80,17 @@ def main() -> None:
     a = a.with_columns(
         f20=(c.shift(-21) / c.shift(-1) - 1).over(G), f60=(c.shift(-61) / c.shift(-1) - 1).over(G)
     ).select("date", G, "f20", "f60")
-    b = a.filter(C(G).is_in(list(ids))).group_by("date").agg(b20=C("f20").mean(), b60=C("f60").mean())
+    # the comparison basket: the 100 names, or in the pit universe the day's top 100 (universe.py)
+    mem = uv.pit_members(prices, ids) if pit else a.filter(C(G).is_in(list(ids))).select("date", G)
+    b = a.join(mem, on=["date", G], how="semi").group_by("date").agg(b20=C("f20").mean(), b60=C("f60").mean())
     a = a.join(b, on="date").sort("date")
     # entry row = first trading day on or after the publication day; f20/f60 run from the NEXT close (t+1), so
     # a report that comes out in the evening is bought at the following close, not at the day's own
     ev = s.sort("pub").join_asof(
         a.sort("date").rename({"date": "d"}), left_on="pub", right_on="d", by=G, strategy="forward"
     )
+    if pit:  # count a report only if the stock was among the day's top 100 when it was bought
+        ev = ev.join(mem.rename({"date": "d"}), on=["d", G], how="semi")
     ev = ev.drop_nulls(["f20", "b20"]).with_columns(
         x20=C("f20") - C("b20") - COST, x60=C("f60") - C("b60") - COST
     )
@@ -116,7 +122,7 @@ def main() -> None:
         t = float(sp.mean() / (sp.std(ddof=1) / np.sqrt(len(sp)))) if len(sp) > 2 else None
         out[f"spread_{h}"] = {"months": len(sp), "mean": float(sp.mean()), "positive": int((sp > 0).sum()), "t": t}
         print("spread", h, out[f"spread_{h}"])
-    (HERE / "results_sales_surprise.json").write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
+    (HERE / f"results_sales_surprise{uv.suffix()}.json").write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":

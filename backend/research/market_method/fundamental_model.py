@@ -29,6 +29,7 @@ import numpy as np
 import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent))
+import universe as uv  # noqa: E402
 from fundamentals_study import BASKET, DB, events  # noqa: E402
 
 from tmon.backtest.signal_decay import SIGNALS, adjusted_close, build_panel  # noqa: E402
@@ -56,14 +57,20 @@ def pct(col: str) -> pl.Expr:
 
 
 def build() -> tuple[pl.DataFrame, dict[int, str]]:
+    """The panel of the universe chosen by TMON_UNIVERSE (universe.py). Statements exist only for
+    the 100 basket names, so in the point-in-time universe the other members have no F score."""
     c = sqlite3.connect(DB, uri=True)
-    syms = json.loads(BASKET.read_text(encoding="utf-8"))["symbols"]
-    ids: dict[int, str] = {}
-    for iid, sym in c.execute(
-        "select id, symbol_fa from instruments where instrument_type='stock' order by id"
-    ):
-        if sym in syms and sym not in ids.values():
-            ids[iid] = sym
+    pit = uv.mode() == "pit"
+    if pit:
+        ids = uv.stock_ids(DB)
+    else:
+        syms = json.loads(BASKET.read_text(encoding="utf-8"))["symbols"]
+        ids = {}
+        for iid, sym in c.execute(
+            "select id, symbol_fa from instruments where instrument_type='stock' order by id"
+        ):
+            if sym in syms and sym not in ids.values():
+                ids[iid] = sym
     ev = events(c, ids)
     cfg = get_engine_config()
     with session_scope() as s:
@@ -73,6 +80,8 @@ def build() -> tuple[pl.DataFrame, dict[int, str]]:
     panel = build_panel(feats, adjusted_close(prices), cfg, horizons=(H,))
     panel = panel.filter(C(G).is_in(list(ids)) & (C("queue_state") != "buy_queue"))
     panel = panel.with_columns(C("date").cast(pl.Date))
+    if pit:
+        panel = panel.join(uv.pit_members(prices, ids), on=["date", G], how="semi")
     raw = prices.select(*KEYS, "close").with_columns(C("date").cast(pl.Date))
     panel = panel.join(raw, on=list(KEYS), how="left").filter(
         C("date") >= pl.lit(FROM).str.to_date()
@@ -227,7 +236,7 @@ def today(p: pl.DataFrame, ids: dict[int, str]) -> list[dict]:
                 "s1": bool(r["s1"]) if r["s1"] is not None else False,
             }
         )  # fmt: skip
-    (HERE / "today_ranking.json").write_text(
+    (HERE / f"today_ranking{uv.suffix()}.json").write_text(
         json.dumps({"date": str(day), "rows": out}, ensure_ascii=False, indent=1)
     )
     return out
@@ -285,7 +294,7 @@ def main() -> int:
         "rows": rows,
         "sizes": sizes,
     }
-    (HERE / "results_model.json").write_text(json.dumps(res, ensure_ascii=False, indent=1))
+    (HERE / f"results_model{uv.suffix()}.json").write_text(json.dumps(res, ensure_ascii=False, indent=1))
     f = lambda r: (  # noqa: E731
         f"ex {100 * r['ex']:+5.2f}% (t {r['t']:+.1f}) indep {100 * r['ex_indep']:+5.2f}% (n={r['n_indep']}, win {100 * r['win_indep']:3.0f}%) "
         f"net {100 * r['net_raw_indep']:+5.1f}% IC {r['ic']:+.3f}"

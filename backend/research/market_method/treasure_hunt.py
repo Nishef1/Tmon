@@ -39,7 +39,8 @@ import numpy as np
 import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent))
-from fundamentals_study import BASKET
+import universe as uv
+from fundamentals_study import BASKET, DB
 
 from tmon.core.db import session_scope
 from tmon.features.adjustment import apply_adjustments
@@ -84,8 +85,6 @@ def usual_depth(close: np.ndarray) -> np.ndarray:
 def basket_ids() -> dict[int, str]:
     import sqlite3
 
-    from fundamentals_study import DB
-
     syms = json.loads(BASKET.read_text(encoding="utf-8"))["symbols"]
     ids: dict[int, str] = {}
     for iid, sym in sqlite3.connect(DB, uri=True).execute(
@@ -96,8 +95,13 @@ def basket_ids() -> dict[int, str]:
     return ids
 
 
-def panel(drop_queue: bool = True) -> tuple[pl.DataFrame, dict[int, str]]:
-    ids = basket_ids()
+def panel(drop_queue: bool = True, keep_out: bool = False) -> tuple[pl.DataFrame, dict[int, str]]:
+    """Per stock and day features of the universe chosen by TMON_UNIVERSE (universe.py). With
+    ``keep_out`` the rows of stocks outside the day's universe come back too, with ``in_u`` False and
+    only their own columns (return, price, forward return), so a held name keeps earning after it
+    leaves the universe; cross-section ranks and the market are built from members only."""
+    pit = uv.mode() == "pit"
+    ids = uv.stock_ids(DB) if pit else basket_ids()
     with session_scope() as s:
         prices, clients, sectors = load_inputs(s)
     a = apply_adjustments(prices).filter((C("close") > 0) & C(G).is_in(list(ids)))
@@ -151,6 +155,13 @@ def panel(drop_queue: bool = True) -> tuple[pl.DataFrame, dict[int, str]]:
     ).with_columns(since_peak=C("n") - C("last_peak"))
     a = a.with_columns(ddr=pl.when(C("usual") < 0).then(C("dd") / C("usual")))
     a = a.filter(C("date") >= pl.date(2018, 1, 1))
+    if pit:
+        mem = uv.pit_members(prices, ids).with_columns(in_u=pl.lit(True))
+        a = a.join(mem, on=["date", G], how="left").with_columns(C("in_u").fill_null(False))
+    else:
+        a = a.with_columns(in_u=pl.lit(True))
+    out = a.filter(~C("in_u") & (C("date") >= pl.date(2019, 1, 1)))
+    a = a.filter(C("in_u"))
     # market: equal-weight basket index
     m = (
         a.group_by("date")
@@ -174,6 +185,7 @@ def panel(drop_queue: bool = True) -> tuple[pl.DataFrame, dict[int, str]]:
     for f in STOCK:
         a = a.with_columns(
             ((C(f).rank("average").over("date") - 1) / (C(f).count().over("date") - 1) * 5)
+            .fill_nan(None)  # a day with one value gives 0/0
             .floor()
             .clip(0, 4)
             .cast(pl.Int8)
@@ -193,7 +205,11 @@ def panel(drop_queue: bool = True) -> tuple[pl.DataFrame, dict[int, str]]:
         .then(pl.lit("A"))
         .otherwise(pl.lit("B"))
     )
-    return (a.filter(~C("queue_next")) if drop_queue else a), ids
+    a = a.filter(~C("queue_next")) if drop_queue else a
+    if keep_out and out.height:
+        keep = ["date", G, "in_u", "ret", "adj_close", "close", "f20", "queue_next"]
+        a = pl.concat([a, out.select(keep)], how="diagonal_relaxed")
+    return a, ids
 
 
 def block_stats(daily: pl.DataFrame) -> dict:

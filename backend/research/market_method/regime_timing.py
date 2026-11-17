@@ -40,6 +40,7 @@ import polars as pl
 
 sys.argv = sys.argv[:1]  # treasure_hunt reads a horizon from argv
 sys.path.insert(0, str(Path(__file__).parent))
+import universe as uv
 from regime_switch import BUY, PERIODS, SELL, market, picks, states
 from treasure_hunt import panel
 
@@ -72,10 +73,20 @@ def extras(a: pl.DataFrame) -> pl.DataFrame:
     return a.with_columns(rsi_prev=C("rsi").shift(1).over(G))
 
 
-def simulate(a: pl.DataFrame, m: pl.DataFrame, st: list[str], entry: str, exit_: str) -> dict:
+def simulate(
+    a: pl.DataFrame,
+    m: pl.DataFrame,
+    st: list[str],
+    entry: str,
+    exit_: str,
+    full: pl.DataFrame | None = None,
+) -> dict:
+    """Picks come from ``a`` (the day's universe); prices and exits from ``full``, which also has the
+    days a held name spent outside the universe."""
     dates = m["date"].to_list()
     rf = m["rf"].to_list()
     by_day = {k[0]: g for k, g in a.partition_by("date", as_dict=True).items()}
+    rows = by_day if full is None else {k[0]: g for k, g in full.partition_by("date", as_dict=True).items()}
     info = {
         d: {
             r[G]: r
@@ -83,7 +94,7 @@ def simulate(a: pl.DataFrame, m: pl.DataFrame, st: list[str], entry: str, exit_:
                 G, "ret", "adj_close", "rsi", "rsi_prev", "ma20", "red_run", "queue_next"
             ).iter_rows(named=True)
         }
-        for d, g in by_day.items()
+        for d, g in rows.items()
     }
     # slot: [value, name or None, status ('cash'|'wait'|'held'), entry px, peak px, waited]
     slots: list[list] = [[0.1, None, "cash", 0.0, 0.0, 0] for _ in range(TOP)]
@@ -193,14 +204,15 @@ def simulate(a: pl.DataFrame, m: pl.DataFrame, st: list[str], entry: str, exit_:
 
 
 def main() -> None:
-    a, _ids = panel(drop_queue=False)
-    a = extras(a)
+    full, _ids = panel(drop_queue=False, keep_out=True)
+    full = extras(full)
+    a = full.filter(C("in_u"))
     m = market(a)
     st = states(m, "breadth", 5)
     res: dict = {}
     for e in ENTRY:
         for x in EXIT:
-            r = simulate(a, m, st, e, x)
+            r = simulate(a, m, st, e, x, full)
             res[f"{e}/{x}"] = r
             print(
                 f"{e:10s} {x:8s}",
@@ -216,7 +228,7 @@ def main() -> None:
         r["passes"] = all(r[p]["per_month"] > base[p]["per_month"] for p in ("O", "A")) and (
             r["B"]["per_month"] >= base["B"]["per_month"]
         )
-    (HERE / "results_regime_timing.json").write_text(
+    (HERE / f"results_regime_timing{uv.suffix()}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8"
     )
     print("passes:", [k for k, r in res.items() if r["passes"]])

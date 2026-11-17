@@ -33,6 +33,7 @@ import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent))
 from fundamentals_study import DB
+import universe as uv
 from treasure_hunt import panel
 
 C = pl.col
@@ -161,13 +162,21 @@ def choose(tab: dict) -> dict[str, str]:
     return best
 
 
-def simulate(a: pl.DataFrame, m: pl.DataFrame, st: list[str], plan: dict[str, str]) -> dict:
+def simulate(
+    a: pl.DataFrame,
+    m: pl.DataFrame,
+    st: list[str],
+    plan: dict[str, str],
+    full: pl.DataFrame | None = None,
+) -> dict:
+    """``a`` holds the day's universe (picks come from it); ``full`` also has the stocks outside it,
+    so a held name keeps its return after it drops out."""
     dates = m["date"].to_list()
     rets = {
         k[0]: dict(
             zip(g[G].to_list(), g["ret"].fill_null(0).clip(-0.15, 0.15).to_list(), strict=True)
         )
-        for k, g in a.group_by("date")
+        for k, g in (a if full is None else full).group_by("date")
     }
     by_day = dict(a.partition_by("date", as_dict=True))
     rf = m["rf"].to_list()
@@ -228,7 +237,8 @@ def simulate(a: pl.DataFrame, m: pl.DataFrame, st: list[str], plan: dict[str, st
 
 
 def main() -> None:
-    a, _ids = panel(drop_queue=False)
+    full, _ids = panel(drop_queue=False, keep_out=True)
+    a = full.filter(C("in_u"))
     m = market(a)
     res: dict = {}
     for kind in ("trend", "breadth", "both"):
@@ -236,17 +246,26 @@ def main() -> None:
             st = states(m, kind, confirm)
             tab = action_table(a, m, st)
             plan = choose(tab)
-            sim = simulate(a, m, st, plan)
+            sim = simulate(a, m, st, plan, full)
             share = {q: st.count(q) / len(st) for q in STATES}
             key = f"{kind}/confirm{confirm}"
             res[key] = {"plan": plan, "share": share, "sim": sim, "table": tab}
             print(key, plan, {k: v for k, v in sim.items()})
+    # the plans picked on the basket universe, run as they are (no new choice): the first one
+    # (26 Aban 1405) and the paper plan since 27 Aban 1405 (falling to cash)
+    st = states(m, "breadth", 5)
+    for name, plan in (
+        ("fixed first", {"falling": "dust", "flat": "cash", "rising": "trend"}),
+        ("fixed paper", {"falling": "cash", "flat": "cash", "rising": "trend"}),
+    ):
+        res[name] = {"plan": plan, "sim": simulate(a, m, st, plan, full)}
+        print(name, res[name]["sim"])
     for base in ("basket", "cash", "power", "trend"):
         st = ["flat"] * m.height
-        sim = simulate(a, m, st, dict.fromkeys(STATES, base))
+        sim = simulate(a, m, st, dict.fromkeys(STATES, base), full)
         res[f"always {base}"] = {"sim": sim}
         print("always", base, sim)
-    (HERE / "results_regime_switch.json").write_text(
+    (HERE / f"results_regime_switch{uv.suffix()}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=1, default=str), encoding="utf-8"
     )
 
