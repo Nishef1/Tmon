@@ -1,0 +1,290 @@
+{
+ "frozen_from": "2026-02-26",
+ "frozen_to": "2026-05-18",
+ "pre_closure": {
+  "tedpix": 3713955.9,
+  "eqw": 952681.0,
+  "usd_free": 1651300.0,
+  "eqw_usd": 576.9278750075698,
+  "ted_usd": 2249.110337309998
+ },
+ "latest_date": "2026-11-16",
+ "latest": {
+  "tedpix": 8513669.4,
+  "eqw": 2412800.0,
+  "usd_free": 2658050.0,
+  "eqw_usd": 907.7331126201539,
+  "ted_usd": 3202.975640036869
+ },
+ "trough_2025": {
+  "date": "2025-08-30",
+  "eqw": 753846.0,
+  "usd_free": 1026200.0,
+  "eqw_usd": 734.5994932761645
+ },
+ "month_end": [
+  {
+   "index": "2025-01-31",
+   "tedpix": 2801435.1,
+   "eqw": 878575.0,
+   "brent_usd": 76.8,
+   "coin_emami": 616950000.0,
+   "gold_usd": 2812.5,
+   "usd_free": 837650.0,
+   "eqw_usd": 1048.9,
+   "ted_usd": 3344.4
+  },
+  {
+   "index": "2025-02-28",
+   "tedpix": 2843968.3,
+   "eqw": 847653.0,
+   "brent_usd": 73.2,
+   "coin_emami": 744800000.0,
+   "gold_usd": 2848.5,
+   "usd_free": 921600.0,
+   "eqw_usd": 919.8,
+   "ted_usd": 3085.9
+  },
+  {
+   "index": "2025-03-31",
+   "tedpix": 2810706.8,
+   "eqw": 808364.0,
+   "brent_usd": 74.7,
+   "coin_emami": 1024000000.0,
+   "gold_usd": 3122.8,
+   "usd_free": 1027800.0,
+   "eqw_usd": 786.5,
+   "ted_usd": 2734.7
+  },
+  {
+   "index": "2025-04-30",
+   "tedpix": 3178649.0,
+   "eqw": 944597.0,
+   "brent_usd": 63.1,
+   "coin_emami": 721100000.0,
+   "gold_usd": 3319.1,
+   "usd_free": 819450.0,
+   "eqw_usd": 1152.7,
+   "ted_usd": 3879.0
+  },
+  {
+   "index": "2025-05-31",
+   "tedpix": 3143363.5,
+   "eqw": 967698.0,
+   "brent_usd": 63.9,
+   "coin_emami": 714050000.0,
+   "gold_usd": 3288.9,
+   "usd_free": 822500.0,
+   "eqw_usd": 1176.5,
+   "ted_usd": 3821.7
+  },
+  {
+   "index": "2025-06-30",
+   "tedpix": 2789093.8,
+   "eqw": 871186.0,
+   "brent_usd": 67.6,
+   "coin_emami": 850100000.0,
+   "gold_usd": 3307.7,
+   "usd_free": 917200.0,
+   "eqw_usd": 949.8,
+   "ted_usd": 3040.9
+  },
+  {
+   "index": "2025-07-31",
+   "tedpix": 2681859.1,
+   "eqw": 812424.0,
+   "brent_usd": 72.5,
+   "coin_emami": 806800000.0,
+   "gold_usd": 3293.2,
+   "usd_free": 905600.0,
+   "eqw_usd": 897.1,
+   "ted_usd": 2961.4
+  },
+  {
+   "index": "2025-08-31",
+   "tedpix": 2430150.3,
+   "eqw": 756846.0,
+   "brent_usd": 68.1,
+   "coin_emami": 975100000.0,
+   "gold_usd": 3516.1,
+   "usd_free": 1048300.0,
+   "eqw_usd": 722.0,
+   "ted_usd": 2318.2
+  },
+  {
+   "index": "2025-09-30",
+   "tedpix": 2735177.2,
+   "eqw": 808247.0,
+   "brent_usd": 67.0,
+   "coin_emami": 1135100000.0,
+   "gold_usd": 3873.2,
+   "usd_free": 1141300.0,
+   "eqw_usd": 708.2,
+   "ted_usd": 2396.5
+  },
+  {
+   "index": "2025-10-31",
+   "tedpix": 3209112.0,
+   "eqw": 924663.0,
+   "brent_usd": 65.1,
+   "coin_emami": 1112800000.0,
+   "gold_usd": 3996.5,
+   "usd_free": 1073000.0,
+   "eqw_usd": 861.8,
+   "ted_usd": 2990.8
+  },
+  {
+   "index": "2025-11-30",
+   "tedpix": 3274378.1,
+   "eqw": 937462.0,
+   "brent_usd": 63.2,
+   "coin_emami": 1242800000.0,
+   "gold_usd": 4254.9,
+   "usd_free": 1173800.0,
+   "eqw_usd": 798.7,
+   "ted_usd": 2789.6
+  },
+  {
+   "index": "2025-12-31",
+   "tedpix": 4070064.4,
+   "eqw": 1104530.0,
+   "brent_usd": 60.8,
+   "coin_emami": 1490050000.0,
+   "gold_usd": 4341.1,
+   "usd_free": 1355650.0,
+   "eqw_usd": 814.8,
+   "ted_usd": 3002.3
+  },
+  {
+   "index": "2026-01-31",
+   "tedpix": 3924581.6,
+   "eqw": 1007020.0,
+   "brent_usd": 70.7,
+   "coin_emami": 2039950000.0,
+   "gold_usd": 4745.1,
+   "usd_free": 1629600.0,
+   "eqw_usd": 618.0,
+   "ted_usd": 2408.3
+  },
+  {
+   "index": "2026-02-28",
+   "tedpix": 3713955.9,
+   "eqw": 952681.0,
+   "brent_usd": 72.5,
+   "coin_emami": 2089850000.0,
+   "gold_usd": 5247.9,
+   "usd_free": 1663600.0,
+   "eqw_usd": 572.7,
+   "ted_usd": 2232.5
+  },
+  {
+   "index": "2026-03-31",
+   "tedpix": 3713955.9,
+   "eqw": 952681.0,
+   "brent_usd": 118.3,
+   "coin_emami": 1899800000.0,
+   "gold_usd": 4647.6,
+   "usd_free": 1585750.0,
+   "eqw_usd": 600.8,
+   "ted_usd": 2342.1
+  },
+  {
+   "index": "2026-04-30",
+   "tedpix": 3713955.9,
+   "eqw": 952681.0,
+   "brent_usd": 114.0,
+   "coin_emami": 2029950000.0,
+   "gold_usd": 4629.6,
+   "usd_free": 1779100.0,
+   "eqw_usd": 535.5,
+   "ted_usd": 2087.5
+  },
+  {
+   "index": "2026-05-31",
+   "tedpix": 4236521.1,
+   "eqw": 1131960.0,
+   "brent_usd": 92.1,
+   "coin_emami": 1790050000.0,
+   "gold_usd": 4593.0,
+   "usd_free": 1704850.0,
+   "eqw_usd": 664.0,
+   "ted_usd": 2485.0
+  },
+  {
+   "index": "2026-06-30",
+   "tedpix": 5127635.3,
+   "eqw": 1341680.0,
+   "brent_usd": 72.9,
+   "coin_emami": 1714850000.0,
+   "gold_usd": 4038.5,
+   "usd_free": 1725000.0,
+   "eqw_usd": 777.8,
+   "ted_usd": 2972.5
+  },
+  {
+   "index": "2026-07-31",
+   "tedpix": 5075098.6,
+   "eqw": 1432800.0,
+   "brent_usd": 90.1,
+   "coin_emami": 1880100000.0,
+   "gold_usd": 4107.0,
+   "usd_free": 1924000.0,
+   "eqw_usd": 744.7,
+   "ted_usd": 2637.8
+  },
+  {
+   "index": "2026-08-31",
+   "tedpix": 6547963.8,
+   "eqw": 1821760.0,
+   "brent_usd": 90.5,
+   "coin_emami": 2235100000.0,
+   "gold_usd": 4481.5,
+   "usd_free": 2093000.0,
+   "eqw_usd": 870.4,
+   "ted_usd": 3128.5
+  },
+  {
+   "index": "2026-09-30",
+   "tedpix": 7766531.3,
+   "eqw": 2066680.0,
+   "brent_usd": 103.5,
+   "coin_emami": 2590050000.0,
+   "gold_usd": 4186.7,
+   "usd_free": 2547000.0,
+   "eqw_usd": 811.4,
+   "ted_usd": 3049.3
+  },
+  {
+   "index": "2026-10-31",
+   "tedpix": 7839251.0,
+   "eqw": 2196740.0,
+   "brent_usd": 117.6,
+   "coin_emami": 2589850000.0,
+   "gold_usd": 3898.9,
+   "usd_free": 2705100.0,
+   "eqw_usd": 812.1,
+   "ted_usd": 2898.0
+  },
+  {
+   "index": "2026-11-30",
+   "tedpix": 8513669.4,
+   "eqw": 2412800.0,
+   "brent_usd": 93.5,
+   "coin_emami": 2498650000.0,
+   "gold_usd": 3860.8,
+   "usd_free": 2658050.0,
+   "eqw_usd": 907.7,
+   "ted_usd": 3203.0
+  }
+ ],
+ "chg_since_closure_tedpix": 1.292345312985542,
+ "chg_since_trough_tedpix": 2.5537372103381952,
+ "chg_since_closure_eqw": 1.5326420911091962,
+ "chg_since_trough_eqw": 2.2006537144191256,
+ "chg_since_closure_usd_free": 0.6096711681705322,
+ "chg_since_trough_usd_free": 1.5901870980315729,
+ "chg_since_closure_eqw_usd": 0.573390976486001,
+ "chg_since_trough_eqw_usd": 0.23568437077440474,
+ "chg_since_closure_ted_usd": 0.42410782917289946,
+ "chg_since_trough_ted_usd": 0.3720001976069134
+}

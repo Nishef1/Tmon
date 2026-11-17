@@ -16,6 +16,8 @@ the app.
 | `regime_plan.py [start_year]` | Market trend filter, staged entry, rank-based selection and switching, and the pieces together (default start 2009). Write-up: [regime-plan-2026-11](../../../docs/reports/regime-plan-2026-11.md) | `results_regime_plan_2009.json`, `results_regime_plan_2001.json` |
 | `income_3y.py` | 100 million in an equal-weight basket of the 10 or 20 most liquid names, a fixed monthly withdrawal, last three years only: how long does the capital last? Write-up: [income-3y-2026-11](../../../docs/reports/income-3y-2026-11.md) | `results_income_3y.json` |
 | `income_model.py` | Same withdrawal test, but the 10 names come from the walk-forward v2 composite, the statements score, their mean and LightGBM (out of sample). Write-up: [income-model-2026-11](../../../docs/reports/income-model-2026-11.md) | `results_income_model.json` |
+| `rally_cause.py` | Month-end indices, free dollar, Brent, the equal-weight index in dollars, and the 80-day closure: what moved together since the reopening. Write-up: [mega-winners-2026-11](../../../docs/reports/mega-winners-2026-11.md) | `results_rally_cause.json` |
+| `mega_winners.py` | Stocks with +300% to +1000% in ~400 days: when were they bought, and which entry features (trend, high, flow, liquidity, sector) lifted the chance? Same write-up | `results_mega_winners.json` |
 
 Rules every script follows: both halves of time, entry at the close of the day after the signal,
 excess return over the mean of the same universe, round trip cost 1.75% where a return is quoted.
