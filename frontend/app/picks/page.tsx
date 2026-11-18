@@ -131,7 +131,17 @@ export default async function PicksPage() {
       {!res.ok ? (
         <ErrorState message={res.error} />
       ) : res.data.length === 0 ? (
-        <p className="card text-muted">هنوز خریدی ثبت نکرده‌اید.</p>
+        <section className="empty card" data-testid="picks-empty">
+          <h2 className="text-lg font-bold">هنوز خریدی ثبت نکرده‌اید</h2>
+          <ol className="empty-steps">
+            <li>نماد را از جست‌وجوی بالای صفحه یا جدول صفحهٔ «امروز» باز کنید.</li>
+            <li>در صفحهٔ نماد «این سهم را خریدم / می‌خرم» را بزنید.</li>
+            <li>این‌جا هر روز می‌بینید پیش‌بینی آن روز با قیمت واقعی چقدر جور درآمد.</li>
+          </ol>
+          <Link href="/" className="btn btn-primary w-fit">
+            رفتن به صفحهٔ امروز
+          </Link>
+        </section>
       ) : (
         res.data.map((p) => <PickCard key={p.id} p={p} />)
       )}

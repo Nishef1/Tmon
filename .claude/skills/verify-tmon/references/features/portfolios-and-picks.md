@@ -26,3 +26,4 @@ and `/picks`.
 - Advice says «تأییدنشده» while `recommendation_allowed` is false (today it is). Missing that
   label is a bug.
 - A pick created while testing pollutes the owner's live test. Remove it.
+- With no picks, /picks shows a three-step how-to (`picks-empty`) and a link to the home page.

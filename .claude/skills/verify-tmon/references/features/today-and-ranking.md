@@ -3,7 +3,10 @@
 **What exists:** the daily v2 ranking of the basket (top 100 by 20-day median value, plus liquid
 buy-zone names), split into buy, hold and avoid zones. Rows show score, rank, buy-queue size
 («صف خرید سنگین (۲٫۴)») and the verdict. The page also has the market state card, defensive mode
-and the autopilot card. Source: `tools/v2_ranking.py` writes `v2/ranking.json`, and
+and the autopilot card. At the top, the market strip (`market-strip`) gives one plain sentence on
+breadth (over 60% up: «بیشتر سهم‌ها مثبت بستند», under 40%: «منفی بستند», otherwise «دوطرفه بود»),
+and the quick-look row (`quick-look`) shows the 18k gold premium from `GET /macro/gold-oil` and
+links to /market#gold-oil, /industries, /market and /picks. Source: `tools/v2_ranking.py` writes `v2/ranking.json`, and
 `api/routers/ranking.py` serves it. Verdicts come from `final_verdict` in `engine/verdict.py`.
 
 **How a user reaches it:** home page.
