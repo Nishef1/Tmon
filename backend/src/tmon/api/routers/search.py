@@ -18,8 +18,7 @@ from tmon.api.routers.dashboard import (
     decision_fields,
     fundamental_out,
 )
-from tmon.api.routers.recommendations import instrument_out
-from tmon.api.schemas import SearchHit, SearchOut
+from tmon.api.schemas import SearchHit, SearchOut, instrument_out
 from tmon.api.trade_state import market_days, trade_state
 from tmon.core.db import get_session
 from tmon.ingest.tsetmc.parsers import normalize_fa

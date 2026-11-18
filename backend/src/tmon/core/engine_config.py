@@ -270,8 +270,6 @@ class EngineConfig(_Frozen):
     benchmarks: BenchmarksCfg
     v2: V2Cfg
     adapt: AdaptCfg
-    # Timeframes trained and published by the daily cycle, in order (D1 first: it is required).
-    publish_timeframes: tuple[str, ...] = ("D1",)
 
     @model_validator(mode="after")
     def _timeframes_known(self) -> EngineConfig:
@@ -281,9 +279,6 @@ class EngineConfig(_Frozen):
         no_grid = set(self.labeling.timeframes) - set(self.labeling.grid)
         if no_grid:
             raise ValueError(f"labeling.grid missing {sorted(no_grid)}")
-        unknown = set(self.publish_timeframes) - set(self.labeling.timeframes)
-        if unknown:
-            raise ValueError(f"publish_timeframes has unknown {sorted(unknown)}")
         return self
 
     def regime_of(self, d: date) -> str:

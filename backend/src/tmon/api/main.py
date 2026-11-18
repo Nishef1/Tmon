@@ -12,15 +12,12 @@ from tmon.api.routers import (
     instruments,
     macro,
     market,
-    metrics,
     picks,
     portfolios,
     ranking,
-    recommendations,
     research,
     screener,
     search,
-    signals,
 )
 from tmon.core.config import get_settings
 
@@ -49,13 +46,10 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     for r in (
-        recommendations.router,
         instruments.router,
         dashboard.router,
         freshness.router,
         data_health.router,
-        signals.router,
-        metrics.router,
         picks.router,
         macro.router,
         screener.router,

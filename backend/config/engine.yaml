@@ -27,10 +27,6 @@ labeling:
   # barrier exits and realized returns stay, so EV is still an absolute expected return.
   target: { D1: relative, W1: barrier, M1: barrier }
 
-# Timeframes the daily cycle trains and publishes. D1 is required; W1 and M1 are optional
-# steps (a failure there does not fail the cycle). v1 of W1/M1 uses price and flow features only.
-publish_timeframes: [D1, W1, M1]
-
 costs:
   # Round-trip slippage as a fraction of price, split evenly between the buy and sell side:
   # 0.005 = 0.25% per side (ADR 0002 section 2).

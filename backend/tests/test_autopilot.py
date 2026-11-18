@@ -119,8 +119,8 @@ def test_run_stores_one_check(store: dict[str, dict[str, Any]]) -> None:
 def test_the_daily_cycle_has_an_optional_autopilot_step_after_adapt() -> None:
     from tmon.tasks.cycle import default_steps
 
-    names = [s.name for s in default_steps(("1d",))]
-    steps = {s.name: s for s in default_steps(("1d",))}
+    names = [s.name for s in default_steps()]
+    steps = {s.name: s for s in default_steps()}
     assert names.index("autopilot") == names.index("adapt") + 1
     assert steps["autopilot"].required is False
 

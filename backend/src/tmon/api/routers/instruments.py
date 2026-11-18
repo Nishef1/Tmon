@@ -10,7 +10,6 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from tmon.api.book import book_out
-from tmon.api.routers.recommendations import instrument_out, signal_out
 from tmon.api.schemas import (
     AgmDecisionOut,
     AgmInputOut,
@@ -25,6 +24,7 @@ from tmon.api.schemas import (
     LiveOut,
     ShareholderOut,
     SymbolNewsOut,
+    instrument_out,
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
@@ -45,7 +45,6 @@ from tmon.storage.models import (
     OrderBookSnapshot,
     PriceDaily,
     Shareholder,
-    Signal,
 )
 
 router = APIRouter(tags=["instruments"])
@@ -71,8 +70,8 @@ def instrument_detail(
     session: SessionDep,
     days: Annotated[int, Query(ge=20, le=1500)] = 250,
 ) -> InstrumentDetail:
-    """Adjusted daily candles (never raw prices), the latest stored features and this symbol's
-    published signals."""
+    """Adjusted daily candles (never raw prices), the latest stored features, corporate events,
+    Codal letters, news and shareholders."""
     inst = session.get(Instrument, instrument_id)
     if inst is None:
         raise HTTPException(status_code=404, detail="نماد پیدا نشد")
@@ -121,12 +120,6 @@ def instrument_detail(
         if frow
         else []
     )
-    sigs = session.scalars(
-        select(Signal)
-        .where(Signal.instrument_id == instrument_id)
-        .order_by(Signal.date.desc(), Signal.rank)
-        .limit(50)
-    ).all()
     events = session.scalars(
         select(CorporateEvent)
         .where(CorporateEvent.instrument_id == instrument_id)
@@ -152,7 +145,6 @@ def instrument_detail(
         candles=candles,
         features_date=frow.date if frow else None,
         features=features,
-        signals=[signal_out(s, inst) for s in sigs],
         shareholders=[
             ShareholderOut(
                 name=h.name, shares=h.shares, percent=h.percent, change_amount=h.change_amount

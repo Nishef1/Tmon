@@ -18,7 +18,6 @@ from tmon.storage.models import (
     CodalLetter,
     MacroSeries,
     MarketIndexDaily,
-    ModelRun,
     NewsRaw,
     OrderBookDaily,
     PriceDaily,
@@ -62,7 +61,5 @@ def freshness(session: SessionDep) -> FreshnessOut:
         _dated(session, "news", NewsRaw, NewsRaw.published_at),
         _dated(session, "codal", CodalLetter, CodalLetter.published_at),
     ]
-    run = _utc(session.scalar(select(func.max(ModelRun.created_at))))
-    items.append(FreshnessItem(kind="model", date=run.date() if run else None, fetched_at=run))
     stamps = [i.fetched_at for i in items if i.fetched_at]
     return FreshnessOut(updated_at=max(stamps) if stamps else None, items=items)

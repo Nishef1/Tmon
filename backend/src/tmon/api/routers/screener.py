@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import json
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -18,9 +17,7 @@ from tmon.api.routers.dashboard import (
     fundamental_out,
 )
 from tmon.api.routers.market import _latest_full
-from tmon.api.routers.recommendations import instrument_out
-from tmon.api.schemas import Reason, ScreenerOut, ScreenerRow, Timeframe
-from tmon.core.config import get_settings
+from tmon.api.schemas import ScreenerOut, ScreenerRow, instrument_out
 from tmon.core.db import get_session
 from tmon.features.builder import get_feature_set
 from tmon.ingest.tsetmc.parsers import normalize_fa
@@ -29,18 +26,14 @@ from tmon.storage.models import (
     CorporateEvent,
     FeatureRow,
     Instrument,
-    ModelRun,
     PriceDaily,
     SectorName,
 )
-from tmon.storage.objectstore import get_object_store
 
 router = APIRouter(tags=["screener"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
 SortKey = Literal[
-    "ev",
-    "p_win",
     "value",
     "change_pct",
     "ind_buy_power",
@@ -56,41 +49,20 @@ SortKey = Literal[
 FEATURES = ("rsi_14", "rel_volume", "atr_14_pct", "ind_buy_power", "ind_net_flow_ratio")
 
 
-def _latest_scores(
-    session: Session, timeframe: str
-) -> tuple[dict[str, Any] | None, ModelRun | None]:
-    run = session.scalars(
-        select(ModelRun)
-        .where(ModelRun.timeframe == timeframe)
-        .order_by(ModelRun.created_at.desc())
-        .limit(1)
-    ).first()
-    uri = (run.metrics or {}).get("scores_uri") if run else None
-    if not uri:
-        return None, run
-    try:
-        data = get_object_store().get(get_settings().minio_artifact_bucket, uri)
-    except (FileNotFoundError, KeyError, OSError):
-        return None, run
-    return json.loads(data), run
-
-
 @router.get("/screener", response_model=ScreenerOut)
 def screener(
     session: SessionDep,
-    timeframe: Timeframe = "D1",
-    sort: SortKey = "ev",
+    sort: SortKey = "value",
     q: Annotated[str | None, Query(max_length=64)] = None,
     verdict: Literal["buy", "candidate", "hold", "sell", "none"] | None = None,
     stocks_only: bool = False,
     limit: Annotated[int, Query(ge=1, le=3000)] = 200,
 ) -> ScreenerOut:
     """Every symbol that traded on the latest stored day, with its market data, a few features
-    and the latest model output for ``timeframe``. The model output is a diagnostic: only rows
-    on /recommendations are published recommendations."""
+    and the verdict of the v2 ranking."""
     last = session.scalar(select(func.max(PriceDaily.date)))
     if last is None:
-        return ScreenerOut(timeframe=timeframe, total=0, rows=[])
+        return ScreenerOut(total=0, rows=[])
     prices = session.execute(
         select(PriceDaily, Instrument)
         .join(Instrument, Instrument.id == PriceDaily.instrument_id)
@@ -109,10 +81,6 @@ def screener(
             )
         ):
             feats[fr.instrument_id] = fr.values or {}
-
-    doc, run = _latest_scores(session, timeframe)
-    scores = {int(r["instrument_id"]): r for r in (doc or {}).get("rows", [])}
-    gate = ((run.metrics or {}).get("gate") or {}) if run else {}
 
     prior = _prior_volumes(session, last)
     fd = _latest_full(session, ClientTypeDaily.date)
@@ -143,7 +111,6 @@ def screener(
         ):
             continue
         f = feats.get(inst.id, {})
-        sc = scores.get(inst.id, {})
         close = None if p.close is None else float(p.close)
         prev = None if p.prev_close is None else float(p.prev_close)
         c = flows.get(inst.id)
@@ -200,22 +167,12 @@ def screener(
                 pe=fa.pe if fa else None,
                 sector_pe=fa.sector_pe if fa else None,
                 **{k: _num(f.get(k)) for k in FEATURES},
-                p_win=_num(sc.get("p_win")),
-                ev=_num(sc.get("ev")),
-                p_min=_num(sc.get("p_min")),
-                signal=sc.get("signal"),
-                reasons=[Reason(**r) for r in sc["reasons"]] if sc.get("reasons") else None,
             )
         )
     sign = 1.0 if sort in ("rank", "pe") else -1.0  # rank 1 and the cheapest P/E come first
     rows.sort(key=lambda r: (getattr(r, sort) is None, sign * (getattr(r, sort) or 0.0)))
     return ScreenerOut(
-        timeframe=timeframe,
         prices_date=last,
-        scores_date=dt.date.fromisoformat(doc["date"]) if doc else None,
-        model_version=doc.get("model_version") if doc else None,
-        tier_a_allowed=gate.get("tier_a_allowed"),
-        gate_reasons=list(gate.get("reasons") or []),
         verdict_counts=counts,
         flow_date=fd,
         ranking_date=dt.date.fromisoformat(ranking["as_of"]) if ranking else None,

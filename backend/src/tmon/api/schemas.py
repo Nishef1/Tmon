@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-Timeframe = Literal["D1", "W1", "M1"]
-SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("D1", "W1", "M1")
+if TYPE_CHECKING:
+    from tmon.storage.models import Instrument
+
 
 VerdictKey = Literal["buy", "candidate", "hold", "sell", "none"]
 
@@ -48,108 +49,14 @@ class InstrumentOut(ApiModel):
     instrument_type: str | None = None
 
 
-class Reason(ApiModel):
-    feature: str
-    value: float | None = None
-    contribution: float
-
-
-class SignalOut(ApiModel):
-    id: int
-    date: dt.date
-    timeframe: str
-    rank: int
-    instrument: InstrumentOut
-    entry_price: float
-    entry_rule: str
-    take_profit: float
-    stop_loss: float
-    horizon_days: int
-    p_win: float
-    ev: float
-    confidence_tier: str
-    position_pct: float
-    top_reasons: list[Reason]
-    risks: list[str]
-    model_version: str
-    data_snapshot_id: str
-    outcome: str = "pending"
-    realized_return: float | None = None
-    outcome_date: dt.date | None = None
-
-
-class RunOut(ApiModel):
-    date: dt.date
-    model_version: str
-    data_snapshot_id: str
-    n_candidates: int
-    n_recommended: int
-    defensive_mode: bool
-    message: str | None = None
-    created_at: dt.datetime
-
-
-class GateOut(ApiModel):
-    tier_a_allowed: bool
-    reasons: list[str]
-
-
-class FunnelStage(ApiModel):
-    key: str
-    label: str
-    count: int
-    lost: int
-    alone: int = 0
-
-
-class NearMiss(ApiModel):
-    instrument: InstrumentOut | None
-    p_win: float
-    p_min: float | None
-    shortfall: float | None
-    ev: float
-    bucket_n: int
-    failed: list[str]
-
-
-class DiagnosisStats(ApiModel):
-    p_win_max: float | None
-    p_win_median: float | None
-    p_min_median: float | None
-    p_breakeven_median: float | None
-    ev_max: float | None
-    ev_median: float | None
-    n_ev_positive: int
-    n_distinct_p_win: int = 0
-
-
-class DiagnosisOut(ApiModel):
-    """Exact numbers behind a day with few or no recommendations."""
-
-    universe: int
-    stages: list[FunnelStage]
-    binding: str | None
-    nearest: list[NearMiss]
-    dropped_by_portfolio: dict[str, int]
-    stats: DiagnosisStats
-    ev_min_abs: float
-    min_bucket_samples: int
-    margin: float
-    p_floor: float
-
-
-class RecommendationsOut(ApiModel):
-    timeframe: str
-    supported: bool
-    date: dt.date | None
-    available_dates: list[dt.date]
-    no_recommendation: bool
-    message: str
-    disclaimer: str = DISCLAIMER
-    run: RunOut | None = None
-    gate: GateOut | None = None
-    diagnosis: DiagnosisOut | None = None
-    signals: list[SignalOut]
+def instrument_out(i: Instrument) -> InstrumentOut:
+    return InstrumentOut(
+        id=i.id,
+        symbol=i.symbol_fa,
+        name=i.name_fa,
+        sector_code=i.sector_code,
+        instrument_type=i.instrument_type,
+    )
 
 
 class Candle(ApiModel):
@@ -203,7 +110,6 @@ class InstrumentDetail(ApiModel):
     candles: list[Candle]
     features_date: dt.date | None
     features: list[FeatureValue]
-    signals: list[SignalOut]
     events: list[CorporateEventOut] = []
     shareholders: list[ShareholderOut] = []  # major holders, largest first
     shareholders_at: dt.date | None = None  # when TSETMC's list was fetched
@@ -225,56 +131,6 @@ class AgmDecisionOut(ApiModel):
     net_hold: float
     net_sell: float
     inputs: list[AgmInputOut]
-    disclaimer: str = DISCLAIMER
-
-
-class HistorySummary(ApiModel):
-    total: int
-    resolved: int
-    pending: int
-    take_profit: int
-    stop_loss: int
-    expired: int
-    mean_realized_return: float | None  # gross, before costs, over resolved signals
-
-
-class HistoryOut(ApiModel):
-    timeframe: str
-    items: list[SignalOut]
-    total: int
-    limit: int
-    offset: int
-    summary: HistorySummary
-    disclaimer: str = DISCLAIMER
-
-
-class CalibrationBucket(ApiModel):
-    bucket: str
-    n: int
-    mean_p: float | None
-    hit_rate: float | None
-
-
-class CalibrationBlock(ApiModel):
-    n: int
-    base_rate: float | None = None
-    auc: float | None = None
-    brier: float | None = None
-    brier_base_rate: float | None = None
-    brier_skill: float | None = None
-    buckets: list[CalibrationBucket] = []
-
-
-class CalibrationOut(ApiModel):
-    timeframe: str
-    supported: bool
-    model_version: str | None
-    trained_through: str | None
-    backtest: CalibrationBlock | None
-    live: CalibrationBlock
-    gate: GateOut | None
-    warnings: list[str]
-    extra: dict[str, Any] = {}
     disclaimer: str = DISCLAIMER
 
 
@@ -388,35 +244,8 @@ class FundsOut(ApiModel):
     disclaimer: str = DISCLAIMER
 
 
-class LiveDayOut(ApiModel):
-    date: dt.date
-    n: int
-    hits: int
-    mean_p: float
-    brier: float
-
-
-class LiveAccuracyOut(ApiModel):
-    timeframe: str
-    as_of: dt.date | None = None
-    resolved: int
-    pending: int
-    hit_rate: float | None = None
-    mean_p: float | None = None
-    backtest_brier: float | None = None
-    recent_days: int
-    recent_n: int
-    recent_brier: float | None = None
-    degradation_limit: float
-    kill_switch_active: bool
-    defensive_mode: bool | None = None
-    days: list[LiveDayOut]
-    disclaimer: str = DISCLAIMER
-
-
 class ScreenerRow(VerdictFields):
-    """One symbol on the latest trading day: market data, a few features and, when a scores
-    artifact exists, the model's raw output. ``signal`` true means it passed every threshold."""
+    """One symbol on the latest trading day: market data, a few features and its verdict."""
 
     instrument: InstrumentOut
     close: float | None = None
@@ -455,20 +284,10 @@ class ScreenerRow(VerdictFields):
     atr_14_pct: float | None = None
     ind_buy_power: float | None = None
     ind_net_flow_ratio: float | None = None
-    p_win: float | None = None
-    ev: float | None = None
-    p_min: float | None = None
-    signal: bool | None = None
-    reasons: list[Reason] | None = None
 
 
 class ScreenerOut(ApiModel):
-    timeframe: str
     prices_date: dt.date | None = None
-    scores_date: dt.date | None = None
-    model_version: str | None = None
-    tier_a_allowed: bool | None = None
-    gate_reasons: list[str] = []
     verdict_counts: dict[str, int] = {}
     flow_date: dt.date | None = None
     ranking_date: dt.date | None = None

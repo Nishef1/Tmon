@@ -12,7 +12,6 @@ const KIND: Record<string, string> = {
   macro: "دلار، طلا و تورم",
   news: "اخبار",
   codal: "کدال",
-  model: "مدل و پیشنهادها",
 };
 
 const moment = (iso: string) =>

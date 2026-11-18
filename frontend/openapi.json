@@ -1579,219 +1579,6 @@
         "title": "BriefingOut",
         "type": "object"
       },
-      "CalibrationBlock": {
-        "properties": {
-          "auc": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auc"
-          },
-          "base_rate": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Base Rate"
-          },
-          "brier": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Brier"
-          },
-          "brier_base_rate": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Brier Base Rate"
-          },
-          "brier_skill": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Brier Skill"
-          },
-          "buckets": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/CalibrationBucket"
-            },
-            "title": "Buckets",
-            "type": "array"
-          },
-          "n": {
-            "title": "N",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "n",
-          "base_rate",
-          "auc",
-          "brier",
-          "brier_base_rate",
-          "brier_skill",
-          "buckets"
-        ],
-        "title": "CalibrationBlock",
-        "type": "object"
-      },
-      "CalibrationBucket": {
-        "properties": {
-          "bucket": {
-            "title": "Bucket",
-            "type": "string"
-          },
-          "hit_rate": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hit Rate"
-          },
-          "mean_p": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mean P"
-          },
-          "n": {
-            "title": "N",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "bucket",
-          "n",
-          "mean_p",
-          "hit_rate"
-        ],
-        "title": "CalibrationBucket",
-        "type": "object"
-      },
-      "CalibrationOut": {
-        "properties": {
-          "backtest": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CalibrationBlock"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "disclaimer": {
-            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
-            "title": "Disclaimer",
-            "type": "string"
-          },
-          "extra": {
-            "additionalProperties": true,
-            "default": {},
-            "title": "Extra",
-            "type": "object"
-          },
-          "gate": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GateOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "live": {
-            "$ref": "#/components/schemas/CalibrationBlock"
-          },
-          "model_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Version"
-          },
-          "supported": {
-            "title": "Supported",
-            "type": "boolean"
-          },
-          "timeframe": {
-            "title": "Timeframe",
-            "type": "string"
-          },
-          "trained_through": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trained Through"
-          },
-          "warnings": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Warnings",
-            "type": "array"
-          }
-        },
-        "required": [
-          "timeframe",
-          "supported",
-          "model_version",
-          "trained_through",
-          "backtest",
-          "live",
-          "gate",
-          "warnings",
-          "extra",
-          "disclaimer"
-        ],
-        "title": "CalibrationOut",
-        "type": "object"
-      },
       "Candle": {
         "properties": {
           "close": {
@@ -4754,171 +4541,6 @@
         "title": "DayOut",
         "type": "object"
       },
-      "DiagnosisOut": {
-        "description": "Exact numbers behind a day with few or no recommendations.",
-        "properties": {
-          "binding": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Binding"
-          },
-          "dropped_by_portfolio": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "title": "Dropped By Portfolio",
-            "type": "object"
-          },
-          "ev_min_abs": {
-            "title": "Ev Min Abs",
-            "type": "number"
-          },
-          "margin": {
-            "title": "Margin",
-            "type": "number"
-          },
-          "min_bucket_samples": {
-            "title": "Min Bucket Samples",
-            "type": "integer"
-          },
-          "nearest": {
-            "items": {
-              "$ref": "#/components/schemas/NearMiss"
-            },
-            "title": "Nearest",
-            "type": "array"
-          },
-          "p_floor": {
-            "title": "P Floor",
-            "type": "number"
-          },
-          "stages": {
-            "items": {
-              "$ref": "#/components/schemas/FunnelStage"
-            },
-            "title": "Stages",
-            "type": "array"
-          },
-          "stats": {
-            "$ref": "#/components/schemas/DiagnosisStats"
-          },
-          "universe": {
-            "title": "Universe",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "universe",
-          "stages",
-          "binding",
-          "nearest",
-          "dropped_by_portfolio",
-          "stats",
-          "ev_min_abs",
-          "min_bucket_samples",
-          "margin",
-          "p_floor"
-        ],
-        "title": "DiagnosisOut",
-        "type": "object"
-      },
-      "DiagnosisStats": {
-        "properties": {
-          "ev_max": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ev Max"
-          },
-          "ev_median": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ev Median"
-          },
-          "n_distinct_p_win": {
-            "default": 0,
-            "title": "N Distinct P Win",
-            "type": "integer"
-          },
-          "n_ev_positive": {
-            "title": "N Ev Positive",
-            "type": "integer"
-          },
-          "p_breakeven_median": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Breakeven Median"
-          },
-          "p_min_median": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Min Median"
-          },
-          "p_win_max": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Win Max"
-          },
-          "p_win_median": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Win Median"
-          }
-        },
-        "required": [
-          "p_win_max",
-          "p_win_median",
-          "p_min_median",
-          "p_breakeven_median",
-          "ev_max",
-          "ev_median",
-          "n_ev_positive",
-          "n_distinct_p_win"
-        ],
-        "title": "DiagnosisStats",
-        "type": "object"
-      },
       "DriverMove": {
         "description": "The stock against the index in the 20 trading days after one dated shock.",
         "properties": {
@@ -5778,61 +5400,6 @@
         "title": "FundsOut",
         "type": "object"
       },
-      "FunnelStage": {
-        "properties": {
-          "alone": {
-            "default": 0,
-            "title": "Alone",
-            "type": "integer"
-          },
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "lost": {
-            "title": "Lost",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "key",
-          "label",
-          "count",
-          "lost",
-          "alone"
-        ],
-        "title": "FunnelStage",
-        "type": "object"
-      },
-      "GateOut": {
-        "properties": {
-          "reasons": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Reasons",
-            "type": "array"
-          },
-          "tier_a_allowed": {
-            "title": "Tier A Allowed",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "tier_a_allowed",
-          "reasons"
-        ],
-        "title": "GateOut",
-        "type": "object"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -5913,102 +5480,6 @@
           "refill"
         ],
         "title": "HealthOut",
-        "type": "object"
-      },
-      "HistoryOut": {
-        "properties": {
-          "disclaimer": {
-            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
-            "title": "Disclaimer",
-            "type": "string"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/SignalOut"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "summary": {
-            "$ref": "#/components/schemas/HistorySummary"
-          },
-          "timeframe": {
-            "title": "Timeframe",
-            "type": "string"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "timeframe",
-          "items",
-          "total",
-          "limit",
-          "offset",
-          "summary",
-          "disclaimer"
-        ],
-        "title": "HistoryOut",
-        "type": "object"
-      },
-      "HistorySummary": {
-        "properties": {
-          "expired": {
-            "title": "Expired",
-            "type": "integer"
-          },
-          "mean_realized_return": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mean Realized Return"
-          },
-          "pending": {
-            "title": "Pending",
-            "type": "integer"
-          },
-          "resolved": {
-            "title": "Resolved",
-            "type": "integer"
-          },
-          "stop_loss": {
-            "title": "Stop Loss",
-            "type": "integer"
-          },
-          "take_profit": {
-            "title": "Take Profit",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "total",
-          "resolved",
-          "pending",
-          "take_profit",
-          "stop_loss",
-          "expired",
-          "mean_realized_return"
-        ],
-        "title": "HistorySummary",
         "type": "object"
       },
       "HoldingIn": {
@@ -6901,13 +6372,6 @@
               }
             ],
             "title": "Shareholders At"
-          },
-          "signals": {
-            "items": {
-              "$ref": "#/components/schemas/SignalOut"
-            },
-            "title": "Signals",
-            "type": "array"
           }
         },
         "required": [
@@ -6916,7 +6380,6 @@
           "candles",
           "features_date",
           "features",
-          "signals",
           "events",
           "shareholders",
           "shareholders_at",
@@ -7073,170 +6536,6 @@
           "expected"
         ],
         "title": "IssueOut",
-        "type": "object"
-      },
-      "LiveAccuracyOut": {
-        "properties": {
-          "as_of": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "As Of"
-          },
-          "backtest_brier": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Backtest Brier"
-          },
-          "days": {
-            "items": {
-              "$ref": "#/components/schemas/LiveDayOut"
-            },
-            "title": "Days",
-            "type": "array"
-          },
-          "defensive_mode": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Defensive Mode"
-          },
-          "degradation_limit": {
-            "title": "Degradation Limit",
-            "type": "number"
-          },
-          "disclaimer": {
-            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
-            "title": "Disclaimer",
-            "type": "string"
-          },
-          "hit_rate": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hit Rate"
-          },
-          "kill_switch_active": {
-            "title": "Kill Switch Active",
-            "type": "boolean"
-          },
-          "mean_p": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mean P"
-          },
-          "pending": {
-            "title": "Pending",
-            "type": "integer"
-          },
-          "recent_brier": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recent Brier"
-          },
-          "recent_days": {
-            "title": "Recent Days",
-            "type": "integer"
-          },
-          "recent_n": {
-            "title": "Recent N",
-            "type": "integer"
-          },
-          "resolved": {
-            "title": "Resolved",
-            "type": "integer"
-          },
-          "timeframe": {
-            "title": "Timeframe",
-            "type": "string"
-          }
-        },
-        "required": [
-          "timeframe",
-          "as_of",
-          "resolved",
-          "pending",
-          "hit_rate",
-          "mean_p",
-          "backtest_brier",
-          "recent_days",
-          "recent_n",
-          "recent_brier",
-          "degradation_limit",
-          "kill_switch_active",
-          "defensive_mode",
-          "days",
-          "disclaimer"
-        ],
-        "title": "LiveAccuracyOut",
-        "type": "object"
-      },
-      "LiveDayOut": {
-        "properties": {
-          "brier": {
-            "title": "Brier",
-            "type": "number"
-          },
-          "date": {
-            "format": "date",
-            "title": "Date",
-            "type": "string"
-          },
-          "hits": {
-            "title": "Hits",
-            "type": "integer"
-          },
-          "mean_p": {
-            "title": "Mean P",
-            "type": "number"
-          },
-          "n": {
-            "title": "N",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "date",
-          "n",
-          "hits",
-          "mean_p",
-          "brier"
-        ],
-        "title": "LiveDayOut",
         "type": "object"
       },
       "LiveFlowOut": {
@@ -8168,72 +7467,6 @@
           "isin"
         ],
         "title": "MofidCostIn",
-        "type": "object"
-      },
-      "NearMiss": {
-        "properties": {
-          "bucket_n": {
-            "title": "Bucket N",
-            "type": "integer"
-          },
-          "ev": {
-            "title": "Ev",
-            "type": "number"
-          },
-          "failed": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Failed",
-            "type": "array"
-          },
-          "instrument": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/InstrumentOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "p_min": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Min"
-          },
-          "p_win": {
-            "title": "P Win",
-            "type": "number"
-          },
-          "shortfall": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Shortfall"
-          }
-        },
-        "required": [
-          "instrument",
-          "p_win",
-          "p_min",
-          "shortfall",
-          "ev",
-          "bucket_n",
-          "failed"
-        ],
-        "title": "NearMiss",
         "type": "object"
       },
       "OrderbookResearchOut": {
@@ -10000,133 +9233,6 @@
         "title": "RankingVerdictRule",
         "type": "object"
       },
-      "Reason": {
-        "properties": {
-          "contribution": {
-            "title": "Contribution",
-            "type": "number"
-          },
-          "feature": {
-            "title": "Feature",
-            "type": "string"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value"
-          }
-        },
-        "required": [
-          "feature",
-          "value",
-          "contribution"
-        ],
-        "title": "Reason",
-        "type": "object"
-      },
-      "RecommendationsOut": {
-        "properties": {
-          "available_dates": {
-            "items": {
-              "format": "date",
-              "type": "string"
-            },
-            "title": "Available Dates",
-            "type": "array"
-          },
-          "date": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Date"
-          },
-          "diagnosis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DiagnosisOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "disclaimer": {
-            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
-            "title": "Disclaimer",
-            "type": "string"
-          },
-          "gate": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GateOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "no_recommendation": {
-            "title": "No Recommendation",
-            "type": "boolean"
-          },
-          "run": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RunOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "signals": {
-            "items": {
-              "$ref": "#/components/schemas/SignalOut"
-            },
-            "title": "Signals",
-            "type": "array"
-          },
-          "supported": {
-            "title": "Supported",
-            "type": "boolean"
-          },
-          "timeframe": {
-            "title": "Timeframe",
-            "type": "string"
-          }
-        },
-        "required": [
-          "timeframe",
-          "supported",
-          "date",
-          "available_dates",
-          "no_recommendation",
-          "message",
-          "disclaimer",
-          "run",
-          "gate",
-          "diagnosis",
-          "signals"
-        ],
-        "title": "RecommendationsOut",
-        "type": "object"
-      },
       "RefillOut": {
         "properties": {
           "finished_at": {
@@ -10550,63 +9656,6 @@
         "title": "RegimePoint",
         "type": "object"
       },
-      "RunOut": {
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "data_snapshot_id": {
-            "title": "Data Snapshot Id",
-            "type": "string"
-          },
-          "date": {
-            "format": "date",
-            "title": "Date",
-            "type": "string"
-          },
-          "defensive_mode": {
-            "title": "Defensive Mode",
-            "type": "boolean"
-          },
-          "message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Message"
-          },
-          "model_version": {
-            "title": "Model Version",
-            "type": "string"
-          },
-          "n_candidates": {
-            "title": "N Candidates",
-            "type": "integer"
-          },
-          "n_recommended": {
-            "title": "N Recommended",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "date",
-          "model_version",
-          "data_snapshot_id",
-          "n_candidates",
-          "n_recommended",
-          "defensive_mode",
-          "message",
-          "created_at"
-        ],
-        "title": "RunOut",
-        "type": "object"
-      },
       "ScreenerOut": {
         "properties": {
           "flow_date": {
@@ -10620,25 +9669,6 @@
               }
             ],
             "title": "Flow Date"
-          },
-          "gate_reasons": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Gate Reasons",
-            "type": "array"
-          },
-          "model_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Version"
           },
           "prices_date": {
             "anyOf": [
@@ -10671,33 +9701,6 @@
             "title": "Rows",
             "type": "array"
           },
-          "scores_date": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scores Date"
-          },
-          "tier_a_allowed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tier A Allowed"
-          },
-          "timeframe": {
-            "title": "Timeframe",
-            "type": "string"
-          },
           "total": {
             "title": "Total",
             "type": "integer"
@@ -10712,12 +9715,7 @@
           }
         },
         "required": [
-          "timeframe",
           "prices_date",
-          "scores_date",
-          "model_version",
-          "tier_a_allowed",
-          "gate_reasons",
           "verdict_counts",
           "flow_date",
           "ranking_date",
@@ -10728,7 +9726,7 @@
         "type": "object"
       },
       "ScreenerRow": {
-        "description": "One symbol on the latest trading day: market data, a few features and, when a scores\nartifact exists, the model's raw output. ``signal`` true means it passed every threshold.",
+        "description": "One symbol on the latest trading day: market data, a few features and its verdict.",
         "properties": {
           "atr_14_pct": {
             "anyOf": [
@@ -10811,17 +9809,6 @@
               }
             ],
             "title": "Eps"
-          },
-          "ev": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ev"
           },
           "from_year_high": {
             "anyOf": [
@@ -10993,28 +9980,6 @@
             ],
             "title": "Net Real Value"
           },
-          "p_min": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Min"
-          },
-          "p_win": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "P Win"
-          },
           "pe": {
             "anyOf": [
               {
@@ -11069,20 +10034,6 @@
               }
             ],
             "title": "Rank"
-          },
-          "reasons": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/Reason"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reasons"
           },
           "rel_volume": {
             "anyOf": [
@@ -11194,17 +10145,6 @@
             ],
             "title": "Shares"
           },
-          "signal": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Signal"
-          },
           "trades": {
             "anyOf": [
               {
@@ -11310,12 +10250,7 @@
           "rel_volume",
           "atr_14_pct",
           "ind_buy_power",
-          "ind_net_flow_ratio",
-          "p_win",
-          "ev",
-          "p_min",
-          "signal",
-          "reasons"
+          "ind_net_flow_ratio"
         ],
         "title": "ScreenerRow",
         "type": "object"
@@ -11644,141 +10579,6 @@
           "change_amount"
         ],
         "title": "ShareholderOut",
-        "type": "object"
-      },
-      "SignalOut": {
-        "properties": {
-          "confidence_tier": {
-            "title": "Confidence Tier",
-            "type": "string"
-          },
-          "data_snapshot_id": {
-            "title": "Data Snapshot Id",
-            "type": "string"
-          },
-          "date": {
-            "format": "date",
-            "title": "Date",
-            "type": "string"
-          },
-          "entry_price": {
-            "title": "Entry Price",
-            "type": "number"
-          },
-          "entry_rule": {
-            "title": "Entry Rule",
-            "type": "string"
-          },
-          "ev": {
-            "title": "Ev",
-            "type": "number"
-          },
-          "horizon_days": {
-            "title": "Horizon Days",
-            "type": "integer"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "instrument": {
-            "$ref": "#/components/schemas/InstrumentOut"
-          },
-          "model_version": {
-            "title": "Model Version",
-            "type": "string"
-          },
-          "outcome": {
-            "default": "pending",
-            "title": "Outcome",
-            "type": "string"
-          },
-          "outcome_date": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Outcome Date"
-          },
-          "p_win": {
-            "title": "P Win",
-            "type": "number"
-          },
-          "position_pct": {
-            "title": "Position Pct",
-            "type": "number"
-          },
-          "rank": {
-            "title": "Rank",
-            "type": "integer"
-          },
-          "realized_return": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Realized Return"
-          },
-          "risks": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Risks",
-            "type": "array"
-          },
-          "stop_loss": {
-            "title": "Stop Loss",
-            "type": "number"
-          },
-          "take_profit": {
-            "title": "Take Profit",
-            "type": "number"
-          },
-          "timeframe": {
-            "title": "Timeframe",
-            "type": "string"
-          },
-          "top_reasons": {
-            "items": {
-              "$ref": "#/components/schemas/Reason"
-            },
-            "title": "Top Reasons",
-            "type": "array"
-          }
-        },
-        "required": [
-          "id",
-          "date",
-          "timeframe",
-          "rank",
-          "instrument",
-          "entry_price",
-          "entry_rule",
-          "take_profit",
-          "stop_loss",
-          "horizon_days",
-          "p_win",
-          "ev",
-          "confidence_tier",
-          "position_pct",
-          "top_reasons",
-          "risks",
-          "model_version",
-          "data_snapshot_id",
-          "outcome",
-          "realized_return",
-          "outcome_date"
-        ],
-        "title": "SignalOut",
         "type": "object"
       },
       "StepOut": {
@@ -13012,7 +11812,7 @@
     },
     "/instruments/{instrument_id}": {
       "get": {
-        "description": "Adjusted daily candles (never raw prices), the latest stored features and this symbol's\npublished signals.",
+        "description": "Adjusted daily candles (never raw prices), the latest stored features, corporate events,\nCodal letters, news and shareholders.",
         "operationId": "instrument_detail_instruments__instrument_id__get",
         "parameters": [
           {
@@ -13423,104 +12223,6 @@
         "summary": "Overview",
         "tags": [
           "market"
-        ]
-      }
-    },
-    "/metrics/calibration": {
-      "get": {
-        "description": "Calibration of the latest model: out-of-sample (walk-forward backtest) and live (the\nsignals actually published and since resolved).",
-        "operationId": "calibration_metrics_calibration_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "timeframe",
-            "required": false,
-            "schema": {
-              "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
-              "title": "Timeframe",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CalibrationOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Calibration",
-        "tags": [
-          "metrics"
-        ]
-      }
-    },
-    "/metrics/live": {
-      "get": {
-        "description": "Live accuracy of published signals by signal date, and the state of the Brier kill\nswitch (docs/10 section 9) and defensive mode (section 10).",
-        "operationId": "live_accuracy_metrics_live_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "timeframe",
-            "required": false,
-            "schema": {
-              "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
-              "title": "Timeframe",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LiveAccuracyOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Live Accuracy",
-        "tags": [
-          "metrics"
         ]
       }
     },
@@ -15185,72 +13887,6 @@
         ]
       }
     },
-    "/recommendations": {
-      "get": {
-        "description": "The day's ranked list, or an explicit \"no recommendation\" (the normal outcome whenever\nnothing passes the thresholds). ``date`` defaults to the latest day with a recorded run.",
-        "operationId": "recommendations_recommendations_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "timeframe",
-            "required": false,
-            "schema": {
-              "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
-              "title": "Timeframe",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "date",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "date",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecommendationsOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Recommendations",
-        "tags": [
-          "recommendations"
-        ]
-      }
-    },
     "/research/adapt": {
       "get": {
         "description": "The living ranking: which method is champion per horizon after the gate, its weights against\nequal weights, the weight drift, the cycle history and the replay on the past\n(``python -m tmon.tools.adapt_cycle``). The past, not advice.",
@@ -15385,33 +14021,16 @@
     },
     "/screener": {
       "get": {
-        "description": "Every symbol that traded on the latest stored day, with its market data, a few features\nand the latest model output for ``timeframe``. The model output is a diagnostic: only rows\non /recommendations are published recommendations.",
+        "description": "Every symbol that traded on the latest stored day, with its market data, a few features\nand the verdict of the v2 ranking.",
         "operationId": "screener_screener_get",
         "parameters": [
-          {
-            "in": "query",
-            "name": "timeframe",
-            "required": false,
-            "schema": {
-              "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
-              "title": "Timeframe",
-              "type": "string"
-            }
-          },
           {
             "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
-              "default": "ev",
+              "default": "value",
               "enum": [
-                "ev",
-                "p_win",
                 "value",
                 "change_pct",
                 "ind_buy_power",
@@ -15582,111 +14201,6 @@
         "summary": "Search",
         "tags": [
           "search"
-        ]
-      }
-    },
-    "/signals/history": {
-      "get": {
-        "description": "Published signals, newest first, each with its realised outcome once the label window\nhas closed. ``realized_return`` is the gross barrier return, before costs.",
-        "operationId": "signal_history_signals_history_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "timeframe",
-            "required": false,
-            "schema": {
-              "default": "D1",
-              "enum": [
-                "D1",
-                "W1",
-                "M1"
-              ],
-              "title": "Timeframe",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "instrument_id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Instrument Id"
-            }
-          },
-          {
-            "in": "query",
-            "name": "outcome",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "pattern": "^(pending|tp|sl|sl_same_day|expiry)$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Outcome"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "maximum": 200,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Offset",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HistoryOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Signal History",
-        "tags": [
-          "signals"
         ]
       }
     },

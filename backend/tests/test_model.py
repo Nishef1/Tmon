@@ -1,5 +1,5 @@
-"""M4: the LightGBM strategy, calibration, EV/threshold arithmetic, SHAP, portfolio filters,
-the Tier-A gate and the publishing service."""
+"""M4: the LightGBM strategy, calibration, EV/threshold arithmetic, SHAP and
+the Tier-A gate."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import numpy as np
 import polars as pl
 import pytest
 from sklearn.metrics import roc_auc_score
-from sqlalchemy import select
 
 from tmon.backtest.costs import round_trip_expr
 from tmon.backtest.runner import prepare_dataset
@@ -17,13 +16,9 @@ from tmon.backtest.synthetic import make_market
 from tmon.core.engine_config import get_engine_config
 from tmon.engine.defensive import defensive_flags
 from tmon.engine.gating import brier_degraded, evaluate_gate
-from tmon.engine.portfolio import select_portfolio
-from tmon.engine.service import train_and_publish
 from tmon.features.builder import get_feature_set
 from tmon.models.explain import contributions, top_reasons
 from tmon.models.lgbm import BucketTable, LightGBMStrategy, _matrix, build_buckets
-from tmon.storage.models import ModelRun, Signal, SignalNote
-from tmon.storage.objectstore import MemoryStore
 from tmon.storage.seed import seed_rulebook
 
 RULES = seed_rulebook()
@@ -269,81 +264,6 @@ def test_top_reasons_are_the_five_strongest_contributions(fitted):
         assert {e["feature"] for e in r} <= set(get_feature_set("D1").columns)
 
 
-# --- portfolio constraints -------------------------------------------------------------------
-
-
-def _returns(n_days: int, series: dict[int, np.ndarray]) -> pl.DataFrame:
-    days = [date(2025, 1, 1) + timedelta(days=i) for i in range(n_days)]
-    return pl.DataFrame(
-        {
-            "instrument_id": [i for i, s in series.items() for _ in s],
-            "date": [d for s in series.values() for d in days[: len(s)]],
-            "ret_1": [v for s in series.values() for v in s],
-        }
-    )
-
-
-def _cands(rows: list[tuple[int, float, float, str, float]]) -> pl.DataFrame:
-    return pl.DataFrame(
-        rows,
-        schema=["instrument_id", "ev", "weight", "sector_code", "median_value_20"],
-        orient="row",
-    )
-
-
-CAPITAL = 1e9
-BIG = 1e12  # liquid enough that the liquidity cap never binds
-
-
-def test_correlated_candidate_with_lower_ev_is_dropped():
-    rng = np.random.default_rng(0)
-    base = rng.normal(size=60)
-    rets = _returns(60, {1: base, 2: base + rng.normal(size=60) * 0.01, 3: rng.normal(size=60)})
-    cands = _cands(
-        [(1, 0.05, 0.05, "a", BIG), (2, 0.04, 0.05, "b", BIG), (3, 0.03, 0.05, "c", BIG)]
-    )
-    sel, dropped = select_portfolio(cands, rets, capital=CAPITAL)
-    assert sel["instrument_id"].to_list() == [1, 3]
-    assert dropped["instrument_id"].to_list() == [2] and dropped["reason"][0] == "correlation"
-
-
-def test_sector_cap_trims_and_then_drops():
-    rng = np.random.default_rng(1)
-    rets = _returns(60, {i: rng.normal(size=60) for i in (1, 2, 3, 4)})
-    cands = _cands([(i, 0.1 - i / 100, 0.10, "same", BIG) for i in (1, 2, 3, 4)])
-    sel, dropped = select_portfolio(cands, rets, capital=CAPITAL, max_positions=10)
-    cap = CFG.sizing.sector_cap_pct
-    assert sel["position_pct"].sum() == pytest.approx(cap)  # 0.10 + 0.10 + 0.05 trimmed
-    assert sel["position_pct"].to_list()[-1] == pytest.approx(cap - 0.2)
-    assert dropped["reason"].to_list() == ["sector_cap"]
-
-
-def test_liquidity_cap_limits_position_size():
-    rng = np.random.default_rng(2)
-    rets = _returns(60, {1: rng.normal(size=60)})
-    # 5% of a 10bn median value is 500m = 50% of 1bn capital -> weight stays; 1bn median -> 5%
-    thin = _cands([(1, 0.05, 0.10, "a", 1e9)])
-    sel, _ = select_portfolio(thin, rets, capital=CAPITAL)
-    assert sel["position_pct"][0] == pytest.approx(
-        CFG.sizing.liquidity_cap_of_median_value * 1e9 / CAPITAL
-    )
-
-
-def test_illiquid_candidate_is_dropped_and_positions_are_limited():
-    rng = np.random.default_rng(3)
-    rets = _returns(60, {i: rng.normal(size=60) for i in range(1, 9)})
-    cands = _cands(
-        [(i, 0.2 - i / 100, 0.02, f"s{i}", BIG) for i in range(1, 8)] + [(8, 0.0, 0.05, "z", 0.0)]
-    )
-    sel, dropped = select_portfolio(cands, rets, capital=CAPITAL)
-    assert sel.height == CFG.backtest.max_new_positions_per_day
-    reasons = dict(
-        zip(dropped["instrument_id"].to_list(), dropped["reason"].to_list(), strict=True)
-    )
-    assert reasons[8] == "liquidity" and reasons[6] == "max_positions"
-    assert sel["rank"].to_list() == list(range(1, sel.height + 1))
-
-
 # --- gate ---------------------------------------------------------------------------------------
 
 
@@ -375,132 +295,3 @@ def test_brier_monitor_trips_at_twenty_percent_degradation():
     b = float(np.mean((p - y) ** 2))
     assert not brier_degraded(p, y, b * 0.95 + 1e-9)  # within tolerance
     assert brier_degraded(p, y, b / 1.3)  # recent is 30% worse than the backtest
-
-
-# --- service ------------------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="module")
-def market():
-    return make_market(700, 30, seed=11, edge=0.03)
-
-
-def test_service_publishes_nothing_honestly_when_thresholds_are_not_met(session, market):
-    store = MemoryStore()
-    res = train_and_publish(session, store, inputs=market, rules=RULES)
-    session.commit()
-    assert res.n_recommended == 0 and "توصیه‌ای" in res.message
-    assert session.scalars(select(Signal)).all() == []
-    note = session.scalars(select(SignalNote)).one()
-    assert note.n_recommended == 0 and note.date == res.as_of
-    assert res.gate is not None and not res.gate.tier_a_allowed and res.gate.reasons
-    assert any(k[1].endswith(".parquet") for k in store.objects)  # snapshot stored
-
-
-def test_service_persists_signals_with_levels_reasons_and_snapshot(session, market):
-    loose = CFG.model_copy(
-        update={
-            "thresholds": CFG.thresholds.model_copy(
-                update={
-                    "margin": -1.0,
-                    "p_floor": 0.15,
-                    "ev_min_abs": 0.0,
-                    "min_bucket_samples": 20,
-                }
-            )
-        }
-    )
-    store = MemoryStore()
-    res = train_and_publish(session, store, inputs=market, rules=RULES, cfg=loose)
-    session.commit()
-    rows = session.scalars(select(Signal).order_by(Signal.rank)).all()
-    if not rows:
-        pytest.skip("this seed produced no EV-positive candidate on the last day")
-    assert len(rows) == res.n_recommended <= CFG.backtest.max_new_positions_per_day
-    for s in rows:
-        assert s.stop_loss < s.entry_price < s.take_profit
-        assert s.horizon_days == 3 and s.entry_rule == "open_next_day"
-        assert 0 < s.position_pct <= CFG.sizing.max_position_pct
-        assert len(s.top_reasons) == 5 and "feature" in s.top_reasons[0]
-        assert s.confidence_tier in {"A", "B", "C"}
-        assert s.confidence_tier != "A"  # gate closed: no tier A without beating the baseline
-        assert s.data_snapshot_id == res.data_snapshot_id and s.model_version == res.model_version
-    assert [s.rank for s in rows] == list(range(1, len(rows) + 1))
-    assert [s.ev for s in rows] == sorted((s.ev for s in rows), reverse=True)
-    run = session.scalars(select(ModelRun)).one()
-    assert run.version == res.model_version and run.metrics["gate"]["tier_a_allowed"] is False
-    assert run.artifact_uri in {k[1] for k in store.objects}
-
-
-def test_service_is_idempotent_for_the_same_day(session, market):
-    store = MemoryStore()
-    a = train_and_publish(session, store, inputs=market, rules=RULES)
-    b = train_and_publish(session, store, inputs=market, rules=RULES)
-    session.commit()
-    assert a.model_version == b.model_version  # deterministic training, same snapshot
-    assert len(session.scalars(select(SignalNote)).all()) == 1
-    assert len(session.scalars(select(ModelRun)).all()) == 1
-
-
-def test_service_with_no_prices_says_so(session):
-    empty = pl.DataFrame(schema={"instrument_id": pl.Int64, "date": pl.Date})
-    res = train_and_publish(session, MemoryStore(), inputs=(empty, empty, empty), rules=RULES)
-    assert res.as_of is None and res.n_recommended == 0 and res.message
-
-
-def test_later_run_resolves_earlier_pending_signals(session, market):
-    """Regression: resolving outcomes must UPDATE existing signals (a partial-row upsert violates
-    the NOT NULL constraints)."""
-    prices, clients, sectors = market
-    loose = CFG.model_copy(
-        update={
-            "thresholds": CFG.thresholds.model_copy(
-                update={
-                    "margin": -1.0,
-                    "p_floor": 0.15,
-                    "ev_min_abs": 0.0,
-                    "min_bucket_samples": 20,
-                }
-            )
-        }
-    )
-    dates = prices["date"].unique().sort().to_list()
-    for d in (dates[-12], dates[-1]):
-        cut = (prices.filter(pl.col("date") <= d), clients.filter(pl.col("date") <= d), sectors)
-        train_and_publish(session, MemoryStore(), inputs=cut, rules=RULES, cfg=loose)
-        session.commit()
-    rows = session.scalars(select(Signal).where(Signal.date == dates[-12])).all()
-    if not rows:
-        pytest.skip("this seed produced no candidate on the earlier day")
-    assert any(s.outcome != "pending" and s.outcome_date is not None for s in rows)
-
-
-@pytest.mark.parametrize("timeframe", ["W1", "M1"])
-def test_weekly_and_monthly_models_train_and_publish_on_their_own_horizon(session, timeframe):
-    # 900 days leave room for the 60-day M1 horizon, its embargo and several walk-forward folds.
-    market = make_market(900, 30, seed=13, edge=0.03)
-    loose = CFG.model_copy(
-        update={
-            "thresholds": CFG.thresholds.model_copy(
-                update={
-                    "margin": -1.0,
-                    "p_floor": 0.0,
-                    "ev_min_abs": -1.0,
-                    "min_bucket_samples": 20,
-                }
-            )
-        }
-    )
-    res = train_and_publish(
-        session, MemoryStore(), inputs=market, rules=RULES, cfg=loose, timeframe=timeframe
-    )
-    session.commit()
-    assert res.model_version and res.model_version.startswith(f"lgbm-{timeframe.lower()}-")
-    run = session.scalars(select(ModelRun).where(ModelRun.timeframe == timeframe)).one()
-    assert run.feature_set_version == get_feature_set(timeframe).key
-    note = session.scalars(select(SignalNote).where(SignalNote.timeframe == timeframe)).one()
-    assert note.date == res.as_of
-    horizon = CFG.labeling.timeframes[timeframe].horizon_days
-    for s in session.scalars(select(Signal).where(Signal.timeframe == timeframe)):
-        assert s.horizon_days == horizon
-        assert s.stop_loss < s.entry_price < s.take_profit

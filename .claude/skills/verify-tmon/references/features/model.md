@@ -7,7 +7,8 @@
 - order-book research.
 
 Sources are the `v2/*.json` documents written by `tools/*`, served by `/research/*`. The v1
-sections (calibration, live accuracy, signal history) were removed on 2026-11-18.
+sections (calibration, live accuracy, signal history) and their API (`/recommendations`,
+`/metrics/*`, `/signals/history`) were removed on 2026-11-18; those URLs now answer 404.
 
 **How a user reaches it:** the navigation, or the old `/accuracy`, `/calibration` and `/history`
 URLs.

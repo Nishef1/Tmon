@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 
 from tmon.api.entry import entry_doc, entry_out
 from tmon.api.returns import day_change
-from tmon.api.routers.recommendations import instrument_out
 from tmon.api.schemas import (
     DashDecision,
     DashDrivers,
@@ -39,6 +38,7 @@ from tmon.api.schemas import (
     TurningState,
     TurningTrigger,
     TurningWarning,
+    instrument_out,
 )
 from tmon.api.technical import ta_doc, technical_out
 from tmon.api.trade_state import market_days, trade_state

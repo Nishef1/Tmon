@@ -1,6 +1,6 @@
 """When the daily cycle is due, derived from ``market_rules`` (no hours written in code).
 
-The cycle (EOD ingest, indices and risk-free refresh, features, publish with outcome resolution)
+The cycle (EOD ingest, indices and risk-free refresh, features, the live algorithm and autopilot)
 becomes due ``eod_delay_minutes`` after the day's last session ends. The last session is the
 closing session (``closing_session_tal``) when that rule is valid on the day, else the main
 ``trading_hours`` close. Both come from the rule book, with their validity dates. Beat only wakes

@@ -127,8 +127,8 @@ export interface paths {
     };
     /**
      * Instrument Detail
-     * @description Adjusted daily candles (never raw prices), the latest stored features and this symbol's
-     *     published signals.
+     * @description Adjusted daily candles (never raw prices), the latest stored features, corporate events,
+     *     Codal letters, news and shareholders.
      */
     get: operations["instrument_detail_instruments__instrument_id__get"];
     put?: never;
@@ -254,48 +254,6 @@ export interface paths {
     };
     /** Overview */
     get: operations["overview_market_overview_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/metrics/calibration": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Calibration
-     * @description Calibration of the latest model: out-of-sample (walk-forward backtest) and live (the
-     *     signals actually published and since resolved).
-     */
-    get: operations["calibration_metrics_calibration_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/metrics/live": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Live Accuracy
-     * @description Live accuracy of published signals by signal date, and the state of the Brier kill
-     *     switch (docs/10 section 9) and defensive mode (section 10).
-     */
-    get: operations["live_accuracy_metrics_live_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -702,27 +660,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/recommendations": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Recommendations
-     * @description The day's ranked list, or an explicit "no recommendation" (the normal outcome whenever
-     *     nothing passes the thresholds). ``date`` defaults to the latest day with a recorded run.
-     */
-    get: operations["recommendations_recommendations_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/research/adapt": {
     parameters: {
       query?: never;
@@ -863,8 +800,7 @@ export interface paths {
     /**
      * Screener
      * @description Every symbol that traded on the latest stored day, with its market data, a few features
-     *     and the latest model output for ``timeframe``. The model output is a diagnostic: only rows
-     *     on /recommendations are published recommendations.
+     *     and the verdict of the v2 ranking.
      */
     get: operations["screener_screener_get"];
     put?: never;
@@ -884,27 +820,6 @@ export interface paths {
     };
     /** Search */
     get: operations["search_search_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/signals/history": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Signal History
-     * @description Published signals, newest first, each with its realised outcome once the label window
-     *     has closed. ``realized_return`` is the gross barrier return, before costs.
-     */
-    get: operations["signal_history_signals_history_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1492,65 +1407,6 @@ export interface components {
       kind: string;
       /** Method */
       method: string;
-    };
-    /** CalibrationBlock */
-    CalibrationBlock: {
-      /** Auc */
-      auc: number | null;
-      /** Base Rate */
-      base_rate: number | null;
-      /** Brier */
-      brier: number | null;
-      /** Brier Base Rate */
-      brier_base_rate: number | null;
-      /** Brier Skill */
-      brier_skill: number | null;
-      /**
-       * Buckets
-       * @default []
-       */
-      buckets: components["schemas"]["CalibrationBucket"][];
-      /** N */
-      n: number;
-    };
-    /** CalibrationBucket */
-    CalibrationBucket: {
-      /** Bucket */
-      bucket: string;
-      /** Hit Rate */
-      hit_rate: number | null;
-      /** Mean P */
-      mean_p: number | null;
-      /** N */
-      n: number;
-    };
-    /** CalibrationOut */
-    CalibrationOut: {
-      backtest: components["schemas"]["CalibrationBlock"] | null;
-      /**
-       * Disclaimer
-       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
-       */
-      disclaimer: string;
-      /**
-       * Extra
-       * @default {}
-       */
-      extra: {
-        [key: string]: unknown;
-      };
-      gate: components["schemas"]["GateOut"] | null;
-      live: components["schemas"]["CalibrationBlock"];
-      /** Model Version */
-      model_version: string | null;
-      /** Supported */
-      supported: boolean;
-      /** Timeframe */
-      timeframe: string;
-      /** Trained Through */
-      trained_through: string | null;
-      /** Warnings */
-      warnings: string[];
     };
     /** Candle */
     Candle: {
@@ -2451,55 +2307,6 @@ export interface components {
       prices_ok: boolean;
     };
     /**
-     * DiagnosisOut
-     * @description Exact numbers behind a day with few or no recommendations.
-     */
-    DiagnosisOut: {
-      /** Binding */
-      binding: string | null;
-      /** Dropped By Portfolio */
-      dropped_by_portfolio: {
-        [key: string]: number;
-      };
-      /** Ev Min Abs */
-      ev_min_abs: number;
-      /** Margin */
-      margin: number;
-      /** Min Bucket Samples */
-      min_bucket_samples: number;
-      /** Nearest */
-      nearest: components["schemas"]["NearMiss"][];
-      /** P Floor */
-      p_floor: number;
-      /** Stages */
-      stages: components["schemas"]["FunnelStage"][];
-      stats: components["schemas"]["DiagnosisStats"];
-      /** Universe */
-      universe: number;
-    };
-    /** DiagnosisStats */
-    DiagnosisStats: {
-      /** Ev Max */
-      ev_max: number | null;
-      /** Ev Median */
-      ev_median: number | null;
-      /**
-       * N Distinct P Win
-       * @default 0
-       */
-      n_distinct_p_win: number;
-      /** N Ev Positive */
-      n_ev_positive: number;
-      /** P Breakeven Median */
-      p_breakeven_median: number | null;
-      /** P Min Median */
-      p_min_median: number | null;
-      /** P Win Max */
-      p_win_max: number | null;
-      /** P Win Median */
-      p_win_median: number | null;
-    };
-    /**
      * DriverMove
      * @description The stock against the index in the 20 trading days after one dated shock.
      */
@@ -2748,29 +2555,6 @@ export interface components {
       /** Nav Date */
       nav_date: string | null;
     };
-    /** FunnelStage */
-    FunnelStage: {
-      /**
-       * Alone
-       * @default 0
-       */
-      alone: number;
-      /** Count */
-      count: number;
-      /** Key */
-      key: string;
-      /** Label */
-      label: string;
-      /** Lost */
-      lost: number;
-    };
-    /** GateOut */
-    GateOut: {
-      /** Reasons */
-      reasons: string[];
-      /** Tier A Allowed */
-      tier_a_allowed: boolean;
-    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -2793,42 +2577,6 @@ export interface components {
       /** Newest */
       newest: string | null;
       refill: components["schemas"]["RefillOut"] | null;
-    };
-    /** HistoryOut */
-    HistoryOut: {
-      /**
-       * Disclaimer
-       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
-       */
-      disclaimer: string;
-      /** Items */
-      items: components["schemas"]["SignalOut"][];
-      /** Limit */
-      limit: number;
-      /** Offset */
-      offset: number;
-      summary: components["schemas"]["HistorySummary"];
-      /** Timeframe */
-      timeframe: string;
-      /** Total */
-      total: number;
-    };
-    /** HistorySummary */
-    HistorySummary: {
-      /** Expired */
-      expired: number;
-      /** Mean Realized Return */
-      mean_realized_return: number | null;
-      /** Pending */
-      pending: number;
-      /** Resolved */
-      resolved: number;
-      /** Stop Loss */
-      stop_loss: number;
-      /** Take Profit */
-      take_profit: number;
-      /** Total */
-      total: number;
     };
     /**
      * HoldingIn
@@ -3097,8 +2845,6 @@ export interface components {
       shareholders: components["schemas"]["ShareholderOut"][];
       /** Shareholders At */
       shareholders_at: string | null;
-      /** Signals */
-      signals: components["schemas"]["SignalOut"][];
     };
     /** InstrumentOut */
     InstrumentOut: {
@@ -3147,58 +2893,6 @@ export interface components {
       have: number | null;
       /** Kind */
       kind: string;
-    };
-    /** LiveAccuracyOut */
-    LiveAccuracyOut: {
-      /** As Of */
-      as_of: string | null;
-      /** Backtest Brier */
-      backtest_brier: number | null;
-      /** Days */
-      days: components["schemas"]["LiveDayOut"][];
-      /** Defensive Mode */
-      defensive_mode: boolean | null;
-      /** Degradation Limit */
-      degradation_limit: number;
-      /**
-       * Disclaimer
-       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
-       */
-      disclaimer: string;
-      /** Hit Rate */
-      hit_rate: number | null;
-      /** Kill Switch Active */
-      kill_switch_active: boolean;
-      /** Mean P */
-      mean_p: number | null;
-      /** Pending */
-      pending: number;
-      /** Recent Brier */
-      recent_brier: number | null;
-      /** Recent Days */
-      recent_days: number;
-      /** Recent N */
-      recent_n: number;
-      /** Resolved */
-      resolved: number;
-      /** Timeframe */
-      timeframe: string;
-    };
-    /** LiveDayOut */
-    LiveDayOut: {
-      /** Brier */
-      brier: number;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Hits */
-      hits: number;
-      /** Mean P */
-      mean_p: number;
-      /** N */
-      n: number;
     };
     /**
      * LiveFlowOut
@@ -3507,22 +3201,6 @@ export interface components {
       amount?: number | null;
       /** Isin */
       isin: string;
-    };
-    /** NearMiss */
-    NearMiss: {
-      /** Bucket N */
-      bucket_n: number;
-      /** Ev */
-      ev: number;
-      /** Failed */
-      failed: string[];
-      instrument: components["schemas"]["InstrumentOut"] | null;
-      /** P Min */
-      p_min: number | null;
-      /** P Win */
-      p_win: number;
-      /** Shortfall */
-      shortfall: number | null;
     };
     /** OrderbookResearchOut */
     OrderbookResearchOut: {
@@ -4076,40 +3754,6 @@ export interface components {
       /** Horizon Days */
       horizon_days: number;
     };
-    /** Reason */
-    Reason: {
-      /** Contribution */
-      contribution: number;
-      /** Feature */
-      feature: string;
-      /** Value */
-      value: number | null;
-    };
-    /** RecommendationsOut */
-    RecommendationsOut: {
-      /** Available Dates */
-      available_dates: string[];
-      /** Date */
-      date: string | null;
-      diagnosis: components["schemas"]["DiagnosisOut"] | null;
-      /**
-       * Disclaimer
-       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
-       */
-      disclaimer: string;
-      gate: components["schemas"]["GateOut"] | null;
-      /** Message */
-      message: string;
-      /** No Recommendation */
-      no_recommendation: boolean;
-      run: components["schemas"]["RunOut"] | null;
-      /** Signals */
-      signals: components["schemas"]["SignalOut"][];
-      /** Supported */
-      supported: boolean;
-      /** Timeframe */
-      timeframe: string;
-    };
     /** RefillOut */
     RefillOut: {
       /** Finished At */
@@ -4244,54 +3888,16 @@ export interface components {
       /** Plan */
       plan: number;
     };
-    /** RunOut */
-    RunOut: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Data Snapshot Id */
-      data_snapshot_id: string;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Defensive Mode */
-      defensive_mode: boolean;
-      /** Message */
-      message: string | null;
-      /** Model Version */
-      model_version: string;
-      /** N Candidates */
-      n_candidates: number;
-      /** N Recommended */
-      n_recommended: number;
-    };
     /** ScreenerOut */
     ScreenerOut: {
       /** Flow Date */
       flow_date: string | null;
-      /**
-       * Gate Reasons
-       * @default []
-       */
-      gate_reasons: string[];
-      /** Model Version */
-      model_version: string | null;
       /** Prices Date */
       prices_date: string | null;
       /** Ranking Date */
       ranking_date: string | null;
       /** Rows */
       rows: components["schemas"]["ScreenerRow"][];
-      /** Scores Date */
-      scores_date: string | null;
-      /** Tier A Allowed */
-      tier_a_allowed: boolean | null;
-      /** Timeframe */
-      timeframe: string;
       /** Total */
       total: number;
       /**
@@ -4304,8 +3910,7 @@ export interface components {
     };
     /**
      * ScreenerRow
-     * @description One symbol on the latest trading day: market data, a few features and, when a scores
-     *     artifact exists, the model's raw output. ``signal`` true means it passed every threshold.
+     * @description One symbol on the latest trading day: market data, a few features and its verdict.
      */
     ScreenerRow: {
       /** Atr 14 Pct */
@@ -4322,8 +3927,6 @@ export interface components {
       code: string | null;
       /** Eps */
       eps: number | null;
-      /** Ev */
-      ev: number | null;
       /** From Year High */
       from_year_high: number | null;
       /** From Year Low */
@@ -4353,10 +3956,6 @@ export interface components {
       meeting_date: string | null;
       /** Net Real Value */
       net_real_value: number | null;
-      /** P Min */
-      p_min: number | null;
-      /** P Win */
-      p_win: number | null;
       /** Pe */
       pe: number | null;
       /** Per Capita Buy */
@@ -4367,8 +3966,6 @@ export interface components {
       power: number | null;
       /** Rank */
       rank: number | null;
-      /** Reasons */
-      reasons: components["schemas"]["Reason"][] | null;
       /** Rel Volume */
       rel_volume: number | null;
       /** Ret 3M */
@@ -4389,8 +3986,6 @@ export interface components {
       sector_pe: number | null;
       /** Shares */
       shares: number | null;
-      /** Signal */
-      signal: boolean | null;
       /** Trades */
       trades: number | null;
       /** Value */
@@ -4488,56 +4083,6 @@ export interface components {
       percent: number | null;
       /** Shares */
       shares: number | null;
-    };
-    /** SignalOut */
-    SignalOut: {
-      /** Confidence Tier */
-      confidence_tier: string;
-      /** Data Snapshot Id */
-      data_snapshot_id: string;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Entry Price */
-      entry_price: number;
-      /** Entry Rule */
-      entry_rule: string;
-      /** Ev */
-      ev: number;
-      /** Horizon Days */
-      horizon_days: number;
-      /** Id */
-      id: number;
-      instrument: components["schemas"]["InstrumentOut"];
-      /** Model Version */
-      model_version: string;
-      /**
-       * Outcome
-       * @default pending
-       */
-      outcome: string;
-      /** Outcome Date */
-      outcome_date: string | null;
-      /** P Win */
-      p_win: number;
-      /** Position Pct */
-      position_pct: number;
-      /** Rank */
-      rank: number;
-      /** Realized Return */
-      realized_return: number | null;
-      /** Risks */
-      risks: string[];
-      /** Stop Loss */
-      stop_loss: number;
-      /** Take Profit */
-      take_profit: number;
-      /** Timeframe */
-      timeframe: string;
-      /** Top Reasons */
-      top_reasons: components["schemas"]["Reason"][];
     };
     /** StepOut */
     StepOut: {
@@ -5241,68 +4786,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MarketOverviewOut"];
-        };
-      };
-    };
-  };
-  calibration_metrics_calibration_get: {
-    parameters: {
-      query?: {
-        timeframe?: "D1" | "W1" | "M1";
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CalibrationOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  live_accuracy_metrics_live_get: {
-    parameters: {
-      query?: {
-        timeframe?: "D1" | "W1" | "M1";
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LiveAccuracyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -6239,38 +5722,6 @@ export interface operations {
       };
     };
   };
-  recommendations_recommendations_get: {
-    parameters: {
-      query?: {
-        timeframe?: "D1" | "W1" | "M1";
-        date?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RecommendationsOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   adapt_research_adapt_get: {
     parameters: {
       query?: never;
@@ -6394,10 +5845,7 @@ export interface operations {
   screener_screener_get: {
     parameters: {
       query?: {
-        timeframe?: "D1" | "W1" | "M1";
         sort?:
-          | "ev"
-          | "p_win"
           | "value"
           | "change_pct"
           | "ind_buy_power"
@@ -6460,41 +5908,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SearchOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  signal_history_signals_history_get: {
-    parameters: {
-      query?: {
-        timeframe?: "D1" | "W1" | "M1";
-        instrument_id?: number | null;
-        outcome?: string | null;
-        limit?: number;
-        offset?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HistoryOut"];
         };
       };
       /** @description Validation Error */

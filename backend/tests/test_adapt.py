@@ -204,7 +204,7 @@ def test_the_daily_cycle_redoes_the_replay_only_when_it_is_old() -> None:
 def test_the_adapt_step_is_in_the_daily_cycle_and_optional() -> None:
     from tmon.tasks.cycle import default_steps
 
-    steps = {s.name: s for s in default_steps(("1d",))}
+    steps = {s.name: s for s in default_steps()}
     assert "adapt" in steps and steps["adapt"].required is False
 
 

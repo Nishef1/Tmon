@@ -1,5 +1,5 @@
-"""One command for the REAL thing, without Docker: live TSETMC data -> features -> model ->
-signals -> API + web UI, with the portfolio monitor (intraday + exit alerts) in the background.
+"""One command for the REAL thing, without Docker: live TSETMC data -> features ->
+API + web UI, with the portfolio monitor (intraday + exit alerts) in the background.
 
     backend/.venv/Scripts/python.exe backend/scripts/run_live.py [options]
 
@@ -98,17 +98,13 @@ def main() -> None:
         print("→ refreshing the last days…")
         py("-m", "tmon.ingest.tsetmc.cli", "eod")
 
-    print("→ computing features and publishing today's signals…")
+    print("→ computing features…")
     py(
         "-c",
         "from tmon.core.db import session_scope;"
         "from tmon.features.store import refresh_features;"
-        "from tmon.engine.service import train_and_publish;"
-        "from tmon.storage.objectstore import get_object_store;"
         "s=session_scope().__enter__();"
-        "print('feature rows', refresh_features(s,'D1'));s.commit();"
-        "r=train_and_publish(s,get_object_store());s.commit();"
-        "print(r.as_of, 'recommended', r.n_recommended, '-', r.message)",
+        "print('feature rows', refresh_features(s,'D1'));s.commit()",
     )
 
     if not (demo.FRONTEND / ".next" / "BUILD_ID").exists():

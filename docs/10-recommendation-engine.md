@@ -2,7 +2,7 @@
 
 ## آنچه سایت امروز نشان می‌دهد (به‌روز: ۲۶ آبان ۱۴۰۵؛ حکم دوسطحی: ۲۷ آبان ۱۴۰۵)
 
-دو مسیر کنار هم اجرا می‌شوند. تصمیمی که کاربر می‌بیند از **رتبه‌بندی v2** می‌آید. مسیر **v1** (بخش‌های ۱ تا ۱۰ این سند) هر روز آموزش می‌بیند و منتشر می‌شود، ولی از معیار پذیرش رد شده است ([D1](reports/m4-lgbm-d1-real.md)، [W1](reports/m4-lgbm-w1-real.md)، [M1](reports/m4-lgbm-m1-real.md)) و از ۲۸ آبان ۱۴۰۵ هیچ صفحه‌ای آن را نشان نمی‌دهد ([تصمیم](reports/ml-models-2026-11.md)). نشانی‌های قدیمی `/history`، `/accuracy` و `/calibration` به `/model` می‌روند؛ API آن (`/recommendations`، `/metrics/*`، `/signals/history`) هنوز هست.
+دو مسیر کنار هم اجرا می‌شوند. تصمیمی که کاربر می‌بیند از **رتبه‌بندی v2** می‌آید. مسیر **v1** (بخش‌های ۱ تا ۱۰ این سند) از معیار پذیرش رد شده است ([D1](reports/m4-lgbm-d1-real.md)، [W1](reports/m4-lgbm-w1-real.md)، [M1](reports/m4-lgbm-m1-real.md)). از ۲۸ آبان ۱۴۰۵ دیگر هر روز آموزش نمی‌بیند، API آن (`/recommendations`، `/metrics/*`، `/signals/history`) حذف شده و هیچ صفحه‌ای آن را نشان نمی‌دهد ([تصمیم](reports/ml-models-2026-11.md)). جدول‌های `signals`، `signal_notes` و `model_runs` فقط به‌عنوان سابقه مانده‌اند. نشانی‌های قدیمی `/history`، `/accuracy` و `/calibration` به `/model` می‌روند. این بخش‌ها روش v1 را برای پژوهش و بک‌تست توضیح می‌دهند.
 
 ### رتبه‌بندی v2 (`tools/v2_ranking.py` ← `v2/ranking.json` ← `/v2/ranking`)
 

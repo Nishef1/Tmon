@@ -1,5 +1,5 @@
-"""The daily cycle: EOD ingest -> index and risk-free refresh -> features -> publish (which also
-resolves the outcomes of earlier signals).
+"""The daily cycle: EOD ingest -> index and risk-free refresh -> order book, macro, news ->
+features -> the live algorithm and its autopilot.
 
 ``daily_cycle_tick`` (every few minutes from beat) calls :func:`tick`: if the cycle of today is due
 (``tmon.tasks.schedule``) and nobody has claimed it, it claims it in Redis and runs it. A claim is
@@ -103,16 +103,12 @@ def eod_full_today(now: datetime | None = None) -> bool:
     return (now or utcnow()).astimezone(TEHRAN).weekday() == FULL_EOD_WEEKDAY
 
 
-def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
+def default_steps() -> list[Step]:
     """The production steps (imports are lazy: they pull in the whole backend).
 
-    One publish step per timeframe in ``engine.yaml: publish_timeframes``. The first (D1) is
-    required; later ones are optional so a weaker horizon never blocks the main product.
+    The v1 probability model is no longer trained or published (2026-11-18,
+    docs/reports/ml-models-2026-11.md); the v2 ranking is built by ``tmon.tools.v2_ranking``.
     """
-    if timeframes is None:
-        from tmon.core.engine_config import get_engine_config
-
-        timeframes = get_engine_config().publish_timeframes
 
     def ingest() -> Any:
         from tmon.ingest.tsetmc.pipeline import ingest_end_of_day
@@ -157,7 +153,7 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         from tmon.features.store import refresh_features
 
         with session_scope() as session:
-            return refresh_features(session, timeframes[0])
+            return refresh_features(session, "D1")
 
     def adapt() -> Any:
         from tmon.tools.adapt_cycle import run
@@ -168,24 +164,6 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         from tmon.tools.autopilot import run
 
         return run()
-
-    def publisher(timeframe: str) -> Callable[[], Any]:
-        def publish() -> Any:
-            from tmon.core.db import session_scope
-            from tmon.engine.service import train_and_publish
-            from tmon.storage.objectstore import get_object_store
-
-            with session_scope() as session:
-                res = train_and_publish(session, get_object_store(), timeframe=timeframe)
-            return {
-                "timeframe": timeframe,
-                "date": str(res.as_of),
-                "model_version": res.model_version,
-                "recommended": res.n_recommended,
-                "message": res.message,
-            }
-
-        return publish
 
     return [
         Step("ingest_eod", ingest),
@@ -198,10 +176,6 @@ def default_steps(timeframes: Sequence[str] | None = None) -> list[Step]:
         Step("features", features),
         Step("adapt", adapt, required=False),
         Step("autopilot", autopilot, required=False),
-        *(
-            Step(f"publish_and_resolve_outcomes_{tf}", publisher(tf), required=(i == 0))
-            for i, tf in enumerate(timeframes)
-        ),
     ]
 
 

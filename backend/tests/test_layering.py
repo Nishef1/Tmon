@@ -30,7 +30,7 @@ ALLOWED: dict[str, set[str]] = {
     "core": set(),
     "devtools": {"backtest"},
     "domain": {"storage"},
-    "engine": {"backtest", "core", "domain", "features", "labeling", "models", "storage"},
+    "engine": {"backtest", "core"},
     "features": {"core", "domain", "ingest", "storage"},
     "ingest": {"core", "domain", "features", "storage"},
     "labeling": {"core", "domain", "features"},
@@ -39,7 +39,7 @@ ALLOWED: dict[str, set[str]] = {
     # market_card, meetings._meeting and picks._closes also leave the api package.
     "portfolio": {"api", "core", "domain", "engine", "ingest", "storage", "tasks", "tools"},
     "storage": {"core", "domain"},
-    "tasks": {"core", "domain", "engine", "features", "ingest", "storage", "tools"},
+    "tasks": {"core", "domain", "features", "ingest", "tools"},
     "tools": {"backtest", "core", "domain", "engine", "features", "ingest", "storage"},
 }
 

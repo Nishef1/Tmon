@@ -27,7 +27,7 @@ Docker، Postgres، Redis و Celery کنار گذاشته شده‌اند. ذخ�
 | `features` | ساخت ویژگی‌ها، تعدیل قیمت، اندیکاتورها، تابلو، کیفیت داده |
 | `labeling` | برچسب triple-barrier و نسبی (v1) |
 | `models` | LightGBM، تقسیم walk-forward، توضیح SHAP (v1) |
-| `engine` | انتشار v1 (`service.py`)، دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم، حکم هر نماد (`verdict.py`: توابع خالص روی سندهای ذخیره‌شده) |
+| `engine` | دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم، حکم هر نماد (`verdict.py`: توابع خالص روی سندهای ذخیره‌شده) |
 | `backtest` | بک‌تست و مطالعه‌ها؛ هر گزارش `docs/reports` از یکی از این‌ها می‌آید |
 | `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health` |
 | `portfolio` | پرتفوی: دفتر، مفید، توصیه، پیش‌بینی بازه، هشدار، گزارش پیش از گشایش، پایشگر |
@@ -43,7 +43,7 @@ TSETMC / کدال / fipiran / tgju / yahoo / RSS
   → ingest (+ payload خام در ذخیره‌ساز)
   → prices_daily, client_types_daily, order_book_daily, codal_*, macro_series, news_*
   → features (جدول features)
-  → engine (v1: signals, model_runs)  و  tools (v2/*.json در ذخیره‌ساز)
+  → tools (v2/*.json در ذخیره‌ساز)
   → api → وب
 ```
 
@@ -58,7 +58,7 @@ TSETMC / کدال / fipiran / tgju / yahoo / RSS
 | لحظه‌ای | `intraday_snapshots`، `order_book_snapshots` |
 | رویداد و کدال | `corporate_events`، `share_changes`، `shareholders`، `financial_statements`، `codal_letters`، `codal_reports`، `codal_report_cells` |
 | کلان، صندوق، خبر | `macro_series`، `fund_nav`، `news_raw`، `news_events` |
-| مدل v1 | `features`، `labels`، `model_runs`، `signals`، `signal_runs`، `backtests` |
+| ویژگی و مدل v1 | `features`، `labels`؛ و `model_runs`، `signals`، `signal_runs`، `backtests` که از ۲۸ آبان ۱۴۰۵ فقط سابقه‌اند |
 | پرتفوی | `portfolios`، `holdings`، `portfolio_trades`، `broker_links`، `portfolio_alerts`، `portfolio_briefings`، `tracked_picks` |
 | خام | `raw_payloads` |
 
