@@ -1,0 +1,1699 @@
+{
+ "start": "2023-11-01",
+ "last": "2026-11-17",
+ "mid": "2025-05-10",
+ "runs": {
+  "n": 412,
+  "stocks": 332,
+  "gain_median": 1.9015,
+  "days_median": 117.0,
+  "days_q": [
+   95.0,
+   196.0
+  ],
+  "queue_share_median": 0.1765,
+  "by_start_month": {
+   "2026-02": 147,
+   "2025-08": 75,
+   "2026-05": 31,
+   "2024-08": 23,
+   "2025-09": 22,
+   "2024-10": 18,
+   "2025-07": 15,
+   "2024-06": 13,
+   "2025-03": 11,
+   "2026-07": 10,
+   "2024-11": 10,
+   "2025-04": 6,
+   "2023-11": 4,
+   "2026-06": 4,
+   "2024-05": 4,
+   "2024-07": 4,
+   "2026-01": 3,
+   "2026-08": 2,
+   "2025-10": 2,
+   "2024-03": 2,
+   "2024-02": 2,
+   "2024-12": 1,
+   "2023-12": 1,
+   "2024-01": 1,
+   "2025-11": 1
+  },
+  "caught": 396,
+  "entry_late_median": 0.599,
+  "entry_days_median": 50.0,
+  "exit_vs_high_median": -0.274,
+  "exit_known": 147
+ },
+ "run_sectors": [
+  {
+   "sector": "محصولات شیمیایی",
+   "runs": 49,
+   "share_runs": 0.119,
+   "share_universe": 0.084
+  },
+  {
+   "sector": "مواد و محصولات دارویی",
+   "runs": 39,
+   "share_runs": 0.095,
+   "share_universe": 0.071
+  },
+  {
+   "sector": "فلزات اساسی",
+   "runs": 35,
+   "share_runs": 0.085,
+   "share_universe": 0.071
+  },
+  {
+   "sector": "سیمان، آهک و گچ",
+   "runs": 34,
+   "share_runs": 0.083,
+   "share_universe": 0.063
+  },
+  {
+   "sector": "سرمایه گذاریها",
+   "runs": 29,
+   "share_runs": 0.07,
+   "share_universe": 0.087
+  },
+  {
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "runs": 26,
+   "share_runs": 0.063,
+   "share_universe": 0.066
+  },
+  {
+   "sector": "خودرو و ساخت قطعات",
+   "runs": 23,
+   "share_runs": 0.056,
+   "share_universe": 0.06
+  },
+  {
+   "sector": "فراورده های نفتی، کک و سوخت هسته ای",
+   "runs": 16,
+   "share_runs": 0.039,
+   "share_universe": 0.018
+  },
+  {
+   "sector": "بانکها و موسسات اعتباری",
+   "runs": 16,
+   "share_runs": 0.039,
+   "share_universe": 0.023
+  },
+  {
+   "sector": "انبوه سازی، املاک و مستغلات",
+   "runs": 15,
+   "share_runs": 0.036,
+   "share_universe": 0.045
+  },
+  {
+   "sector": "زراعت و خدمات وابسته",
+   "runs": 14,
+   "share_runs": 0.034,
+   "share_universe": 0.03
+  },
+  {
+   "sector": "سایر محصولات کانی غیرفلزی",
+   "runs": 12,
+   "share_runs": 0.029,
+   "share_universe": 0.029
+  }
+ ],
+ "run_list": [
+  {
+   "instrument_id": 843,
+   "symbol": "فسوژ",
+   "sector": "فلزات اساسی",
+   "low_date": "2024-08-06",
+   "high_date": "2026-11-17",
+   "days": 458,
+   "gain": 18.923,
+   "open": 1.0,
+   "queue_share": 0.2,
+   "entry_late": 0.623,
+   "entry_days": 158,
+   "exit_vs_high": -0.497,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 2672,
+   "symbol": "شکام",
+   "sector": "محصولات شیمیایی",
+   "low_date": "2025-03-18",
+   "high_date": "2026-11-17",
+   "days": 323,
+   "gain": 16.325,
+   "open": 1.0,
+   "queue_share": 0.213,
+   "entry_late": 0.605,
+   "entry_days": 39,
+   "exit_vs_high": -0.424,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 3457,
+   "symbol": "سامان",
+   "sector": "بانکها و موسسات اعتباری",
+   "low_date": "2024-05-27",
+   "high_date": "2026-10-10",
+   "days": 480,
+   "gain": 12.787,
+   "open": 1.0,
+   "queue_share": 0.094,
+   "entry_late": 0.668,
+   "entry_days": 125,
+   "exit_vs_high": -0.716,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 1486,
+   "symbol": "غکورش",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2025-04-09",
+   "high_date": "2026-10-04",
+   "days": 285,
+   "gain": 11.464,
+   "open": 1.0,
+   "queue_share": 0.255,
+   "entry_late": 0.361,
+   "entry_days": 96,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 3596,
+   "symbol": "سپید",
+   "sector": "زراعت و خدمات وابسته",
+   "low_date": "2025-08-13",
+   "high_date": "2026-11-11",
+   "days": 245,
+   "gain": 10.437,
+   "open": 1.0,
+   "queue_share": 0.183,
+   "entry_late": 0.663,
+   "entry_days": 70,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 3690,
+   "symbol": "سباقر",
+   "sector": "سیمان، آهک و گچ",
+   "low_date": "2025-08-30",
+   "high_date": "2026-10-19",
+   "days": 207,
+   "gain": 10.335,
+   "open": 1.0,
+   "queue_share": 0.236,
+   "entry_late": 3.417,
+   "entry_days": 130,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1559,
+   "symbol": "توسن",
+   "sector": "رایانه و فعالیت‌های وابسته به آن",
+   "low_date": "2025-09-24",
+   "high_date": "2026-11-17",
+   "days": 214,
+   "gain": 9.644,
+   "open": 1.0,
+   "queue_share": 0.256,
+   "entry_late": 0.372,
+   "entry_days": 50,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1793,
+   "symbol": "غاذر",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2025-08-16",
+   "high_date": "2026-11-11",
+   "days": 212,
+   "gain": 9.147,
+   "open": 1.0,
+   "queue_share": 0.192,
+   "entry_late": 0.655,
+   "entry_days": 60,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1856,
+   "symbol": "فجر",
+   "sector": "فلزات اساسی",
+   "low_date": "2025-08-13",
+   "high_date": "2026-11-17",
+   "days": 246,
+   "gain": 8.616,
+   "open": 1.0,
+   "queue_share": 0.17,
+   "entry_late": 0.817,
+   "entry_days": 75,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1211,
+   "symbol": "شسپا",
+   "sector": "فراورده های نفتی، کک و سوخت هسته ای",
+   "low_date": "2025-08-30",
+   "high_date": "2026-11-14",
+   "days": 235,
+   "gain": 8.319,
+   "open": 1.0,
+   "queue_share": 0.237,
+   "entry_late": 0.539,
+   "entry_days": 42,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2616,
+   "symbol": "سقاین",
+   "sector": "سیمان، آهک و گچ",
+   "low_date": "2025-08-16",
+   "high_date": "2026-10-20",
+   "days": 228,
+   "gain": 8.039,
+   "open": 1.0,
+   "queue_share": 0.223,
+   "entry_late": 0.531,
+   "entry_days": 44,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2729,
+   "symbol": "دسبحان",
+   "sector": "مواد و محصولات دارویی",
+   "low_date": "2026-02-24",
+   "high_date": "2026-10-25",
+   "days": 102,
+   "gain": 8.036,
+   "open": 1.0,
+   "queue_share": 0.621,
+   "entry_late": 0.775,
+   "entry_days": 20,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2448,
+   "symbol": "فملی",
+   "sector": "فلزات اساسی",
+   "low_date": "2025-08-30",
+   "high_date": "2026-10-13",
+   "days": 213,
+   "gain": 8.001,
+   "open": 1.0,
+   "queue_share": 0.22,
+   "entry_late": 0.486,
+   "entry_days": 27,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1852,
+   "symbol": "فسازان",
+   "sector": "فلزات اساسی",
+   "low_date": "2025-08-13",
+   "high_date": "2026-10-21",
+   "days": 227,
+   "gain": 7.796,
+   "open": 1.0,
+   "queue_share": 0.202,
+   "entry_late": 0.612,
+   "entry_days": 51,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 3499,
+   "symbol": "شپلی",
+   "sector": "محصولات شیمیایی",
+   "low_date": "2025-07-13",
+   "high_date": "2026-09-15",
+   "days": 183,
+   "gain": 7.774,
+   "open": 1.0,
+   "queue_share": 0.315,
+   "entry_late": 0.814,
+   "entry_days": 39,
+   "exit_vs_high": -0.288,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 2752,
+   "symbol": "فسپا",
+   "sector": "فلزات اساسی",
+   "low_date": "2025-08-30",
+   "high_date": "2026-11-11",
+   "days": 235,
+   "gain": 7.755,
+   "open": 1.0,
+   "queue_share": 0.246,
+   "entry_late": 0.718,
+   "entry_days": 132,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 830,
+   "symbol": "حفارس",
+   "sector": "حمل ونقل، انبارداری و ارتباطات",
+   "low_date": "2025-07-14",
+   "high_date": "2026-11-17",
+   "days": 235,
+   "gain": 7.672,
+   "open": 1.0,
+   "queue_share": 0.085,
+   "entry_late": 0.488,
+   "entry_days": 83,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 3896,
+   "symbol": "وپاسار",
+   "sector": "بانکها و موسسات اعتباری",
+   "low_date": "2024-11-06",
+   "high_date": "2026-09-01",
+   "days": 356,
+   "gain": 7.244,
+   "open": 0.0,
+   "queue_share": 0.154,
+   "entry_late": 0.437,
+   "entry_days": 41,
+   "exit_vs_high": -0.473,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 2417,
+   "symbol": "پیزد",
+   "sector": "لاستیک و پلاستیک",
+   "low_date": "2025-08-16",
+   "high_date": "2026-11-17",
+   "days": 242,
+   "gain": 7.121,
+   "open": 1.0,
+   "queue_share": 0.243,
+   "entry_late": 0.307,
+   "entry_days": 43,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 4514,
+   "symbol": "شمواد",
+   "sector": "محصولات شیمیایی",
+   "low_date": "2025-04-05",
+   "high_date": "2026-09-30",
+   "days": 230,
+   "gain": 7.105,
+   "open": 1.0,
+   "queue_share": 0.294,
+   "entry_late": 0.604,
+   "entry_days": 132,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 728,
+   "symbol": "کهمدا",
+   "sector": "سایر محصولات کانی غیرفلزی",
+   "low_date": "2025-08-13",
+   "high_date": "2026-11-10",
+   "days": 239,
+   "gain": 6.842,
+   "open": 1.0,
+   "queue_share": 0.196,
+   "entry_late": 0.738,
+   "entry_days": 112,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2353,
+   "symbol": "وپست",
+   "sector": "بانکها و موسسات اعتباری",
+   "low_date": "2024-03-17",
+   "high_date": "2026-11-17",
+   "days": 529,
+   "gain": 6.837,
+   "open": 1.0,
+   "queue_share": 0.057,
+   "entry_late": 0.31,
+   "entry_days": 135,
+   "exit_vs_high": -0.674,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 2226,
+   "symbol": "غزر",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2025-07-15",
+   "high_date": "2026-11-17",
+   "days": 260,
+   "gain": 6.766,
+   "open": 1.0,
+   "queue_share": 0.13,
+   "entry_late": 0.372,
+   "entry_days": 32,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2897,
+   "symbol": "غشصفا",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2024-10-21",
+   "high_date": "2026-11-01",
+   "days": 412,
+   "gain": 6.701,
+   "open": 1.0,
+   "queue_share": 0.104,
+   "entry_late": 0.445,
+   "entry_days": 116,
+   "exit_vs_high": -0.324,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 1069,
+   "symbol": "کخاک",
+   "sector": "سایر محصولات کانی غیرفلزی",
+   "low_date": "2025-08-13",
+   "high_date": "2026-10-24",
+   "days": 227,
+   "gain": 6.166,
+   "open": 1.0,
+   "queue_share": 0.184,
+   "entry_late": 0.569,
+   "entry_days": 83,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 3063,
+   "symbol": "دزاگرس",
+   "sector": "مواد و محصولات دارویی",
+   "low_date": "2025-09-21",
+   "high_date": "2026-11-15",
+   "days": 205,
+   "gain": 6.087,
+   "open": 1.0,
+   "queue_share": 0.228,
+   "entry_late": 2.073,
+   "entry_days": 111,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1582,
+   "symbol": "غگل",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2024-10-23",
+   "high_date": "2026-11-17",
+   "days": 405,
+   "gain": 5.992,
+   "open": 1.0,
+   "queue_share": 0.049,
+   "entry_late": 0.545,
+   "entry_days": 55,
+   "exit_vs_high": -0.355,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 1166,
+   "symbol": "فن افزار",
+   "sector": "رایانه و فعالیت‌های وابسته به آن",
+   "low_date": "2025-07-02",
+   "high_date": "2026-09-09",
+   "days": 225,
+   "gain": 5.966,
+   "open": 1.0,
+   "queue_share": 0.124,
+   "entry_late": 0.54,
+   "entry_days": 105,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1366,
+   "symbol": "ارفع",
+   "sector": "فلزات اساسی",
+   "low_date": "2025-08-13",
+   "high_date": "2026-10-11",
+   "days": 210,
+   "gain": 5.815,
+   "open": 1.0,
+   "queue_share": 0.251,
+   "entry_late": 0.983,
+   "entry_days": 115,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2442,
+   "symbol": "قاسم",
+   "sector": "خرده فروشی،باستثنای وسایل نقلیه موتوری",
+   "low_date": "2025-08-13",
+   "high_date": "2026-11-17",
+   "days": 243,
+   "gain": 5.798,
+   "open": 1.0,
+   "queue_share": 0.189,
+   "entry_late": 0.287,
+   "entry_days": 37,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1722,
+   "symbol": "غصینو",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2024-08-20",
+   "high_date": "2026-11-17",
+   "days": 460,
+   "gain": 5.743,
+   "open": 1.0,
+   "queue_share": 0.156,
+   "entry_late": 0.67,
+   "entry_days": 94,
+   "exit_vs_high": -0.625,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 3592,
+   "symbol": "کالا",
+   "sector": "فعالیتهای کمکی به نهادهای مالی واسط",
+   "low_date": "2025-08-30",
+   "high_date": "2026-10-10",
+   "days": 213,
+   "gain": 5.712,
+   "open": 1.0,
+   "queue_share": 0.168,
+   "entry_late": 0.444,
+   "entry_days": 29,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1820,
+   "symbol": "هجرت",
+   "sector": "مواد و محصولات دارویی",
+   "low_date": "2025-09-24",
+   "high_date": "2026-11-17",
+   "days": 223,
+   "gain": 5.493,
+   "open": 1.0,
+   "queue_share": 0.268,
+   "entry_late": 0.577,
+   "entry_days": 52,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1751,
+   "symbol": "ثالوند",
+   "sector": "انبوه سازی، املاک و مستغلات",
+   "low_date": "2026-02-25",
+   "high_date": "2026-11-15",
+   "days": 105,
+   "gain": 5.42,
+   "open": 1.0,
+   "queue_share": 0.425,
+   "entry_late": 0.769,
+   "entry_days": 54,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2835,
+   "symbol": "شبهرن",
+   "sector": "فراورده های نفتی، کک و سوخت هسته ای",
+   "low_date": "2025-08-13",
+   "high_date": "2026-11-14",
+   "days": 229,
+   "gain": 5.19,
+   "open": 1.0,
+   "queue_share": 0.204,
+   "entry_late": 0.448,
+   "entry_days": 69,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 1433,
+   "symbol": "دالبر",
+   "sector": "مواد و محصولات دارویی",
+   "low_date": "2026-02-25",
+   "high_date": "2026-10-25",
+   "days": 102,
+   "gain": 5.188,
+   "open": 1.0,
+   "queue_share": 0.437,
+   "entry_late": 0.62,
+   "entry_days": 8,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 2102,
+   "symbol": "غمایه",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "low_date": "2024-06-18",
+   "high_date": "2026-11-17",
+   "days": 503,
+   "gain": 5.181,
+   "open": 1.0,
+   "queue_share": 0.077,
+   "entry_late": 0.367,
+   "entry_days": 211,
+   "exit_vs_high": -0.175,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 3259,
+   "symbol": "ثغرب",
+   "sector": "انبوه سازی، املاک و مستغلات",
+   "low_date": "2026-02-22",
+   "high_date": "2026-10-21",
+   "days": 80,
+   "gain": 5.164,
+   "open": 0.0,
+   "queue_share": 0.593,
+   "entry_late": 0.597,
+   "entry_days": 16,
+   "exit_vs_high": null,
+   "ride_open": true
+  },
+  {
+   "instrument_id": 3262,
+   "symbol": "دتولید",
+   "sector": "مواد و محصولات دارویی",
+   "low_date": "2026-02-24",
+   "high_date": "2026-10-21",
+   "days": 96,
+   "gain": 5.158,
+   "open": 1.0,
+   "queue_share": 0.567,
+   "entry_late": 0.601,
+   "entry_days": 28,
+   "exit_vs_high": -0.23,
+   "ride_open": false
+  },
+  {
+   "instrument_id": 1423,
+   "symbol": "دلقما",
+   "sector": "مواد و محصولات دارویی",
+   "low_date": "2026-02-22",
+   "high_date": "2026-08-23",
+   "days": 57,
+   "gain": 5.088,
+   "open": 1.0,
+   "queue_share": 0.793,
+   "entry_late": 0.843,
+   "entry_days": 22,
+   "exit_vs_high": null,
+   "ride_open": true
+  }
+ ],
+ "features": {
+  "q20": {
+   "cut": [
+    0.0,
+    0.1
+   ],
+   "h1_low": {
+    "n": 621,
+    "big": 0.132,
+    "net": 0.15,
+    "ex": 0.134
+   },
+   "h1_high": {
+    "n": 351,
+    "big": 0.125,
+    "net": 0.101,
+    "ex": 0.073
+   },
+   "h2_low": {
+    "n": 501,
+    "big": 0.259,
+    "net": 0.641,
+    "ex": 0.109
+   },
+   "h2_high": {
+    "n": 1253,
+    "big": 0.215,
+    "net": 0.563,
+    "ex": 0.071
+   }
+  },
+  "vr20": {
+   "cut": [
+    1.112,
+    1.782
+   ],
+   "h1_low": {
+    "n": 472,
+    "big": 0.172,
+    "net": 0.176,
+    "ex": 0.118
+   },
+   "h1_high": {
+    "n": 471,
+    "big": 0.096,
+    "net": 0.046,
+    "ex": 0.069
+   },
+   "h2_low": {
+    "n": 577,
+    "big": 0.321,
+    "net": 0.811,
+    "ex": 0.171
+   },
+   "h2_high": {
+    "n": 895,
+    "big": 0.218,
+    "net": 0.567,
+    "ex": 0.086
+   }
+  },
+  "flow20": {
+   "cut": [
+    -0.0872,
+    0.0302
+   ],
+   "h1_low": {
+    "n": 472,
+    "big": 0.195,
+    "net": 0.229,
+    "ex": 0.16
+   },
+   "h1_high": {
+    "n": 471,
+    "big": 0.123,
+    "net": 0.122,
+    "ex": 0.104
+   },
+   "h2_low": {
+    "n": 580,
+    "big": 0.234,
+    "net": 0.531,
+    "ex": 0.038
+   },
+   "h2_high": {
+    "n": 1053,
+    "big": 0.276,
+    "net": 0.683,
+    "ex": 0.146
+   }
+  },
+  "ret60": {
+   "cut": [
+    0.1565,
+    0.3534
+   ],
+   "h1_low": {
+    "n": 472,
+    "big": 0.197,
+    "net": 0.233,
+    "ex": 0.178
+   },
+   "h1_high": {
+    "n": 471,
+    "big": 0.087,
+    "net": 0.061,
+    "ex": 0.061
+   },
+   "h2_low": {
+    "n": 358,
+    "big": 0.399,
+    "net": 0.93,
+    "ex": 0.198
+   },
+   "h2_high": {
+    "n": 1483,
+    "big": 0.158,
+    "net": 0.462,
+    "ex": 0.058
+   }
+  },
+  "fall250": {
+   "cut": [
+    -0.5189,
+    -0.3996
+   ],
+   "h1_low": {
+    "n": 472,
+    "big": 0.095,
+    "net": 0.081,
+    "ex": 0.064
+   },
+   "h1_high": {
+    "n": 471,
+    "big": 0.172,
+    "net": 0.175,
+    "ex": 0.113
+   },
+   "h2_low": {
+    "n": 1679,
+    "big": 0.175,
+    "net": 0.456,
+    "ex": 0.038
+   },
+   "h2_high": {
+    "n": 194,
+    "big": 0.407,
+    "net": 0.978,
+    "ex": 0.237
+   }
+  },
+  "breadth": {
+   "cut": [
+    0.4781,
+    0.8267
+   ],
+   "h1_low": {
+    "n": 475,
+    "big": 0.211,
+    "net": 0.253,
+    "ex": 0.142
+   },
+   "h1_high": {
+    "n": 468,
+    "big": 0.085,
+    "net": 0.063,
+    "ex": 0.115
+   },
+   "h2_low": {
+    "n": 175,
+    "big": 0.657,
+    "net": 1.751,
+    "ex": 0.494
+   },
+   "h2_high": {
+    "n": 1907,
+    "big": 0.159,
+    "net": 0.436,
+    "ex": 0.066
+   }
+  },
+  "mkt60": {
+   "cut": [
+    -0.0171,
+    0.1225
+   ],
+   "h1_low": {
+    "n": 478,
+    "big": 0.203,
+    "net": 0.24,
+    "ex": 0.135
+   },
+   "h1_high": {
+    "n": 471,
+    "big": 0.093,
+    "net": 0.068,
+    "ex": 0.096
+   },
+   "h2_low": {
+    "n": 96,
+    "big": 0.646,
+    "net": 1.876,
+    "ex": 0.558
+   },
+   "h2_high": {
+    "n": 2095,
+    "big": 0.177,
+    "net": 0.472,
+    "ex": 0.064
+   }
+  },
+  "sales_yoy": {
+   "cut": [
+    0.1262,
+    0.6806
+   ],
+   "h1_low": {
+    "n": 51,
+    "big": 0.059,
+    "net": -0.032,
+    "ex": -0.024
+   },
+   "h1_high": {
+    "n": 50,
+    "big": 0.22,
+    "net": 0.42,
+    "ex": 0.282
+   },
+   "h2_low": {
+    "n": 66,
+    "big": 0.212,
+    "net": 0.531,
+    "ex": 0.106
+   },
+   "h2_high": {
+    "n": 214,
+    "big": 0.299,
+    "net": 0.936,
+    "ex": 0.395
+   }
+  }
+ },
+ "paired": {
+  "q20_low": {
+   "h1": {
+    "months": 19,
+    "diff": 0.0037,
+    "t": 0.15,
+    "closed_diff": 0.0153
+   },
+   "h2": {
+    "months": 17,
+    "diff": -0.1453,
+    "t": -1.99,
+    "closed_diff": -0.0332
+   }
+  },
+  "q20_high": {
+   "h1": {
+    "months": 15,
+    "diff": -0.0506,
+    "t": -1.0,
+    "closed_diff": -0.0456
+   },
+   "h2": {
+    "months": 17,
+    "diff": -0.0516,
+    "t": -0.84,
+    "closed_diff": -0.0583
+   }
+  },
+  "vr20_low": {
+   "h1": {
+    "months": 19,
+    "diff": -0.0135,
+    "t": -0.54,
+    "closed_diff": -0.0007
+   },
+   "h2": {
+    "months": 17,
+    "diff": 0.0495,
+    "t": 0.55,
+    "closed_diff": -0.0099
+   }
+  },
+  "vr20_high": {
+   "h1": {
+    "months": 16,
+    "diff": -0.0572,
+    "t": -1.54,
+    "closed_diff": -0.0499
+   },
+   "h2": {
+    "months": 15,
+    "diff": 0.0289,
+    "t": 0.94,
+    "closed_diff": 0.0062
+   }
+  },
+  "flow20_low": {
+   "h1": {
+    "months": 19,
+    "diff": 0.0191,
+    "t": 0.61,
+    "closed_diff": 0.0418
+   },
+   "h2": {
+    "months": 17,
+    "diff": -0.1405,
+    "t": -2.52,
+    "closed_diff": -0.0229
+   }
+  },
+  "flow20_high": {
+   "h1": {
+    "months": 19,
+    "diff": -0.0014,
+    "t": -0.04,
+    "closed_diff": -0.0147
+   },
+   "h2": {
+    "months": 17,
+    "diff": 0.1641,
+    "t": 1.25,
+    "closed_diff": 0.0194
+   }
+  },
+  "ret60_low": {
+   "h1": {
+    "months": 19,
+    "diff": 0.0768,
+    "t": 2.08,
+    "closed_diff": 0.0596
+   },
+   "h2": {
+    "months": 17,
+    "diff": -0.0237,
+    "t": -0.26,
+    "closed_diff": 0.1027
+   }
+  },
+  "ret60_high": {
+   "h1": {
+    "months": 18,
+    "diff": -0.1105,
+    "t": -2.4,
+    "closed_diff": -0.0577
+   },
+   "h2": {
+    "months": 17,
+    "diff": -0.0173,
+    "t": -0.31,
+    "closed_diff": -0.065
+   }
+  },
+  "fall250_low": {
+   "h1": {
+    "months": 19,
+    "diff": -0.0864,
+    "t": -2.07,
+    "closed_diff": -0.0551
+   },
+   "h2": {
+    "months": 17,
+    "diff": -0.1297,
+    "t": -1.87,
+    "closed_diff": -0.038
+   }
+  },
+  "fall250_high": {
+   "h1": {
+    "months": 16,
+    "diff": 0.0161,
+    "t": 0.4,
+    "closed_diff": -0.0061
+   },
+   "h2": {
+    "months": 14,
+    "diff": -0.0881,
+    "t": -0.59,
+    "closed_diff": 0.0255
+   }
+  },
+  "breadth_low": {
+   "h1": {
+    "months": 15,
+    "diff": -0.028,
+    "t": -1.23,
+    "closed_diff": 0.0217
+   },
+   "h2": {
+    "months": 6,
+    "diff": 0.1375,
+    "t": 1.54,
+    "closed_diff": 0.113
+   }
+  },
+  "breadth_high": {
+   "h1": {
+    "months": 7,
+    "diff": 0.0304,
+    "t": 0.6,
+    "closed_diff": -0.0033
+   },
+   "h2": {
+    "months": 12,
+    "diff": -0.0042,
+    "t": -0.32,
+    "closed_diff": 0.0105
+   }
+  },
+  "mkt60_low": {
+   "h1": {
+    "months": 12,
+    "diff": 0.0068,
+    "t": 0.17,
+    "closed_diff": 0.0161
+   },
+   "h2": {
+    "months": 5,
+    "diff": -0.0104,
+    "t": -0.11,
+    "closed_diff": -0.111
+   }
+  },
+  "mkt60_high": {
+   "h1": {
+    "months": 5,
+    "diff": -0.0035,
+    "t": -0.13,
+    "closed_diff": -0.0215
+   },
+   "h2": {
+    "months": 13,
+    "diff": 0.044,
+    "t": 0.81,
+    "closed_diff": -0.0316
+   }
+  },
+  "sales_yoy_low": {
+   "h1": {
+    "months": 7,
+    "diff": -0.0839,
+    "t": -1.45,
+    "closed_diff": -0.1371
+   },
+   "h2": {
+    "months": 10,
+    "diff": -0.1503,
+    "t": -1.66,
+    "closed_diff": 0.0439
+   }
+  },
+  "sales_yoy_high": {
+   "h1": {
+    "months": 8,
+    "diff": 0.0877,
+    "t": 0.81,
+    "closed_diff": 0.1642
+   },
+   "h2": {
+    "months": 14,
+    "diff": 0.7774,
+    "t": 1.77,
+    "closed_diff": 0.4673
+   }
+  }
+ },
+ "signals_base": {
+  "h1": {
+   "n": 1415,
+   "big": 0.141,
+   "net": 0.148,
+   "ex": 0.118,
+   "open": 1
+  },
+  "h2": {
+   "n": 2519,
+   "big": 0.231,
+   "net": 0.596,
+   "ex": 0.103,
+   "open": 1840
+  }
+ },
+ "picked_on_h1": {
+  "feature": "sales_yoy",
+  "side": "high",
+  "h1": {
+   "n": 50,
+   "big": 0.22,
+   "net": 0.42,
+   "ex": 0.282
+  },
+  "h2": {
+   "n": 214,
+   "big": 0.299,
+   "net": 0.936,
+   "ex": 0.395
+  },
+  "h2_all": {
+   "n": 2519,
+   "big": 0.231,
+   "net": 0.596,
+   "ex": 0.103,
+   "open": 1840
+  }
+ },
+ "signal_sectors": [
+  {
+   "sector": "استخراج کانه های فلزی",
+   "half": 1,
+   "n": 29,
+   "big": 0.41379310344827586,
+   "ex": 0.6351433348471536
+  },
+  {
+   "sector": "استخراج کانه های فلزی",
+   "half": 2,
+   "n": 80,
+   "big": 0.2875,
+   "ex": 0.2736721407351074
+  },
+  {
+   "sector": "انبوه سازی، املاک و مستغلات",
+   "half": 1,
+   "n": 77,
+   "big": 0.03896103896103896,
+   "ex": 0.012940705890262895
+  },
+  {
+   "sector": "انبوه سازی، املاک و مستغلات",
+   "half": 2,
+   "n": 61,
+   "big": 0.08196721311475409,
+   "ex": -0.1267474419109226
+  },
+  {
+   "sector": "بانکها و موسسات اعتباری",
+   "half": 1,
+   "n": 66,
+   "big": 0.3181818181818182,
+   "ex": 0.5367941217370393
+  },
+  {
+   "sector": "بانکها و موسسات اعتباری",
+   "half": 2,
+   "n": 145,
+   "big": 0.2689655172413793,
+   "ex": -0.06718154958138975
+  },
+  {
+   "sector": "بیمه وصندوق بازنشستگی به جزتامین اجتماعی",
+   "half": 1,
+   "n": 36,
+   "big": 0.08333333333333333,
+   "ex": -0.053586307393113576
+  },
+  {
+   "sector": "بیمه وصندوق بازنشستگی به جزتامین اجتماعی",
+   "half": 2,
+   "n": 31,
+   "big": 0.2903225806451613,
+   "ex": -0.14153708259837366
+  },
+  {
+   "sector": "حمل ونقل، انبارداری و ارتباطات",
+   "half": 1,
+   "n": 56,
+   "big": 0.16071428571428573,
+   "ex": 0.10083359001127594
+  },
+  {
+   "sector": "حمل ونقل، انبارداری و ارتباطات",
+   "half": 2,
+   "n": 57,
+   "big": 0.3333333333333333,
+   "ex": 0.3990491730836564
+  },
+  {
+   "sector": "خرده فروشی،باستثنای وسایل نقلیه موتوری",
+   "half": 2,
+   "n": 20,
+   "big": 0.3,
+   "ex": 0.2197538706798336
+  },
+  {
+   "sector": "خودرو و ساخت قطعات",
+   "half": 1,
+   "n": 68,
+   "big": 0.0,
+   "ex": -0.0858393167655143
+  },
+  {
+   "sector": "خودرو و ساخت قطعات",
+   "half": 2,
+   "n": 93,
+   "big": 0.06451612903225806,
+   "ex": -0.18966245139788043
+  },
+  {
+   "sector": "رایانه و فعالیت‌های وابسته به آن",
+   "half": 1,
+   "n": 31,
+   "big": 0.16129032258064516,
+   "ex": 0.14788351102011096
+  },
+  {
+   "sector": "رایانه و فعالیت‌های وابسته به آن",
+   "half": 2,
+   "n": 41,
+   "big": 0.3902439024390244,
+   "ex": 0.43868487753123836
+  },
+  {
+   "sector": "زراعت و خدمات وابسته",
+   "half": 1,
+   "n": 45,
+   "big": 0.022222222222222223,
+   "ex": -0.034376629191300266
+  },
+  {
+   "sector": "زراعت و خدمات وابسته",
+   "half": 2,
+   "n": 131,
+   "big": 0.32061068702290074,
+   "ex": 0.020932846365675772
+  },
+  {
+   "sector": "ساخت محصولات فلزی",
+   "half": 2,
+   "n": 22,
+   "big": 0.36363636363636365,
+   "ex": 0.50167558816699
+  },
+  {
+   "sector": "سایر محصولات کانی غیرفلزی",
+   "half": 1,
+   "n": 40,
+   "big": 0.0,
+   "ex": -0.0023880802130449214
+  },
+  {
+   "sector": "سایر محصولات کانی غیرفلزی",
+   "half": 2,
+   "n": 45,
+   "big": 0.4666666666666667,
+   "ex": 0.41072522929065547
+  },
+  {
+   "sector": "سرمایه گذاریها",
+   "half": 1,
+   "n": 102,
+   "big": 0.11764705882352941,
+   "ex": 0.0889804822335527
+  },
+  {
+   "sector": "سرمایه گذاریها",
+   "half": 2,
+   "n": 111,
+   "big": 0.2702702702702703,
+   "ex": -0.04795961920513615
+  },
+  {
+   "sector": "سیمان، آهک و گچ",
+   "half": 1,
+   "n": 140,
+   "big": 0.39285714285714285,
+   "ex": 0.4169922222793511
+  },
+  {
+   "sector": "سیمان، آهک و گچ",
+   "half": 2,
+   "n": 210,
+   "big": 0.15714285714285714,
+   "ex": -0.05101550329489682
+  },
+  {
+   "sector": "شرکتهای چند رشته ای صنعتی",
+   "half": 1,
+   "n": 41,
+   "big": 0.12195121951219512,
+   "ex": 0.14206137221503587
+  },
+  {
+   "sector": "شرکتهای چند رشته ای صنعتی",
+   "half": 2,
+   "n": 71,
+   "big": 0.2112676056338028,
+   "ex": -0.10895469040754563
+  },
+  {
+   "sector": "عرضه برق، گاز، بخاروآب گرم",
+   "half": 1,
+   "n": 22,
+   "big": 0.18181818181818182,
+   "ex": 0.007018162706506012
+  },
+  {
+   "sector": "عرضه برق، گاز، بخاروآب گرم",
+   "half": 2,
+   "n": 45,
+   "big": 0.1111111111111111,
+   "ex": -0.20303872073807744
+  },
+  {
+   "sector": "فراورده های نفتی، کک و سوخت هسته ای",
+   "half": 1,
+   "n": 53,
+   "big": 0.1320754716981132,
+   "ex": 0.1822453320405565
+  },
+  {
+   "sector": "فراورده های نفتی، کک و سوخت هسته ای",
+   "half": 2,
+   "n": 109,
+   "big": 0.44036697247706424,
+   "ex": 0.467464461294375
+  },
+  {
+   "sector": "فعالیتهای کمکی به نهادهای مالی واسط",
+   "half": 2,
+   "n": 41,
+   "big": 0.17073170731707318,
+   "ex": 0.024759096409219954
+  },
+  {
+   "sector": "فلزات اساسی",
+   "half": 1,
+   "n": 109,
+   "big": 0.09174311926605505,
+   "ex": -0.006560819700532842
+  },
+  {
+   "sector": "فلزات اساسی",
+   "half": 2,
+   "n": 196,
+   "big": 0.23469387755102042,
+   "ex": 0.4310624055746679
+  },
+  {
+   "sector": "لاستیک و پلاستیک",
+   "half": 1,
+   "n": 32,
+   "big": 0.28125,
+   "ex": 0.35811953548864184
+  },
+  {
+   "sector": "لاستیک و پلاستیک",
+   "half": 2,
+   "n": 28,
+   "big": 0.07142857142857142,
+   "ex": 0.16247218988538573
+  },
+  {
+   "sector": "ماشین آلات و تجهیزات",
+   "half": 1,
+   "n": 27,
+   "big": 0.0,
+   "ex": -0.06943961638561508
+  },
+  {
+   "sector": "ماشین آلات و تجهیزات",
+   "half": 2,
+   "n": 21,
+   "big": 0.3333333333333333,
+   "ex": 0.24847053995581714
+  },
+  {
+   "sector": "ماشین آلات و دستگاه‌های برقی",
+   "half": 2,
+   "n": 30,
+   "big": 0.3333333333333333,
+   "ex": -0.33427760388790645
+  },
+  {
+   "sector": "محصولات شیمیایی",
+   "half": 1,
+   "n": 171,
+   "big": 0.12280701754385964,
+   "ex": 0.05826036757624031
+  },
+  {
+   "sector": "محصولات شیمیایی",
+   "half": 2,
+   "n": 284,
+   "big": 0.2746478873239437,
+   "ex": 0.16659581377622307
+  },
+  {
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "half": 1,
+   "n": 59,
+   "big": 0.11864406779661017,
+   "ex": 0.06320917597967408
+  },
+  {
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "half": 2,
+   "n": 203,
+   "big": 0.2315270935960591,
+   "ex": 0.11300531200937744
+  },
+  {
+   "sector": "مواد و محصولات دارویی",
+   "half": 1,
+   "n": 46,
+   "big": 0.043478260869565216,
+   "ex": 0.0003822188329686427
+  },
+  {
+   "sector": "مواد و محصولات دارویی",
+   "half": 2,
+   "n": 293,
+   "big": 0.13993174061433447,
+   "ex": 0.12175414200673326
+  },
+  {
+   "sector": "هتل و رستوران",
+   "half": 2,
+   "n": 20,
+   "big": 0.0,
+   "ex": -0.23235054533994726
+  },
+  {
+   "sector": "کاشی و سرامیک",
+   "half": 2,
+   "n": 28,
+   "big": 0.14285714285714285,
+   "ex": 0.08576553946013009
+  }
+ ],
+ "exits": {
+  "trail25": {
+   "h1": {
+    "net": 0.1475,
+    "ex": 0.1183,
+    "net_median": -0.06,
+    "closed_ex": 0.1182,
+    "open": 1
+   },
+   "h2": {
+    "net": 0.5955,
+    "ex": 0.103,
+    "net_median": 0.2433,
+    "closed_ex": -0.0305,
+    "open": 1840
+   }
+  },
+  "trail15": {
+   "h1": {
+    "net": 0.052,
+    "ex": 0.0471,
+    "net_median": -0.0491,
+    "closed_ex": 0.0471,
+    "open": 0
+   },
+   "h2": {
+    "net": 0.292,
+    "ex": 0.0564,
+    "net_median": 0.0707,
+    "closed_ex": -0.027,
+    "open": 981
+   }
+  },
+  "tier": {
+   "h1": {
+    "net": 0.1349,
+    "ex": 0.1072,
+    "net_median": -0.06,
+    "closed_ex": 0.107,
+    "open": 1
+   },
+   "h2": {
+    "net": 0.5538,
+    "ex": 0.099,
+    "net_median": 0.2475,
+    "closed_ex": 0.0896,
+    "open": 1689
+   }
+  },
+  "sellq": {
+   "h1": {
+    "net": 0.1243,
+    "ex": 0.0956,
+    "net_median": -0.0594,
+    "closed_ex": 0.0954,
+    "open": 1
+   },
+   "h2": {
+    "net": 0.3394,
+    "ex": 0.023,
+    "net_median": 0.2643,
+    "closed_ex": 0.1116,
+    "open": 1269
+   }
+  },
+  "outflow": {
+   "h1": {
+    "net": 0.0919,
+    "ex": 0.0617,
+    "net_median": -0.0594,
+    "closed_ex": 0.0617,
+    "open": 0
+   },
+   "h2": {
+    "net": 0.2929,
+    "ex": 0.0124,
+    "net_median": 0.2703,
+    "closed_ex": 0.0836,
+    "open": 1048
+   }
+  },
+  "climax": {
+   "h1": {
+    "net": 0.1355,
+    "ex": 0.1102,
+    "net_median": -0.06,
+    "closed_ex": 0.1101,
+    "open": 1
+   },
+   "h2": {
+    "net": 0.5157,
+    "ex": 0.067,
+    "net_median": 0.2476,
+    "closed_ex": 0.1689,
+    "open": 1705
+   }
+  },
+  "sma20_big": {
+   "h1": {
+    "net": 0.1261,
+    "ex": 0.0994,
+    "net_median": -0.06,
+    "closed_ex": 0.0994,
+    "open": 0
+   },
+   "h2": {
+    "net": 0.4599,
+    "ex": 0.0553,
+    "net_median": 0.2475,
+    "closed_ex": 0.1627,
+    "open": 1486
+   }
+  }
+ },
+ "exits_on_big_runs": {
+  "trail25": {
+   "net_median": 1.459,
+   "kept_median": 0.954
+  },
+  "trail15": {
+   "net_median": 0.441,
+   "kept_median": 0.547
+  },
+  "tier": {
+   "net_median": 1.304,
+   "kept_median": 0.907
+  },
+  "sellq": {
+   "net_median": 0.83,
+   "kept_median": 0.689
+  },
+  "outflow": {
+   "net_median": 0.578,
+   "kept_median": 0.63
+  },
+  "climax": {
+   "net_median": 1.363,
+   "kept_median": 0.929
+  },
+  "sma20_big": {
+   "net_median": 1.118,
+   "kept_median": 0.832
+  }
+ }
+}
