@@ -118,6 +118,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/industries/map": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Industry Map
+     * @description Export-domestic axis, dollar tie, beta and cohesion per industry (PC cycle artifact).
+     */
+    get: operations["industry_map_industries_map_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}": {
     parameters: {
       query?: never;
@@ -2763,6 +2783,96 @@ export interface components {
       /** Stop Price */
       stop_price?: number | null;
     };
+    /** IndustryCorr */
+    IndustryCorr: {
+      /** Order */
+      order: string[];
+      /** Values */
+      values: (number | null)[][];
+    };
+    /**
+     * IndustryMapOut
+     * @description Descriptive industry map from the PC cycle (``tmon.tools.industry_map``).
+     */
+    IndustryMapOut: {
+      /** As Of */
+      as_of: string;
+      /** Axis Share */
+      axis_share: number;
+      corr: components["schemas"]["IndustryCorr"];
+      /** Dollar Tie Cut */
+      dollar_tie_cut: number;
+      /** Group Cut */
+      group_cut: number;
+      market: components["schemas"]["IndustryMarketReturns"];
+      /** Mid */
+      mid: string;
+      /** N Stocks */
+      n_stocks: number;
+      /** N Weeks */
+      n_weeks: number;
+      /** Sectors */
+      sectors: components["schemas"]["IndustryMapRow"][];
+      /** Start */
+      start: string;
+    };
+    /** IndustryMapRow */
+    IndustryMapRow: {
+      /** Axis */
+      axis: number | null;
+      /** Beta */
+      beta: number | null;
+      /** Closest */
+      closest: components["schemas"]["IndustryPeer"][];
+      /** Cohesion */
+      cohesion: number | null;
+      /**
+       * Dollar Tie
+       * @enum {string}
+       */
+      dollar_tie: "up_steady" | "up_unsteady" | "none" | "down_unsteady" | "down_steady";
+      /**
+       * Group
+       * @enum {string}
+       */
+      group: "export" | "middle" | "domestic";
+      /** N Stocks */
+      n_stocks: number;
+      /** Ret 13W */
+      ret_13w: number | null;
+      /** Ret 4W */
+      ret_4w: number | null;
+      /** Ret 52W */
+      ret_52w: number | null;
+      /** Sector */
+      sector: string;
+      /** Symbols */
+      symbols: string[];
+      /** Usd Corr */
+      usd_corr: number | null;
+      /** Usd Corr H1 */
+      usd_corr_h1: number | null;
+      /** Usd Corr H2 */
+      usd_corr_h2: number | null;
+      /** Vs Market 13W */
+      vs_market_13w: number | null;
+    };
+    /** IndustryMarketReturns */
+    IndustryMarketReturns: {
+      /** Ret 13W */
+      ret_13w: number | null;
+      /** Ret 4W */
+      ret_4w: number | null;
+      /** Ret 52W */
+      ret_52w: number | null;
+    };
+    /** IndustryPeer */
+    IndustryPeer: {
+      /** Corr */
+      corr: number;
+      /** Sector */
+      sector: string;
+    };
     /** InflationOut */
     InflationOut: {
       /** Method */
@@ -4713,6 +4823,26 @@ export interface operations {
           "application/json": {
             [key: string]: string;
           };
+        };
+      };
+    };
+  };
+  industry_map_industries_map_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IndustryMapOut"];
         };
       };
     };

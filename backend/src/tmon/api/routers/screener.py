@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,13 +11,14 @@ from tmon.api.returns import day_change, period_table
 from tmon.api.routers.dashboard import (
     INVITATION_STAGES,
     _ranking_doc,
+    _stored_doc,
     _turning_doc,
     decide,
     decision_fields,
     fundamental_out,
 )
 from tmon.api.routers.market import _latest_full
-from tmon.api.schemas import ScreenerOut, ScreenerRow, instrument_out
+from tmon.api.schemas import IndustryMapOut, ScreenerOut, ScreenerRow, instrument_out
 from tmon.core.db import get_session
 from tmon.features.builder import get_feature_set
 from tmon.ingest.tsetmc.parsers import normalize_fa
@@ -29,6 +30,7 @@ from tmon.storage.models import (
     PriceDaily,
     SectorName,
 )
+from tmon.tools.industry_map import KEY as INDUSTRY_MAP_KEY
 
 router = APIRouter(tags=["screener"])
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -47,6 +49,15 @@ SortKey = Literal[
     "eps",
 ]
 FEATURES = ("rsi_14", "rel_volume", "atr_14_pct", "ind_buy_power", "ind_net_flow_ratio")
+
+
+@router.get("/industries/map", response_model=IndustryMapOut)
+def industry_map() -> IndustryMapOut:
+    """Export-domestic axis, dollar tie, beta and cohesion per industry (PC cycle artifact)."""
+    doc = _stored_doc(INDUSTRY_MAP_KEY)
+    if doc is None:
+        raise HTTPException(404, "industry map not built yet")
+    return IndustryMapOut.model_validate(doc)
 
 
 @router.get("/screener", response_model=ScreenerOut)

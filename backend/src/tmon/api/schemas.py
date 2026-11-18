@@ -1472,3 +1472,54 @@ class AutopilotOut(ApiModel):
     regime: AutopilotRegime | None = None
     events: list[AutopilotEvent] = []
     disclaimer: str = DISCLAIMER
+
+
+class IndustryPeer(ApiModel):
+    sector: str
+    corr: float
+
+
+class IndustryMapRow(ApiModel):
+    sector: str
+    group: Literal["export", "middle", "domestic"]
+    n_stocks: int
+    symbols: list[str]
+    beta: float | None
+    cohesion: float | None
+    axis: float | None
+    usd_corr: float | None
+    usd_corr_h1: float | None
+    usd_corr_h2: float | None
+    dollar_tie: Literal["up_steady", "up_unsteady", "none", "down_unsteady", "down_steady"]
+    ret_4w: float | None
+    ret_13w: float | None
+    ret_52w: float | None
+    vs_market_13w: float | None
+    closest: list[IndustryPeer]
+
+
+class IndustryMarketReturns(ApiModel):
+    ret_4w: float | None
+    ret_13w: float | None
+    ret_52w: float | None
+
+
+class IndustryCorr(ApiModel):
+    order: list[str]
+    values: list[list[float | None]]
+
+
+class IndustryMapOut(ApiModel):
+    """Descriptive industry map from the PC cycle (``tmon.tools.industry_map``)."""
+
+    as_of: str
+    start: str
+    mid: str
+    n_weeks: int
+    n_stocks: int
+    dollar_tie_cut: float
+    group_cut: float
+    axis_share: float
+    market: IndustryMarketReturns
+    sectors: list[IndustryMapRow]
+    corr: IndustryCorr

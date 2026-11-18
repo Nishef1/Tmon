@@ -49,15 +49,10 @@ export function SiteHeader() {
     };
   }, [menu]);
   const link = (active: boolean) =>
-    `block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
-      active ? "bg-accent text-surface" : "text-ink hover:bg-accent-soft"
-    }`;
+    `nav-link block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold${active ? " is-on" : ""}`;
 
   return (
-    <header
-      ref={root}
-      className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur"
-    >
+    <header ref={root} className="site-head sticky top-0 z-30">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
         <Link
           href="/"
@@ -65,7 +60,7 @@ export function SiteHeader() {
           className="flex items-center gap-2"
           aria-label="Tmon، صفحهٔ اصلی"
         >
-          <span className="grid size-9 place-items-center rounded-xl bg-accent text-lg font-black text-surface">
+          <span className="logo-mark grid size-9 place-items-center rounded-xl text-lg font-black text-white">
             T
           </span>
           <span className="hidden text-xl font-extrabold tracking-tight text-accent sm:inline">

@@ -21,6 +21,8 @@ if ($Eod) {
   & $py -m tmon.tools.turning_points
   # ties to the index, dollar, copper and Brent, and moves after dated shocks
   & $py -m tmon.tools.stock_drivers
+  # industry map: export-domestic axis, dollar tie, beta and cohesion per industry
+  & $py -m tmon.tools.industry_map
   # every chart term of the glossary: tested readings, each symbol's values and risk numbers
   & $py -m tmon.tools.ta_signals
   # after which candles the next ones were green: streaks, entries from a base, uptrend pullbacks

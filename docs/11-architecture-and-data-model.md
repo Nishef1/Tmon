@@ -29,7 +29,7 @@ Docker، Postgres، Redis و Celery کنار گذاشته شده‌اند. ذخ�
 | `models` | LightGBM، تقسیم walk-forward، توضیح SHAP (v1) |
 | `engine` | دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم، حکم هر نماد (`verdict.py`: توابع خالص روی سندهای ذخیره‌شده) |
 | `backtest` | بک‌تست و مطالعه‌ها؛ هر گزارش `docs/reports` از یکی از این‌ها می‌آید |
-| `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health` |
+| `tools` | خروجی‌های روزانه برای API: `v2_ranking`، `turning_points`، `stock_drivers`، `industry_map`، `ta_signals`، `entry_odds`، `adapt_cycle`، `autopilot`، `data_health` |
 | `portfolio` | پرتفوی: دفتر، مفید، توصیه، پیش‌بینی بازه، هشدار، گزارش پیش از گشایش، پایشگر |
 | `tasks` | چرخهٔ روزانه و زمان‌بندی آن |
 | `api` | FastAPI و روترها |

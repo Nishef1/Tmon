@@ -6095,6 +6095,343 @@
         "title": "HoldingPatch",
         "type": "object"
       },
+      "IndustryCorr": {
+        "properties": {
+          "order": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Order",
+            "type": "array"
+          },
+          "values": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "order",
+          "values"
+        ],
+        "title": "IndustryCorr",
+        "type": "object"
+      },
+      "IndustryMapOut": {
+        "description": "Descriptive industry map from the PC cycle (``tmon.tools.industry_map``).",
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "axis_share": {
+            "title": "Axis Share",
+            "type": "number"
+          },
+          "corr": {
+            "$ref": "#/components/schemas/IndustryCorr"
+          },
+          "dollar_tie_cut": {
+            "title": "Dollar Tie Cut",
+            "type": "number"
+          },
+          "group_cut": {
+            "title": "Group Cut",
+            "type": "number"
+          },
+          "market": {
+            "$ref": "#/components/schemas/IndustryMarketReturns"
+          },
+          "mid": {
+            "title": "Mid",
+            "type": "string"
+          },
+          "n_stocks": {
+            "title": "N Stocks",
+            "type": "integer"
+          },
+          "n_weeks": {
+            "title": "N Weeks",
+            "type": "integer"
+          },
+          "sectors": {
+            "items": {
+              "$ref": "#/components/schemas/IndustryMapRow"
+            },
+            "title": "Sectors",
+            "type": "array"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "start",
+          "mid",
+          "n_weeks",
+          "n_stocks",
+          "dollar_tie_cut",
+          "group_cut",
+          "axis_share",
+          "market",
+          "sectors",
+          "corr"
+        ],
+        "title": "IndustryMapOut",
+        "type": "object"
+      },
+      "IndustryMapRow": {
+        "properties": {
+          "axis": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Axis"
+          },
+          "beta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beta"
+          },
+          "closest": {
+            "items": {
+              "$ref": "#/components/schemas/IndustryPeer"
+            },
+            "title": "Closest",
+            "type": "array"
+          },
+          "cohesion": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohesion"
+          },
+          "dollar_tie": {
+            "enum": [
+              "up_steady",
+              "up_unsteady",
+              "none",
+              "down_unsteady",
+              "down_steady"
+            ],
+            "title": "Dollar Tie",
+            "type": "string"
+          },
+          "group": {
+            "enum": [
+              "export",
+              "middle",
+              "domestic"
+            ],
+            "title": "Group",
+            "type": "string"
+          },
+          "n_stocks": {
+            "title": "N Stocks",
+            "type": "integer"
+          },
+          "ret_13w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 13W"
+          },
+          "ret_4w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 4W"
+          },
+          "ret_52w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 52W"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "string"
+          },
+          "symbols": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Symbols",
+            "type": "array"
+          },
+          "usd_corr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Corr"
+          },
+          "usd_corr_h1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Corr H1"
+          },
+          "usd_corr_h2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Corr H2"
+          },
+          "vs_market_13w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Market 13W"
+          }
+        },
+        "required": [
+          "sector",
+          "group",
+          "n_stocks",
+          "symbols",
+          "beta",
+          "cohesion",
+          "axis",
+          "usd_corr",
+          "usd_corr_h1",
+          "usd_corr_h2",
+          "dollar_tie",
+          "ret_4w",
+          "ret_13w",
+          "ret_52w",
+          "vs_market_13w",
+          "closest"
+        ],
+        "title": "IndustryMapRow",
+        "type": "object"
+      },
+      "IndustryMarketReturns": {
+        "properties": {
+          "ret_13w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 13W"
+          },
+          "ret_4w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 4W"
+          },
+          "ret_52w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ret 52W"
+          }
+        },
+        "required": [
+          "ret_4w",
+          "ret_13w",
+          "ret_52w"
+        ],
+        "title": "IndustryMarketReturns",
+        "type": "object"
+      },
+      "IndustryPeer": {
+        "properties": {
+          "corr": {
+            "title": "Corr",
+            "type": "number"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sector",
+          "corr"
+        ],
+        "title": "IndustryPeer",
+        "type": "object"
+      },
       "InflationOut": {
         "properties": {
           "method": {
@@ -12200,6 +12537,28 @@
         "summary": "Health",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/industries/map": {
+      "get": {
+        "description": "Export-domestic axis, dollar tie, beta and cohesion per industry (PC cycle artifact).",
+        "operationId": "industry_map_industries_map_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndustryMapOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Industry Map",
+        "tags": [
+          "screener"
         ]
       }
     },

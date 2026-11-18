@@ -3,6 +3,10 @@
 **What exists:**
 - `/market`: indices, breadth, movers, real-money flow and all 47 groups, each expandable
   (`/market/overview`).
+- `/industries`, top section «صادرات‌محور یا داخلی؟» (`GET /industries/map`, artifact
+  `v2/industry_map.json`): three group cards that filter, one row per industry (axis bar, dollar
+  badge, beta, cohesion, 3-month return; a click opens symbols and both halves' dollar link) and a
+  residual correlation heatmap. Compare one row with the JSON.
 - `/industries`: industry heatmap ranked by real traded value (not base volume), with filters,
   19 selectable columns and search (`/screener`, `/search`).
 - `/compare`: symbols against inflation, the dollar and gold (`/compare`).

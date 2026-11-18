@@ -152,3 +152,6 @@ export async function autopilotState(): Promise<Autopilot | null> {
     return null;
   }
 }
+
+export type IndustryMap = S["IndustryMapOut"];
+export type IndustryMapRow = S["IndustryMapRow"];

@@ -55,7 +55,7 @@
 
 ### چرخهٔ روزانه
 
-`backend/scripts/run_collectors.ps1 -Eod` روی PC اجرا می‌شود: `tmon.tasks.cycle` (داده، شاخص‌ها، تابلو، اخزا، کلان، اخبار، ویژگی‌ها، adapt، انتشار D1/W1/M1)، سپس `v2_ranking`، `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds`، `regime_paper` ([برنامهٔ سه‌وضعی](reports/regime-switch-2026-11.md)) و رویدادهای کدال. بعد از آن `bash deploy/sync-data.sh` داده را به سرور می‌فرستد ([14](14-local-run.md)، [15-deploy](15-deploy.md)).
+`backend/scripts/run_collectors.ps1 -Eod` روی PC اجرا می‌شود: `tmon.tasks.cycle` (داده، شاخص‌ها، تابلو، اخزا، کلان، اخبار، ویژگی‌ها، adapt، انتشار D1/W1/M1)، سپس `v2_ranking`، `turning_points`، `stock_drivers`، `industry_map`، `ta_signals`، `entry_odds`، `regime_paper` ([برنامهٔ سه‌وضعی](reports/regime-switch-2026-11.md)) و رویدادهای کدال. بعد از آن `bash deploy/sync-data.sh` داده را به سرور می‌فرستد ([14](14-local-run.md)، [15-deploy](15-deploy.md)).
 
 ## مسیر v1 (مرجع کد `engine/`، `models/`، `labeling/`)
 

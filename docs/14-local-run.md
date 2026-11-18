@@ -31,7 +31,7 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 `-Eod` به‌ترتیب اجرا می‌کند:
 
 1. `python -m tmon.tasks.cycle`: قیمت و حقیقی/حقوقی، شاخص‌ها، تابلو، اخزا، دلار و طلا و نفت، اخبار، ویژگی‌ها، وزن زنده، و آموزش و انتشار D1/W1/M1. گام D1 اجباری است و بقیه اختیاری. زمان هر گام در `data-health` ثبت می‌شود.
-2. `python -m tmon.tools.v2_ranking`، سپس `turning_points`، `stock_drivers`، `ta_signals`، `entry_odds` و `regime_paper` (وضع بازار و آزمون کاغذی برنامهٔ سه‌وضعی). هر کدام یک سند `v2/*.json` می‌نویسد.
+2. `python -m tmon.tools.v2_ranking`، سپس `turning_points`، `stock_drivers`، `industry_map`، `ta_signals`، `entry_odds` و `regime_paper` (وضع بازار و آزمون کاغذی برنامهٔ سه‌وضعی). هر کدام یک سند `v2/*.json` می‌نویسد.
 3. `python -m tmon.ingest.codal.cli events` و `meetings`؛ پنج‌شنبه‌ها `tmon.ingest.tsetmc.cli info` (EPS و P/E گروه).
 
 بعد از پایان چرخه: `bash deploy/sync-data.sh`.
