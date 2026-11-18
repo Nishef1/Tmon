@@ -2,18 +2,13 @@ import { expect, test } from "@playwright/test";
 
 const DISCLAIMER = "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست";
 
-test.describe("recommendations", () => {
-  test("renders RTL Persian with the disclaimer and ranked cards", async ({ page }) => {
+test.describe("home", () => {
+  test("renders RTL Persian with the disclaimer", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("html")).toHaveAttribute("lang", "fa");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("امروز بازار چه شد؟");
     await expect(page.getByTestId("disclaimer").first()).toHaveText(DISCLAIMER);
-    await page.getByTestId("v1-details").locator("summary").first().click();
-    const cards = page.getByTestId("signal-card");
-    await expect(cards).toHaveCount(2);
-    await expect(cards.first()).toContainText("فولاد");
-    await expect(cards.first()).toContainText("۶۶٪");
   });
 
   test("has no horizontal scroll", async ({ page }) => {
@@ -22,50 +17,6 @@ test.describe("recommendations", () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-  });
-
-  test("a number links to its glossary entry", async ({ page }) => {
-    await page.goto("/");
-    await page.getByTestId("v1-details").locator("summary").first().click();
-    await page.getByTestId("signal-card").first().locator('a[href="/glossary/p_win"]').click();
-    await expect(page).toHaveURL(/\/glossary\/p_win$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("احتمال موفقیت");
-    await expect(page.getByRole("heading", { name: "محدودیت‌ها" })).toBeVisible();
-  });
-
-  test("W1 and M1 are selectable and show the same honest no-recommendation state", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await page.getByTestId("v1-details").locator("summary").first().click();
-    for (const [tf, label] of [
-      ["W1", "هفتگی (W1)"],
-      ["M1", "ماهانه (M1)"],
-    ]) {
-      await page.getByRole("link", { name: label }).click();
-      await expect(page).toHaveURL(new RegExp(`tf=${tf}`));
-      await expect(page.getByRole("link", { name: label })).toHaveAttribute("aria-current", "page");
-      await expect(page.getByTestId("no-recommendation")).toContainText(
-        "امروز توصیه‌ای وجود ندارد",
-      );
-      await expect(page.getByTestId("signal-card")).toHaveCount(0);
-      await expect(page.getByTestId("unsupported")).toHaveCount(0);
-    }
-  });
-
-  test('"no recommendation" is shown plainly and explains why tier A is absent', async ({
-    page,
-  }) => {
-    await page.goto("/?date=2025-02-20");
-    await expect(page.getByTestId("no-recommendation")).toContainText("امروز توصیه‌ای وجود ندارد");
-    await expect(page.getByTestId("signal-card")).toHaveCount(0);
-    await expect(page.getByTestId("why-gate")).toContainText("کمتر از حداقل");
-  });
-
-  test("API failure shows a Persian error, not a crash", async ({ page }) => {
-    await page.goto("/?date=2000-01-01");
-    await expect(page.getByTestId("error-state")).toContainText("دریافت اطلاعات ممکن نشد");
-    await expect(page.getByTestId("disclaimer").first()).toBeVisible();
   });
 });
 
@@ -218,27 +169,11 @@ test.describe("instrument page", () => {
   });
 });
 
-test.describe("history and calibration", () => {
-  test("history lists outcomes, filters, and labels returns as gross", async ({ page }) => {
-    await page.goto("/model");
-    const history = page.locator("#history");
-    await expect(history.getByRole("row")).toHaveCount(5);
-    await expect(history.getByText(/ناخالص/).first()).toBeVisible();
-    await history.getByRole("link", { name: "حد ضرر", exact: true }).click();
-    await expect(page.locator("#history").getByRole("row")).toHaveCount(2);
-    await page.goto("/history"); // old address still works
-    await expect(page).toHaveURL(/\/model/);
-  });
-
-  test("calibration shows the gate reason, warnings and an empty live section", async ({
-    page,
-  }) => {
-    await page.goto("/model");
-    await expect(page.getByTestId("gate")).toContainText("سیگنال رده A منتشر نمی‌شود");
-    await expect(page.getByText("تأیید نشده‌اند")).toBeVisible();
-    await expect(page.getByTestId("no-live")).toBeVisible();
-    await expect(page.locator("#calibration").getByRole("table").first()).toBeVisible();
-  });
+test("old signal pages lead to the model page", async ({ page }) => {
+  for (const old of ["/history", "/calibration", "/accuracy"]) {
+    await page.goto(old);
+    await expect(page).toHaveURL(/\/model$/);
+  }
 });
 
 test("a bought symbol is checked against the candles after it", async ({ page }) => {

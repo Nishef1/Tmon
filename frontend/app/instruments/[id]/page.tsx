@@ -30,12 +30,11 @@ import { StockNews } from "@/components/stock/StockNews";
 import { LiveWhenOpen } from "@/components/stock/LiveWhenOpen";
 import { StockAlerts } from "@/components/stock/StockAlerts";
 import { AGM_FIELDS, AgmCalculator } from "@/components/stock/AgmCalculator";
-import { CandleChart, type Level, type Mark } from "@/components/CandleChart";
+import { CandleChart, type Mark } from "@/components/CandleChart";
 import { BookCard } from "@/components/book/BookCard";
 import { EntryOddsCard } from "@/components/entry/EntryOddsCard";
 import { labelColor } from "@/components/entry/EntryParts";
 import { ErrorState } from "@/components/ErrorState";
-import { SignalTable } from "@/components/SignalTable";
 
 export const dynamic = "force-dynamic";
 
@@ -96,15 +95,6 @@ export default async function InstrumentPage({
         Object.fromEntries(AGM_FIELDS.filter((f) => isNum(q[f])).map((f) => [f, q[f] as string])),
       )
     : null;
-  const open = d.signals.find((s) => s.outcome === "pending");
-  const levels: Level[] = open
-    ? [
-        { price: open.take_profit, title: "حد سود", color: "var(--up)" },
-        { price: open.entry_price, title: "مرجع", color: "var(--ref)" },
-        { price: open.stop_loss, title: "حد ضرر", color: "var(--down)" },
-      ]
-    : [];
-
   const entry = dash.ok ? dash.data.entry : null;
   const marks = entry ? entryMarks(entry) : [];
 
@@ -112,7 +102,6 @@ export default async function InstrumentPage({
   const firedHere = (dd?.technical?.fired.length ?? 0) > 0;
   // the entry lab only earns a card when a state of today beat or trailed the rest of the market
   const entryDecisive = !!entry?.now.some((s) => s.label === "better" || s.label === "worse");
-  const manySignals = d.signals.length > 2;
   const agmNear = !!dd?.meeting && dd.meeting.days_left >= 0 && dd.meeting.days_left <= 30;
 
   const jumps: JumpItem[] = [
@@ -127,7 +116,6 @@ export default async function InstrumentPage({
       : []),
     { id: "agm", label: "مجمع" },
     { id: "holders", label: "سهامداران" },
-    ...(manySignals ? [{ id: "signals", label: "سیگنال‌ها" }] : []),
     { id: "news", label: "کدال و خبر" },
   ];
 
@@ -167,29 +155,17 @@ export default async function InstrumentPage({
           <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
         ) : (
           <>
-            <CandleChart candles={d.candles} levels={levels} marks={marks} />
+            <CandleChart candles={d.candles} marks={marks} />
             <p className="mt-2 text-xs text-muted">
               قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
               <Link href="/glossary/adjusted_price" className="underline">
                 تعدیل
               </Link>{" "}
               شده‌اند.
-              {open && " خط‌چین‌ها سطح‌های آخرین سیگنال بازِ این نماد هستند."}
               {marks.length > 0 &&
                 " پیکان سبز یعنی ورود در آن کندل در گذشته بهتر از بقیهٔ سهم‌ها بوده است و پیکان قرمز یعنی بدتر."}
             </p>
           </>
-        )}
-        {d.signals.length > 0 && !manySignals && (
-          <div
-            className="mt-3 border-t border-line pt-3 [&>.card]:rounded-none [&>.card]:border-0 [&>.card]:p-0 [&>.card]:shadow-none"
-            data-testid="chart-signals"
-          >
-            <h3 className="mb-1 text-sm font-bold">
-              {d.signals.length === 1 ? "سیگنال منتشرشده" : "سیگنال‌های منتشرشده"}
-            </h3>
-            <SignalTable items={d.signals} showSymbol={false} />
-          </div>
         )}
       </section>
 
@@ -302,18 +278,6 @@ export default async function InstrumentPage({
           )}
         </section>
       </Fold>
-
-      {manySignals && (
-        <Fold
-          id="signals"
-          title="سیگنال‌های منتشرشده"
-          hint={`${faNumber(d.signals.length)} سیگنال`}
-        >
-          <section className="space-y-2">
-            <SignalTable items={d.signals} showSymbol={false} />
-          </section>
-        </Fold>
-      )}
 
       <StockNews d={d} />
     </main>

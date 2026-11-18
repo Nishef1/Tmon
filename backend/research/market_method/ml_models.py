@@ -20,7 +20,9 @@ seeds and their predictions averaged; the widest gap in a year's IC between sing
 reported.
 
 Baselines: EW, the equal-weight sum of feature ranks signed by their training IC (no fitting beyond
-signs); mom120, the 120-day return alone; and ENS, the mean of the five learners' daily ranks.
+signs); mom120, the 120-day return alone; v2, the live ranking's score (mean rank of buyer power,
+low 20-day volatility, nearness to the 52-week high and 12-1 month momentum, ranked inside the same
+100); and ENS, the mean of the five learners' daily ranks.
 
 Measures on the test days, per learner:
   ic        mean daily Spearman correlation between score and 20-day return
@@ -98,8 +100,38 @@ def make(name: str, p: dict, seed: int):
     )  # fmt: skip
 
 
+def v2_signals() -> pl.DataFrame:
+    """The four raw signals of the live v2 score (signal_decay.SIGNALS), sign-adjusted."""
+    from tmon.backtest.signal_decay import SIGNALS, adjusted_close, forward_returns
+    from tmon.core.db import session_scope
+    from tmon.domain.rules import RuleBook
+    from tmon.features.builder import build_features
+    from tmon.features.store import load_inputs
+
+    with session_scope() as s:
+        prices, clients, sectors = load_inputs(s)
+        rules = RuleBook.from_session(s)
+    feats = build_features(prices, clients, rules, sectors=sectors)
+    mom = forward_returns(adjusted_close(prices), (1,)).select(G, "date", "mom_12_1")
+    d = feats.select(G, "date", "ind_buy_power", "rv_20", "dist_high_52w").join(
+        mom, on=[G, "date"], how="left"
+    )
+    return d.select(
+        G, C("date").cast(pl.Date), *[(C(k) * sign).alias("v2_" + k) for k, sign in SIGNALS.items()]
+    )
+
+
 def load() -> pl.DataFrame:
     a, _ = panel(drop_queue=True)
+    v2 = v2_signals()
+    a = a.join(v2, on=[G, "date"], how="left")
+    sig = [c for c in v2.columns if c.startswith("v2_")]
+    # the live score: mean of the four signal ranks within the day (ranked here inside the same 100)
+    a = a.with_columns(
+        v2=pl.mean_horizontal(
+            [(C(k).fill_nan(None).rank("average") / C(k).count()).over("date") for k in sig]
+        )
+    )
     a = a.filter(C("f20").is_not_null()).with_columns(
         r=C("f20") + COST,  # gross 20-day return from the close of t+1
         year=C("date").dt.year(),
@@ -108,7 +140,7 @@ def load() -> pl.DataFrame:
         *[(C(f).rank("average") / C(f).count()).over("date").alias(f) for f in STOCK],
         y=(C("r").rank("average") / pl.len()).over("date"),
     )
-    return a.select("date", "year", G, "r", "y", *FEATS)
+    return a.select("date", "year", G, "r", "y", "v2", *FEATS)
 
 
 def xy(d: pl.DataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -204,6 +236,7 @@ def main() -> None:
         out = out.with_columns(
             ew=pl.sum_horizontal([te[f].fill_null(0.5) * s for f, s in signs.items()]),
             mom120=te["r120"],
+            v2=te["v2"],
         )
         for name in LEARNERS:
             p = tune(name, tr)
@@ -225,7 +258,7 @@ def main() -> None:
         print(f"{y}: train {tr.height} test {te.height} ({time.time() - t0:.0f}s)", flush=True)
     p = pl.concat(preds)
     mid = p["date"].unique().sort()[p["date"].n_unique() // 2]
-    cols = ("ew", "mom120", *LEARNERS, "ens")
+    cols = ("ew", "mom120", "v2", *LEARNERS, "ens")
     res: dict = {
         "universe": uv.mode(),
         "test": [str(p["date"].min()), str(p["date"].max())],
@@ -261,7 +294,7 @@ def main() -> None:
             flush=True,
         )
     # paired: does a learner rank better than another on the same days? (row beats column)
-    ics = {k: day_ic(p, k) for k in (*LEARNERS, "ens")}
+    ics = {k: day_ic(p, k) for k in ("v2", *LEARNERS, "ens")}
     res["paired"] = {
         a: {
             b: {"ic": float((ics[a] - ics[b]).mean()), "t": thin(ics[a] - ics[b])}

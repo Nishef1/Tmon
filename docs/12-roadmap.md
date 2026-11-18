@@ -12,7 +12,7 @@
 | M4/M6 مدل D1، W1، M1 | ساخته شد، **از baseline بهتر نیست** | [D1](reports/m4-lgbm-d1-real.md)، [W1](reports/m4-lgbm-w1-real.md)، [M1](reports/m4-lgbm-m1-real.md) |
 | M5 API و رابط | تمام | CI (Vitest، Playwright) |
 | M7 کلان، خبر، صندوق | بخشی؛ کلان کمکی نکرد؛ بورس کالا و تورم رسمی مسدود (OQ ۷۹، ۸۰) | [ablation-w1](reports/ablation-w1.md) |
-| M8 واژه‌نامه و دقت زنده | تمام | `frontend/tests/glossary.test.ts`، صفحهٔ `/accuracy` |
+| M8 واژه‌نامه و دقت زنده | تمام؛ صفحهٔ دقت v1 در ۲۸ آبان ۱۴۰۵ برداشته شد | `frontend/tests/glossary.test.ts` |
 
 ## مسیر v2 (ADR 0003)
 

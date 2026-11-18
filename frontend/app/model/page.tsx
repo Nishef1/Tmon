@@ -11,9 +11,6 @@ import { AdaptSection } from "@/components/model/AdaptSection";
 import { BookResearch } from "@/components/book/BookResearch";
 import { EntryLab } from "@/components/entry/EntryLab";
 import { RankingTrust } from "@/components/model/RankingTrust";
-import { CalibrationSection } from "@/components/model/CalibrationSection";
-import { AccuracySection } from "@/components/model/AccuracySection";
-import { HistorySection } from "@/components/model/HistorySection";
 
 export const metadata: Metadata = { title: "شانس ورود و اعتبار مدل" };
 export const dynamic = "force-dynamic";
@@ -23,16 +20,10 @@ const PARTS = [
   ["v2", "رتبه‌بندی و آزمون"],
   ["book", "تابلو و صف"],
   ["adapt", "الگوریتم زنده"],
-  ["calibration", "کالیبراسیون"],
-  ["accuracy", "دقت زنده"],
-  ["history", "سابقهٔ سیگنال‌ها"],
 ] as const;
 
-type SP = { outcome?: string; offset?: string; timeframe?: string };
-
-/** Everything that says how far to trust the model, in one place: tests, calibration, live accuracy, history. */
-export default async function ModelPage({ searchParams }: { searchParams: Promise<SP> }) {
-  const sp = await searchParams;
+/** Everything that says how far to trust the model, in one place: entry odds, ranking tests, book, live algorithm. */
+export default async function ModelPage() {
   const [rank, odds, book, adapt, autopilot] = await Promise.all([
     apiGet<Ranking>("/v2/ranking"),
     entryOdds(),
@@ -48,7 +39,7 @@ export default async function ModelPage({ searchParams }: { searchParams: Promis
           سؤال اصلی خریدار این است که «از فردا هم سبز می‌ماند؟». بخش اول نشان می‌دهد بعد از هر نوع
           کندل (چند سبز یا قرمز پشت سر هم، خروج از کف، اصلاح در روند صعودی) کندل‌های بعدی در کل
           تاریخچهٔ بورس چند بار بالاتر رفته‌اند و آیا این از خریدن هر سهم دیگری بهتر بوده. بخش‌های
-          بعد می‌گویند به رتبه‌بندی و احتمال‌های مدل چقدر می‌شود اعتماد کرد.
+          بعد می‌گویند به رتبه‌بندی مدل چقدر می‌شود اعتماد کرد.
         </p>
         <nav aria-label="بخش‌های صفحه" className="mt-3 flex flex-wrap gap-2">
           {PARTS.map(([id, label]) => (
@@ -80,9 +71,6 @@ export default async function ModelPage({ searchParams }: { searchParams: Promis
           چرخهٔ الگوریتم زنده هنوز اجرا نشده یا در دسترس نیست.
         </section>
       )}
-      <CalibrationSection />
-      <AccuracySection timeframe={sp.timeframe} />
-      <HistorySection outcome={sp.outcome} offset={sp.offset} />
     </main>
   );
 }

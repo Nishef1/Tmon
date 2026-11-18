@@ -4,8 +4,8 @@
 stock, freshness of each source), the live quote, the **verdict** with its summary (one-month
 verdict, the six-month record of the current state, the queue, the exit level), the chart with a
 percent ruler and Heikin-Ashi, the news and Codal timeline, the current state, drivers and group.
-Collapsed sections: entry lab, technical and risk, buyer behaviour, valuation, shareholders,
-signals and the AGM calculator.
+Collapsed sections: entry lab, technical and risk, buyer behaviour, valuation, shareholders
+and the AGM calculator.
 
 **How a user reaches it:** clicking a symbol anywhere, or search.
 

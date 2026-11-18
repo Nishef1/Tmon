@@ -17,10 +17,6 @@ const PLACES = [
     { label: "امروز بازار", href: "/" },
   ],
   [
-    /SignalCard|SignalTable|WhyNoRecommendation|app\/history|app\/accuracy|app\/calibration/,
-    { label: "سیگنال‌ها و سابقه", href: "/model#history" },
-  ],
-  [
     /components\/(stock|entry|book)\/|SymbolDashboard|TechnicalCard|TurningCard|PeersCard|DriversCard|CandleChart|app\/instruments\//,
     { label: "صفحهٔ هر نماد", href: "/screener" },
   ],
