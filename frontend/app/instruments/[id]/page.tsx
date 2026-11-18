@@ -22,6 +22,8 @@ import {
 import { Fold } from "@/components/stock/Fold";
 import { PeersCard } from "@/components/PeersCard";
 import { TurningCard } from "@/components/TurningCard";
+import { TrendRideCard } from "@/components/stock/TrendRideCard";
+import { rideMarks } from "@/components/stock/rideMarks";
 import { DriversCard } from "@/components/DriversCard";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { JumpNav, type JumpItem } from "@/components/stock/JumpNav";
@@ -96,7 +98,9 @@ export default async function InstrumentPage({
       )
     : null;
   const entry = dash.ok ? dash.data.entry : null;
-  const marks = entry ? entryMarks(entry) : [];
+  const ride = dash.ok ? (dash.data.turning?.ride ?? null) : null;
+  const arrows = entry ? entryMarks(entry) : [];
+  const marks = [...arrows, ...(ride ? rideMarks(ride) : [])];
 
   const dd = dash.ok ? dash.data : null;
   const firedHere = (dd?.technical?.fired.length ?? 0) > 0;
@@ -107,6 +111,7 @@ export default async function InstrumentPage({
   const jumps: JumpItem[] = [
     ...(dd ? [{ id: "decision", label: "چه کنم؟" }] : []),
     ...(d.candles.length > 0 ? [{ id: "chart", label: "نمودار" }] : []),
+    ...(ride ? [{ id: "ride", label: "ورود و خروج روند" }] : []),
     ...(dd?.peers ? [{ id: "peers", label: "همگروه‌ها" }] : []),
     ...(dd ? [{ id: "facts", label: "پول و ارزش‌گذاری" }] : []),
     ...(book.ok ? [{ id: "book", label: "خریداران و فروشندگان" }] : []),
@@ -162,12 +167,20 @@ export default async function InstrumentPage({
                 تعدیل
               </Link>{" "}
               شده‌اند.
-              {marks.length > 0 &&
+              {arrows.length > 0 &&
                 " پیکان سبز یعنی ورود در آن کندل در گذشته بهتر از بقیهٔ سهم‌ها بوده است و پیکان قرمز یعنی بدتر."}
+              {ride?.entry_date &&
+                " «خرید روند» و «فروش روند» روزهای آخرین دورهٔ قاعدهٔ ورود و خروج روند هستند."}
             </p>
           </>
         )}
       </section>
+
+      {ride && (
+        <div id="ride" className="scroll-mt-28">
+          <TrendRideCard r={ride} instrumentId={d.instrument.id} />
+        </div>
+      )}
 
       {dd && <PriceRange d={dd} />}
 

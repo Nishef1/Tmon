@@ -29,11 +29,13 @@ from tmon.api.schemas import (
     DashPeers,
     DashPrice,
     DashRanges,
+    DashRide,
     DashShareChange,
     DashSignal,
     DashTurning,
     DriverMove,
     InstrumentDashboard,
+    RideHistory,
     TurningHorizon,
     TurningState,
     TurningTrigger,
@@ -933,6 +935,20 @@ def _warning(w: dict[str, Any] | None, cur: dict[str, Any]) -> TurningWarning | 
     )
 
 
+def _ride(meta: dict[str, Any] | None, cur: dict[str, Any] | None) -> DashRide | None:
+    if not meta or not cur:
+        return None
+    h = meta.get("history") or {}
+    return DashRide(
+        **cur,
+        near_high=meta["near_high"],
+        trail=meta["trail"],
+        grade=meta["grade"],
+        history_years=meta["history_years"],
+        history=RideHistory(**h) if h.get("n") else None,
+    )
+
+
 def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning | None:
     """The symbol's part of the turning-point document; None when it has no state (under a year
     of history) or the document was never written."""
@@ -977,6 +993,7 @@ def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning |
         history_last=dt.date.fromisoformat(hist["last"]),
         split_date=dt.date.fromisoformat(hist["split_date"]),
         warning=_warning(doc.get("warning"), cur),
+        ride=_ride(doc.get("trend_ride"), cur.get("ride")),
     )
 
 

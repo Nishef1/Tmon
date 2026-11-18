@@ -37,6 +37,7 @@
 | [entry-odds-2026-11](entry-odds-2026-11.md) * | شانس سبز بودن کندل‌های بعد از هر الگوی ورود |
 | [glossary-signals-2026-11](glossary-signals-2026-11.md) * | همهٔ واژه‌های نموداری واژه‌نامه روی نمودار و در آزمون |
 | [forecast-check-1405](forecast-check-1405.md) | آیا اندیکاتورها کندل‌های بعدی امسال را درست گفتند |
+| [trend-ride-2026-11](trend-ride-2026-11.md) * | ورود «روند نزدیک سقف» با خروج شناور ۲۵٪: در سه سال اخیر در هر دو نیمه از ورود تصادفی بهتر، از ۱۳۸۸ تا ۱۳۹۷ نه؛ درجهٔ احتمالی |
 | [orderbook-queue](orderbook-queue.md) | عمق سفارش و صف: چیزی به امتیاز اضافه نکرد؛ برچسب صف |
 | [weekly-outlook-2026-11](weekly-outlook-2026-11.md) | حالت بازار و چشم‌انداز هفته |
 | [research-practices-and-anomalies](research-practices-and-anomalies.md) | روش‌های فعالان بازار و ناهنجاری‌های شناخته‌شده |

@@ -3970,6 +3970,208 @@
         "title": "DashRanges",
         "type": "object"
       },
+      "DashRide": {
+        "description": "The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,\nthe trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted\nto today's share count.",
+        "properties": {
+          "days_since_exit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Since Exit"
+          },
+          "entry_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Close"
+          },
+          "entry_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Date"
+          },
+          "exit_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Close"
+          },
+          "exit_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Date"
+          },
+          "exit_signal_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Signal Date"
+          },
+          "gain": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gain"
+          },
+          "grade": {
+            "enum": [
+              "proven",
+              "probable",
+              "unproven"
+            ],
+            "title": "Grade",
+            "type": "string"
+          },
+          "history": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RideHistory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history_years": {
+            "title": "History Years",
+            "type": "integer"
+          },
+          "last_close": {
+            "title": "Last Close",
+            "type": "number"
+          },
+          "last_date": {
+            "format": "date",
+            "title": "Last Date",
+            "type": "string"
+          },
+          "near_high": {
+            "title": "Near High",
+            "type": "number"
+          },
+          "peak_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Close"
+          },
+          "peak_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Date"
+          },
+          "signal_close": {
+            "title": "Signal Close",
+            "type": "number"
+          },
+          "signal_date": {
+            "format": "date",
+            "title": "Signal Date",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "buy_next",
+              "open",
+              "sell_next",
+              "closed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stop": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop"
+          },
+          "trail": {
+            "title": "Trail",
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "signal_date",
+          "signal_close",
+          "entry_date",
+          "entry_close",
+          "peak_date",
+          "peak_close",
+          "stop",
+          "exit_signal_date",
+          "exit_date",
+          "exit_close",
+          "last_date",
+          "last_close",
+          "gain",
+          "days_since_exit",
+          "near_high",
+          "trail",
+          "grade",
+          "history_years",
+          "history"
+        ],
+        "title": "DashRide",
+        "type": "object"
+      },
       "DashRisk": {
         "description": "The last 250 trading days of the symbol (longer than a year when it was halted).",
         "properties": {
@@ -4426,6 +4628,16 @@
             ],
             "title": "Ret60"
           },
+          "ride": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashRide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "round_trip_cost": {
             "title": "Round Trip Cost",
             "type": "number"
@@ -4487,7 +4699,8 @@
           "history_first",
           "history_last",
           "split_date",
-          "warning"
+          "warning",
+          "ride"
         ],
         "title": "DashTurning",
         "type": "object"
@@ -9663,6 +9876,121 @@
           "cash"
         ],
         "title": "RegimePoint",
+        "type": "object"
+      },
+      "RideBlock": {
+        "properties": {
+          "excess_mean": {
+            "title": "Excess Mean",
+            "type": "number"
+          },
+          "hold_median": {
+            "title": "Hold Median",
+            "type": "number"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "net_mean": {
+            "title": "Net Mean",
+            "type": "number"
+          },
+          "net_median": {
+            "title": "Net Median",
+            "type": "number"
+          },
+          "open": {
+            "default": 0,
+            "title": "Open",
+            "type": "integer"
+          },
+          "win": {
+            "title": "Win",
+            "type": "number"
+          }
+        },
+        "required": [
+          "n",
+          "open",
+          "net_mean",
+          "net_median",
+          "excess_mean",
+          "win",
+          "hold_median"
+        ],
+        "title": "RideBlock",
+        "type": "object"
+      },
+      "RideHistory": {
+        "description": "Rides of the rule from liquid signal days over the last ``history_years`` years.",
+        "properties": {
+          "excess_mean": {
+            "title": "Excess Mean",
+            "type": "number"
+          },
+          "first": {
+            "format": "date",
+            "title": "First",
+            "type": "string"
+          },
+          "halves": {
+            "items": {
+              "$ref": "#/components/schemas/RideBlock"
+            },
+            "title": "Halves",
+            "type": "array"
+          },
+          "hold_median": {
+            "title": "Hold Median",
+            "type": "number"
+          },
+          "last": {
+            "format": "date",
+            "title": "Last",
+            "type": "string"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "net_mean": {
+            "title": "Net Mean",
+            "type": "number"
+          },
+          "net_median": {
+            "title": "Net Median",
+            "type": "number"
+          },
+          "open": {
+            "default": 0,
+            "title": "Open",
+            "type": "integer"
+          },
+          "split_date": {
+            "format": "date",
+            "title": "Split Date",
+            "type": "string"
+          },
+          "win": {
+            "title": "Win",
+            "type": "number"
+          }
+        },
+        "required": [
+          "n",
+          "open",
+          "net_mean",
+          "net_median",
+          "excess_mean",
+          "win",
+          "hold_median",
+          "first",
+          "last",
+          "split_date",
+          "halves"
+        ],
+        "title": "RideHistory",
         "type": "object"
       },
       "ScreenerOut": {

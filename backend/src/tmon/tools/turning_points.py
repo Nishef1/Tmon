@@ -12,6 +12,7 @@ from collections import Counter
 from datetime import date
 from typing import Any
 
+from tmon.backtest import trend_ride as tr
 from tmon.backtest import turning as tp
 from tmon.core.db import session_scope
 from tmon.core.engine_config import get_engine_config
@@ -30,6 +31,13 @@ def build_document() -> dict[str, Any]:
     panel = tp.build_panel(prices, clients)
     as_of: date = panel["date"].max()  # type: ignore[assignment]
     cost = CostModel.from_rules(rules, as_of, cfg.costs.slippage_fraction).round_trip
+    rc = cfg.v2.trend_ride
+    by_symbol = tr.all_rides(panel, rc.near_high, rc.trail, rc.max_hold_days)
+    symbols = {str(k): v for k, v in tp.current_states(panel).items()}
+    for iid, (g, rs) in by_symbol.items():
+        ride = tr.current(g, rs, rc.trail)
+        if ride and str(iid) in symbols:
+            symbols[str(iid)]["ride"] = ride
     return {
         "as_of": str(as_of),
         "round_trip_cost": cost,
@@ -52,7 +60,17 @@ def build_document() -> dict[str, Any]:
             **tp.warning_stats(panel),
         },
         "market": tp.market_now(panel),
-        "symbols": {str(k): v for k, v in tp.current_states(panel).items()},
+        "trend_ride": {
+            "near_high": rc.near_high,
+            "trail": rc.trail,
+            "max_hold_days": rc.max_hold_days,
+            "grade": rc.grade,
+            "history_years": rc.history_years,
+            "history": tr.history(
+                by_symbol, panel, cost, as_of.replace(year=as_of.year - rc.history_years)
+            ),
+        },
+        "symbols": symbols,
     }
 
 
@@ -71,6 +89,13 @@ def main() -> None:
         f"halves60={[round((b.get('h60') or {}).get('excess_mean', nan), 3) for b in w['halves']]} "
         f"x120={(w.get('h120') or {}).get('excess_mean', nan):+.3f} "
         f"now={sum(1 for v in doc['symbols'].values() if v.get('warn_date'))}"
+    )
+    rh = doc["trend_ride"]["history"]
+    rides = Counter(v["ride"]["status"] for v in doc["symbols"].values() if v.get("ride"))
+    print(
+        f"trend_ride n={rh['n']} net={rh.get('net_mean', nan):+.3f}"
+        f" x={rh.get('excess_mean', nan):+.3f}"
+        f" halves={[round(b['excess_mean'], 3) for b in rh.get('halves', [])]} now={dict(rides)}"
     )
     for k, v in doc["history"]["states"].items():
         h = v.get("h120") or {}

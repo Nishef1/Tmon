@@ -753,6 +753,52 @@ class TurningWarning(ApiModel):
     halves_excess_60: list[float | None] = []
 
 
+class RideBlock(ApiModel):
+    n: int
+    open: int = 0  # rides still running, valued at the last close
+    net_mean: float
+    net_median: float
+    excess_mean: float  # over the liquid mean of the same days, after the round trip
+    win: float
+    hold_median: float
+
+
+class RideHistory(RideBlock):
+    """Rides of the rule from liquid signal days over the last ``history_years`` years."""
+
+    first: dt.date
+    last: dt.date
+    split_date: dt.date
+    halves: list[RideBlock]
+
+
+class DashRide(ApiModel):
+    """The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,
+    the trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted
+    to today's share count."""
+
+    status: Literal["buy_next", "open", "sell_next", "closed"]
+    signal_date: dt.date
+    signal_close: float
+    entry_date: dt.date | None = None
+    entry_close: float | None = None
+    peak_date: dt.date | None = None
+    peak_close: float | None = None
+    stop: float | None = None  # sell when a close falls below this
+    exit_signal_date: dt.date | None = None
+    exit_date: dt.date | None = None
+    exit_close: float | None = None
+    last_date: dt.date
+    last_close: float
+    gain: float | None = None  # from the buy to the sale, or to the last close while open
+    days_since_exit: int | None = None
+    near_high: float
+    trail: float
+    grade: Literal["proven", "probable", "unproven"]
+    history_years: int
+    history: RideHistory | None = None
+
+
 class DashTurning(ApiModel):
     """Where the symbol stands in its fall or run-up and what history says about that place."""
 
@@ -775,6 +821,7 @@ class DashTurning(ApiModel):
     history_last: dt.date
     split_date: dt.date
     warning: TurningWarning | None = None
+    ride: DashRide | None = None
 
 
 class DashPeer(VerdictFields):

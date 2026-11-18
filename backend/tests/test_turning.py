@@ -283,3 +283,27 @@ def test_turning_out_shows_the_warning_only_when_it_fired() -> None:
     w = turning_out(doc, 1).warning  # type: ignore[union-attr]
     assert w is not None and w.days_ago == 6 and w.halves_excess_60 == [-0.046, -0.022]
     assert [x.horizon_days for x in w.horizons] == [60]
+
+
+def test_turning_out_carries_the_trend_ride_with_its_stop() -> None:
+    from tmon.api.routers.dashboard import turning_out
+
+    doc = _doc()
+    blk = {"n": 10, "net_mean": 0.3, "net_median": 0.05, "excess_mean": 0.02, "win": 0.55,
+           "hold_median": 80.0}  # fmt: skip
+    doc["trend_ride"] = {"near_high": 0.05, "trail": 0.25, "max_hold_days": 250,
+                         "grade": "probable", "history_years": 3,
+                         "history": {**blk, "first": "2002-01-01", "last": "2026-09-01",
+                                     "split_date": "2019-01-01", "halves": [blk, blk]}}  # fmt: skip
+    t = turning_out(doc, 1)
+    assert t is not None and t.ride is None
+    doc["symbols"]["1"]["ride"] = {  # type: ignore[index]
+        "status": "open", "signal_date": "2026-09-27", "signal_close": 4740.0,
+        "entry_date": "2026-09-28", "entry_close": 4880.0, "peak_date": "2026-11-17",
+        "peak_close": 7450.0, "stop": 5587.5, "exit_signal_date": None, "exit_date": None,
+        "exit_close": None, "last_date": "2026-11-17", "last_close": 7450.0, "gain": 0.53,
+        "days_since_exit": None,
+    }  # fmt: skip
+    r = turning_out(doc, 1).ride  # type: ignore[union-attr]
+    assert r is not None and r.status == "open" and r.stop == 5587.5 and r.trail == 0.25
+    assert r.history is not None and len(r.history.halves) == 2

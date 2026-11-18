@@ -232,12 +232,24 @@ class VerdictCfg(_Frozen):
     avoid_grade: Literal["proven", "probable", "unproven"]
 
 
+class TrendRideCfg(_Frozen):
+    """Entry and trailing exit on the symbol page (docs/reports/trend-ride-2026-11.md): the pair
+    that beat random entries with the same exit in both halves. Change only with a new report."""
+
+    near_high: float = Field(gt=0, lt=1)  # close within this share of its 250-day high
+    trail: float = Field(gt=0, lt=1)  # exit: close this far below the highest close since the buy
+    max_hold_days: int = Field(ge=1)
+    history_years: int = Field(ge=1)  # past rides shown on the page start this many years back
+    grade: Literal["proven", "probable", "unproven"]
+
+
 class V2Cfg(_Frozen):
     exposure: ExposureCfg
     portfolio: PortfolioCfg
     gates: GatesCfg
     invested: InvestedCfg
     verdict: VerdictCfg
+    trend_ride: TrendRideCfg
 
 
 class AdaptCfg(_Frozen):

@@ -207,6 +207,17 @@ v2:
     candidate_grade: unproven
     avoid_grade: unproven
 
+  # Entry hint and trailing exit on the symbol page, read off docs/reports/trend-ride-2026-11.md:
+  # of six entries and eight exits, this pair beat random entries with the same exit in both
+  # halves of the last three years (paired t 2.6 on the 300 most traded, under the 3.0 of
+  # "proven"; mostly one rising market). From 2010 to mid-2018 it did not, so not "proven".
+  trend_ride:
+    near_high: 0.05
+    trail: 0.25
+    max_hold_days: 250
+    history_years: 3
+    grade: probable
+
   # Publication gate G1-G6 (ADR 0003 section 7)
   gates:
     min_year_win_share: 0.6       # G1: share of calendar years beating the index

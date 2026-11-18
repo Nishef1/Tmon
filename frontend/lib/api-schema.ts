@@ -2084,6 +2084,65 @@ export interface components {
       year_min: number | null;
     };
     /**
+     * DashRide
+     * @description The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,
+     *     the trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted
+     *     to today's share count.
+     */
+    DashRide: {
+      /** Days Since Exit */
+      days_since_exit: number | null;
+      /** Entry Close */
+      entry_close: number | null;
+      /** Entry Date */
+      entry_date: string | null;
+      /** Exit Close */
+      exit_close: number | null;
+      /** Exit Date */
+      exit_date: string | null;
+      /** Exit Signal Date */
+      exit_signal_date: string | null;
+      /** Gain */
+      gain: number | null;
+      /**
+       * Grade
+       * @enum {string}
+       */
+      grade: "proven" | "probable" | "unproven";
+      history: components["schemas"]["RideHistory"] | null;
+      /** History Years */
+      history_years: number;
+      /** Last Close */
+      last_close: number;
+      /**
+       * Last Date
+       * Format: date
+       */
+      last_date: string;
+      /** Near High */
+      near_high: number;
+      /** Peak Close */
+      peak_close: number | null;
+      /** Peak Date */
+      peak_date: string | null;
+      /** Signal Close */
+      signal_close: number;
+      /**
+       * Signal Date
+       * Format: date
+       */
+      signal_date: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "buy_next" | "open" | "sell_next" | "closed";
+      /** Stop */
+      stop: number | null;
+      /** Trail */
+      trail: number;
+    };
+    /**
      * DashRisk
      * @description The last 250 trading days of the symbol (longer than a year when it was halted).
      */
@@ -2274,6 +2333,7 @@ export interface components {
       ret20: number | null;
       /** Ret60 */
       ret60: number | null;
+      ride: components["schemas"]["DashRide"] | null;
       /** Round Trip Cost */
       round_trip_cost: number;
       /** Rsi */
@@ -3892,6 +3952,66 @@ export interface components {
       date: string;
       /** Plan */
       plan: number;
+    };
+    /** RideBlock */
+    RideBlock: {
+      /** Excess Mean */
+      excess_mean: number;
+      /** Hold Median */
+      hold_median: number;
+      /** N */
+      n: number;
+      /** Net Mean */
+      net_mean: number;
+      /** Net Median */
+      net_median: number;
+      /**
+       * Open
+       * @default 0
+       */
+      open: number;
+      /** Win */
+      win: number;
+    };
+    /**
+     * RideHistory
+     * @description Rides of the rule from liquid signal days over the last ``history_years`` years.
+     */
+    RideHistory: {
+      /** Excess Mean */
+      excess_mean: number;
+      /**
+       * First
+       * Format: date
+       */
+      first: string;
+      /** Halves */
+      halves: components["schemas"]["RideBlock"][];
+      /** Hold Median */
+      hold_median: number;
+      /**
+       * Last
+       * Format: date
+       */
+      last: string;
+      /** N */
+      n: number;
+      /** Net Mean */
+      net_mean: number;
+      /** Net Median */
+      net_median: number;
+      /**
+       * Open
+       * @default 0
+       */
+      open: number;
+      /**
+       * Split Date
+       * Format: date
+       */
+      split_date: string;
+      /** Win */
+      win: number;
     };
     /** ScreenerOut */
     ScreenerOut: {
