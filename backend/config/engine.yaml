@@ -189,7 +189,9 @@ v2:
     slow_hold_top_frac: 0.50      # hold until out of the top 50%
     min_phase_share: 0.75         # condition 3: share of start phases that beat S0
     cost_multiplier: 1.5          # condition 4
-    profile_horizons: [20, 60]    # decile profile (section 5)
+    # decile profile (section 5). 1, 5 and 120 only show the stock page why the verdict is read at
+    # 60 days (docs/reports/horizon-profile-2026-11.md); they are not used by the verdict.
+    profile_horizons: [1, 5, 20, 60, 120]
     profile_top_n: 100
     grade_min_net_edge: 0.01      # section 6 "proven": same bar as dashboard.MIN_NET_EDGE ...
     grade_min_t: 3.0              # ... and dashboard.MIN_T

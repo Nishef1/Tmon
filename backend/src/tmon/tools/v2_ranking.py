@@ -392,12 +392,14 @@ def build_document() -> dict[str, Any]:
     ew = index_daily.filter(pl.col("index_code") == code).select("date", "close").sort("date")
     feats = build_features(prices, clients, rules, sectors=sectors)
     adj = adjusted_close(prices)
-    panel = build_panel(feats, adj, cfg, horizons=HORIZONS)
+    # the zone profile also reads horizons the evidence does not (stock page, by horizon)
+    panel_h = tuple(sorted({*HORIZONS, *cfg.v2.invested.profile_horizons}))
+    panel = build_panel(feats, adj, cfg, horizons=panel_h)
     day = panel["date"].max()
     assert isinstance(day, date)
     weights, champion, note = live_weights(adapt_cycle.load_state(), day)
     if weights is not None:  # a gate-passing champion sets the score: the gates judge that score
-        panel = build_panel(feats, adj, cfg, horizons=HORIZONS, weights=weights)
+        panel = build_panel(feats, adj, cfg, horizons=panel_h, weights=weights)
 
     as_of = day
     universe = universe_scores(feats, adj, cfg, as_of, weights)

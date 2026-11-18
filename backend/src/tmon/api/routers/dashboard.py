@@ -38,6 +38,7 @@ from tmon.api.schemas import (
     TurningState,
     TurningTrigger,
     TurningWarning,
+    ZoneHorizon,
     instrument_out,
 )
 from tmon.api.technical import ta_doc, technical_out
@@ -327,11 +328,41 @@ SUMMARY = {
 
 
 HORIZONS_FA = {
-    1: ("D1", "فردا (۱ روز)"),
+    1: ("D1", "یک روز (۱ روز معاملاتی)"),
     5: ("W1", "یک هفته (۵ روز معاملاتی)"),
     20: ("M1", "یک ماه (۲۰ روز معاملاتی)"),
     60: ("Q1", "سه ماه (۶۰ روز معاملاتی)"),
+    120: ("H1", "شش ماه (۱۲۰ روز معاملاتی)"),
 }
+_ZONE_STATUS = {"ثابت‌شده": "proven", "احتمالی": "probable", "ثابت‌نشده": "unproven"}
+
+
+def _by_horizon(doc: dict[str, Any], band: str | None) -> list[ZoneHorizon]:
+    """The stock's zone at every horizon the ranking measured (docs/reports/horizon-profile-
+    2026-11.md). Nothing for the middle band: it has no zone record to show."""
+    if band not in ("candidate", "avoid"):
+        return []
+    h_verdict = int(verdict_config(doc)["horizon_days"])
+    out: list[ZoneHorizon] = []
+    for key in sorted((doc.get("zones") or {}), key=int):
+        h = int(key)
+        z = zone_of(doc, band, h)
+        if not z or h not in HORIZONS_FA or z.get("net") is None:
+            continue
+        loss = z["net_h1"] < 0 and z["net_h2"] < 0
+        out.append(
+            ZoneHorizon(
+                days=h,
+                label=HORIZONS_FA[h][1].split(" (")[0],
+                net=z["net"],
+                net_h1=z["net_h1"],
+                net_h2=z["net_h2"],
+                windows=int(doc["zones"][key].get("days", 0)) // h,
+                status="loss" if loss else _ZONE_STATUS.get(z.get("grade", ""), "unproven"),
+                verdict_horizon=h == h_verdict,
+            )
+        )
+    return out
 
 
 def decision_fields(d: DashDecision) -> dict[str, Any]:
@@ -629,6 +660,7 @@ def decide(
         signals=_signals(src.get("signals") or {}),
         holding=_holding(v, doc, advice),
         horizons=[] if card is None else [card],
+        by_horizon=_by_horizon(doc, v.band),
         **base,
     )
 

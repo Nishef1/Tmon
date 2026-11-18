@@ -1587,6 +1587,11 @@ export interface components {
       band: ("candidate" | "middle" | "avoid") | null;
       /** Basket Size */
       basket_size: number | null;
+      /**
+       * By Horizon
+       * @default []
+       */
+      by_horizon: components["schemas"]["ZoneHorizon"][];
       /** Code */
       code: string | null;
       /** Gauge */
@@ -4383,6 +4388,35 @@ export interface components {
       verdict: string;
       /** Verdict Label */
       verdict_label: string;
+    };
+    /**
+     * ZoneHorizon
+     * @description The past record of the stock's zone (candidate or avoid) at one holding period, net of
+     *     the round trip, so the reader sees why the verdict is read at one horizon only.
+     */
+    ZoneHorizon: {
+      /** Days */
+      days: number;
+      /** Label */
+      label: string;
+      /** Net */
+      net: number;
+      /** Net H1 */
+      net_h1: number;
+      /** Net H2 */
+      net_h2: number;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "loss" | "proven" | "probable" | "unproven";
+      /**
+       * Verdict Horizon
+       * @default false
+       */
+      verdict_horizon: boolean;
+      /** Windows */
+      windows: number;
     };
     /** ZoneProfile */
     ZoneProfile: {

@@ -2217,6 +2217,14 @@
             ],
             "title": "Basket Size"
           },
+          "by_horizon": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ZoneHorizon"
+            },
+            "title": "By Horizon",
+            "type": "array"
+          },
           "code": {
             "anyOf": [
               {
@@ -2468,7 +2476,8 @@
           "summary",
           "signals",
           "holding",
-          "horizons"
+          "horizons",
+          "by_horizon"
         ],
         "title": "DashDecision",
         "type": "object"
@@ -11519,6 +11528,62 @@
           "right"
         ],
         "title": "VerdictCheck",
+        "type": "object"
+      },
+      "ZoneHorizon": {
+        "description": "The past record of the stock's zone (candidate or avoid) at one holding period, net of\nthe round trip, so the reader sees why the verdict is read at one horizon only.",
+        "properties": {
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "net": {
+            "title": "Net",
+            "type": "number"
+          },
+          "net_h1": {
+            "title": "Net H1",
+            "type": "number"
+          },
+          "net_h2": {
+            "title": "Net H2",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "loss",
+              "proven",
+              "probable",
+              "unproven"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "verdict_horizon": {
+            "default": false,
+            "title": "Verdict Horizon",
+            "type": "boolean"
+          },
+          "windows": {
+            "title": "Windows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "label",
+          "net",
+          "net_h1",
+          "net_h2",
+          "windows",
+          "status",
+          "verdict_horizon"
+        ],
+        "title": "ZoneHorizon",
         "type": "object"
       },
       "ZoneProfile": {

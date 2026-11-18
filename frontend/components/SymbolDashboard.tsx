@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { InstrumentDashboard } from "@/lib/api";
 import { TrackBuyButton } from "@/components/TrackBuyButton";
 import { TechnicalCard } from "@/components/TechnicalCard";
+import { ByHorizon } from "@/components/stock/ByHorizon";
 import { Checks } from "@/components/stock/Checks";
 import { faDigits, faNumber, faPercent, jalali } from "@/lib/format";
 import { shortLabel, verdictPill } from "@/lib/ui";
@@ -160,6 +161,18 @@ function Decision({
           <Checks d={dash} h={h} />
         </div>
       </details>
+
+      {d.by_horizon.length > 0 && (
+        <details className="mt-3 border-t border-line pt-3" data-testid="by-horizon-details">
+          <summary className="cursor-pointer select-none text-sm font-semibold text-accent">
+            چرا فقط برای {d.by_horizon.find((r) => r.verdict_horizon)?.label ?? "یک بازه"}؟ بازه‌های
+            دیگر
+          </summary>
+          <div className="mt-3">
+            <ByHorizon rows={d.by_horizon} band={d.band} />
+          </div>
+        </details>
+      )}
 
       <div className="mt-3">
         <TrackBuyButton id={id} symbol={dash.instrument.symbol} />

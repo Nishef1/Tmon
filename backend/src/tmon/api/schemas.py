@@ -664,6 +664,20 @@ class DashHorizon(ApiModel):
     ic_t: float | None = None
 
 
+class ZoneHorizon(ApiModel):
+    """The past record of the stock's zone (candidate or avoid) at one holding period, net of
+    the round trip, so the reader sees why the verdict is read at one horizon only."""
+
+    days: int  # trading days held
+    label: str  # e.g. "سه ماه"
+    net: float  # mean excess over the 100 liquid names after the round trip
+    net_h1: float  # the same in the first half of time
+    net_h2: float  # ... and in the second half
+    windows: int  # non-overlapping periods of this length in the sample
+    status: Literal["loss", "proven", "probable", "unproven"]  # loss: negative in both halves
+    verdict_horizon: bool = False  # the horizon the verdict above is read at
+
+
 class DashDecision(VerdictFields):
     """The single final answer per symbol: buy, hold, sell or none, with the reasons."""
 
@@ -688,6 +702,7 @@ class DashDecision(VerdictFields):
     signals: list[DashSignal] = []
     holding: DashHolding | None = None
     horizons: list[DashHorizon] = []  # one decision per holding period
+    by_horizon: list[ZoneHorizon] = []  # the zone's record at each measured holding period
 
 
 class TurningHorizon(ApiModel):

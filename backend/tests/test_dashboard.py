@@ -323,3 +323,26 @@ def test_flow_power_falls_back_to_volumes_when_the_day_has_no_values() -> None:
     assert flow.power == pytest.approx((81326935 / 2712) / (57086973 / 1575))
     assert flow.net_real_value is None
     assert flow.net_real_volume == pytest.approx(81326935 - 57086973)
+
+
+def test_by_horizon_lists_the_zone_at_every_measured_period() -> None:
+    loss = {"net": -0.015, "net_h1": -0.016, "net_h2": -0.014, "grade": "ثابت‌نشده"}
+    mixed = {"net": 0.02, "net_h1": -0.01, "net_h2": 0.05, "grade": "ثابت‌نشده"}
+    both = {"net": 0.01, "net_h1": 0.014, "net_h2": 0.007, "grade": "احتمالی"}
+    doc = {
+        "verdict": {"horizon_days": 60},
+        "zones": {
+            "5": {"days": 1190, "candidate": loss, "avoid": loss},
+            "120": {"days": 1065, "candidate": mixed, "avoid": mixed},
+            "60": {"days": 1132, "candidate": both, "avoid": loss},
+        },
+    }
+    rows = dash._by_horizon(doc, "candidate")
+    assert [r.days for r in rows] == [5, 60, 120]  # in order of length
+    assert [r.status for r in rows] == ["loss", "probable", "unproven"]
+    assert [r.verdict_horizon for r in rows] == [False, True, False]
+    assert rows[1].label == "سه ماه" and rows[2].label == "شش ماه"
+    assert rows[2].windows == 1065 // 120  # non-overlapping periods, not days
+    # the avoid band reads the avoid zone; the middle band has no zone to show
+    assert dash._by_horizon(doc, "avoid")[1].status == "loss"
+    assert dash._by_horizon(doc, "middle") == []
