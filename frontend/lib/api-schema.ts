@@ -831,6 +831,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/rights": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Rights
+     * @description Recently traded right issues against their base stock: a right is worth the base close
+     *     minus the nominal price, so the bubble is (price - value) / value (docs/06).
+     */
+    get: operations["rights_rights_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/screener": {
     parameters: {
       query?: never;
@@ -2627,10 +2648,14 @@ export interface components {
       cancel_nav: number | null;
       /** Fund Type */
       fund_type: number | null;
+      /** Industry */
+      industry: string | null;
       /** Instrument Id */
       instrument_id: number | null;
       /** Issue Nav */
       issue_nav: number | null;
+      /** Kind */
+      kind: string | null;
       /** Listed */
       listed: boolean;
       /** Name */
@@ -4196,6 +4221,50 @@ export interface components {
       split_date: string;
       /** Win */
       win: number;
+    };
+    /** RightOut */
+    RightOut: {
+      /** Base Close */
+      base_close: number | null;
+      /** Base Date */
+      base_date: string | null;
+      /** Base Id */
+      base_id: number | null;
+      /** Base Symbol */
+      base_symbol: string | null;
+      /** Bubble */
+      bubble: number | null;
+      /** Bubble Note */
+      bubble_note: string | null;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Name */
+      name: string | null;
+      /** Price */
+      price: number;
+      /** Symbol */
+      symbol: string;
+      /** Value */
+      value: number | null;
+    };
+    /** RightsOut */
+    RightsOut: {
+      /** As Of */
+      as_of: string | null;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Nominal */
+      nominal: number;
+      /** Rights */
+      rights: components["schemas"]["RightOut"][];
     };
     /** ScreenerOut */
     ScreenerOut: {
@@ -6216,6 +6285,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TaSignalsOut"];
+        };
+      };
+    };
+  };
+  rights_rights_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RightsOut"];
         };
       };
     };

@@ -228,6 +228,8 @@ class FundOut(ApiModel):
     symbol: str | None = None
     instrument_id: int | None = None
     fund_type: int | None = None
+    kind: str | None = None
+    industry: str | None = None
     listed: bool
     nav_date: dt.date
     cancel_nav: float | None = None
@@ -241,6 +243,28 @@ class FundOut(ApiModel):
 class FundsOut(ApiModel):
     nav_date: dt.date | None = None
     funds: list[FundOut]
+    disclaimer: str = DISCLAIMER
+
+
+class RightOut(ApiModel):
+    instrument_id: int
+    symbol: str
+    name: str | None = None
+    date: dt.date
+    price: float
+    base_id: int | None = None
+    base_symbol: str | None = None
+    base_date: dt.date | None = None
+    base_close: float | None = None
+    value: float | None = None
+    bubble: float | None = None
+    bubble_note: str | None = None
+
+
+class RightsOut(ApiModel):
+    as_of: dt.date | None = None
+    nominal: float
+    rights: list[RightOut]
     disclaimer: str = DISCLAIMER
 
 

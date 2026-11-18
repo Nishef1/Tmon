@@ -4,6 +4,7 @@ import {
   apiGet,
   type Compare,
   type Funds,
+  type Rights,
   type InstrumentDashboard,
   type InstrumentDetail,
 } from "@/lib/api";
@@ -14,6 +15,7 @@ import { SymbolsTable, type Picked } from "@/components/compare/SymbolsTable";
 import { MAX_SYMBOLS } from "@/components/compare/colors";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
+import { FundsTable, RightsTable } from "@/components/compare/BubbleTables";
 
 export const metadata: Metadata = { title: "مقایسه" };
 export const dynamic = "force-dynamic";
@@ -29,9 +31,10 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     0,
     MAX_SYMBOLS,
   );
-  const [cmp, funds, picked] = await Promise.all([
+  const [cmp, funds, rights, picked] = await Promise.all([
     apiGet<Compare>("/compare", { months, inflation_source: source }),
     apiGet<Funds>("/funds"),
+    apiGet<Rights>("/rights"),
     Promise.all(
       ids.map(async (id): Promise<Picked | null> => {
         const [d, dash] = await Promise.all([
@@ -59,7 +62,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         <p className="lead">
           چند نماد را کنار هم بگذارید: بازده از یک روز مشترک، ریسک، این‌که الان چند کندل سبز یا قرمز
           پشت سر هم دارند و بعد از چنین وضعی در گذشته کندل‌های بعدی چند بار بالاتر رفته‌اند.
-          پایین‌تر، دارایی‌های ساده و صندوق‌ها در برابر تورم آمده‌اند.
+          پایین‌تر، دارایی‌های ساده در برابر تورم آمده‌اند و بعد حباب صندوق‌ها و حق‌تقدم‌ها.
         </p>
         <nav aria-label="بخش‌های صفحه" className="mt-3 flex flex-wrap gap-2">
           <a href="#symbols" className="tab tab-pill">
@@ -69,7 +72,10 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             دارایی‌ها و تورم
           </a>
           <a href="#funds" className="tab tab-pill">
-            صندوق‌ها
+            حباب صندوق‌ها
+          </a>
+          <a href="#rights" className="tab tab-pill">
+            حباب حق‌تقدم‌ها
           </a>
         </nav>
       </div>
@@ -220,62 +226,36 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       )}
 
       <section id="funds" className="card space-y-3">
-        <h2 className="font-bold">صندوق‌های بورسی: NAV و حباب</h2>
+        <h2 className="font-bold">حباب صندوق‌های بورسی</h2>
+        <p className="text-sm text-muted">
+          همهٔ ردیف‌های این جدول صندوق‌اند، نه سهم. حباب = (قیمت پایانی − NAV ابطال) ÷ NAV ابطال، هر
+          دو از یک روز. حباب منفی یعنی صندوق ارزان‌تر از ارزش دارایی‌هایش معامله شده است. ردیف‌های
+          بی‌یادداشت اول آمده‌اند، از منفی‌ترین حباب؛ با کلیک روی سر هر ستون ترتیب عوض می‌شود.
+          {funds.ok && funds.data.nav_date && <> NAV تا {jalali(funds.data.nav_date)}.</>}
+        </p>
         {!funds.ok ? (
           <ErrorState message={funds.error} />
         ) : funds.data.funds.length === 0 ? (
           <p className="text-sm text-muted">هنوز NAV صندوقی ثبت نشده است.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="tbl min-w-[32rem]">
-              <caption className="sr-only">ارزش ابطال و حباب صندوق‌ها</caption>
-              <thead>
-                <tr className="border-b border-line">
-                  <th scope="col">نماد</th>
-                  <th scope="col">NAV ابطال</th>
-                  <th scope="col">قیمت پایانی</th>
-                  <th scope="col">حباب</th>
-                </tr>
-              </thead>
-              <tbody>
-                {funds.data.funds.map((f) => (
-                  <tr key={f.reg_no} className="border-b border-line last:border-0">
-                    <td className="px-2 py-1.5">
-                      {f.instrument_id ? (
-                        <Link href={`/instruments/${f.instrument_id}`} className="underline">
-                          {f.symbol ?? f.name}
-                        </Link>
-                      ) : (
-                        f.name
-                      )}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {f.cancel_nav != null ? (
-                        <Num value={f.cancel_nav} kind="price" term="fund_nav" />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {f.price != null ? (
-                        <Num value={f.price} kind="price" term="last_price" />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {f.bubble != null && (
-                        <Num value={f.bubble} kind="percent" term="etf_bubble" digits={1} signed />
-                      )}
-                      {f.bubble_note && (
-                        <span className="block text-xs text-muted">{f.bubble_note}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <FundsTable funds={funds.data.funds} />
+        )}
+      </section>
+
+      <section id="rights" className="card space-y-3">
+        <h2 className="font-bold">حباب حق‌تقدم‌ها</h2>
+        <p className="text-sm text-muted">
+          سهم عادی NAV ندارد، پس حباب ندارد. در میان نمادهای سهامی فقط حق‌تقدم یک ارزش روشن دارد:
+          قیمت پایانی سهم پایه منهای قیمت اسمی ۱۰۰۰ ریال. حباب منفی یعنی با خرید حق‌تقدم و پرداخت
+          ۱۰۰۰ ریال، سهم را ارزان‌تر از تابلو می‌گیرید؛ در عوض پول تا ثبت افزایش سرمایه قفل می‌ماند.
+          فقط حق‌تقدم‌هایی آمده‌اند که در ۳۰ روز گذشته معامله شده‌اند.
+        </p>
+        {!rights.ok ? (
+          <ErrorState message={rights.error} />
+        ) : rights.data.rights.length === 0 ? (
+          <p className="text-sm text-muted">در ۳۰ روز گذشته حق‌تقدمی معامله نشده است.</p>
+        ) : (
+          <RightsTable rights={rights.data.rights} />
         )}
       </section>
     </div>

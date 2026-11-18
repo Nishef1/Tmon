@@ -111,6 +111,18 @@
       "href": "/model"
     }
   ],
+  "rights": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
+  "rights_bubble": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
   "t_stat": [
     {
       "label": "صفحهٔ هر نماد",

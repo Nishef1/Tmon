@@ -5489,6 +5489,17 @@
             ],
             "title": "Fund Type"
           },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
           "instrument_id": {
             "anyOf": [
               {
@@ -5510,6 +5521,17 @@
               }
             ],
             "title": "Issue Nav"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
           },
           "listed": {
             "title": "Listed",
@@ -5575,6 +5597,8 @@
           "symbol",
           "instrument_id",
           "fund_type",
+          "kind",
+          "industry",
           "listed",
           "nav_date",
           "cancel_nav",
@@ -10492,6 +10516,172 @@
         "title": "RideHistory",
         "type": "object"
       },
+      "RightOut": {
+        "properties": {
+          "base_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Close"
+          },
+          "base_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Date"
+          },
+          "base_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Id"
+          },
+          "base_symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Symbol"
+          },
+          "bubble": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble"
+          },
+          "bubble_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble Note"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "symbol",
+          "name",
+          "date",
+          "price",
+          "base_id",
+          "base_symbol",
+          "base_date",
+          "base_close",
+          "value",
+          "bubble",
+          "bubble_note"
+        ],
+        "title": "RightOut",
+        "type": "object"
+      },
+      "RightsOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "nominal": {
+            "title": "Nominal",
+            "type": "number"
+          },
+          "rights": {
+            "items": {
+              "$ref": "#/components/schemas/RightOut"
+            },
+            "title": "Rights",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "nominal",
+          "rights",
+          "disclaimer"
+        ],
+        "title": "RightsOut",
+        "type": "object"
+      },
       "ScreenerOut": {
         "properties": {
           "flow_date": {
@@ -14952,6 +15142,28 @@
         "summary": "Ta Signals",
         "tags": [
           "research"
+        ]
+      }
+    },
+    "/rights": {
+      "get": {
+        "description": "Recently traded right issues against their base stock: a right is worth the base close\nminus the nominal price, so the bubble is (price - value) / value (docs/06).",
+        "operationId": "rights_rights_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Rights",
+        "tags": [
+          "macro"
         ]
       }
     },

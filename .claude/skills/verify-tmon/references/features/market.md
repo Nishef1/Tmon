@@ -13,7 +13,11 @@
 - `/industries`: industry heatmap ranked by real traded value (not base volume), with filters,
   19 selectable columns and search (`/screener`, `/search`).
 - `/compare`: symbols against inflation, the dollar and gold (`/compare`).
-- Fund NAV and bubble come from `/funds`.
+- `/compare#funds`: every listed fund with kind (and industry for sector funds), full name, NAV,
+  close and bubble from `/funds`; sortable headers and a kind filter, clean rows first from the
+  most negative bubble.
+- `/compare#rights`: right issues traded in the last 30 days against base close minus 1000 rials
+  (`/rights`), most below value first.
 
 **How a user reaches it:** the top navigation.
 

@@ -115,3 +115,43 @@ def test_funds_bubble(session, client):
     assert by["1"]["bubble"] == pytest.approx(0.03) and by["1"]["bubble_note"] is None
     assert by["2"]["bubble"] is None and "اهرمی" in by["2"]["bubble_note"]
     assert len(client.get("/funds?listed_only=false").json()["funds"]) == 3
+
+
+def test_fund_kind_and_industry(session, client):
+    etf = Instrument(
+        ins_code="9",
+        symbol_fa="دارونو",
+        instrument_type="etf_equity",
+        tags={"subsector_code": "6819", "fund_desc": "نوع صندوق : سهامی بخشی در صنعت دارویی"},
+    )
+    session.add(etf)
+    session.flush()
+    session.add(FundNav(reg_no="9", date=date(2026, 11, 10), instrument_id=etf.id, fund_type=21))
+    session.flush()
+    f = client.get("/funds").json()["funds"][0]
+    assert f["kind"] == "صندوق سهامی بخشی" and f["industry"] == "دارویی"
+
+
+def test_rights_bubble(session, client):
+    base = Instrument(ins_code="10", symbol_fa="فجهان", instrument_type="stock")
+    right = Instrument(ins_code="11", symbol_fa="فجهانح", instrument_type="right")
+    odd = Instrument(ins_code="12", symbol_fa="کمح", instrument_type="right")
+    old = Instrument(ins_code="13", symbol_fa="قدیمح", instrument_type="right")
+    session.add_all([base, right, odd, old])
+    session.flush()
+    d = date(2026, 11, 16)
+    session.add_all(
+        [
+            PriceDaily(instrument_id=base.id, date=d, close=3000),
+            PriceDaily(instrument_id=right.id, date=d, close=1800),
+            PriceDaily(instrument_id=odd.id, date=d, close=500),
+            PriceDaily(instrument_id=old.id, date=date(2026, 9, 1), close=500),
+        ]
+    )
+    session.flush()
+    j = client.get("/rights").json()
+    by = {r["symbol"]: r for r in j["rights"]}
+    assert set(by) == {"فجهانح", "کمح"}  # not traded in the last 30 days: left out
+    assert by["فجهانح"]["value"] == 2000 and by["فجهانح"]["bubble"] == pytest.approx(-0.1)
+    assert by["کمح"]["bubble"] is None and by["کمح"]["bubble_note"] == "سهم پایه پیدا نشد"
+    assert j["rights"][0]["symbol"] == "فجهانح"

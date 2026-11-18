@@ -18,9 +18,12 @@ from tmon.api.schemas import (
     GoldRatioOut,
     InflationOut,
     InflationReleaseOut,
+    RightOut,
+    RightsOut,
 )
 from tmon.core.db import get_session
 from tmon.domain import gold_ratio as gr
+from tmon.domain.bubbles import RIGHT_NOMINAL, fund_kind, right_base_symbol, right_bubble
 from tmon.domain.compare import (
     PeriodInflation,
     Release,
@@ -45,6 +48,8 @@ ASSETS: tuple[tuple[str, str, str], ...] = (
 # leveraged funds list their leveraged unit, whose NAV the fund-level figure is not
 LEVERAGED_FUND_TYPE = 22
 SUSPECT_BUBBLE = 0.2
+# rights not traded within this many days of the newest right trade are left out
+RIGHTS_RECENT_DAYS = 30
 
 
 def _out(p: PeriodInflation | None, source: str) -> InflationOut | None:
@@ -191,11 +196,7 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
         q = q.where(FundNav.instrument_id.is_not(None))
     navs = session.scalars(q.order_by(FundNav.net_asset.desc().nulls_last())).all()
     ids = [n.instrument_id for n in navs if n.instrument_id]
-    symbols = dict(
-        session.execute(
-            select(Instrument.id, Instrument.symbol_fa).where(Instrument.id.in_(ids))
-        ).all()
-    )
+    insts = {i.id: i for i in session.scalars(select(Instrument).where(Instrument.id.in_(ids)))}
     closes = {
         (iid, d): c
         for iid, d, c in session.execute(
@@ -208,6 +209,14 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
     out = []
     for n in navs:
         price = closes.get((n.instrument_id, n.date)) if n.instrument_id else None
+        inst = insts.get(n.instrument_id) if n.instrument_id else None
+        tags = (inst.tags or {}) if inst else {}
+        kind, industry = fund_kind(
+            tags.get("subsector_code"),
+            n.fund_type,
+            inst.instrument_type if inst else None,
+            tags.get("fund_desc"),
+        )
         b, note = None, None
         if n.instrument_id:
             if n.fund_type == LEVERAGED_FUND_TYPE:
@@ -218,13 +227,17 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
                 b = bubble(float(price), n.cancel_nav)
                 if b is not None and abs(b) > SUSPECT_BUBBLE:
                     note = "حباب غیرعادی؛ احتمال ناهمخوانی واحد یا تعدیل"
+                elif n.date != nav_date:
+                    note = "NAV این صندوق مال روزی قدیمی‌تر از بقیه است"
         out.append(
             FundOut(
                 reg_no=n.reg_no,
                 name=n.name,
-                symbol=symbols.get(n.instrument_id) if n.instrument_id else None,
+                symbol=inst.symbol_fa if inst else None,
                 instrument_id=n.instrument_id,
                 fund_type=n.fund_type,
+                kind=kind,
+                industry=industry,
                 listed=n.instrument_id is not None,
                 nav_date=n.date,
                 cancel_nav=n.cancel_nav,
@@ -236,6 +249,91 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
             )
         )
     return FundsOut(nav_date=nav_date, funds=out)
+
+
+@router.get("/rights", response_model=RightsOut)
+def rights(session: SessionDep) -> RightsOut:
+    """Recently traded right issues against their base stock: a right is worth the base close
+    minus the nominal price, so the bubble is (price - value) / value (docs/06)."""
+    rights_q = select(Instrument).where(
+        Instrument.instrument_type == "right", Instrument.delisted_at.is_(None)
+    )
+    rts = {i.id: i for i in session.scalars(rights_q)}
+    last = dict(
+        session.execute(
+            select(PriceDaily.instrument_id, func.max(PriceDaily.date))
+            .where(PriceDaily.instrument_id.in_(rts), PriceDaily.close.is_not(None))
+            .group_by(PriceDaily.instrument_id)
+        ).all()
+    )
+    if not last:
+        return RightsOut(nominal=RIGHT_NOMINAL, rights=[])
+    as_of = max(last.values())
+    since = as_of - timedelta(days=RIGHTS_RECENT_DAYS)
+    last = {i: d for i, d in last.items() if d >= since}
+    bases: dict[str, list[Instrument]] = {}
+    want = {right_base_symbol(rts[i].symbol_fa) for i in last} - {None}
+    for b in session.scalars(
+        select(Instrument).where(
+            Instrument.symbol_fa.in_(want), Instrument.instrument_type == "stock"
+        )
+    ):
+        bases.setdefault(b.symbol_fa, []).append(b)
+    out = []
+    for iid, d in last.items():
+        r = rts[iid]
+        price = session.scalar(
+            select(PriceDaily.close).where(PriceDaily.instrument_id == iid, PriceDaily.date == d)
+        )
+        if price is None:
+            continue
+        price = float(price)
+        base_rows = []
+        for b in bases.get(right_base_symbol(r.symbol_fa) or "", []):
+            row = session.execute(
+                select(PriceDaily.date, PriceDaily.close)
+                .where(
+                    PriceDaily.instrument_id == b.id,
+                    PriceDaily.date <= d,
+                    PriceDaily.close.is_not(None),
+                )
+                .order_by(PriceDaily.date.desc())
+                .limit(1)
+            ).first()
+            if row and row[1] is not None:
+                base_rows.append((row[0], b, float(row[1])))
+        # a symbol can be reused by an old delisted instrument: take the newest price
+        base = max(base_rows, key=lambda x: x[0]) if base_rows else None
+        b_, value, note = None, None, None
+        if base is None:
+            note = "سهم پایه پیدا نشد"
+        else:
+            value = base[2] - RIGHT_NOMINAL
+            b_ = right_bubble(price, base[2])
+            if b_ is None:
+                note = "قیمت سهم پایه به قیمت اسمی نرسیده است"
+            elif base[0] != d:
+                note = "سهم پایه در روز آخر معاملهٔ حق‌تقدم بسته بود"
+            elif abs(b_) > SUSPECT_BUBBLE:
+                note = "حباب غیرعادی؛ شاید سهم پایه هنوز تعدیل نشده یا قیمت پذیره‌نویسی اسمی نیست"
+        out.append(
+            RightOut(
+                instrument_id=iid,
+                symbol=r.symbol_fa,
+                name=r.name_fa,
+                date=d,
+                price=price,
+                base_id=base[1].id if base else None,
+                base_symbol=base[1].symbol_fa if base else None,
+                base_date=base[0] if base else None,
+                base_close=base[2] if base else None,
+                value=value,
+                bubble=b_,
+                bubble_note=note,
+            )
+        )
+    out.sort(key=lambda x: (x.bubble is None or x.bubble_note is not None, x.bubble or 0.0))
+    return RightsOut(as_of=as_of, nominal=RIGHT_NOMINAL, rights=out)
 
 
 @router.get("/macro/gold-oil", response_model=GoldOilOut)
