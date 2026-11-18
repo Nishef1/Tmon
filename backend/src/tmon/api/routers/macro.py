@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -14,10 +14,13 @@ from tmon.api.schemas import (
     CompareRow,
     FundOut,
     FundsOut,
+    GoldOilOut,
+    GoldRatioOut,
     InflationOut,
     InflationReleaseOut,
 )
 from tmon.core.db import get_session
+from tmon.domain import gold_ratio as gr
 from tmon.domain.compare import (
     PeriodInflation,
     Release,
@@ -233,3 +236,52 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
             )
         )
     return FundsOut(nav_date=nav_date, funds=out)
+
+
+@router.get("/macro/gold-oil", response_model=GoldOilOut)
+def gold_oil(session: SessionDep) -> GoldOilOut:
+    """18k gold and the Emami coin against their gold value at the ounce and the free dollar,
+    and Brent in ounces of gold, each against its own past (docs/reports/gold-oil-2026-11.md)."""
+    newest = session.scalar(
+        select(func.max(MacroSeries.ref_period)).where(MacroSeries.series == "gold_18k")
+    )
+    if newest is None:
+        raise HTTPException(404, "no gold series yet")
+    since = newest - timedelta(days=gr.RANK_DAYS + 7 * gr.MEAN_WEEKS + 30)
+    points: dict[str, list[tuple[date, float]]] = {s: [] for s in gr.SERIES}
+    for series, d, v in session.execute(
+        select(MacroSeries.series, MacroSeries.ref_period, MacroSeries.value).where(
+            MacroSeries.series.in_(gr.SERIES), MacroSeries.ref_period >= since
+        )
+    ):
+        if v is not None:
+            points[series].append((d, float(v)))
+    g = gr.gold_oil(points)
+    if g is None:
+        raise HTTPException(404, "not enough gold history")
+
+    def ratio(r: gr.Ratio) -> GoldRatioOut:
+        return GoldRatioOut(
+            value=r.value,
+            mean_52w=r.mean_52w,
+            deviation=r.deviation,
+            pct_rank_3y=r.pct_rank_3y,
+            state=r.state,
+        )
+
+    return GoldOilOut(
+        week=g.week,
+        usd_free=g.usd_free,
+        gold_18k=g.gold_18k,
+        coin_emami=g.coin_emami,
+        gold_usd=g.gold_usd,
+        brent_usd=g.brent_usd,
+        gold_18k_fair=g.gold_18k_fair,
+        coin_fair=g.coin_fair,
+        usd_implied=g.usd_implied,
+        gold_prem=ratio(g.gold_prem),
+        coin_bubble=ratio(g.coin_bubble),
+        oil_gold=ratio(g.oil_gold),
+        gold_prem_cuts=gr.GOLD_PREM_CUTS,
+        coin_bubble_cuts=gr.COIN_BUBBLE_CUTS,
+    )

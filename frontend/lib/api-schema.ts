@@ -265,6 +265,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/macro/gold-oil": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Gold Oil
+     * @description 18k gold and the Emami coin against their gold value at the ounce and the free dollar,
+     *     and Brent in ounces of gold, each against its own past (docs/reports/gold-oil-2026-11.md).
+     */
+    get: operations["gold_oil_macro_gold_oil_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/market/overview": {
     parameters: {
       query?: never;
@@ -2639,6 +2660,59 @@ export interface components {
       funds: components["schemas"]["FundOut"][];
       /** Nav Date */
       nav_date: string | null;
+    };
+    /**
+     * GoldOilOut
+     * @description Domestic gold against the ounce and the free dollar, and Brent against gold
+     *     (docs/reports/gold-oil-2026-11.md).
+     */
+    GoldOilOut: {
+      /** Brent Usd */
+      brent_usd: number;
+      coin_bubble: components["schemas"]["GoldRatioOut"];
+      /** Coin Bubble Cuts */
+      coin_bubble_cuts: [number, number];
+      /** Coin Emami */
+      coin_emami: number;
+      /** Coin Fair */
+      coin_fair: number;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Gold 18K */
+      gold_18k: number;
+      /** Gold 18K Fair */
+      gold_18k_fair: number;
+      gold_prem: components["schemas"]["GoldRatioOut"];
+      /** Gold Prem Cuts */
+      gold_prem_cuts: [number, number];
+      /** Gold Usd */
+      gold_usd: number;
+      oil_gold: components["schemas"]["GoldRatioOut"];
+      /** Usd Free */
+      usd_free: number;
+      /** Usd Implied */
+      usd_implied: number;
+      /**
+       * Week
+       * Format: date
+       */
+      week: string;
+    };
+    /** GoldRatioOut */
+    GoldRatioOut: {
+      /** Deviation */
+      deviation: number | null;
+      /** Mean 52W */
+      mean_52w: number | null;
+      /** Pct Rank 3Y */
+      pct_rank_3y: number;
+      /** State */
+      state: ("high" | "normal" | "low") | null;
+      /** Value */
+      value: number;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -5050,6 +5124,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  gold_oil_macro_gold_oil_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GoldOilOut"];
         };
       };
     };

@@ -244,6 +244,35 @@ class FundsOut(ApiModel):
     disclaimer: str = DISCLAIMER
 
 
+class GoldRatioOut(ApiModel):
+    value: float
+    mean_52w: float | None = None
+    deviation: float | None = None
+    pct_rank_3y: float
+    state: Literal["high", "normal", "low"] | None = None
+
+
+class GoldOilOut(ApiModel):
+    """Domestic gold against the ounce and the free dollar, and Brent against gold
+    (docs/reports/gold-oil-2026-11.md)."""
+
+    week: dt.date
+    usd_free: float
+    gold_18k: float
+    coin_emami: float
+    gold_usd: float
+    brent_usd: float
+    gold_18k_fair: float
+    coin_fair: float
+    usd_implied: float
+    gold_prem: GoldRatioOut
+    coin_bubble: GoldRatioOut
+    oil_gold: GoldRatioOut
+    gold_prem_cuts: tuple[float, float]
+    coin_bubble_cuts: tuple[float, float]
+    disclaimer: str = DISCLAIMER
+
+
 class ScreenerRow(VerdictFields):
     """One symbol on the latest trading day: market data, a few features and its verdict."""
 

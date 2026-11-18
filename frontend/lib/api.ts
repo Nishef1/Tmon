@@ -155,3 +155,5 @@ export async function autopilotState(): Promise<Autopilot | null> {
 
 export type IndustryMap = S["IndustryMapOut"];
 export type IndustryMapRow = S["IndustryMapRow"];
+export type GoldOil = S["GoldOilOut"];
+export type GoldRatio = S["GoldRatioOut"];

@@ -1,9 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, regimePaper, type MarketOverview, type MarketMover } from "@/lib/api";
+import {
+  apiGet,
+  regimePaper,
+  type GoldOil as GoldOilDoc,
+  type MarketOverview,
+  type MarketMover,
+} from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
 import { RegimePlan } from "@/components/market/RegimePlan";
+import { GoldOil } from "@/components/market/GoldOil";
 
 export const metadata: Metadata = { title: "نمای بازار" };
 export const dynamic = "force-dynamic";
@@ -17,9 +24,10 @@ function bt(rial: number, digits = 0): string {
 }
 
 export default async function MarketPage() {
-  const [res, regime] = await Promise.all([
+  const [res, regime, gold] = await Promise.all([
     apiGet<MarketOverview>("/market/overview"),
     regimePaper(),
+    apiGet<GoldOilDoc>("/macro/gold-oil"),
   ]);
   return (
     <main className="space-y-5">
@@ -40,6 +48,7 @@ export default async function MarketPage() {
       ) : (
         <Body d={res.data} />
       )}
+      {gold.ok && <GoldOil d={gold.data} />}
       {regime?.available && <RegimePlan r={regime} />}
     </main>
   );

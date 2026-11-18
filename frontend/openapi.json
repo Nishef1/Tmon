@@ -5622,6 +5622,168 @@
         "title": "FundsOut",
         "type": "object"
       },
+      "GoldOilOut": {
+        "description": "Domestic gold against the ounce and the free dollar, and Brent against gold\n(docs/reports/gold-oil-2026-11.md).",
+        "properties": {
+          "brent_usd": {
+            "title": "Brent Usd",
+            "type": "number"
+          },
+          "coin_bubble": {
+            "$ref": "#/components/schemas/GoldRatioOut"
+          },
+          "coin_bubble_cuts": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Coin Bubble Cuts",
+            "type": "array"
+          },
+          "coin_emami": {
+            "title": "Coin Emami",
+            "type": "number"
+          },
+          "coin_fair": {
+            "title": "Coin Fair",
+            "type": "number"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "gold_18k": {
+            "title": "Gold 18K",
+            "type": "number"
+          },
+          "gold_18k_fair": {
+            "title": "Gold 18K Fair",
+            "type": "number"
+          },
+          "gold_prem": {
+            "$ref": "#/components/schemas/GoldRatioOut"
+          },
+          "gold_prem_cuts": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Gold Prem Cuts",
+            "type": "array"
+          },
+          "gold_usd": {
+            "title": "Gold Usd",
+            "type": "number"
+          },
+          "oil_gold": {
+            "$ref": "#/components/schemas/GoldRatioOut"
+          },
+          "usd_free": {
+            "title": "Usd Free",
+            "type": "number"
+          },
+          "usd_implied": {
+            "title": "Usd Implied",
+            "type": "number"
+          },
+          "week": {
+            "format": "date",
+            "title": "Week",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week",
+          "usd_free",
+          "gold_18k",
+          "coin_emami",
+          "gold_usd",
+          "brent_usd",
+          "gold_18k_fair",
+          "coin_fair",
+          "usd_implied",
+          "gold_prem",
+          "coin_bubble",
+          "oil_gold",
+          "gold_prem_cuts",
+          "coin_bubble_cuts",
+          "disclaimer"
+        ],
+        "title": "GoldOilOut",
+        "type": "object"
+      },
+      "GoldRatioOut": {
+        "properties": {
+          "deviation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deviation"
+          },
+          "mean_52w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean 52W"
+          },
+          "pct_rank_3y": {
+            "title": "Pct Rank 3Y",
+            "type": "number"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "high",
+                  "normal",
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "mean_52w",
+          "deviation",
+          "pct_rank_3y",
+          "state"
+        ],
+        "title": "GoldRatioOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -12954,6 +13116,28 @@
         "summary": "Instrument Live",
         "tags": [
           "instruments"
+        ]
+      }
+    },
+    "/macro/gold-oil": {
+      "get": {
+        "description": "18k gold and the Emami coin against their gold value at the ounce and the free dollar,\nand Brent in ounces of gold, each against its own past (docs/reports/gold-oil-2026-11.md).",
+        "operationId": "gold_oil_macro_gold_oil_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldOilOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Gold Oil",
+        "tags": [
+          "macro"
         ]
       }
     },
