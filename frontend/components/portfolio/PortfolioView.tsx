@@ -425,6 +425,11 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
       <p className={`mt-1 text-sm ${a.validated ? "text-muted" : "text-down"}`}>
         {faDigits(a.note)} {a.as_of && <>(رتبه‌بندی {jalali(a.as_of)})</>}
       </p>
+      {a.inflation_note && a.holdings.length > 0 && (
+        <p className="mt-1 text-sm" data-testid="inflation-note">
+          {faDigits(a.inflation_note)}
+        </p>
+      )}
       {a.holdings.length > 0 && (
         <ul className="mt-2 grid gap-1 text-sm">
           {a.holdings.map((h) => (
@@ -441,6 +446,14 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
               >
                 {h.verdict_fa}
               </span>
+              {h.ahead_of_inflation != null && (
+                <span
+                  className={`badge mr-1 ${h.ahead_of_inflation ? "badge-up" : "badge-down"}`}
+                  data-testid="inflation-badge"
+                >
+                  {h.ahead_of_inflation ? "جلوتر از تورم" : "عقب از تورم"}
+                </span>
+              )}
               <span className="text-muted"> — {faDigits(h.reasons.join(" "))}</span>
               <SellPlan instrumentId={h.instrument_id} />
             </li>

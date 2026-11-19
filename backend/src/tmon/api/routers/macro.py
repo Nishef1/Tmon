@@ -48,6 +48,7 @@ ASSETS: tuple[tuple[str, str, str], ...] = (
     ("usd_free", "tgju", "دلار بازار آزاد"),
     ("gold_18k", "tgju", "طلای ۱۸ عیار (گرم)"),
     ("coin_emami", "tgju", "سکه امامی"),
+    ("coin_bahar", "tgju", "سکه بهار آزادی"),
 )
 # leveraged funds list their leveraged unit, whose NAV the fund-level figure is not
 LEVERAGED_FUND_TYPE = 22
@@ -350,10 +351,10 @@ def gold_oil(session: SessionDep) -> GoldOilOut:
     if newest is None:
         raise HTTPException(404, "no gold series yet")
     since = newest - timedelta(days=gr.RANK_DAYS + 7 * gr.MEAN_WEEKS + 30)
-    points: dict[str, list[tuple[date, float]]] = {s: [] for s in gr.SERIES}
+    points: dict[str, list[tuple[date, float]]] = {s: [] for s in (*gr.SERIES, gr.BAHAR)}
     for series, d, v in session.execute(
         select(MacroSeries.series, MacroSeries.ref_period, MacroSeries.value).where(
-            MacroSeries.series.in_(gr.SERIES), MacroSeries.ref_period >= since
+            MacroSeries.series.in_(points), MacroSeries.ref_period >= since
         )
     ):
         if v is not None:
@@ -384,6 +385,8 @@ def gold_oil(session: SessionDep) -> GoldOilOut:
         gold_prem=ratio(g.gold_prem),
         coin_bubble=ratio(g.coin_bubble),
         oil_gold=ratio(g.oil_gold),
+        coin_bahar=g.coin_bahar,
+        coin_bahar_bubble=None if g.coin_bahar_bubble is None else ratio(g.coin_bahar_bubble),
         gold_prem_cuts=gr.GOLD_PREM_CUTS,
         coin_bubble_cuts=gr.COIN_BUBBLE_CUTS,
     )

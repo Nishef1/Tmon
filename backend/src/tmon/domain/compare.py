@@ -67,6 +67,37 @@ def period_inflation(
     return None
 
 
+@dataclass(frozen=True)
+class InflationSince:
+    value: float
+    last_ref: date  # end of the last month covered by a release
+    estimated_days: int  # days after ``last_ref``, carried at the last month's rate
+
+
+def inflation_since(mom: Sequence[Release], start: date, as_of: date) -> InflationSince | None:
+    """Consumer-price inflation from ``start`` to ``as_of`` (docs/07, the portfolio's bar): each
+    released month spread evenly over its days (geometric), a partial month counted by its days,
+    and the days after the last released month carried at that month's rate, counted in
+    ``estimated_days`` so the page can say so. Only releases out by ``as_of``. ``None`` when no
+    release ends before ``start`` (the first release's month cannot be placed)."""
+    known = sorted((r for r in mom if r.release_date <= as_of), key=lambda r: r.ref_period)
+    if not known or start < known[0].ref_period or start >= as_of:
+        return None
+    acc, prev = 1.0, None
+    for r in known:
+        if prev is not None:
+            a, b = max(prev, start), min(r.ref_period, as_of)
+            if b > a:
+                acc *= (1 + r.value) ** ((b - a).days / (r.ref_period - prev).days)
+        prev = r.ref_period
+    last = known[-1]
+    extra = max(0, (as_of - max(last.ref_period, start)).days)
+    if extra:
+        span = (last.ref_period - known[-2].ref_period).days if len(known) > 1 else 30
+        acc *= (1 + last.value) ** (extra / span)
+    return InflationSince(acc - 1, last.ref_period, extra)
+
+
 def annualised(monthly: float) -> float:
     """docs/07 threshold: ``(1 + π_m)^12 − 1`` (1.044^12 − 1 ≈ 67%)."""
     return (1 + monthly) ** 12 - 1

@@ -317,6 +317,8 @@ class GoldOilOut(ApiModel):
     gold_prem: GoldRatioOut
     coin_bubble: GoldRatioOut
     oil_gold: GoldRatioOut
+    coin_bahar: float | None = None
+    coin_bahar_bubble: GoldRatioOut | None = None
     gold_prem_cuts: tuple[float, float]
     coin_bubble_cuts: tuple[float, float]
     disclaimer: str = DISCLAIMER

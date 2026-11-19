@@ -85,7 +85,7 @@ def test_sync_tgju_and_funds(session):
             respx.get(tgju.url(key)).mock(return_value=httpx.Response(200, content=USD))
         respx.post(fipiran.COMPARE_URL).mock(return_value=httpx.Response(200, content=FUNDS))
         t, f = asyncio.run(go())
-    assert t == {"usd_free": 40, "gold_18k": 40, "coin_emami": 40}
+    assert t == {"usd_free": 40, "gold_18k": 40, "coin_emami": 40, "coin_bahar": 40}
     assert f == {"funds": 6, "linked": 1}
     assert USD in store.objects.values() and FUNDS in store.objects.values()
     row = session.get(MacroSeries, ("usd_free", "tgju", date(2026, 11, 11)))

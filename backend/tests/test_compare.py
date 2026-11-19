@@ -12,6 +12,7 @@ from tmon.core.db import get_session
 from tmon.domain.compare import (
     Release,
     annualised,
+    inflation_since,
     months_back,
     period_inflation,
     real_return,
@@ -28,6 +29,29 @@ def test_formulas():
     pts = [(date(2026, 1, 1), 1.0), (date(2026, 1, 3), 2.0)]
     assert value_on_or_before(pts, date(2026, 1, 2)) == (date(2026, 1, 1), 1.0)
     assert value_on_or_before(pts, date(2025, 12, 31)) is None
+
+
+def test_inflation_since_a_buy_day():
+    mom = [
+        Release(date(2026, 8, 22), date(2026, 8, 29), 0.02, None),
+        Release(date(2026, 9, 22), date(2026, 9, 29), 0.03, None),
+        Release(date(2026, 10, 22), date(2026, 10, 28), 0.044, None),
+    ]
+    # a full month counts its whole figure; the 6 days after it are carried at its rate
+    whole = inflation_since(mom, date(2026, 9, 22), date(2026, 10, 28))
+    assert whole is not None and whole.value == pytest.approx(1.044 ** (36 / 30) - 1)
+    assert whole.estimated_days == 6
+    # half of Mehr (15 of 30 days), then 10 days past the last release at Mehr's rate
+    part = inflation_since(mom, date(2026, 10, 7), date(2026, 11, 1))
+    assert part is not None
+    assert part.value == pytest.approx(1.044 ** (15 / 30) * 1.044 ** (10 / 30) - 1)
+    assert part.estimated_days == 10 and part.last_ref == date(2026, 10, 22)
+    # Mehr is not out on 27 October, so Shahrivar's rate is carried instead
+    early = inflation_since(mom, date(2026, 10, 1), date(2026, 10, 27))
+    assert early is not None and early.estimated_days == 26
+    assert early.value == pytest.approx(1.03 ** (26 / 31) - 1)
+    # before the first placeable month there is nothing to say
+    assert inflation_since(mom, date(2026, 8, 1), date(2026, 10, 1)) is None
 
 
 def test_inflation_is_point_in_time():

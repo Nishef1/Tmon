@@ -23,6 +23,7 @@ SERIES: dict[str, str] = {
     "usd_free": "price_dollar_rl",  # «دلار» بازار آزاد، ریال
     "gold_18k": "geram18",  # «قیمت طلای 18 عیار / 750»، ریال هر گرم
     "coin_emami": "sekee",  # «قیمت سکه امامی»، ریال
+    "coin_bahar": "sekeb",  # «سکه بهار آزادی»، ریال؛ history from 2013-07-22, checked 2026-11-19
 }
 SOURCE = "tgju"
 

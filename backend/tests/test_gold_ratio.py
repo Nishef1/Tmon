@@ -81,3 +81,17 @@ def test_endpoint(session, client):
     j = client.get("/macro/gold-oil").json()
     assert j["gold_prem"]["state"] == "high"
     assert j["gold_prem_cuts"] == [-0.025, 0.016]
+
+
+def test_bahar_coin_bubble_has_no_usual_range():
+    pts = _series(60, 0.0)
+    assert gr.gold_oil(pts).coin_bahar is None  # type: ignore[union-attr]
+    gram = 2000.0 * 1_000_000 / GRAM
+    pts[gr.BAHAR] = [(d, gram * 8.133 * 0.9 * 1.02) for d, _ in pts["usd_free"]]
+    g = gr.gold_oil(pts)
+    assert g is not None and g.coin_bahar_bubble is not None
+    assert g.coin_bahar_bubble.value == pytest.approx(0.02)
+    assert g.coin_bahar_bubble.state is None
+    # a stale Bahar series (ending before the other series) is not shown
+    pts[gr.BAHAR] = pts[gr.BAHAR][:-5]
+    assert gr.gold_oil(pts).coin_bahar is None  # type: ignore[union-attr]

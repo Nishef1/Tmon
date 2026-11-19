@@ -2716,6 +2716,9 @@ export interface components {
     GoldOilOut: {
       /** Brent Usd */
       brent_usd: number;
+      /** Coin Bahar */
+      coin_bahar: number | null;
+      coin_bahar_bubble: components["schemas"]["GoldRatioOut"] | null;
       coin_bubble: components["schemas"]["GoldRatioOut"];
       /** Coin Bubble Cuts */
       coin_bubble_cuts: [number, number];

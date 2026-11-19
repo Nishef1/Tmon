@@ -26,6 +26,9 @@ COIN_BUBBLE_CUTS = (-0.034, 0.039)
 
 State = Literal["high", "normal", "low"]
 SERIES = ("usd_free", "gold_18k", "coin_emami", "gold_usd", "brent_usd")
+# the Bahar Azadi coin has the same gold as the Emami one; its weeks are matched on their own so
+# a gap in it never drops a week of the other series
+BAHAR = "coin_bahar"
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,9 @@ class GoldOil:
     gold_prem: Ratio
     coin_bubble: Ratio
     oil_gold: Ratio
+    coin_bahar: float | None = None
+    # no cut points: the study measured the Emami coin only, so no "usual range" is claimed
+    coin_bahar_bubble: Ratio | None = None
 
 
 def week_of(d: date) -> date:
@@ -126,6 +132,16 @@ def gold_oil(points: dict[str, list[tuple[date, float]]]) -> GoldOil | None:
         oil.append(r["brent_usd"] / r["gold_usd"])
     last = rows[-1]
     gram = last["gold_usd"] * last["usd_free"] / GRAM_PER_OUNCE
+    bahar, bahar_bub = None, None
+    rb = weekly({s: points.get(s, []) for s in ("usd_free", "gold_usd", BAHAR)})
+    if len(rb) >= MIN_WEEKS and rb[-1]["week"] == rows[-1]["week"]:
+        vals = [
+            r[BAHAR] / (r["gold_usd"] * r["usd_free"] / GRAM_PER_OUNCE * COIN_GRAMS * COIN_PURITY)
+            - 1
+            for r in rb
+        ]
+        bahar = rb[-1][BAHAR]
+        bahar_bub = _ratio(vals, [date.fromordinal(int(r["week"])) for r in rb], None)
     return GoldOil(
         week=weeks[-1],
         usd_free=last["usd_free"],
@@ -139,4 +155,6 @@ def gold_oil(points: dict[str, list[tuple[date, float]]]) -> GoldOil | None:
         gold_prem=_ratio(prem, weeks, GOLD_PREM_CUTS),
         coin_bubble=_ratio(bub, weeks, COIN_BUBBLE_CUTS),
         oil_gold=_ratio(oil, weeks, None),
+        coin_bahar=bahar,
+        coin_bahar_bubble=bahar_bub,
     )

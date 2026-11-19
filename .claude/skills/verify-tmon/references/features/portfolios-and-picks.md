@@ -6,6 +6,9 @@
 - `/portfolios/[id]`: the trade ledger, holdings with profit after fees and tax, advice (sell,
   replace, wait, buy with free cash), alerts with the exit question, the pre-open briefing, return
   ranges as candles for 1 week to 1 year, history against the index, and the Mofid connection.
+  In the advice card, each holding with a buy date has an `inflation-badge` («جلوتر از تورم» or
+  «عقب از تورم») and a reason with inflation since the buy and the gain after it; compare
+  `real_pnl_pct` in `/portfolios/{id}/advice`. A holding without a buy date says to enter one.
 - `/picks`: symbols the owner is tracking live, with return since the pick.
 
 API: `/portfolios/*` with the `X-Portfolio-Key` header (proxied by `frontend/app/api/portfolios`),

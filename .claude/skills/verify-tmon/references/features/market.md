@@ -6,6 +6,8 @@
 - `/market`, card «طلا، دلار و نفت» (`GET /macro/gold-oil`, computed per request from
   `macro_series`): 18k gold premium and coin bubble against ounce x free dollar with a gauge and a
   high/normal/low pill, and Brent in ounces of gold. Compare `gold_prem.value` with the big number.
+  The Bahar Azadi card (`coin-bahar-bubble`) shows `coin_bahar`, its gold value and the ounce, with
+  no gauge or pill (only Emami was studied).
 - `/industries`, top section «صادرات‌محور یا داخلی؟» (`GET /industries/map`, artifact
   `v2/industry_map.json`): three group cards that filter, one row per industry (axis bar, dollar
   badge, beta, cohesion, 3-month return; a click opens symbols and both halves' dollar link) and a

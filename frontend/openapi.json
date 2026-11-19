@@ -5653,6 +5653,27 @@
             "title": "Brent Usd",
             "type": "number"
           },
+          "coin_bahar": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coin Bahar"
+          },
+          "coin_bahar_bubble": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GoldRatioOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "coin_bubble": {
             "$ref": "#/components/schemas/GoldRatioOut"
           },
@@ -5742,6 +5763,8 @@
           "gold_prem",
           "coin_bubble",
           "oil_gold",
+          "coin_bahar",
+          "coin_bahar_bubble",
           "gold_prem_cuts",
           "coin_bubble_cuts",
           "disclaimer"

@@ -601,3 +601,23 @@ def test_with_exposure_zero_no_candidate_is_shown_as_a_buy(
     assert adv["exposure"] == 0.0
     assert adv["buys"] == [] and adv["candidates"] == [] and adv["market_buy"] is None
     assert "سهام" in (adv["buy_note"] or "")
+
+
+def test_a_gain_below_inflation_is_not_a_real_profit() -> None:
+    from tmon.domain.compare import Release
+    from tmon.portfolio.advice import inflation_check
+
+    mom = [
+        Release(dt.date(2026, 9, 22), dt.date(2026, 9, 29), 0.03, None),
+        Release(dt.date(2026, 10, 22), dt.date(2026, 10, 28), 0.044, None),
+    ]
+    today = dt.date(2026, 10, 22)
+    # bought a month ago: inflation 4.4%, so a 3% gain is behind it
+    behind, text = inflation_check(mom, dt.date(2026, 9, 22), 0.03, dt.date(2026, 10, 29))
+    assert behind["ahead_of_inflation"] is False
+    assert text is not None and "سود واقعی نیست" in text
+    ahead, text = inflation_check(mom, dt.date(2026, 9, 22), 0.10, dt.date(2026, 10, 29))
+    assert ahead["ahead_of_inflation"] is True and ahead["real_pnl_pct"] > 0
+    assert text is not None and "از تورم جلو است" in text
+    none, text = inflation_check(mom, None, 0.10, today)
+    assert none["real_pnl_pct"] is None and text is not None and "تاریخ خرید" in text

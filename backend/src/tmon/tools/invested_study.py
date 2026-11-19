@@ -148,10 +148,11 @@ def _inflation() -> dict[str, Any] | None:
     if not path.exists():
         return None
     with path.open(encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            if row["series"] == "cpi_yoy":
-                return {"value": float(row["value"]), "ref_period": row["ref_period"]}
-    return None
+        yoy = [r for r in csv.DictReader(f) if r["series"] == "cpi_yoy"]
+    if not yoy:
+        return None
+    row = max(yoy, key=lambda r: r["ref_period"])
+    return {"value": float(row["value"]), "ref_period": row["ref_period"]}
 
 
 # ------------------------------------------------------------------------------- the report

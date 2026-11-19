@@ -25,9 +25,11 @@ from sqlalchemy.orm import Session
 
 from tmon.api.market_card import market_card
 from tmon.api.routers.dashboard import _turning_doc
+from tmon.core.timeutil import tehran_today
+from tmon.domain.compare import Release, inflation_since, real_return
 from tmon.engine.verdict import final_verdict
 from tmon.portfolio import liveprice
-from tmon.storage.models import Holding, Instrument, Portfolio, PriceDaily
+from tmon.storage.models import Holding, Instrument, MacroSeries, Portfolio, PriceDaily
 from tmon.storage.objectstore import read_artifact
 from tmon.tools.v2_ranking import KEY
 
@@ -200,6 +202,60 @@ def _holding_verdict(
     return "hold", reasons
 
 
+INFLATION_BAR_FA = (
+    "سود فقط وقتی واقعی است که از تورم جلو بیفتد. در سه سال گذشته شاخص کل در بیشتر بازه‌های "
+    "۱۲ ماهه از تورم عقب ماند، و از معامله‌های بسته‌شدهٔ قاعدهٔ روند فقط حدود ۱۷ از هر ۱۰۰ "
+    "پس از تورم سود داد؛ جابه‌جایی بیشتر هم این را بهتر نکرد."
+)  # measured in docs/reports/inflation-hurdle-2026-11.md
+
+
+def _cpi_releases(session: Session) -> list[Release]:
+    return [
+        Release(m.ref_period, m.release_date or m.ref_period, m.value, m.source_url)
+        for m in session.scalars(
+            select(MacroSeries).where(MacroSeries.series == "cpi_mom", MacroSeries.source == "sci")
+        )
+    ]
+
+
+def inflation_check(
+    mom: list[Release], bought_on: dt.date | None, pnl: float | None, today: dt.date
+) -> tuple[dict[str, Any], str | None]:
+    """The portfolio's bar (docs/07): the gain since the buy day against consumer prices over the
+    same days. Returns the fields for the holding and one plain sentence, or ``None`` fields when
+    the buy day or the price is unknown."""
+    empty: dict[str, Any] = {
+        "inflation_since_buy": None,
+        "real_pnl_pct": None,
+        "ahead_of_inflation": None,
+    }
+    if bought_on is None:
+        return empty, "تاریخ خرید ثبت نشده، پس سنجش با تورم ممکن نیست؛ تاریخ خرید را وارد کنید."
+    inf = inflation_since(mom, bought_on, today)
+    if inf is None or pnl is None:
+        return empty, None
+    real = real_return(pnl, inf.value)
+    fields = {
+        "inflation_since_buy": inf.value,
+        "real_pnl_pct": real,
+        "ahead_of_inflation": real > 0,
+        "inflation_estimated_days": inf.estimated_days,
+    }
+    text = (
+        f"تورم از روز خرید حدود {inf.value * 100:.1f}٪ بوده؛ بازده پس از کم کردن تورم "
+        f"{real * 100:+.1f}٪ است"
+    )
+    if real > 0:
+        text += "، یعنی از تورم جلو است و سود واقعی دارد."
+    elif pnl > 0:
+        text += "؛ سود اسمی دارید ولی از تورم عقب است، پس هنوز سود واقعی نیست."
+    else:
+        text += "؛ هم زیان اسمی دارد و هم از تورم عقب است."
+    if inf.estimated_days:
+        text += f" تورم {inf.estimated_days} روز آخر هنوز منتشر نشده و با نرخ آخرین ماه حساب شد."
+    return fields, text
+
+
 VERDICT_FA = {
     "strong": "نگه‌دار — نامزد خرید مدل",
     "hold": "نگه‌دار",
@@ -248,6 +304,8 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         for i in session.scalars(select(Instrument).where(Instrument.id.in_(ids)))
     }
     edge = _edge(doc)
+    cpi = _cpi_releases(session)
+    today = tehran_today()
     validated = bool((doc or {}).get("recommendation_allowed"))
     cost = float((doc or {}).get("round_trip_cost") or ROUND_TRIP)
 
@@ -281,6 +339,10 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         last = c[0] if c else None
         close = c[1] if c else None
         verdict, reasons = _holding_verdict(h, sc, last, market_off=market_off)
+        pnl = (last / h.avg_price - 1) if last and h.avg_price else None
+        infl, infl_text = inflation_check(cpi, h.bought_on, pnl, today)
+        if infl_text:
+            reasons.append(infl_text)
         sym, name = names.get(h.instrument_id, (str(h.instrument_id), None))
         mv = (last or h.avg_price) * h.shares
         value += mv
@@ -296,7 +358,8 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
                 "close": close,
                 "close_date": c[2] if c else None,
                 "market_value": mv,
-                "pnl_pct": (last / h.avg_price - 1) if last and h.avg_price else None,
+                "pnl_pct": pnl,
+                **infl,
                 "pnl_pct_close": (close / h.avg_price - 1) if close and h.avg_price else None,
                 "score": sc.score if sc else None,
                 "rank": sc.rank if sc else None,
@@ -380,6 +443,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         "switches": switches,
         "buys": buys,
         "buy_note": buy_note,
+        "inflation_note": INFLATION_BAR_FA,
         "exposure": exposure,
         "market": None if card is None else card.model_dump(mode="json"),
         "market_buy": market_buy,

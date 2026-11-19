@@ -120,6 +120,11 @@ type AdviceHolding = {
   last?: number | null;
   close?: number | null;
   pnl_pct_close?: number | null;
+  /** Consumer-price inflation since the buy day, and the gain after it (docs/07). Null when the
+   *  buy day is unknown. */
+  inflation_since_buy?: number | null;
+  real_pnl_pct?: number | null;
+  ahead_of_inflation?: boolean | null;
 };
 type Candidate = {
   instrument_id: number;
@@ -153,6 +158,7 @@ export type Advice = {
   }[];
   buys: Candidate[];
   buy_note?: string | null;
+  inflation_note?: string | null;
   exposure?: number | null;
   /** When free cash is positive, the exposure is positive and no candidate can be bought: the
    *  market itself (basket or equity fund) is proposed, untested. */

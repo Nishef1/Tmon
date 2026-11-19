@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { GoldOil as Doc, GoldRatio } from "@/lib/api";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 
@@ -54,14 +55,16 @@ function Bubble({
   price,
   fair,
   thing,
+  children,
 }: {
   title: string;
   testid: string;
   r: GoldRatio;
-  cuts: [number, number];
+  cuts: [number, number] | null;
   price: number;
   fair: number;
   thing: string;
+  children?: ReactNode;
 }) {
   const st = r.state ? STATE[r.state] : null;
   return (
@@ -74,7 +77,7 @@ function Bubble({
       <p className="text-sm text-muted">
         {thing} {mt(price)}؛ ارزش طلایش به نرخ انس و دلار آزاد {mt(fair)}.
       </p>
-      <Gauge r={r} cuts={cuts} />
+      {cuts && <Gauge r={r} cuts={cuts} />}
       <dl className="gx-facts">
         <div>
           <dt>میانگین یک سال گذشته</dt>
@@ -97,6 +100,7 @@ function Bubble({
           رفت.
         </p>
       )}
+      {children}
     </article>
   );
 }
@@ -140,6 +144,23 @@ export function GoldOil({ d }: { d: Doc }) {
           fair={d.coin_fair}
           thing="سکهٔ امامی"
         />
+        {d.coin_bahar != null && d.coin_bahar_bubble != null && (
+          <Bubble
+            title="حباب سکهٔ بهار آزادی"
+            testid="coin-bahar-bubble"
+            r={d.coin_bahar_bubble}
+            cuts={null}
+            price={d.coin_bahar}
+            fair={d.coin_fair}
+            thing="سکهٔ بهار آزادی"
+          >
+            <p className="gx-note">
+              ارزش طلای سکه: انس جهانی {faNumber(d.gold_usd, 0)} دلار × دلار آزاد {toman(d.usd_free)} ÷
+              ۳۱٫۱ گرم × ۸٫۱۳۳ گرم × عیار ۹۰۰. طلای این سکه با سکهٔ امامی یکی است. محدودهٔ «معمول»
+              فقط برای سکهٔ امامی اندازه‌گیری شده، پس این‌جا برچسب گران یا ارزان نمی‌خورد.
+            </p>
+          </Bubble>
+        )}
         <article className="gx-card" data-testid="oil-gold">
           <h3 className="font-bold">نفت به طلا</h3>
           <p className="gx-big">{faNumber(d.oil_gold.value, 3)} انس</p>
