@@ -40,11 +40,11 @@ export function ridePaths(r: Ride): Path[] {
   const w = r.warn_band;
   const out: Path[] = [];
   if (r.sell_line.length > 0) {
-    out.push({ points: points(r.sell_line), color: "var(--down)", title: "خط فروش" });
+    out.push({ points: points(r.sell_line), color: "var(--down)", title: "خط فروش همان روز" });
     if (w) out.push({ points: points(r.sell_line, 1 + w), color: "var(--down)", dotted: true });
   }
   if (r.buy_line.length > 0) {
-    out.push({ points: points(r.buy_line), color: "var(--up)", title: "قیمت ورود" });
+    out.push({ points: points(r.buy_line), color: "var(--up)", title: "قیمت ورود همان روز" });
     if (w) out.push({ points: points(r.buy_line, 1 / (1 + w)), color: "var(--up)", dotted: true });
   }
   return out;

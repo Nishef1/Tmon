@@ -254,6 +254,9 @@ const SPANS: [number, string][] = [
 const faded = (hex: string, a = "99") => (/^#[0-9a-f]{6}$/i.test(hex) ? `${hex}${a}` : hex);
 
 type Geom = { x1: number; y1: number; x2: number; y2: number; w: number };
+/** Persian digits on every series' axis and crosshair labels. */
+const FA = { type: "custom" as const, minMove: 0.01, formatter: (p: number) => faPrice(p) };
+
 /** A line in the hover legend: its name, colour and value at the hovered candle. */
 type LegendItem = { label: string; color: string; value: number | null; pct?: boolean };
 type Tracked = {
@@ -428,7 +431,6 @@ export function CandleChart({
         },
         localization: {
           timeFormatter: (t: Time) => jalali(iso(t), "short"),
-          priceFormatter: (p: number) => faPrice(p),
         },
       });
       const shown = cfg.kind === "ha" ? heikinAshi(real) : real;
@@ -455,10 +457,16 @@ export function CandleChart({
         });
         series.setData(ohlc);
       }
+      // the volume bars sit under the candles, so the price scale reaches below zero; a price is
+      // never negative, so those labels stay blank. Each series carries its own formatter (a
+      // chart-wide one would override it), so the oscillator panes keep their minus signs.
+      series.applyOptions({
+        priceFormat: { ...FA, formatter: (p: number) => (p < 0 ? "" : faPrice(p)) },
+      });
       if (cfg.vol) {
         series.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.24 } });
         const hist = chart.addSeries(lc.HistogramSeries, {
-          priceFormat: { type: "volume" },
+          priceFormat: FA,
           priceScaleId: "vol",
           priceLineVisible: false,
           lastValueVisible: false,
@@ -497,6 +505,7 @@ export function CandleChart({
             color: tok(color),
             lineWidth: width,
             lineStyle: style,
+            priceFormat: FA,
             priceLineVisible: false,
             lastValueVisible: at > 0,
             crosshairMarkerVisible: false,
@@ -598,7 +607,7 @@ export function CandleChart({
         const m = macd(real, cfg.macdF, cfg.macdS, cfg.macdG);
         const h = chart.addSeries(
           lc.HistogramSeries,
-          { priceLineVisible: false, lastValueVisible: false },
+          { priceLineVisible: false, lastValueVisible: false, priceFormat: FA },
           1,
         );
         h.setData(
@@ -670,6 +679,7 @@ export function CandleChart({
               lineWidth: p.dotted ? 1 : 2,
               lineStyle: p.dotted ? Dotted : Dashed,
               lineType: lc.LineType.WithSteps,
+              priceFormat: FA,
               priceLineVisible: false,
               lastValueVisible: false,
               crosshairMarkerVisible: false,
@@ -701,6 +711,7 @@ export function CandleChart({
               color: accent,
               lineWidth: key === "mid" ? 2 : 1,
               lineStyle: key === "mid" ? Dashed : Dotted,
+              priceFormat: FA,
               priceLineVisible: false,
               lastValueVisible: key !== "mid",
               crosshairMarkerVisible: false,
@@ -709,7 +720,8 @@ export function CandleChart({
             0,
           );
           s.setData(cone.points.map((q) => ({ time: q.time as Time, value: q[key] })));
-          tracked.push({ label: `${title} ${cone.label}`, color: accent, series: s, ended: true });
+          // at rest the legend shows the value at the period's end
+          tracked.push({ label: `${title} ${cone.label}`, color: accent, series: s });
         };
         line("high", "سقف بازه");
         line("mid", "میانه");

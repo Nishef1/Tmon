@@ -287,44 +287,46 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
         add(
             "res20",
             "support_resistance",
-            "مقاومت ۲۰ روزه (بالاترین)",
+            "مقاومت ۲۰ روزه (بالاترین قیمت روز، تا دیروز)",
             v["hi20"],
             "price",
             f"{(v['hi20'] / c - 1) * 100:.1f}٪ بالاتر از قیمت"
             if c <= v["hi20"]
-            else "شکسته شده است",
+            else "امروز شکسته شد",
             "buy" if c > v["hi20"] else "neutral",
         )
         add(
             "sup20",
             "support_resistance",
-            "حمایت ۲۰ روزه (پایین‌ترین)",
+            "حمایت ۲۰ روزه (پایین‌ترین قیمت روز، تا دیروز)",
             v["lo20"],
             "price",
             f"{(1 - v['lo20'] / c) * 100:.1f}٪ پایین‌تر از قیمت"
             if c >= v["lo20"]
-            else "شکسته شده است",
+            else "امروز شکسته شد",
             "sell" if c < v["lo20"] else "neutral",
         )
     if c is not None and v.get("hi250") and v.get("lo250"):
         add(
             "hi52",
             "support_resistance",
-            "سقف ۵۲ هفته",
+            "سقف ۵۲ هفته (قیمت پایانی، تا دیروز)",
             v["hi250"],
             "price",
             f"قیمت {(1 - c / v['hi250']) * 100:.0f}٪ زیر سقف است"
             if c <= v["hi250"]
-            else "سقف جدید ثبت شده است",
+            else "امروز بالاتر بسته شد: سقف تازه",
             "neutral",
         )
         add(
             "lo52",
             "support_resistance",
-            "کف ۵۲ هفته",
+            "کف ۵۲ هفته (قیمت پایانی، تا دیروز)",
             v["lo250"],
             "price",
-            f"قیمت {(c / v['lo250'] - 1) * 100:.0f}٪ بالای کف" if c >= v["lo250"] else "کف تازه",
+            f"قیمت {(c / v['lo250'] - 1) * 100:.0f}٪ بالای کف"
+            if c >= v["lo250"]
+            else "امروز پایین‌تر بسته شد: کف تازه",
             "neutral",
         )
     if c is not None and v.get("fib618"):

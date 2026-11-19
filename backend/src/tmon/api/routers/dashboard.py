@@ -10,7 +10,7 @@ import statistics
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.entry import entry_doc, entry_out
@@ -149,6 +149,30 @@ def _price(rows: list[PriceDaily]) -> DashPrice | None:
         avg_volume_10=avg(10),
         avg_volume_22=avg(22),
         volume_ratio_30=(vols[0] / (sum(prior30) / len(prior30))) if prior30 and vols[0] else None,
+    )
+
+
+def _ranges(session: Session, instrument_id: int, rows: list[PriceDaily]) -> DashRanges:
+    """Week and year high/low from our own daily bars, today included. TSETMC's static
+    ``minWeek``/``maxYear`` fields lag by a day or more, so a stock that just set a new high
+    showed a range whose top sat below today's price."""
+    highs = [float(r.high) for r in rows[:5] if r.high and r.low]
+    lows = [float(r.low) for r in rows[:5] if r.high and r.low]
+    since = rows[0].date - dt.timedelta(days=365) if rows else None
+    year_hi = year_lo = None
+    if since is not None:
+        year_hi, year_lo = session.execute(
+            select(func.max(PriceDaily.high), func.min(PriceDaily.low)).where(
+                PriceDaily.instrument_id == instrument_id,
+                PriceDaily.date > since,
+                PriceDaily.low > 0,
+            )
+        ).one()
+    return DashRanges(
+        week_min=min(lows) if lows else None,
+        week_max=max(highs) if highs else None,
+        year_min=_f(year_lo),
+        year_max=_f(year_hi),
     )
 
 
@@ -731,12 +755,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
     )
     tags = inst.tags or {}
     base_vol = _f(tags.get("base_volume"))
-    ranges = DashRanges(
-        week_min=_f(tags.get("week_min")),
-        week_max=_f(tags.get("week_max")),
-        year_min=_f(tags.get("year_min")),
-        year_max=_f(tags.get("year_max")),
-    )
+    ranges = _ranges(session, instrument_id, prices)
     rank_doc, turn_doc = _ranking_doc(), _turning_doc()
     drv_doc = _stored_doc(DRIVERS_KEY) if inst.instrument_type == "stock" else None
     fa = None

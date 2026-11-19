@@ -1,6 +1,6 @@
 import type { InstrumentDashboard } from "@/lib/api";
 import { trustWord } from "@/components/PlainSummary";
-import { faNumber, faPercent } from "@/lib/format";
+import { faDigits, faNumber, faPercent } from "@/lib/format";
 import { shortLabel, signedPct } from "@/lib/ui";
 import { rideWarning } from "@/components/stock/rideMarks";
 
@@ -148,9 +148,48 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
       ),
     });
   }
-  const sma = d.technical?.values.find((x) => x.key === "sma20")?.value;
+  // tested classic readings the symbol fired lately: they were judged on their own, apart from
+  // the score, so they are shown beside the verdict and never change it
+  for (const f of d.technical?.fired ?? []) {
+    if (f.label !== "works" && f.label !== "backfires") continue;
+    const up = (f.side === "buy") !== (f.label === "backfires");
+    const when = f.ago === 0 ? "در آخرین روز معاملاتی" : `${faNumber(f.ago)} روز معاملاتی پیش`;
+    out.push({
+      key: `signal-${f.key}`,
+      status: up ? "ok" : "warn",
+      ask: up ? "نشانهٔ فنی آزموده‌ای موافق است؟" : "نشانهٔ فنی آزموده‌ای مخالف است؟",
+      answer: (
+        <>
+          «{f.title}» {when} دیده شد. {faDigits(f.verdict)} این نشانه جدا از امتیاز سهم آزموده شده و
+          در حکم حساب نشده است.
+        </>
+      ),
+    });
+  }
   const close = d.price?.close;
-  if (typeof sma === "number" && close) {
+  const sma = d.technical?.values.find((x) => x.key === "sma20")?.value;
+  const stop = ride?.status === "open" ? ride.stop : null;
+  if (stop != null && close) {
+    // one exit level on the page: the trend rule's sell line, the same as the card and the chart
+    out.push({
+      key: "exit",
+      status: ride && rideWarning(ride) ? "warn" : "info",
+      ask: "از کجا بفهمم اشتباه بوده‌ام؟",
+      answer: (
+        <>
+          اگر قیمت پایانی زیر <b>{faNumber(Math.round(stop))}</b> (خط فروش قاعدهٔ روند) بسته شود،
+          قاعده می‌فروشد. قیمت امروز {faPercent(close / stop - 1, 0)} بالای آن است.
+          {typeof sma === "number" && sma > stop && close > sma && (
+            <>
+              {" "}
+              میانگین ۲۰ روزه ({faNumber(Math.round(sma))}) نزدیک‌تر است، ولی خروج با آن آزموده نشده
+              است.
+            </>
+          )}
+        </>
+      ),
+    });
+  } else if (typeof sma === "number" && close) {
     const above = close > sma;
     out.push({
       key: "exit",
@@ -290,6 +329,7 @@ export function Checks({ d, h }: { d: D; h: H | undefined }) {
   if (checks.length === 0) return null;
   const sum = agreement(checks);
   const last = bottomLine(d, h, checks);
+  const against = checks.some((c) => c.key.startsWith("signal-") && c.status === "warn");
   return (
     <div data-testid="checks" data-verdict={h?.verdict ?? d.decision.verdict}>
       {sum && (
@@ -316,6 +356,12 @@ export function Checks({ d, h }: { d: D; h: H | undefined }) {
         <div className={`mt-2 rounded-lg p-3 ${last.tone}`} data-testid="synthesis">
           <p className="text-sm font-bold">کلام آخر</p>
           <p className="mt-1">{last.text}</p>
+          {against && (
+            <p className="mt-1" data-testid="synthesis-signal">
+              یک نشانهٔ فنی آزموده هم خلاف این حکم است. حکم را عوض نمی‌کند، چون جدا آزموده شده؛ ولی
+              دلیل خوبی است که اگر می‌خرید کم‌حجم بخرید و خط فروش را جدی بگیرید.
+            </p>
+          )}
         </div>
       )}
     </div>

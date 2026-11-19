@@ -17,6 +17,11 @@ and the AGM calculator.
   in a test portfolio. Delete the test portfolio afterwards.
 
 **What usually lies:**
+- One exit level: with an open trend ride, the checklist's «از کجا بفهمم اشتباه بوده‌ام؟» row, the
+  trend card and the chart's «خط فروش فردا» must show the same number. A tested sell sign in the
+  technical section («جواب داده») must also appear as a ! row in the checklist.
+- «بازهٔ یک هفته» and «بازهٔ یک سال» must include today's price; a top below today's close is stale.
+- The price axis never shows negative prices (the volume bars push the scale below zero).
 - A buy lowered to a wait by the state veto (`vetoed`) shows a reason. A missing reason is a bug.
 - The live quote is empty outside market hours. That is expected.
 - `/entry` and `/book` need order-book history. Most illiquid symbols have none, and the page must
