@@ -2856,6 +2856,8 @@ export interface components {
       kind: string | null;
       /** Listed */
       listed: boolean;
+      /** Manager */
+      manager: string | null;
       /** Name */
       name: string | null;
       /**
@@ -2871,6 +2873,8 @@ export interface components {
       reg_no: string;
       /** Symbol */
       symbol: string | null;
+      /** Website */
+      website: string | null;
     };
     /** FundTypeOut */
     FundTypeOut: {

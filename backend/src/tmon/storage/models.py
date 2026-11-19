@@ -423,6 +423,8 @@ class FundNav(Base, Provenance):
     issue_nav: Mapped[float | None] = mapped_column(Float)
     statistical_nav: Mapped[float | None] = mapped_column(Float)
     net_asset: Mapped[float | None] = mapped_column(Float)
+    website: Mapped[str | None] = mapped_column(String(256))
+    manager: Mapped[str | None] = mapped_column(String(256))
 
 
 class NewsRaw(Base, Provenance):

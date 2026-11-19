@@ -274,6 +274,8 @@ class FundOut(ApiModel):
     price: float | None = None
     bubble: float | None = None
     bubble_note: str | None = None
+    website: str | None = None
+    manager: str | None = None
 
 
 class FundsOut(ApiModel):

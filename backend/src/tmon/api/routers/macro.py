@@ -256,6 +256,8 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
                 price=float(price) if price is not None else None,
                 bubble=b,
                 bubble_note=note,
+                website=n.website,
+                manager=n.manager,
             )
         )
     return FundsOut(nav_date=nav_date, funds=out)

@@ -131,6 +131,8 @@ async def sync_funds(session: Session, client: PoliteClient, store: ObjectStore)
                 "issue_nav": r.issue_nav,
                 "statistical_nav": r.statistical_nav,
                 "net_asset": r.net_asset,
+                "website": r.website,
+                "manager": r.manager,
                 "source_url": fipiran.COMPARE_URL,
                 "fetched_at": fetched_at,
             }

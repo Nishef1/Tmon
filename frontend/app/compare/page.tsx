@@ -6,6 +6,7 @@ import {
   type SymbolsValue,
   type Rights,
   type LeveragedFunds,
+  type Funds,
   type InstrumentDashboard,
   type InstrumentDetail,
 } from "@/lib/api";
@@ -18,6 +19,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { RightsTable, ValueTable } from "@/components/compare/BubbleTables";
 import { LeveragedFundsSection } from "@/components/compare/LeveragedFunds";
+import { FundSitesTable } from "@/components/compare/FundSites";
 
 export const metadata: Metadata = { title: "مقایسه" };
 export const dynamic = "force-dynamic";
@@ -33,11 +35,12 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     0,
     MAX_SYMBOLS,
   );
-  const [cmp, vals, rights, lev, picked] = await Promise.all([
+  const [cmp, vals, rights, lev, sites, picked] = await Promise.all([
     apiGet<Compare>("/compare", { months, inflation_source: source }),
     apiGet<SymbolsValue>("/compare/symbols", { months, inflation_source: source }),
     apiGet<Rights>("/rights"),
     apiGet<LeveragedFunds>("/funds/leveraged"),
+    apiGet<Funds>("/funds", { listed_only: "false" }),
     Promise.all(
       ids.map(async (id): Promise<Picked | null> => {
         const [d, dash] = await Promise.all([
@@ -76,6 +79,9 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           </a>
           <a href="#funds" className="tab tab-pill">
             حباب و تورم همهٔ نمادها
+          </a>
+          <a href="#fund-sites" className="tab tab-pill">
+            سایت صندوق‌ها
           </a>
           <a href="#leveraged" className="tab tab-pill">
             صندوق‌های اهرمی
@@ -279,6 +285,46 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           <p className="text-sm text-muted">هنوز قیمتی ثبت نشده است.</p>
         ) : (
           <ValueTable rows={vals.data.rows} months={months} />
+        )}
+      </section>
+
+      <section id="fund-sites" className="card space-y-3">
+        <h2 className="font-bold">خرید و فروش از سایت خود صندوق</h2>
+        <div className="space-y-2 text-sm text-muted">
+          <p>
+            هر صندوق سایتی دارد که در آن می‌شود واحد خرید (صدور) یا واحد را به خود صندوق پس داد
+            (ابطال). صندوقی که در بورس نیست فقط همین راه را دارد. صندوقی که در بورس است (ETF) هر دو
+            راه را دارد.
+          </p>
+          <p>
+            <b>خوبی‌ها:</b> قیمت همان NAV است، پس حباب ندارد؛ صف خرید و فروش ندارد (مگر صندوق به سقف
+            واحدهایش رسیده باشد)؛ مبلغ زیاد هم قیمت را جابه‌جا نمی‌کند.
+          </p>
+          <p>
+            <b>بدی‌ها:</b> قیمت را هنگام ثبت درخواست نمی‌دانید، چون واحد با NAV پایان روز درخواست یا
+            روز کاری بعد صادر یا ابطال می‌شود (بسته به ساعت ثبت و امیدنامه). پول ابطال چند روز کاری
+            بعد می‌رسد (مدتش در امیدنامهٔ هر صندوق آمده است)، ولی در بورس همان لحظه با قیمت تابلو
+            می‌فروشید. NAV صدور از NAV ابطال بالاتر است؛ ستون «فاصلهٔ NAV صدور و ابطال» می‌گوید اگر
+            امروز صادر و همان روز ابطال کنید چقدر کم می‌آورید. بعضی صندوق‌ها کارمزد یا جریمهٔ ابطال
+            زودهنگام هم دارند. برای هر سایت باید جدا ثبت‌نام کنید (با کد سجام).
+          </p>
+          <p>
+            <b>کدام ارزان‌تر است؟</b> برای صندوق بورسی ستون «حباب» بالاتر را ببینید: حباب مثبت یعنی
+            تابلو گران‌تر از NAV است و صدور از سایت ارزان‌تر درمی‌آید؛ حباب منفی یعنی خرید از تابلو
+            ارزان‌تر است و برای فروش، ابطال از سایت بیشتر می‌دهد.
+          </p>
+          <p>
+            نشانی‌ها از fipiran آمده‌اند. پیش از واریز پول، نشانی سایت را با صفحهٔ همان صندوق در
+            fipiran.ir تطبیق دهید.
+            {sites.ok && sites.data.nav_date && <> NAV روز {jalali(sites.data.nav_date)}.</>}
+          </p>
+        </div>
+        {!sites.ok ? (
+          <ErrorState message={sites.error} />
+        ) : sites.data.funds.length === 0 ? (
+          <p className="text-sm text-muted">هنوز داده‌ای از fipiran ثبت نشده است.</p>
+        ) : (
+          <FundSitesTable funds={sites.data.funds} />
         )}
       </section>
 

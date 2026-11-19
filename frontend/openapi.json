@@ -5759,6 +5759,17 @@
             "title": "Listed",
             "type": "boolean"
           },
+          "manager": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager"
+          },
           "name": {
             "anyOf": [
               {
@@ -5811,6 +5822,17 @@
               }
             ],
             "title": "Symbol"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
           }
         },
         "required": [
@@ -5828,7 +5850,9 @@
           "net_asset",
           "price",
           "bubble",
-          "bubble_note"
+          "bubble_note",
+          "website",
+          "manager"
         ],
         "title": "FundOut",
         "type": "object"

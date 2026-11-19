@@ -47,6 +47,16 @@ def test_fipiran_fund_rows():
     assert etf.type_of_invest == "Negotiable" and etf.ins_code
     assert etf.cancel_nav and etf.issue_nav and etf.issue_nav >= etf.cancel_nav
     assert {r.type_of_invest for r in rows} == {"Negotiable", "IssuanceAndCancellation"}
+    assert etf.website == "https://ahrom.ebidar.ir" and etf.manager == "سبد گردان اقتصاد بیدار"
+    assert all(r.website and r.website.startswith("https://") for r in rows)
+
+
+def test_fipiran_website():
+    assert fipiran.website(["kianfund.ir"]) == "https://kianfund.ir"
+    assert fipiran.website("http://x.example.ir/fund/") == "https://x.example.ir/fund"
+    assert fipiran.website(["javascript:alert(1)"]) is None
+    assert fipiran.website(["a b.ir"]) is None
+    assert fipiran.website([]) is None and fipiran.website(None) is None
 
 
 def test_bubble():

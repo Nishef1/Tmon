@@ -26,6 +26,25 @@ _TYPE_KIND = {
     "etf_leveraged": "صندوق اهرمی",
     "etf_commodity": "صندوق کالایی",
 }
+# fipiran ``fundType`` codes, named after the funds that carry them (2026-11-19); used only when
+# the TSETMC instrument says nothing, as for funds that are not listed
+_FIPIRAN_KIND = {
+    4: "صندوق درآمد ثابت",
+    5: "صندوق کالایی",
+    6: "صندوق سهامی",
+    7: "صندوق مختلط",
+    12: "صندوق جسورانه",
+    13: "صندوق پروژه",
+    14: "صندوق زمین و ساختمان",
+    16: "صندوق خصوصی",
+    17: "صندوق در صندوق",
+    18: "صندوق املاک و مستغلات",
+    21: "صندوق سهامی بخشی",
+    22: "صندوق اهرمی",
+    23: "صندوق سهامی",
+    24: "صندوق تضمین اصل سرمایه",
+    25: "صندوق بازنشستگی",
+}
 INDEX_FUND_TYPE = 23
 # a right buys one new share at the nominal price, in rials
 RIGHT_NOMINAL = 1000.0
@@ -38,7 +57,12 @@ def fund_kind(
     fund_desc: str | None,
 ) -> tuple[str, str | None]:
     """(kind, industry). The industry is only known for sector funds that state it."""
-    kind = _SUBSECTOR_KIND.get(subsector or "") or _TYPE_KIND.get(instrument_type or "") or "صندوق"
+    kind = (
+        _SUBSECTOR_KIND.get(subsector or "")
+        or _TYPE_KIND.get(instrument_type or "")
+        or _FIPIRAN_KIND.get(fund_type or 0)
+        or "صندوق"
+    )
     if kind == "صندوق سهامی" and fund_type == INDEX_FUND_TYPE:
         kind = "صندوق سهامی شاخصی"
     industry = None
