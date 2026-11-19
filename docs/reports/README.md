@@ -75,6 +75,7 @@
 
 | گزارش | چه می‌گوید |
 | --- | --- |
+| [data-gaps-vs-reference-sites-2026-11](data-gaps-vs-reference-sites-2026-11.md) | چه دادهای کم داریم: مقایسهٔ ستون‌به‌ستون با مفید، ForexFactory، Polymarket و FedWatch؛ چه چیزی از اینجا قابل گرفتن است |
 | [adjustment-check](adjustment-check.md) * | تعدیل قیمت در برابر سری TSETMC: بیشینهٔ خطا ۰٫۳۳٪ |
 | [data-completeness](data-completeness.md) * | فهرست کامل نمادها و تاریخچهٔ ۱۳۸۰ به بعد |
 | [data-quality](data-quality.md) | تطبیق با منبع دوم |
