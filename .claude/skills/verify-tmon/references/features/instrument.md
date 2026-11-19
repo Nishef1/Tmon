@@ -21,3 +21,7 @@ and the AGM calculator.
 - The live quote is empty outside market hours. That is expected.
 - `/entry` and `/book` need order-book history. Most illiquid symbols have none, and the page must
   say so instead of showing zeros.
+- Chart marks: «روند خرید» and «روند فروش» are the rule's own days (`turning.ride.rides`); grey
+  «کف» and «سقف» circles are hindsight swings (`turning.ride.swings`), a move of the trail's size
+  after each. A «روند فروش» in the middle of a rising trend after 250 days is the old cap bug
+  (docs/reports/trend-marks-2026-11.md). Check شکام: one open ride bought on 2025-05-24.

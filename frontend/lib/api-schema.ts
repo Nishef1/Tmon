@@ -2250,6 +2250,8 @@ export interface components {
        * Format: date
        */
       last_date: string;
+      /** Max Hold Days */
+      max_hold_days: number;
       /** Near High */
       near_high: number;
       /** Peak Close */
@@ -2279,6 +2281,11 @@ export interface components {
       stop_high: number | null;
       /** Stop Low */
       stop_low: number | null;
+      /**
+       * Swings
+       * @default []
+       */
+      swings: components["schemas"]["Swing"][];
       /** Trail */
       trail: number;
     };
@@ -4578,6 +4585,25 @@ export interface components {
       name: string;
       /** Status */
       status: string;
+    };
+    /**
+     * Swing
+     * @description A past low or high that only hindsight shows: the price then moved ``trail`` or more the
+     *     other way (``tmon.backtest.trend_ride.swings``). Not a signal.
+     */
+    Swing: {
+      /** Close */
+      close: number;
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "low" | "high";
     };
     /** SymbolNewsOut */
     SymbolNewsOut: {

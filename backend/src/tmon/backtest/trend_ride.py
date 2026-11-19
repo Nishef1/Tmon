@@ -8,7 +8,13 @@ all true. The buy is at the close of t+1; while that day is locked up (a buy que
 day, for at most ``QUEUE_WAIT`` days. Exit signal: a close more than ``trail`` below the highest
 close since the buy. The sale is at the next close;
 while that day is locked down (a sell queue) it moves a day. A ride also ends after
-``max_hold_days`` trading days. While a ride is open, new signals on the same symbol are ignored.
+``max_hold_days`` trading days, unless the trend still holds that day (close above its 50-day
+average, which is above the 200-day one): then the ride goes on and the count and the trail's
+highest close start again from that day (docs/reports/trend-marks-2026-11.md). While a ride is
+open, new signals on the same symbol are ignored.
+
+``swings`` marks the past lows and highs that only hindsight shows: a low is the lowest close
+before the price rose ``trail`` or more, a high the highest close before it fell that much.
 
 The rule was chosen from six entries and eight exits in the study; with the same exit, it beat
 random entries in both halves of the last three years (mostly a rising market), but not from 2010
@@ -56,8 +62,10 @@ def rides(
     signal: np.ndarray,
     trail: float,
     max_hold: int,
+    trend: np.ndarray | None = None,
 ) -> list[Ride]:
-    """Every ride of one symbol, in order. Rows are the symbol's trading days."""
+    """Every ride of one symbol, in order. Rows are the symbol's trading days. ``trend`` (one
+    flag per row) renews a ride at ``max_hold`` instead of selling; without it the ride ends."""
     n = len(close)
     out: list[Ride] = []
     busy = -1
@@ -74,10 +82,17 @@ def rides(
             continue
         pk = e
         hit = -1
+        start = e  # the day the hold count runs from
         for j in range(e + 1, n):
             if close[j] > close[pk]:
                 pk = j
-            if close[j] < (1 - trail) * close[pk] or j - e >= max_hold:
+            if close[j] < (1 - trail) * close[pk]:
+                hit = j
+                break
+            if j - start >= max_hold:
+                if trend is not None and trend[j]:
+                    start = pk = j
+                    continue
                 hit = j
                 break
         if hit < 0:
@@ -107,6 +122,38 @@ def _symbol_arrays(g: pl.DataFrame) -> dict[str, np.ndarray]:
     }
 
 
+def swings(close: np.ndarray, size: float) -> list[tuple[int, str]]:
+    """Rows of the past lows ("low") and highs ("high") that a move of ``size`` or more followed,
+    alternating, oldest first. The last extreme is left out until such a move confirms it."""
+    out: list[tuple[int, str]] = []
+    hi = lo = 0
+    up: bool | None = None  # None until the first move of ``size``
+    for j in range(1, len(close)):
+        if up is None:
+            if close[j] > close[hi]:
+                hi = j
+            if close[j] < close[lo]:
+                lo = j
+            if close[j] >= (1 + size) * close[lo]:
+                out.append((lo, "low"))
+                up, hi = True, j
+            elif close[j] <= (1 - size) * close[hi]:
+                out.append((hi, "high"))
+                up, lo = False, j
+        elif up:
+            if close[j] > close[hi]:
+                hi = j
+            elif close[j] <= (1 - size) * close[hi]:
+                out.append((hi, "high"))
+                up, lo = False, j
+        elif close[j] < close[lo]:
+            lo = j
+        elif close[j] >= (1 + size) * close[lo]:
+            out.append((lo, "low"))
+            up, hi = True, j
+    return out
+
+
 def all_rides(
     panel: pl.DataFrame, near_high: float, trail: float, max_hold: int
 ) -> dict[int, tuple[pl.DataFrame, list[Ride]]]:
@@ -114,7 +161,9 @@ def all_rides(
     for (iid,), g in panel.sort(G, "date").group_by([G], maintain_order=True):
         a = _symbol_arrays(g)
         sig = entry_signals(a["close"], a["sma50"], a["sma200"], a["hi250"], near_high)
-        rs = rides(a["close"], a["up"], a["down"], sig, trail, max_hold)
+        with np.errstate(invalid="ignore"):
+            trend = (a["close"] > a["sma50"]) & (a["sma50"] > a["sma200"])
+        rs = rides(a["close"], a["up"], a["down"], sig, trail, max_hold, trend)
         out[int(iid)] = (g.select("date", "close", "liquid"), rs)
     return out
 
@@ -223,6 +272,9 @@ def current(
         )
     return {
         "rides": past,
+        "swings": [
+            {"date": str(d[i]), "kind": k, "close": float(c[i])} for i, k in swings(c, trail)
+        ],
         "status": status,
         "signal_date": day(r.signal),
         "signal_close": px(r.signal),

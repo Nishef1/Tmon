@@ -868,12 +868,22 @@ class PastRide(ApiModel):
     gain: float  # from the buy to the sale, or to the last close while open
 
 
+class Swing(ApiModel):
+    """A past low or high that only hindsight shows: the price then moved ``trail`` or more the
+    other way (``tmon.backtest.trend_ride.swings``). Not a signal."""
+
+    date: dt.date
+    kind: Literal["low", "high"]
+    close: float
+
+
 class DashRide(ApiModel):
     """The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,
     the trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted
     to today's share count."""
 
     rides: list[PastRide] = []  # every ride the rule made on this symbol, oldest first
+    swings: list[Swing] = []  # past lows and highs, oldest first
     status: Literal["buy_next", "open", "sell_next", "closed"]
     signal_date: dt.date
     signal_close: float
@@ -895,6 +905,7 @@ class DashRide(ApiModel):
     days_since_exit: int | None = None
     near_high: float
     trail: float
+    max_hold_days: int  # a ride ends after this many days unless the trend still holds
     grade: Literal["proven", "probable", "unproven"]
     history_years: int
     history: RideHistory | None = None

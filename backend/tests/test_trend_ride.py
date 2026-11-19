@@ -97,3 +97,33 @@ def test_current_lists_every_ride_for_the_chart_marks() -> None:
         {"entry_date": "1", "exit_date": "4", "gain": 0.0},
         {"entry_date": "6", "exit_date": None, "gain": pytest.approx(171 / 150 - 1)},
     ]
+
+
+def test_the_hold_cap_renews_a_ride_while_the_trend_holds() -> None:
+    # the price keeps rising: without the trend flags the cap sells after 3 days, with them the
+    # ride goes on, so no sale mark lands in the middle of a rising trend
+    close = np.array([100.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0])
+    sig = _flat(8)
+    sig[0] = True
+    (capped,) = tr.rides(close, _flat(8), _flat(8), sig, trail=0.35, max_hold=3)
+    assert (capped.entry, capped.exit_signal, capped.exit) == (1, 4, 5)
+    trend = np.ones(8, dtype=bool)
+    (kept,) = tr.rides(close, _flat(8), _flat(8), sig, trail=0.35, max_hold=3, trend=trend)
+    assert kept.entry == 1 and kept.exit is None and kept.exit_signal is None
+
+
+def test_the_hold_cap_still_sells_when_the_trend_is_gone() -> None:
+    close = np.array([100.0, 100.0, 110.0, 120.0, 115.0, 112.0, 111.0])
+    sig = _flat(7)
+    sig[0] = True
+    trend = np.array([True, True, True, True, False, False, False])
+    (r,) = tr.rides(close, _flat(7), _flat(7), sig, trail=0.35, max_hold=3, trend=trend)
+    assert (r.exit_signal, r.exit) == (4, 5)
+
+
+def test_swings_mark_only_lows_and_highs_a_full_move_confirmed() -> None:
+    close = np.array([100.0, 90.0, 80.0, 100.0, 130.0, 120.0, 140.0, 100.0, 90.0, 95.0, 110.0])
+    # 80 -> 140 is a rise of 75% (low confirmed at row 2 once 108 is passed), 140 -> 90 a fall
+    # of 36% (high at row 6); the dip 130 -> 120 is too small and the last low is not confirmed
+    assert tr.swings(close, 0.35) == [(2, "low"), (6, "high")]
+    assert tr.swings(close[:4], 0.35) == []
