@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import {
   apiGet,
   type Compare,
-  type Funds,
+  type SymbolsValue,
   type Rights,
   type InstrumentDashboard,
   type InstrumentDetail,
@@ -15,7 +15,7 @@ import { SymbolsTable, type Picked } from "@/components/compare/SymbolsTable";
 import { MAX_SYMBOLS } from "@/components/compare/colors";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
-import { FundsTable, RightsTable } from "@/components/compare/BubbleTables";
+import { RightsTable, ValueTable } from "@/components/compare/BubbleTables";
 
 export const metadata: Metadata = { title: "مقایسه" };
 export const dynamic = "force-dynamic";
@@ -31,9 +31,9 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     0,
     MAX_SYMBOLS,
   );
-  const [cmp, funds, rights, picked] = await Promise.all([
+  const [cmp, vals, rights, picked] = await Promise.all([
     apiGet<Compare>("/compare", { months, inflation_source: source }),
-    apiGet<Funds>("/funds"),
+    apiGet<SymbolsValue>("/compare/symbols", { months, inflation_source: source }),
     apiGet<Rights>("/rights"),
     Promise.all(
       ids.map(async (id): Promise<Picked | null> => {
@@ -72,7 +72,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
             دارایی‌ها و تورم
           </a>
           <a href="#funds" className="tab tab-pill">
-            حباب صندوق‌ها
+            حباب و تورم همهٔ نمادها
           </a>
           <a href="#rights" className="tab tab-pill">
             حباب حق‌تقدم‌ها
@@ -226,19 +226,53 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       )}
 
       <section id="funds" className="card space-y-3">
-        <h2 className="font-bold">حباب صندوق‌های بورسی</h2>
-        <p className="text-sm text-muted">
-          همهٔ ردیف‌های این جدول صندوق‌اند، نه سهم. حباب = (قیمت پایانی − NAV ابطال) ÷ NAV ابطال، هر
-          دو از یک روز. حباب منفی یعنی صندوق ارزان‌تر از ارزش دارایی‌هایش معامله شده است. ردیف‌های
-          بی‌یادداشت اول آمده‌اند، از منفی‌ترین حباب؛ با کلیک روی سر هر ستون ترتیب عوض می‌شود.
-          {funds.ok && funds.data.nav_date && <> NAV تا {jalali(funds.data.nav_date)}.</>}
-        </p>
-        {!funds.ok ? (
-          <ErrorState message={funds.error} />
-        ) : funds.data.funds.length === 0 ? (
-          <p className="text-sm text-muted">هنوز NAV صندوقی ثبت نشده است.</p>
+        <h2 className="font-bold">همهٔ نمادها: حباب و بازده در برابر تورم</h2>
+        <div className="space-y-1 text-sm text-muted">
+          <p>
+            سهم‌ها و صندوق‌هایی که در آخرین روز معامله شدند، و حق‌تقدم‌هایی که در ۳۰ روز گذشته معامله شدند. ستون «نوع» می‌گوید هر نماد
+            سهم است یا صندوق (و چه صندوقی) یا حق‌تقدم.
+          </p>
+          <p>
+            <b>حباب</b> فقط جایی حساب می‌شود که ارزش روشن باشد: برای صندوق NAV ابطال همان روز، برای
+            حق‌تقدم قیمت سهم پایه منهای ۱۰۰۰ ریال. سهم عادی NAV ندارد، پس حباب ندارد. حباب منفی یعنی
+            زیر ارزش معامله شده است.
+          </p>
+          <p>
+            <b>جلوتر از تورم</b> یعنی اگر نماد را از {faNumber(months)} ماه پیش نگه داشته بودید،
+            پولتان پس از کسر تورم چقدر بیشتر شده است: (۱ + بازده) ÷ (۱ + تورم) − ۱. بازده با قیمت
+            تعدیل‌شده است، پس سود نقدی و افزایش سرمایه را هم دارد.
+            {vals.ok && vals.data.inflation != null && (
+              <>
+                {" "}
+                تورم این دوره:{" "}
+                <Num value={vals.data.inflation} kind="percent" term="inflation" digits={1} />
+                {vals.data.inflation_note && <> ({vals.data.inflation_note})</>}.
+              </>
+            )}
+          </p>
+          <p>
+            ترتیب پیش‌فرض: اول نمادهایی که حباب بی‌یادداشت دارند، از منفی‌ترین؛ بعد بقیه، از بیشترین
+            جلوافتادگی از تورم. با کلیک روی سر هر ستون ترتیب عوض می‌شود. این فهرست توصیه نیست.
+          </p>
+        </div>
+        <nav className="flex flex-wrap gap-2 text-sm" aria-label="دورهٔ نگه‌داری">
+          {MONTHS.map((m) => (
+            <Link
+              key={m}
+              href={`/compare?months=${m}&source=${source}${sq}#funds`}
+              aria-current={m === months ? "page" : undefined}
+              className="tab"
+            >
+              نگه‌داری {faNumber(m)} ماه
+            </Link>
+          ))}
+        </nav>
+        {!vals.ok ? (
+          <ErrorState message={vals.error} />
+        ) : vals.data.rows.length === 0 ? (
+          <p className="text-sm text-muted">هنوز قیمتی ثبت نشده است.</p>
         ) : (
-          <FundsTable funds={funds.data.funds} />
+          <ValueTable rows={vals.data.rows} months={months} />
         )}
       </section>
 

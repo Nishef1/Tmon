@@ -261,6 +261,31 @@ class RightOut(ApiModel):
     bubble_note: str | None = None
 
 
+class SymbolValueOut(ApiModel):
+    instrument_id: int
+    symbol: str
+    name: str | None = None
+    kind: str
+    industry: str | None = None
+    close: float | None = None
+    traded_value: float | None = None
+    fair_value: float | None = None
+    bubble: float | None = None
+    bubble_note: str | None = None
+    nominal_return: float | None = None
+    real_return: float | None = None
+
+
+class SymbolsValueOut(ApiModel):
+    prices_date: dt.date | None = None
+    months: int
+    inflation_source: str
+    inflation: float | None = None
+    inflation_note: str | None = None
+    rows: list[SymbolValueOut]
+    disclaimer: str = DISCLAIMER
+
+
 class RightsOut(ApiModel):
     as_of: dt.date | None = None
     nominal: float

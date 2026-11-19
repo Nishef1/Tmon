@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Fund, Right } from "@/lib/api";
+import type { Right, SymbolValue } from "@/lib/api";
 import { faNumber } from "@/lib/format";
 import { Num } from "@/components/Num";
 
@@ -61,108 +61,189 @@ function useSort<K extends string>(first: K) {
   return [sort, onSort] as const;
 }
 
-type FundKey = "bubble" | "symbol" | "kind" | "nav" | "price";
+type ValueKey = "bubble" | "symbol" | "kind" | "close" | "fair" | "nominal" | "real";
 
-/** Listed funds: kind, full name, NAV, close and bubble; cheapest against NAV first. */
-export function FundsTable({ funds }: { funds: Fund[] }) {
-  const kinds = useMemo(
-    () =>
-      [...new Set(funds.map((f) => f.kind ?? "صندوق"))].sort((a, b) => a.localeCompare(b, "fa")),
-    [funds],
-  );
-  const [kind, setKind] = useState("");
-  const [sort, onSort] = useSort<FundKey>("bubble");
-  const rows = useMemo(() => {
-    const val = (f: Fund): number | string | null | undefined =>
-      ({
-        bubble: f.bubble,
-        symbol: f.symbol ?? f.name,
-        kind: `${f.kind ?? ""} ${f.industry ?? ""}`,
-        nav: f.cancel_nav,
-        price: f.price,
-      })[sort.key];
-    return funds
-      .filter((f) => !kind || (f.kind ?? "صندوق") === kind)
-      .sort(
-        (a, b) =>
-          (sort.key === "bubble"
-            ? trust(a.bubble, a.bubble_note) - trust(b.bubble, b.bubble_note)
-            : 0) || cmp(val(a), val(b), sort.dir),
+const ALL_FUNDS = "همهٔ صندوق‌ها";
+const RIGHT = "حق‌تقدم";
+const PAGE = 100;
+const isFund = (r: SymbolValue) => r.kind.startsWith("صندوق");
+const inGroup = (r: SymbolValue, g: string) => !g || (g === ALL_FUNDS ? isFund(r) : r.kind === g);
+
+function value(r: SymbolValue, k: ValueKey): number | string | null | undefined {
+  switch (k) {
+    case "bubble":
+      return r.bubble;
+    case "symbol":
+      return r.symbol;
+    case "kind":
+      return `${r.kind} ${r.industry ?? ""}`;
+    case "close":
+      return r.close;
+    case "fair":
+      return r.fair_value;
+    case "nominal":
+      return r.nominal_return;
+    case "real":
+      return r.real_return;
+  }
+}
+
+/** Stocks, funds and rights in one list: the bubble where a value is known, and the period
+ *  return against inflation. Clean bubbles first from the most negative, then the rest from the
+ *  best real return. */
+export function ValueTable({ rows, months }: { rows: SymbolValue[]; months: number }) {
+  const groups = useMemo(() => {
+    const kinds = [...new Set(rows.filter(isFund).map((r) => r.kind))].sort((a, b) =>
+      a.localeCompare(b, "fa"),
+    );
+    return ["سهم", RIGHT, ALL_FUNDS, ...kinds];
+  }, [rows]);
+  const [group, setGroup] = useState("");
+  const [q, setQ] = useState("");
+  const [all, setAll] = useState(false);
+  const [sort, onSort] = useSort<ValueKey>("bubble");
+  const shown = useMemo(() => {
+    const needle = q.trim();
+    return rows
+      .filter((r) => inGroup(r, group))
+      .filter((r) => !needle || r.symbol.includes(needle) || (r.name ?? "").includes(needle))
+      .sort((a, b) =>
+        sort.key === "bubble"
+          ? trust(a.bubble, a.bubble_note) - trust(b.bubble, b.bubble_note) ||
+            cmp(a.bubble, b.bubble, sort.dir) ||
+            cmp(a.real_return, b.real_return, -1)
+          : cmp(value(a, sort.key), value(b, sort.key), sort.dir),
       );
-  }, [funds, kind, sort]);
-  const cheap = rows.filter((f) => f.bubble != null && !f.bubble_note && f.bubble < 0).length;
+  }, [rows, group, q, sort]);
+  const withReal = shown.filter((r) => r.real_return != null);
+  const ahead = withReal.filter((r) => (r.real_return ?? 0) > 0).length;
+  const visible = all ? shown : shown.slice(0, PAGE);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <label htmlFor="fund-kind">نوع صندوق:</label>
+        <label htmlFor="value-group">نوع نماد:</label>
         <select
-          id="fund-kind"
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
+          id="value-group"
+          value={group}
+          onChange={(e) => setGroup(e.target.value)}
           className="rounded border border-line bg-surface px-2 py-1"
         >
-          <option value="">همه ({faNumber(funds.length)})</option>
-          {kinds.map((k) => (
-            <option key={k} value={k}>
-              {k} ({faNumber(funds.filter((f) => (f.kind ?? "صندوق") === k).length)})
+          <option value="">همه ({faNumber(rows.length)})</option>
+          {groups.map((g) => (
+            <option key={g} value={g}>
+              {g} ({faNumber(rows.filter((r) => inGroup(r, g)).length)})
             </option>
           ))}
         </select>
-        <span className="text-muted">
-          {faNumber(rows.length)} صندوق؛ {faNumber(cheap)} صندوق زیر NAV ابطال معامله شد.
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="نماد یا نام…"
+          aria-label="جست‌وجو در فهرست"
+          className="rounded border border-line bg-surface px-2 py-1"
+        />
+        <span className="text-muted" data-testid="value-summary">
+          {faNumber(shown.length)} نماد
+          {withReal.length > 0 && (
+            <>
+              ؛ {faNumber(ahead)} نماد از {faNumber(withReal.length)} نمادِ دارای بازده در{" "}
+              {faNumber(months)} ماه گذشته از تورم جلو بودند.
+            </>
+          )}
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="tbl min-w-[44rem]" data-testid="funds-table">
-          <caption className="sr-only">صندوق‌های بورسی: نوع، NAV ابطال، قیمت و حباب</caption>
+        <table className="tbl min-w-[54rem]" data-testid="value-table">
+          <caption className="sr-only">همهٔ نمادها: حباب و بازده در برابر تورم</caption>
           <thead>
             <tr className="border-b border-line">
-              <Head k="symbol" label="نماد صندوق" sort={sort} onSort={onSort} />
+              <Head k="symbol" label="نماد" sort={sort} onSort={onSort} />
               <Head k="kind" label="نوع" sort={sort} onSort={onSort} />
-              <Head k="nav" label="NAV ابطال" sort={sort} onSort={onSort} />
-              <Head k="price" label="قیمت پایانی" sort={sort} onSort={onSort} />
+              <Head k="close" label="قیمت پایانی" sort={sort} onSort={onSort} />
+              <Head k="fair" label="ارزش" sort={sort} onSort={onSort} />
               <Head k="bubble" label="حباب" sort={sort} onSort={onSort} />
+              <Head
+                k="nominal"
+                label={`بازده ${faNumber(months)} ماه`}
+                sort={sort}
+                onSort={onSort}
+              />
+              <Head k="real" label="جلوتر از تورم" sort={sort} onSort={onSort} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((f) => (
-              <tr key={f.reg_no} className="border-b border-line last:border-0">
+            {visible.map((r) => (
+              <tr key={r.instrument_id} className="border-b border-line last:border-0">
                 <td className="px-2 py-1.5">
-                  {f.instrument_id ? (
-                    <Link
-                      href={`/instruments/${f.instrument_id}`}
-                      className="font-semibold underline"
-                    >
-                      {f.symbol ?? f.name}
-                    </Link>
-                  ) : (
-                    f.symbol
-                  )}
-                  {f.name && <span className="block text-xs text-muted">{f.name}</span>}
+                  <Link
+                    href={`/instruments/${r.instrument_id}`}
+                    className="font-semibold underline"
+                  >
+                    {r.symbol}
+                  </Link>
+                  {r.name && <span className="block text-xs text-muted">{r.name}</span>}
                 </td>
                 <td className="px-2 py-1.5">
-                  {f.kind ?? "صندوق"}
-                  {f.industry && (
-                    <span className="block text-xs text-muted">صنعت {f.industry}</span>
-                  )}
+                  {r.kind}
+                  {r.industry && <span className="block text-xs text-muted">{r.industry}</span>}
                 </td>
                 <td className="px-2 py-1.5">
-                  {f.cancel_nav != null ? (
-                    <Num value={f.cancel_nav} kind="price" term="fund_nav" />
+                  {r.close != null ? <Num value={r.close} kind="price" term="last_price" /> : "—"}
+                </td>
+                <td className="px-2 py-1.5">
+                  {r.fair_value != null ? (
+                    <Num
+                      value={r.fair_value}
+                      kind="price"
+                      term={r.kind === RIGHT ? "rights" : "fund_nav"}
+                    />
                   ) : (
                     "—"
                   )}
                 </td>
                 <td className="px-2 py-1.5">
-                  {f.price != null ? <Num value={f.price} kind="price" term="last_price" /> : "—"}
+                  {r.bubble != null && (
+                    <Num
+                      value={r.bubble}
+                      kind="percent"
+                      term={r.kind === RIGHT ? "rights_bubble" : "etf_bubble"}
+                      digits={1}
+                      signed
+                    />
+                  )}
+                  {r.bubble_note && (
+                    <span className="block text-xs text-muted">{r.bubble_note}</span>
+                  )}
+                  {r.bubble == null && !r.bubble_note && r.kind === "سهم" && (
+                    <span className="text-xs text-muted">سهم NAV ندارد</span>
+                  )}
                 </td>
                 <td className="px-2 py-1.5">
-                  {f.bubble != null && (
-                    <Num value={f.bubble} kind="percent" term="etf_bubble" digits={1} signed />
+                  {r.nominal_return != null ? (
+                    <Num
+                      value={r.nominal_return}
+                      kind="percent"
+                      term="nominal_return"
+                      digits={1}
+                      signed
+                    />
+                  ) : (
+                    "—"
                   )}
-                  {f.bubble_note && (
-                    <span className="block text-xs text-muted">{f.bubble_note}</span>
+                </td>
+                <td className="px-2 py-1.5">
+                  {r.real_return != null ? (
+                    <Num
+                      value={r.real_return}
+                      kind="percent"
+                      term="real_return"
+                      digits={1}
+                      signed
+                    />
+                  ) : (
+                    "—"
                   )}
                 </td>
               </tr>
@@ -170,6 +251,11 @@ export function FundsTable({ funds }: { funds: Fund[] }) {
           </tbody>
         </table>
       </div>
+      {!all && shown.length > PAGE && (
+        <button type="button" onClick={() => setAll(true)} className="tab">
+          نمایش همهٔ {faNumber(shown.length)} نماد
+        </button>
+      )}
     </div>
   );
 }

@@ -25,6 +25,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/compare/symbols": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Compare Symbols
+     * @description Every stock, fund and right that traded on the newest day: the bubble where a value is
+     *     known (fund NAV, right = base - nominal), and the adjusted return over the period against
+     *     inflation released by that day (docs/06).
+     */
+    get: operations["compare_symbols_compare_symbols_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/data-health": {
     parameters: {
       query?: never;
@@ -4482,6 +4504,53 @@ export interface components {
       /** Url */
       url: string | null;
     };
+    /** SymbolValueOut */
+    SymbolValueOut: {
+      /** Bubble */
+      bubble: number | null;
+      /** Bubble Note */
+      bubble_note: string | null;
+      /** Close */
+      close: number | null;
+      /** Fair Value */
+      fair_value: number | null;
+      /** Industry */
+      industry: string | null;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string | null;
+      /** Nominal Return */
+      nominal_return: number | null;
+      /** Real Return */
+      real_return: number | null;
+      /** Symbol */
+      symbol: string;
+      /** Traded Value */
+      traded_value: number | null;
+    };
+    /** SymbolsValueOut */
+    SymbolsValueOut: {
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /** Inflation */
+      inflation: number | null;
+      /** Inflation Note */
+      inflation_note: string | null;
+      /** Inflation Source */
+      inflation_source: string;
+      /** Months */
+      months: number;
+      /** Prices Date */
+      prices_date: string | null;
+      /** Rows */
+      rows: components["schemas"]["SymbolValueOut"][];
+    };
     /**
      * TaHorizon
      * @description One horizon of a tested reading: candles after the entry at the next day's close.
@@ -4844,6 +4913,38 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["CompareOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  compare_symbols_compare_symbols_get: {
+    parameters: {
+      query?: {
+        months?: number;
+        inflation_source?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SymbolsValueOut"];
         };
       };
       /** @description Validation Error */

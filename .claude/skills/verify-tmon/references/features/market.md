@@ -13,9 +13,10 @@
 - `/industries`: industry heatmap ranked by real traded value (not base volume), with filters,
   19 selectable columns and search (`/screener`, `/search`).
 - `/compare`: symbols against inflation, the dollar and gold (`/compare`).
-- `/compare#funds`: every listed fund with kind (and industry for sector funds), full name, NAV,
-  close and bubble from `/funds`; sortable headers and a kind filter, clean rows first from the
-  most negative bubble.
+- `/compare#funds`: stocks, funds and rights in one list from `/compare/symbols` (kind, close,
+  value, bubble where one exists, adjusted return and return ahead of inflation for holding 1, 3 or
+  12 months). Check a stock such as شکام shows «سهم NAV ندارد» and a real return; group filter,
+  search and sortable headers; clean bubbles first, then by real return.
 - `/compare#rights`: right issues traded in the last 30 days against base close minus 1000 rials
   (`/rights`), most below value first.
 

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.api.returns import period_table
 from tmon.api.schemas import (
     CompareOut,
     CompareRow,
@@ -20,6 +21,8 @@ from tmon.api.schemas import (
     InflationReleaseOut,
     RightOut,
     RightsOut,
+    SymbolsValueOut,
+    SymbolValueOut,
 )
 from tmon.core.db import get_session
 from tmon.domain import gold_ratio as gr
@@ -34,8 +37,9 @@ from tmon.domain.compare import (
     value_on_or_before,
 )
 from tmon.ingest.macro.fipiran import bubble
+from tmon.ingest.tsetmc.parsers import normalize_fa
 from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
-from tmon.storage.models import FundNav, Instrument, MacroSeries, PriceDaily
+from tmon.storage.models import FundNav, Instrument, MacroSeries, PriceDaily, SectorName
 
 router = APIRouter(tags=["macro"])
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -382,4 +386,118 @@ def gold_oil(session: SessionDep) -> GoldOilOut:
         oil_gold=ratio(g.oil_gold),
         gold_prem_cuts=gr.GOLD_PREM_CUTS,
         coin_bubble_cuts=gr.COIN_BUBBLE_CUTS,
+    )
+
+
+# calendar-day return of api.returns that matches each period of /compare
+_PERIOD_RETURN = {1: "ret_month", 3: "ret_3m", 12: "ret_year"}
+_FUND_TYPES = ("etf_equity", "etf_fixed_income", "etf_mixed", "etf_leveraged", "etf_commodity")
+
+
+@router.get("/compare/symbols", response_model=SymbolsValueOut)
+def compare_symbols(
+    session: SessionDep,
+    months: Annotated[int, Query()] = 12,
+    inflation_source: Annotated[str, Query(pattern="^(sci|cbi)$")] = "sci",
+) -> SymbolsValueOut:
+    """Every stock, fund and right that traded on the newest day: the bubble where a value is
+    known (fund NAV, right = base - nominal), and the adjusted return over the period against
+    inflation released by that day (docs/06)."""
+    if months not in _PERIOD_RETURN:
+        raise HTTPException(422, "months must be 1, 3 or 12")
+    last = session.scalar(select(func.max(PriceDaily.date)))
+    if last is None:
+        return SymbolsValueOut(months=months, inflation_source=inflation_source, rows=[])
+    yoy = _releases(session, "cpi_yoy", inflation_source)
+    p_infl = period_inflation(_releases(session, "cpi_mom", inflation_source), yoy, last, months)
+    infl = p_infl.value if p_infl else None
+    infl_note = None
+    known = [r for r in yoy if r.release_date <= last]
+    if infl is None and known:
+        # fewer monthly releases than months: spread the latest point-to-point figure evenly
+        y = max(known, key=lambda r: r.ref_period).value
+        infl = (1 + y) ** (months / 12) - 1
+        infl_note = "تخمین: تورم نقطه‌به‌نقطه به‌طور یکنواخت روی ماه‌ها پخش شده است"
+    periods = period_table(session, last)
+    sectors = {
+        c.strip().zfill(2): normalize_fa(n)
+        for c, n in session.execute(select(SectorName.code, SectorName.name))
+    }
+    fund_rows = {f.instrument_id: f for f in funds(session).funds if f.instrument_id}
+    right_rows = {r.instrument_id: r for r in rights(session).rights}
+    traded = session.execute(
+        select(PriceDaily, Instrument)
+        .join(Instrument, Instrument.id == PriceDaily.instrument_id)
+        .where(
+            PriceDaily.date == last,
+            PriceDaily.market_halt.is_(False),
+            Instrument.instrument_type.in_(("stock", "right", *_FUND_TYPES)),
+        )
+    ).all()
+    out = []
+    for p, inst in traded:
+        tags = inst.tags or {}
+        fair, b, note = None, None, None
+        industry = sectors.get((inst.sector_code or "").strip().zfill(2))
+        if inst.instrument_type == "stock":
+            kind = "سهم"
+        elif inst.instrument_type == "right":
+            kind = "حق‌تقدم"
+            r = right_rows.get(inst.id)
+            if r:
+                fair, b, note = r.value, r.bubble, r.bubble_note
+        else:
+            f = fund_rows.get(inst.id)
+            if f:
+                kind, industry = f.kind or "صندوق", f.industry
+                fair, b, note = f.cancel_nav, f.bubble, f.bubble_note
+            else:
+                kind, industry = fund_kind(
+                    tags.get("subsector_code"), None, inst.instrument_type, tags.get("fund_desc")
+                )
+                note = "NAV این صندوق ثبت نشده است"
+        pr = periods.get(inst.id)
+        nominal = getattr(pr, _PERIOD_RETURN[months]) if pr else None
+        out.append(
+            SymbolValueOut(
+                instrument_id=inst.id,
+                symbol=inst.symbol_fa,
+                name=inst.name_fa,
+                kind=kind,
+                industry=industry,
+                close=None if p.close is None else float(p.close),
+                traded_value=None if p.value is None else float(p.value),
+                fair_value=fair,
+                bubble=b,
+                bubble_note=note,
+                nominal_return=nominal,
+                real_return=real_return(nominal, infl)
+                if nominal is not None and infl is not None
+                else None,
+            )
+        )
+    # a right that did not trade on the newest day still has a bubble from its own last trade
+    seen = {r.instrument_id for r in out}
+    for r in right_rows.values():
+        if r.instrument_id in seen:
+            continue
+        out.append(
+            SymbolValueOut(
+                instrument_id=r.instrument_id,
+                symbol=r.symbol,
+                name=r.name,
+                kind="حق‌تقدم",
+                close=r.price,
+                fair_value=r.value,
+                bubble=r.bubble,
+                bubble_note=r.bubble_note or "در آخرین روز معامله نشد؛ قیمت آخرین معاملهٔ خودش",
+            )
+        )
+    return SymbolsValueOut(
+        prices_date=last,
+        months=months,
+        inflation_source=inflation_source,
+        inflation=infl,
+        inflation_note=infl_note,
+        rows=out,
     )

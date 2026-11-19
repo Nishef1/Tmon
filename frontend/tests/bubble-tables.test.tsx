@@ -1,50 +1,59 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { FundsTable } from "@/components/compare/BubbleTables";
-import type { Fund } from "@/lib/api";
+import { ValueTable } from "@/components/compare/BubbleTables";
+import type { SymbolValue } from "@/lib/api";
 
-const fund = (reg_no: string, symbol: string, bubble: number | null, note?: string): Fund => ({
-  reg_no,
+const row = (
+  id: number,
+  symbol: string,
+  kind: string,
+  bubble: number | null,
+  real: number | null,
+  note: string | null = null,
+): SymbolValue => ({
+  instrument_id: id,
   symbol,
-  name: `صندوق ${symbol}`,
-  instrument_id: Number(reg_no),
-  kind: reg_no === "3" ? "صندوق طلا" : "صندوق سهامی",
-  listed: true,
-  nav_date: "2026-11-17",
-  fund_type: null,
+  name: null,
+  kind,
   industry: null,
-  cancel_nav: null,
-  issue_nav: null,
-  net_asset: null,
-  price: null,
+  close: null,
+  traded_value: null,
+  fair_value: null,
   bubble,
-  bubble_note: note ?? null,
+  bubble_note: note,
+  nominal_return: null,
+  real_return: real,
 });
 
 const symbols = () =>
-  within(screen.getByTestId("funds-table"))
+  within(screen.getByTestId("value-table"))
     .getAllByRole("row")
     .slice(1)
     .map((r) => within(r).getAllByRole("link")[0].textContent);
 
-describe("FundsTable", () => {
-  const funds = [
-    fund("1", "الف", 0.02),
-    fund("2", "ب", -0.4, "حباب غیرعادی"),
-    fund("3", "پ", -0.03),
-    fund("4", "ت", null, "قیمت ثبت نشده"),
+describe("ValueTable", () => {
+  const rows = [
+    row(1, "الف", "صندوق سهامی", 0.02, 0.1),
+    row(2, "ب", "صندوق سهامی", -0.4, null, "حباب غیرعادی"),
+    row(3, "پ", "صندوق طلا", -0.03, 0.2),
+    row(4, "شکام", "سهم", null, 2.9),
+    row(5, "فجهان", "سهم", null, 0.3),
   ];
 
-  it("puts clean rows first, most negative bubble first", () => {
-    render(<FundsTable funds={funds} />);
-    expect(symbols()).toEqual(["پ", "الف", "ب", "ت"]);
+  it("puts clean bubbles first, then the rest by real return", () => {
+    render(<ValueTable rows={rows} months={12} />);
+    expect(symbols()).toEqual(["پ", "الف", "ب", "شکام", "فجهان"]);
+    expect(screen.getByTestId("value-summary").textContent).toContain("۴ نماد از ۴");
   });
 
-  it("flips the order on a second click and filters by kind", () => {
-    render(<FundsTable funds={funds} />);
-    fireEvent.click(screen.getByRole("button", { name: /حباب/ }));
-    expect(symbols()).toEqual(["الف", "پ", "ب", "ت"]);
-    fireEvent.change(screen.getByLabelText("نوع صندوق:"), { target: { value: "صندوق طلا" } });
-    expect(symbols()).toEqual(["پ"]);
+  it("sorts by real return and filters stocks or all funds", () => {
+    render(<ValueTable rows={rows} months={12} />);
+    fireEvent.click(screen.getByRole("button", { name: /جلوتر از تورم/ }));
+    expect(symbols()).toEqual(["الف", "پ", "فجهان", "شکام", "ب"]);
+    const pick = screen.getByLabelText("نوع نماد:");
+    fireEvent.change(pick, { target: { value: "سهم" } });
+    expect(symbols()).toEqual(["فجهان", "شکام"]);
+    fireEvent.change(pick, { target: { value: "همهٔ صندوق‌ها" } });
+    expect(symbols()).toHaveLength(3);
   });
 });

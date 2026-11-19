@@ -11673,6 +11673,206 @@
         "title": "SymbolNewsOut",
         "type": "object"
       },
+      "SymbolValueOut": {
+        "properties": {
+          "bubble": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble"
+          },
+          "bubble_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bubble Note"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "fair_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fair Value"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "nominal_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nominal Return"
+          },
+          "real_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Return"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "traded_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traded Value"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "symbol",
+          "name",
+          "kind",
+          "industry",
+          "close",
+          "traded_value",
+          "fair_value",
+          "bubble",
+          "bubble_note",
+          "nominal_return",
+          "real_return"
+        ],
+        "title": "SymbolValueOut",
+        "type": "object"
+      },
+      "SymbolsValueOut": {
+        "properties": {
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "inflation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inflation"
+          },
+          "inflation_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inflation Note"
+          },
+          "inflation_source": {
+            "title": "Inflation Source",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "prices_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prices Date"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/SymbolValueOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "prices_date",
+          "months",
+          "inflation_source",
+          "inflation",
+          "inflation_note",
+          "rows",
+          "disclaimer"
+        ],
+        "title": "SymbolsValueOut",
+        "type": "object"
+      },
       "TaHorizon": {
         "description": "One horizon of a tested reading: candles after the entry at the next day's close.",
         "properties": {
@@ -12754,6 +12954,61 @@
           }
         },
         "summary": "Compare",
+        "tags": [
+          "macro"
+        ]
+      }
+    },
+    "/compare/symbols": {
+      "get": {
+        "description": "Every stock, fund and right that traded on the newest day: the bubble where a value is\nknown (fund NAV, right = base - nominal), and the adjusted return over the period against\ninflation released by that day (docs/06).",
+        "operationId": "compare_symbols_compare_symbols_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "title": "Months",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "inflation_source",
+            "required": false,
+            "schema": {
+              "default": "sci",
+              "pattern": "^(sci|cbi)$",
+              "title": "Inflation Source",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SymbolsValueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare Symbols",
         "tags": [
           "macro"
         ]

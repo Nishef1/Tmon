@@ -155,3 +155,35 @@ def test_rights_bubble(session, client):
     assert by["فجهانح"]["value"] == 2000 and by["فجهانح"]["bubble"] == pytest.approx(-0.1)
     assert by["کمح"]["bubble"] is None and by["کمح"]["bubble_note"] == "سهم پایه پیدا نشد"
     assert j["rights"][0]["symbol"] == "فجهانح"
+
+
+def test_compare_symbols_real_return(session, client):
+    from datetime import timedelta
+
+    stock = Instrument(ins_code="20", symbol_fa="شکام", instrument_type="stock")
+    session.add(stock)
+    session.flush()
+    d = date(2026, 11, 16)
+    session.add_all(
+        [
+            PriceDaily(instrument_id=stock.id, date=d - timedelta(days=370), close=100),
+            PriceDaily(instrument_id=stock.id, date=d, close=300, value=1e9),
+            MacroSeries(
+                series="cpi_yoy",
+                source="sci",
+                ref_period=date(2026, 10, 22),
+                release_date=date(2026, 10, 28),
+                value=1.0,
+            ),
+        ]
+    )
+    session.flush()
+    j = client.get("/compare/symbols?months=12").json()
+    row = j["rows"][0]
+    assert row["kind"] == "سهم" and row["bubble"] is None
+    assert row["nominal_return"] == pytest.approx(2.0)
+    assert row["real_return"] == pytest.approx(0.5)  # 3x the money against 2x the prices
+    assert j["inflation"] == pytest.approx(1.0) and j["inflation_note"] is None
+    j3 = client.get("/compare/symbols?months=3").json()
+    assert j3["inflation"] == pytest.approx(2**0.25 - 1) and "تخمین" in j3["inflation_note"]
+    assert client.get("/compare/symbols?months=6").status_code == 422
