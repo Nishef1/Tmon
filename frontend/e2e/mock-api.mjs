@@ -105,6 +105,7 @@ const RANKING = {
   rows: [
     {
       rank: 1,
+      instrument_id: 11,
       symbol: "شکام",
       name: "کیمیاگران",
       sector_code: null,
@@ -123,6 +124,7 @@ const RANKING = {
     },
     {
       rank: 2,
+      instrument_id: 12,
       symbol: "وبانک",
       name: "توسعه ملی",
       sector_code: null,
@@ -136,6 +138,7 @@ const RANKING = {
     },
     {
       rank: 3,
+      instrument_id: 13,
       symbol: "خودرو",
       name: "ایران خودرو",
       sector_code: null,
@@ -149,6 +152,7 @@ const RANKING = {
     },
     {
       rank: 4,
+      instrument_id: 14,
       symbol: "اروند",
       name: "اروند",
       sector_code: null,
@@ -157,6 +161,20 @@ const RANKING = {
       queue_state: "none",
       median_value: 1e11,
       signals: { ind_buy_power: null, rv_20: null, dist_high_52w: null, mom_12_1: null },
+    },
+    {
+      rank: 5,
+      instrument_id: 15,
+      symbol: "فارس",
+      name: "صنایع پتروشیمی خلیج فارس",
+      sector_code: null,
+      score: 0.6,
+      zone: "hold",
+      band: "middle",
+      basket_pct: 0.6,
+      queue_state: "none",
+      median_value: 8e10,
+      signals: { ind_buy_power: 0.5, rv_20: 0.5, dist_high_52w: 0.5, mom_12_1: 0.5 },
     },
   ],
   evidence: [
@@ -572,9 +590,11 @@ function route(url) {
     const all = [
       { id: 1, symbol: "فولاد", name: "فولاد مبارکه" },
       { id: 2, symbol: "فملی", name: "ملی صنایع مس" },
-      { id: 3, symbol: "ایستا", name: "نماد متوقف نمونه", halted: true },
+      { id: 3, symbol: "ایستا", name: "نماد متوقف نمونه", halted: true, other: true },
     ]
-      .filter((h) => h.symbol.includes(q) || h.name.includes(q) || "فلزات".includes(q))
+      .filter(
+        (h) => h.symbol.includes(q) || h.name.includes(q) || (!h.other && "فلزات".includes(q)),
+      )
       .filter((h) => !(url.searchParams.get("active_only") === "true" && h.halted));
     return [
       200,
