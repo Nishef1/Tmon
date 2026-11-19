@@ -186,7 +186,7 @@ def _zone_sentence(z: dict[str, Any] | None, h: int, what: str, *, avoided: bool
     )
 
 
-def _market_off(doc: dict[str, Any]) -> bool:
+def market_off(doc: dict[str, Any]) -> bool:
     exposure = (doc.get("exposure") or {}).get("exposure")
     return exposure is not None and exposure <= 1e-9
 
@@ -211,7 +211,7 @@ def final_verdict(
         return None
     vc = verdict_config(doc)
     h = int(vc["horizon_days"])
-    off = _market_off(doc)
+    off = market_off(doc)
     queue = entry.get("queue_state") == "buy_queue"
     veto = None if instrument_id is None else state_veto(turn_doc, instrument_id, h)
     wait_market = "امروز بازار می‌گوید سهام نخرید (سهم سرمایه در سهام صفر است)؛ صبر کنید."

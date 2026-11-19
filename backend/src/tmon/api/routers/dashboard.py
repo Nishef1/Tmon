@@ -53,6 +53,7 @@ from tmon.engine.verdict import (
     GRADE_FA,
     Verdict,
     final_verdict,
+    market_off,
     state_meta,
     verdict_config,
     verdict_fields,
@@ -498,6 +499,54 @@ def _zone_from(top_frac: object) -> float | None:
     )
 
 
+FUND_TEST = (
+    "آزمودیم که امتیاز چهارسیگنالهٔ سهم، صندوق‌های سهامی و مختلط را رتبه می‌دهد یا نه: همبستگی "
+    "رتبه‌ای با بازده ۵ و ۲۰ روز بعد حدود صفر بود و در دو نیمهٔ زمان یک‌جور نماند "
+    "(گزارش «مدل خرید و فروش برای صندوق‌ها»، ۲۸ آبان ۱۴۰۵). "
+    "برای صندوق اهرمی و کالایی آزمون جداگانه نداریم."
+)
+
+
+def fund_decision(instrument_type: str, doc: dict[str, Any] | None) -> DashDecision:
+    """What the page says about a tradable fund. There is no buy or sell model for funds: the
+    stock model was tested on them and does not order them (docs/reports/fund-verdict-2026-11.md),
+    so the answer is the fund's role, today's market state and what was measured, never a score."""
+    off = doc is not None and market_off(doc)
+    if instrument_type == "etf_fixed_income":
+        return _none(
+            "صندوق درآمد ثابت: جای نگه‌داشتن پول است و خرید و فروش ندارد.",
+            [
+                "بازده‌اش را با تورم بسنجید، نه با سهم: بازده واقعی (پس از تورم) در صفحهٔ "
+                "«مقایسه» است.",
+                "هر چیز پرریسک‌تر باید در بلندمدت از این جلو بیفتد وگرنه ریسکش بی‌پاداش بوده است.",
+            ],
+            market_warning=off,
+        )
+    reasons = [FUND_TEST, "پس برای صندوق امتیاز و «بخر/بفروش» نمی‌دهیم؛ ساختنش بدون آزمون، حدس است."]
+    if instrument_type == "etf_leveraged":
+        reasons.append(
+            "صندوق اهرمی بازار را حدود ۱٫۸ برابر می‌کند؛ هم بالا و هم پایین. افتی تا نیمی "
+            "از ارزش را هم دیده است. تحلیل هر صندوق اهرمی در صفحهٔ «مقایسه» (بخش صندوق‌های "
+            "اهرمی) است."
+        )
+    else:
+        reasons.append(
+            "صندوق سهامی با سهم‌هایش حرکت می‌کند؛ پس همان حال بازار را دارد. «قیمت ÷ NAV» و "
+            "بازده در برابر تورم در صفحهٔ «مقایسه» است."
+        )
+    if off:
+        reasons.insert(
+            0,
+            "امروز بازار می‌گوید سهام نخرید (سهم سرمایه در سهام صفر است)؛ صندوق سهامی هم "
+            "همراه بازار است. اگر ندارید صبر کنید.",
+        )
+    return _none(
+        "برای صندوق‌ها مدل خرید و فروش نداریم؛ مدل سهم روی صندوق‌ها جواب نداد.",
+        reasons,
+        market_warning=off,
+    )
+
+
 def decide(
     inst: Instrument,
     doc: dict[str, Any] | None,
@@ -509,6 +558,8 @@ def decide(
     Every stock that has the four signals gets a score and a gauge. Inside the validated liquid
     basket the verdict is the model's; outside it the same formula is applied but the verdict is
     marked unvalidated and never counts as advice."""
+    if inst.instrument_type.startswith("etf_"):
+        return fund_decision(inst.instrument_type, doc)
     if inst.instrument_type != "stock":
         kind = _kind(inst.instrument_type)
         return _none(

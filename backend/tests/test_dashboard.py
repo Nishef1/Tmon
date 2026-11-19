@@ -346,3 +346,17 @@ def test_by_horizon_lists_the_zone_at_every_measured_period() -> None:
     # the avoid band reads the avoid zone; the middle band has no zone to show
     assert dash._by_horizon(doc, "avoid")[1].status == "loss"
     assert dash._by_horizon(doc, "middle") == []
+
+
+def test_fund_gets_an_honest_none_and_waits_when_the_market_is_off() -> None:
+    eq = dash.decide(_inst("ف", "etf_equity"), _doc(), None)
+    assert eq.verdict == "none" and "مدل خرید و فروش نداریم" in eq.headline
+    assert not eq.market_warning and not any("صبر" in r for r in eq.reasons)
+    off = _doc()
+    off["exposure"] = {"exposure": 0.0}
+    waiting = dash.decide(_inst("ف", "etf_equity"), off, None)
+    assert waiting.market_warning and "صبر" in waiting.reasons[0]
+    fixed = dash.decide(_inst("ف", "etf_fixed_income"), _doc(), None)
+    assert "درآمد ثابت" in fixed.headline and fixed.verdict == "none"
+    lev = dash.decide(_inst("ف", "etf_leveraged"), _doc(), None)
+    assert any("۱٫۸" in r for r in lev.reasons)

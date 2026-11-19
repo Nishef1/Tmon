@@ -54,3 +54,7 @@ and the AGM calculator.
   three-month verdict; a short period claiming its own buy is a bug
   (docs/reports/verdict-parts-2026-11.md). Check شکام (quarter, calibrated) and کوثر (week, trend
   entry inside the range). A period with too few separate windows says «بازه آزموده نیست».
+- A tradable fund (type `etf_*`, e.g. پیشران id 1419) must never show a verdict or score. The
+  «چه کنم؟» card says «برای صندوق‌ها مدل خرید و فروش نداریم» and `none-reasons` lists why, the
+  fund's role, and «صبر» first when the market is off (`fund_decision` in `api/routers/dashboard.py`,
+  docs/reports/fund-verdict-2026-11.md). A «بخر» or «بفروش» on a fund is a bug.

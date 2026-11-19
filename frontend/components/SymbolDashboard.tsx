@@ -112,7 +112,9 @@ function Decision({
     items.find((x) => x.key === horizon) ??
     items.find((x) => x.key === DEFAULT_HORIZON) ??
     items[0];
-  const more = [...(h?.reasons ?? []), ...d.reasons.slice(1)];
+  // with no verdict the reasons are the whole answer ("why none"), so they are shown, not folded
+  const none = d.verdict === "none";
+  const more = none ? [] : [...(h?.reasons ?? []), ...d.reasons.slice(1)];
   return (
     <DecisionShell d={d} h={h} id={id}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -145,6 +147,17 @@ function Decision({
       <div data-testid="horizons" data-horizon={h?.key} data-verdict={h?.verdict}>
         <Verdict d={d} h={h} id={id} />
       </div>
+
+      {none && d.reasons.length > 0 && (
+        <ul
+          className="mt-3 list-inside list-disc space-y-1.5 text-sm text-muted"
+          data-testid="none-reasons"
+        >
+          {d.reasons.map((r) => (
+            <li key={r}>{faDigits(r)}</li>
+          ))}
+        </ul>
+      )}
 
       {!d.advice_allowed && (
         <p className="mt-3 text-xs text-muted" data-testid="not-advice">
