@@ -409,6 +409,18 @@ test.describe("entry odds and the chart", () => {
     await expect(page).toHaveURL(/\/compare\?months=12/);
     await expect(sec).toContainText("نماد اضافه کنید");
   });
+
+  test("compare shows the leveraged funds against the market and the fund types", async ({
+    page,
+  }) => {
+    await page.goto("/compare#leveraged");
+    const table = page.getByTestId("leveraged-table");
+    await expect(table).toContainText("اهرم");
+    await expect(table).toContainText("دوایکس");
+    await expect(table).toContainText("شاخص کل");
+    await expect(page.getByTestId("fund-types-table")).toContainText("درآمد ثابت");
+    await expect(page.getByTestId("leveraged-funds")).toContainText("توصیه نیست");
+  });
 });
 
 test("home opens on the market strip and a sortable stock table", async ({ page }) => {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from typing import Annotated
 
@@ -19,6 +20,7 @@ from tmon.api.schemas import (
     GoldRatioOut,
     InflationOut,
     InflationReleaseOut,
+    LeveragedFundsOut,
     RightOut,
     RightsOut,
     SymbolsValueOut,
@@ -40,7 +42,10 @@ from tmon.ingest.macro.fipiran import bubble
 from tmon.ingest.tsetmc.parsers import normalize_fa
 from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
 from tmon.storage.models import FundNav, Instrument, MacroSeries, PriceDaily, SectorName
+from tmon.storage.objectstore import read_artifact
+from tmon.tools.leveraged_funds import KEY as LEVERAGED_KEY
 
+log = logging.getLogger(__name__)
 router = APIRouter(tags=["macro"])
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -254,6 +259,18 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
             )
         )
     return FundsOut(nav_date=nav_date, funds=out)
+
+
+@router.get("/funds/leveraged", response_model=LeveragedFundsOut)
+def leveraged_funds() -> LeveragedFundsOut:
+    """What each leveraged fund did against the market, from the PC's daily document
+    (``tmon.tools.leveraged_funds``). Empty until that tool has run."""
+    try:
+        doc = read_artifact(LEVERAGED_KEY)
+    except Exception:  # store unreachable: an empty section, not a failing page
+        log.warning("%s unreadable", LEVERAGED_KEY, exc_info=True)
+        doc = None
+    return LeveragedFundsOut.model_validate(doc) if doc else LeveragedFundsOut()
 
 
 @router.get("/rights", response_model=RightsOut)

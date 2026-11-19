@@ -29,6 +29,8 @@ if ($Eod) {
   & $py -m tmon.tools.entry_odds
   # market state from breadth and the plan's paper test: enter, exit, switch or wait
   & $py -m tmon.tools.regime_paper
+  # leveraged funds against the market, and the fund types side by side
+  & $py -m tmon.tools.leveraged_funds
   # new assembly/capital letters from Codal, then the day each invitation names
   & $py -m tmon.ingest.codal.cli events
   & $py -m tmon.ingest.codal.cli meetings

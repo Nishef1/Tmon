@@ -19,6 +19,11 @@
   value, bubble where one exists, adjusted return and return ahead of inflation for holding 1, 3 or
   12 months). Check a stock such as شکام shows «سهم NAV ندارد» and a real return; group filter,
   search and sortable headers; clean bubbles first, then by real return.
+- `/compare#leveraged`: the leveraged funds against the market, from `GET /funds/leveraged` (the
+  artifact `v2/leveraged_funds.json` made by `tmon.tools.leveraged_funds`; empty before the first
+  cycle run). Check beta near 1.8, every row names its history length (a short-history fund is not
+  compared silently with a multi-year one), «قیمت ÷ NAV» is not called a bubble, and the fund-type
+  table has the leveraged row in bold.
 - `/compare#rights`: right issues traded in the last 30 days against base close minus 1000 rials
   (`/rights`), most below value first.
 

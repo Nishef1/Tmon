@@ -123,6 +123,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/funds/leveraged": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Leveraged Funds
+     * @description What each leveraged fund did against the market, from the PC's daily document
+     *     (``tmon.tools.leveraged_funds``). Empty until that tool has run.
+     */
+    get: operations["leveraged_funds_funds_leveraged_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -2827,6 +2848,29 @@ export interface components {
       /** Symbol */
       symbol: string | null;
     };
+    /** FundTypeOut */
+    FundTypeOut: {
+      /** Compound Month */
+      compound_month: number;
+      /** Funds */
+      funds: number;
+      /** Label */
+      label: string;
+      /** Max Drawdown */
+      max_drawdown: number;
+      /** Month Mean */
+      month_mean: number;
+      /** Month Median */
+      month_median: number;
+      /** Share Below Zero */
+      share_below_zero: number;
+      /** Share Ge Target */
+      share_ge_target: number;
+      /** Type */
+      type: string;
+      /** Worst Month */
+      worst_month: number;
+    };
     /** FundsOut */
     FundsOut: {
       /**
@@ -3335,6 +3379,90 @@ export interface components {
       have: number | null;
       /** Kind */
       kind: string;
+    };
+    /** LeveragedFundOut */
+    LeveragedFundOut: {
+      /** Alpha T */
+      alpha_t: number;
+      /** Alpha Year */
+      alpha_year: number;
+      /** Beta */
+      beta: number;
+      /** Compound Month */
+      compound_month: number;
+      /** Corr */
+      corr: number;
+      /** Days */
+      days: number;
+      /** Fund Nav */
+      fund_nav: number | null;
+      /** Instrument Id */
+      instrument_id: number;
+      /** Last Month */
+      last_month: number | null;
+      /** Last Month Index */
+      last_month_index: number;
+      /** Max Drawdown */
+      max_drawdown: number;
+      /** Month Mean */
+      month_mean: number;
+      /** Month Median */
+      month_median: number;
+      /** Months */
+      months: number;
+      /** Nav Date */
+      nav_date: string | null;
+      /** Price */
+      price: number | null;
+      /** Price Over Nav */
+      price_over_nav: number | null;
+      /** Share Below Minus Target */
+      share_below_minus_target: number;
+      /** Share Below Zero */
+      share_below_zero: number;
+      /** Share Ge Target */
+      share_ge_target: number;
+      /**
+       * Since
+       * Format: date
+       */
+      since: string;
+      /** Symbol */
+      symbol: string;
+      /** Vol Year */
+      vol_year: number;
+      /** Worst Month */
+      worst_month: number;
+    };
+    /** LeveragedFundsOut */
+    LeveragedFundsOut: {
+      /** As Of */
+      as_of: string | null;
+      /**
+       * Disclaimer
+       * @default ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست
+       */
+      disclaimer: string;
+      /**
+       * Funds
+       * @default []
+       */
+      funds: components["schemas"]["LeveragedFundOut"][];
+      /**
+       * Target
+       * @default 0.1
+       */
+      target: number;
+      /**
+       * Type Years
+       * @default 3
+       */
+      type_years: number;
+      /**
+       * Types
+       * @default []
+       */
+      types: components["schemas"]["FundTypeOut"][];
     };
     /**
      * LiveFlowOut
@@ -5259,6 +5387,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  leveraged_funds_funds_leveraged_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LeveragedFundsOut"];
         };
       };
     };

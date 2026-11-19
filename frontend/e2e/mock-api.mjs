@@ -581,6 +581,60 @@ const PICK = {
 function route(url) {
   const path = url.pathname;
   if (path === "/health") return [200, { status: "ok" }];
+  if (path === "/funds/leveraged") {
+    const fund = (id, symbol, days, compound) => ({
+      instrument_id: id,
+      symbol,
+      since: "2025-08-01",
+      days,
+      beta: 1.8,
+      corr: 0.9,
+      vol_year: 0.45,
+      alpha_year: 0.02,
+      alpha_t: 0.3,
+      months: days - 21,
+      month_median: 0.05,
+      month_mean: 0.06,
+      compound_month: compound,
+      share_ge_target: 0.3,
+      share_below_zero: 0.25,
+      share_below_minus_target: 0.1,
+      worst_month: -0.3,
+      max_drawdown: -0.5,
+      last_month: 0.02,
+      last_month_index: 0.014,
+      price: 5200,
+      fund_nav: 5000,
+      nav_date: "2026-11-27",
+      price_over_nav: 1.04,
+    });
+    const type = (t, label, funds, compound) => ({
+      type: t,
+      label,
+      funds,
+      month_median: 0.02,
+      month_mean: 0.03,
+      compound_month: compound,
+      share_ge_target: 0.1,
+      share_below_zero: 0.2,
+      worst_month: -0.2,
+      max_drawdown: -0.4,
+    });
+    return [
+      200,
+      {
+        as_of: "2026-11-18",
+        target: 0.1,
+        type_years: 3,
+        funds: [fund(901, "اهرم", 700, 0.042), fund(902, "دوایکس", 320, 0.113)],
+        types: [
+          type("fixed_income", "درآمد ثابت", 40, 0.02),
+          type("etf_leveraged", "اهرمی", 9, 0.065),
+        ],
+        disclaimer: "این صفحه توصیه نیست.",
+      },
+    ];
+  }
   if (path === "/picks") return [200, [PICK]];
   if (path === "/v2/ranking") return [200, RANKING];
   if (path === "/research/ta-signals") return [200, TA_SIGNALS];

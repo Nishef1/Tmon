@@ -282,6 +282,55 @@ class FundsOut(ApiModel):
     disclaimer: str = DISCLAIMER
 
 
+class LeveragedFundOut(ApiModel):
+    instrument_id: int
+    symbol: str
+    since: dt.date
+    days: int
+    beta: float
+    corr: float
+    vol_year: float
+    alpha_year: float
+    alpha_t: float
+    months: int
+    month_median: float
+    month_mean: float
+    compound_month: float
+    share_ge_target: float
+    share_below_zero: float
+    share_below_minus_target: float
+    worst_month: float
+    max_drawdown: float
+    last_month: float | None = None
+    last_month_index: float
+    price: float | None = None
+    fund_nav: float | None = None
+    nav_date: dt.date | None = None
+    price_over_nav: float | None = None
+
+
+class FundTypeOut(ApiModel):
+    type: str
+    label: str
+    funds: int
+    month_median: float
+    month_mean: float
+    compound_month: float
+    share_ge_target: float
+    share_below_zero: float
+    worst_month: float
+    max_drawdown: float
+
+
+class LeveragedFundsOut(ApiModel):
+    as_of: dt.date | None = None
+    target: float = 0.10
+    type_years: int = 3
+    funds: list[LeveragedFundOut] = []
+    types: list[FundTypeOut] = []
+    disclaimer: str = DISCLAIMER
+
+
 class RightOut(ApiModel):
     instrument_id: int
     symbol: str

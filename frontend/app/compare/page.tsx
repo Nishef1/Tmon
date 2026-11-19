@@ -5,6 +5,7 @@ import {
   type Compare,
   type SymbolsValue,
   type Rights,
+  type LeveragedFunds,
   type InstrumentDashboard,
   type InstrumentDetail,
 } from "@/lib/api";
@@ -16,6 +17,7 @@ import { MAX_SYMBOLS } from "@/components/compare/colors";
 import { ErrorState } from "@/components/ErrorState";
 import { Num } from "@/components/Num";
 import { RightsTable, ValueTable } from "@/components/compare/BubbleTables";
+import { LeveragedFundsSection } from "@/components/compare/LeveragedFunds";
 
 export const metadata: Metadata = { title: "مقایسه" };
 export const dynamic = "force-dynamic";
@@ -31,10 +33,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     0,
     MAX_SYMBOLS,
   );
-  const [cmp, vals, rights, picked] = await Promise.all([
+  const [cmp, vals, rights, lev, picked] = await Promise.all([
     apiGet<Compare>("/compare", { months, inflation_source: source }),
     apiGet<SymbolsValue>("/compare/symbols", { months, inflation_source: source }),
     apiGet<Rights>("/rights"),
+    apiGet<LeveragedFunds>("/funds/leveraged"),
     Promise.all(
       ids.map(async (id): Promise<Picked | null> => {
         const [d, dash] = await Promise.all([
@@ -73,6 +76,9 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           </a>
           <a href="#funds" className="tab tab-pill">
             حباب و تورم همهٔ نمادها
+          </a>
+          <a href="#leveraged" className="tab tab-pill">
+            صندوق‌های اهرمی
           </a>
           <a href="#rights" className="tab tab-pill">
             حباب حق‌تقدم‌ها
@@ -229,8 +235,8 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         <h2 className="font-bold">همهٔ نمادها: حباب و بازده در برابر تورم</h2>
         <div className="space-y-1 text-sm text-muted">
           <p>
-            سهم‌ها و صندوق‌هایی که در آخرین روز معامله شدند، و حق‌تقدم‌هایی که در ۳۰ روز گذشته معامله شدند. ستون «نوع» می‌گوید هر نماد
-            سهم است یا صندوق (و چه صندوقی) یا حق‌تقدم.
+            سهم‌ها و صندوق‌هایی که در آخرین روز معامله شدند، و حق‌تقدم‌هایی که در ۳۰ روز گذشته
+            معامله شدند. ستون «نوع» می‌گوید هر نماد سهم است یا صندوق (و چه صندوقی) یا حق‌تقدم.
           </p>
           <p>
             <b>حباب</b> فقط جایی حساب می‌شود که ارزش روشن باشد: برای صندوق NAV ابطال همان روز، برای
@@ -274,6 +280,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         ) : (
           <ValueTable rows={vals.data.rows} months={months} />
         )}
+      </section>
+
+      <section id="leveraged" className="card space-y-3">
+        <h2 className="font-bold">صندوق‌های اهرمی: ماهی ۱۰ درصد؟</h2>
+        {!lev.ok ? <ErrorState message={lev.error} /> : <LeveragedFundsSection data={lev.data} />}
       </section>
 
       <section id="rights" className="card space-y-3">

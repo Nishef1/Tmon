@@ -11,6 +11,12 @@
       "href": "/screener"
     }
   ],
+  "beta": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    }
+  ],
   "book_imbalance": [
     {
       "label": "صفحهٔ هر نماد",
@@ -27,6 +33,12 @@
     {
       "label": "امروز بازار",
       "href": "/"
+    }
+  ],
+  "fund_nav": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
     }
   ],
   "ic": [
@@ -64,6 +76,10 @@
     }
   ],
   "max_drawdown": [
+    {
+      "label": "مقایسه",
+      "href": "/compare"
+    },
     {
       "label": "صفحهٔ مدل",
       "href": "/model"

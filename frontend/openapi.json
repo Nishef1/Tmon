@@ -5783,6 +5783,64 @@
         "title": "FundOut",
         "type": "object"
       },
+      "FundTypeOut": {
+        "properties": {
+          "compound_month": {
+            "title": "Compound Month",
+            "type": "number"
+          },
+          "funds": {
+            "title": "Funds",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "max_drawdown": {
+            "title": "Max Drawdown",
+            "type": "number"
+          },
+          "month_mean": {
+            "title": "Month Mean",
+            "type": "number"
+          },
+          "month_median": {
+            "title": "Month Median",
+            "type": "number"
+          },
+          "share_below_zero": {
+            "title": "Share Below Zero",
+            "type": "number"
+          },
+          "share_ge_target": {
+            "title": "Share Ge Target",
+            "type": "number"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "worst_month": {
+            "title": "Worst Month",
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "funds",
+          "month_median",
+          "month_mean",
+          "compound_month",
+          "share_ge_target",
+          "share_below_zero",
+          "worst_month",
+          "max_drawdown"
+        ],
+        "title": "FundTypeOut",
+        "type": "object"
+      },
       "FundsOut": {
         "properties": {
           "disclaimer": {
@@ -7500,6 +7558,228 @@
           "expected"
         ],
         "title": "IssueOut",
+        "type": "object"
+      },
+      "LeveragedFundOut": {
+        "properties": {
+          "alpha_t": {
+            "title": "Alpha T",
+            "type": "number"
+          },
+          "alpha_year": {
+            "title": "Alpha Year",
+            "type": "number"
+          },
+          "beta": {
+            "title": "Beta",
+            "type": "number"
+          },
+          "compound_month": {
+            "title": "Compound Month",
+            "type": "number"
+          },
+          "corr": {
+            "title": "Corr",
+            "type": "number"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "fund_nav": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fund Nav"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "last_month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Month"
+          },
+          "last_month_index": {
+            "title": "Last Month Index",
+            "type": "number"
+          },
+          "max_drawdown": {
+            "title": "Max Drawdown",
+            "type": "number"
+          },
+          "month_mean": {
+            "title": "Month Mean",
+            "type": "number"
+          },
+          "month_median": {
+            "title": "Month Median",
+            "type": "number"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "nav_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nav Date"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "price_over_nav": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Over Nav"
+          },
+          "share_below_minus_target": {
+            "title": "Share Below Minus Target",
+            "type": "number"
+          },
+          "share_below_zero": {
+            "title": "Share Below Zero",
+            "type": "number"
+          },
+          "share_ge_target": {
+            "title": "Share Ge Target",
+            "type": "number"
+          },
+          "since": {
+            "format": "date",
+            "title": "Since",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "vol_year": {
+            "title": "Vol Year",
+            "type": "number"
+          },
+          "worst_month": {
+            "title": "Worst Month",
+            "type": "number"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "symbol",
+          "since",
+          "days",
+          "beta",
+          "corr",
+          "vol_year",
+          "alpha_year",
+          "alpha_t",
+          "months",
+          "month_median",
+          "month_mean",
+          "compound_month",
+          "share_ge_target",
+          "share_below_zero",
+          "share_below_minus_target",
+          "worst_month",
+          "max_drawdown",
+          "last_month",
+          "last_month_index",
+          "price",
+          "fund_nav",
+          "nav_date",
+          "price_over_nav"
+        ],
+        "title": "LeveragedFundOut",
+        "type": "object"
+      },
+      "LeveragedFundsOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "disclaimer": {
+            "default": "ابزار تحلیل و آموزش؛ توصیه سرمایه‌گذاری نیست",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "funds": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeveragedFundOut"
+            },
+            "title": "Funds",
+            "type": "array"
+          },
+          "target": {
+            "default": 0.1,
+            "title": "Target",
+            "type": "number"
+          },
+          "type_years": {
+            "default": 3,
+            "title": "Type Years",
+            "type": "integer"
+          },
+          "types": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FundTypeOut"
+            },
+            "title": "Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "target",
+          "type_years",
+          "funds",
+          "types",
+          "disclaimer"
+        ],
+        "title": "LeveragedFundsOut",
         "type": "object"
       },
       "LiveFlowOut": {
@@ -13489,6 +13769,28 @@
           }
         },
         "summary": "Funds",
+        "tags": [
+          "macro"
+        ]
+      }
+    },
+    "/funds/leveraged": {
+      "get": {
+        "description": "What each leveraged fund did against the market, from the PC's daily document\n(``tmon.tools.leveraged_funds``). Empty until that tool has run.",
+        "operationId": "leveraged_funds_funds_leveraged_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeveragedFundsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Leveraged Funds",
         "tags": [
           "macro"
         ]
