@@ -1,0 +1,484 @@
+{
+ "days": 1110,
+ "first_day": "2021-12-20",
+ "last_day": "2026-11-18",
+ "index_x_over_period": 6.45,
+ "index_max_dd_pct": -26.0,
+ "funds": [
+  {
+   "fund": "موج",
+   "days": 655,
+   "since": "2023-10-29",
+   "beta": 1.93,
+   "corr": 0.85,
+   "beta_equal_weight": 2.04,
+   "corr_equal_weight": 0.77,
+   "vol_year_pct": 44.0,
+   "alpha_year_pct": -7.0,
+   "alpha_t": -0.5,
+   "m21_mean_pct": 9.7,
+   "m21_median_pct": 4.9,
+   "p_ge_10": 44.0,
+   "p_lt_0": 41.0,
+   "p_lt_m10": 21.0,
+   "worst21_pct": -33.0,
+   "excess_vs_index_mean_pct": 4.7,
+   "max_dd_pct": -56.0
+  },
+  {
+   "fund": "شتاب",
+   "days": 770,
+   "since": "2023-05-29",
+   "beta": 1.8,
+   "corr": 0.85,
+   "beta_equal_weight": 1.86,
+   "corr_equal_weight": 0.79,
+   "vol_year_pct": 40.0,
+   "alpha_year_pct": -11.0,
+   "alpha_t": -0.9,
+   "m21_mean_pct": 6.9,
+   "m21_median_pct": 2.6,
+   "p_ge_10": 37.0,
+   "p_lt_0": 41.0,
+   "p_lt_m10": 18.0,
+   "worst21_pct": -34.0,
+   "excess_vs_index_mean_pct": 2.7,
+   "max_dd_pct": -53.0
+  },
+  {
+   "fund": "پیشران",
+   "days": 300,
+   "since": "2025-05-26",
+   "beta": 1.61,
+   "corr": 0.82,
+   "beta_equal_weight": 1.74,
+   "corr_equal_weight": 0.74,
+   "vol_year_pct": 45.0,
+   "alpha_year_pct": -22.0,
+   "alpha_t": -0.9,
+   "m21_mean_pct": 11.4,
+   "m21_median_pct": 10.6,
+   "p_ge_10": 51.0,
+   "p_lt_0": 31.0,
+   "p_lt_m10": 16.0,
+   "worst21_pct": -25.0,
+   "excess_vs_index_mean_pct": 2.6,
+   "max_dd_pct": -30.0
+  },
+  {
+   "fund": "اهرم",
+   "days": 1109,
+   "since": "2021-12-20",
+   "beta": 1.86,
+   "corr": 0.86,
+   "beta_equal_weight": 1.85,
+   "corr_equal_weight": 0.79,
+   "vol_year_pct": 42.0,
+   "alpha_year_pct": -24.0,
+   "alpha_t": -2.3,
+   "m21_mean_pct": 5.7,
+   "m21_median_pct": 1.7,
+   "p_ge_10": 34.0,
+   "p_lt_0": 44.0,
+   "p_lt_m10": 21.0,
+   "worst21_pct": -31.0,
+   "excess_vs_index_mean_pct": 1.7,
+   "max_dd_pct": -51.0
+  },
+  {
+   "fund": "توان",
+   "days": 896,
+   "since": "2022-11-05",
+   "beta": 1.85,
+   "corr": 0.87,
+   "beta_equal_weight": 1.82,
+   "corr_equal_weight": 0.78,
+   "vol_year_pct": 43.0,
+   "alpha_year_pct": -27.0,
+   "alpha_t": -2.4,
+   "m21_mean_pct": 6.6,
+   "m21_median_pct": 2.1,
+   "p_ge_10": 34.0,
+   "p_lt_0": 44.0,
+   "p_lt_m10": 16.0,
+   "worst21_pct": -34.0,
+   "excess_vs_index_mean_pct": 1.8,
+   "max_dd_pct": -53.0
+  },
+  {
+   "fund": "جهش",
+   "days": 749,
+   "since": "2023-06-13",
+   "beta": 1.83,
+   "corr": 0.82,
+   "beta_equal_weight": 1.9,
+   "corr_equal_weight": 0.76,
+   "vol_year_pct": 42.0,
+   "alpha_year_pct": -17.0,
+   "alpha_t": -1.2,
+   "m21_mean_pct": 7.1,
+   "m21_median_pct": 2.3,
+   "p_ge_10": 37.0,
+   "p_lt_0": 44.0,
+   "p_lt_m10": 20.0,
+   "worst21_pct": -35.0,
+   "excess_vs_index_mean_pct": 2.6,
+   "max_dd_pct": -57.0
+  },
+  {
+   "fund": "نارنج اهرم",
+   "days": 510,
+   "since": "2024-06-22",
+   "beta": 1.73,
+   "corr": 0.82,
+   "beta_equal_weight": 1.88,
+   "corr_equal_weight": 0.75,
+   "vol_year_pct": 44.0,
+   "alpha_year_pct": -13.0,
+   "alpha_t": -0.8,
+   "m21_mean_pct": 11.6,
+   "m21_median_pct": 8.5,
+   "p_ge_10": 48.0,
+   "p_lt_0": 38.0,
+   "p_lt_m10": 22.0,
+   "worst21_pct": -36.0,
+   "excess_vs_index_mean_pct": 5.1,
+   "max_dd_pct": -53.0
+  },
+  {
+   "fund": "دوایکس",
+   "days": 318,
+   "since": "2025-04-22",
+   "beta": 1.77,
+   "corr": 0.82,
+   "beta_equal_weight": 1.92,
+   "corr_equal_weight": 0.74,
+   "vol_year_pct": 49.0,
+   "alpha_year_pct": -5.0,
+   "alpha_t": -0.2,
+   "m21_mean_pct": 15.5,
+   "m21_median_pct": 13.2,
+   "p_ge_10": 53.0,
+   "p_lt_0": 33.0,
+   "p_lt_m10": 27.0,
+   "worst21_pct": -41.0,
+   "excess_vs_index_mean_pct": 7.8,
+   "max_dd_pct": -57.0
+  },
+  {
+   "fund": "بیدار",
+   "days": 517,
+   "since": "2024-06-22",
+   "beta": 1.78,
+   "corr": 0.83,
+   "beta_equal_weight": 1.97,
+   "corr_equal_weight": 0.78,
+   "vol_year_pct": 44.0,
+   "alpha_year_pct": -17.0,
+   "alpha_t": -1.0,
+   "m21_mean_pct": 10.7,
+   "m21_median_pct": 7.1,
+   "p_ge_10": 47.0,
+   "p_lt_0": 42.0,
+   "p_lt_m10": 22.0,
+   "worst21_pct": -33.0,
+   "excess_vs_index_mean_pct": 4.3,
+   "max_dd_pct": -49.0
+  }
+ ],
+ "timing": {
+  "start": "2022-11-06",
+  "split": "2024-10-06",
+  "rules": {
+   "buy_and_hold": {
+    "in_market_pct": 100.0,
+    "switches_per_year": 0.3,
+    "all": {
+     "x": 14.45,
+     "cagr_pct": 108.0,
+     "max_dd_pct": -50.0
+    },
+    "half1": {
+     "x": 1.9,
+     "cagr_pct": 42.0,
+     "max_dd_pct": -45.0
+    },
+    "half2": {
+     "x": 7.55,
+     "cagr_pct": 204.0,
+     "max_dd_pct": -50.0
+    }
+   },
+   "index_above_sma50": {
+    "in_market_pct": 66.0,
+    "switches_per_year": 9.1,
+    "all": {
+     "x": 14.16,
+     "cagr_pct": 107.0,
+     "max_dd_pct": -48.0
+    },
+    "half1": {
+     "x": 1.27,
+     "cagr_pct": 14.0,
+     "max_dd_pct": -46.0
+    },
+    "half2": {
+     "x": 11.03,
+     "cagr_pct": 274.0,
+     "max_dd_pct": -23.0
+    }
+   },
+   "index_above_sma100": {
+    "in_market_pct": 70.0,
+    "switches_per_year": 5.8,
+    "all": {
+     "x": 13.17,
+     "cagr_pct": 103.0,
+     "max_dd_pct": -39.0
+    },
+    "half1": {
+     "x": 1.5,
+     "cagr_pct": 25.0,
+     "max_dd_pct": -36.0
+    },
+    "half2": {
+     "x": 8.74,
+     "cagr_pct": 229.0,
+     "max_dd_pct": -36.0
+    }
+   },
+   "index_above_sma200": {
+    "in_market_pct": 78.0,
+    "switches_per_year": 5.8,
+    "all": {
+     "x": 6.9,
+     "cagr_pct": 70.0,
+     "max_dd_pct": -53.0
+    },
+    "half1": {
+     "x": 1.1,
+     "cagr_pct": 6.0,
+     "max_dd_pct": -53.0
+    },
+    "half2": {
+     "x": 6.25,
+     "cagr_pct": 174.0,
+     "max_dd_pct": -45.0
+    }
+   },
+   "basket_above_sma50": {
+    "in_market_pct": 59.0,
+    "switches_per_year": 9.6,
+    "all": {
+     "x": 13.63,
+     "cagr_pct": 105.0,
+     "max_dd_pct": -29.0
+    },
+    "half1": {
+     "x": 1.47,
+     "cagr_pct": 24.0,
+     "max_dd_pct": -29.0
+    },
+    "half2": {
+     "x": 9.18,
+     "cagr_pct": 238.0,
+     "max_dd_pct": -23.0
+    }
+   }
+  },
+  "placebo_sma200_share_at_or_above_real_pct": 60.0,
+  "basket_m21": {
+   "mean_pct": 7.8,
+   "median_pct": 2.8,
+   "p_ge_10": 38.0,
+   "p_lt_0": 41.0,
+   "p_lt_m10": 18.0,
+   "geo_month_pct": 6.4
+  }
+ },
+ "types_3y": [
+  {
+   "type": "etf_commodity",
+   "funds": 15,
+   "m21_mean_pct": 7.2,
+   "m21_median_pct": 7.0,
+   "p_ge_10": 39.0,
+   "p_lt_0": 20.0,
+   "worst21_pct": -26.0,
+   "max_dd_pct": -30.0,
+   "geo_month_pct": 6.4,
+   "best_single_fund_geo_month_pct": 6.8,
+   "funds_with_geo_month_ge_10": 0
+  },
+  {
+   "type": "etf_equity",
+   "funds": 49,
+   "m21_mean_pct": 4.7,
+   "m21_median_pct": 2.7,
+   "p_ge_10": 29.0,
+   "p_lt_0": 35.0,
+   "worst21_pct": -17.0,
+   "max_dd_pct": -22.0,
+   "geo_month_pct": 4.4,
+   "best_single_fund_geo_month_pct": 6.6,
+   "funds_with_geo_month_ge_10": 0
+  },
+  {
+   "type": "etf_fixed_income",
+   "funds": 69,
+   "m21_mean_pct": 2.2,
+   "m21_median_pct": 2.2,
+   "p_ge_10": 0.0,
+   "p_lt_0": 0.0,
+   "worst21_pct": 1.0,
+   "max_dd_pct": -0.0,
+   "geo_month_pct": 2.2,
+   "best_single_fund_geo_month_pct": 3.0,
+   "funds_with_geo_month_ge_10": 0
+  },
+  {
+   "type": "etf_leveraged",
+   "funds": 7,
+   "m21_mean_pct": 7.9,
+   "m21_median_pct": 1.8,
+   "p_ge_10": 39.0,
+   "p_lt_0": 40.0,
+   "worst21_pct": -30.0,
+   "max_dd_pct": -50.0,
+   "geo_month_pct": 6.3,
+   "best_single_fund_geo_month_pct": 8.9,
+   "funds_with_geo_month_ge_10": 0
+  },
+  {
+   "type": "etf_mixed",
+   "funds": 3,
+   "m21_mean_pct": 3.7,
+   "m21_median_pct": 3.0,
+   "p_ge_10": 10.0,
+   "p_lt_0": 20.0,
+   "worst21_pct": -7.0,
+   "max_dd_pct": -8.0,
+   "geo_month_pct": 3.6,
+   "best_single_fund_geo_month_pct": 4.4,
+   "funds_with_geo_month_ge_10": 0
+  }
+ ],
+ "recent": {
+  "from": "2026-10-20",
+  "to": "2026-11-18",
+  "index_pct": 1.4,
+  "equal_weight_index_pct": 8.2,
+  "funds": {
+   "موج": {
+    "ret_pct": 12.7,
+    "implied_by_beta_pct": 2.8,
+    "implied_by_equal_weight_beta_pct": 16.7
+   },
+   "شتاب": {
+    "ret_pct": 23.4,
+    "implied_by_beta_pct": 2.6,
+    "implied_by_equal_weight_beta_pct": 15.2
+   },
+   "پیشران": {
+    "ret_pct": 34.7,
+    "implied_by_beta_pct": 2.3,
+    "implied_by_equal_weight_beta_pct": 14.2
+   },
+   "اهرم": {
+    "ret_pct": 24.4,
+    "implied_by_beta_pct": 2.7,
+    "implied_by_equal_weight_beta_pct": 15.1
+   },
+   "توان": {
+    "ret_pct": 28.2,
+    "implied_by_beta_pct": 2.7,
+    "implied_by_equal_weight_beta_pct": 14.9
+   },
+   "جهش": {
+    "ret_pct": 30.9,
+    "implied_by_beta_pct": 2.6,
+    "implied_by_equal_weight_beta_pct": 15.5
+   },
+   "نارنج اهرم": {
+    "ret_pct": 19.5,
+    "implied_by_beta_pct": 2.5,
+    "implied_by_equal_weight_beta_pct": 15.4
+   },
+   "دوایکس": {
+    "ret_pct": 16.3,
+    "implied_by_beta_pct": 2.6,
+    "implied_by_equal_weight_beta_pct": 15.7
+   },
+   "بیدار": {
+    "ret_pct": 26.4,
+    "implied_by_beta_pct": 2.6,
+    "implied_by_equal_weight_beta_pct": 16.1
+   }
+  }
+ },
+ "nav_snapshot": [
+  {
+   "fund": "موج",
+   "nav_date": "2026-11-17",
+   "price": 121317,
+   "fund_nav": 63484.0,
+   "price_over_nav": 1.91
+  },
+  {
+   "fund": "شتاب",
+   "nav_date": "2026-11-17",
+   "price": 70758,
+   "fund_nav": 48643.0,
+   "price_over_nav": 1.45
+  },
+  {
+   "fund": "پیشران",
+   "nav_date": "2026-11-17",
+   "price": 44557,
+   "fund_nav": 25892.0,
+   "price_over_nav": 1.72
+  },
+  {
+   "fund": "اهرم",
+   "nav_date": "2026-11-17",
+   "price": 92771,
+   "fund_nav": 68876.0,
+   "price_over_nav": 1.35
+  },
+  {
+   "fund": "توان",
+   "nav_date": "2026-11-07",
+   "price": 75843,
+   "fund_nav": 53610.0,
+   "price_over_nav": 1.41
+  },
+  {
+   "fund": "جهش",
+   "nav_date": "2026-11-17",
+   "price": 63500,
+   "fund_nav": 42213.0,
+   "price_over_nav": 1.5
+  },
+  {
+   "fund": "نارنج اهرم",
+   "nav_date": "2026-11-17",
+   "price": 84315,
+   "fund_nav": 44778.0,
+   "price_over_nav": 1.88
+  },
+  {
+   "fund": "دوایکس",
+   "nav_date": "2026-11-17",
+   "price": 53363,
+   "fund_nav": 33067.0,
+   "price_over_nav": 1.61
+  },
+  {
+   "fund": "بیدار",
+   "nav_date": "2026-11-17",
+   "price": 81302,
+   "fund_nav": 37352.0,
+   "price_over_nav": 2.18
+  }
+ ]
+}
