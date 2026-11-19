@@ -30,6 +30,16 @@ SERIES: dict[str, str] = {
     "brent_usd": "BZ=F",  # ICE Brent crude, USD per barrel
     "gold_usd": "GC=F",  # COMEX gold, USD per troy ounce
     "dxy": "DX-Y.NYB",  # ICE US dollar index
+    # world risk and rates, added 2026-11-20 for study only: no model feature uses them yet
+    "sp500": "^GSPC",  # S&P 500 index
+    "vix": "^VIX",  # Cboe volatility index
+    "us10y": "^TNX",  # US 10-year Treasury yield, percent
+    "us5y": "^FVX",  # US 5-year Treasury yield, percent
+    "us3m": "^IRX",  # US 13-week T-bill yield, percent
+    "wti_usd": "CL=F",  # NYMEX WTI crude, USD per barrel
+    "silver_usd": "SI=F",  # COMEX silver, USD per troy ounce
+    "eem": "EEM",  # iShares emerging-markets ETF, USD
+    "zq_fedfunds": "ZQ=F",  # 30-day Fed funds future, 100 minus the expected rate
 }
 SOURCE = "yahoo"
 

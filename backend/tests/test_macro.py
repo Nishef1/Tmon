@@ -95,7 +95,7 @@ def test_sync_tgju_and_funds(session):
             respx.get(tgju.url(key)).mock(return_value=httpx.Response(200, content=USD))
         respx.post(fipiran.COMPARE_URL).mock(return_value=httpx.Response(200, content=FUNDS))
         t, f = asyncio.run(go())
-    assert t == {"usd_free": 40, "gold_18k": 40, "coin_emami": 40, "coin_bahar": 40}
+    assert t == {"usd_free": 40, "gold_18k": 40, "coin_emami": 40, "coin_bahar": 40, "usdt_irr": 40}
     assert f == {"funds": 6, "linked": 1}
     assert USD in store.objects.values() and FUNDS in store.objects.values()
     row = session.get(MacroSeries, ("usd_free", "tgju", date(2026, 11, 11)))
@@ -155,3 +155,33 @@ def test_yahoo_evening_session_start_belongs_to_the_next_day() -> None:
     doc = {"chart": {"result": [{"meta": {"gmtoffset": -18000}, "timestamp": [sunday_6pm_ny - 86400],
            "indicators": {"quote": [{"close": [3.3]}]}}]}}  # fmt: skip
     assert yahoo.parse_chart(json.dumps(doc).encode())[0].date == date(2010, 1, 4)
+
+
+def test_polymarket_search_keeps_open_liquid_markets():
+    import json
+
+    from tmon.ingest.macro import worldwatch as ww
+
+    def mk(slug, price, vol, closed=False):
+        return {"slug": slug, "question": "q", "closed": closed, "volumeNum": vol,
+                "outcomePrices": json.dumps([str(price), str(1 - price)]), "endDate": "2026-12-31"}  # fmt: skip
+
+    body = json.dumps({"events": [{"markets": [mk("a", 0.62, 5e6), mk("b", 0.1, 10),
+                                                mk("c", 0.5, 5e6, closed=True), {"slug": "d"}]}]})  # fmt: skip
+    rows = ww.parse_search(body.encode())
+    assert [(m.slug, m.prob) for m in rows] == [("a", 0.62)]
+    assert ww.snapshot_row(rows[0], date(2026, 11, 20))["series"] == "pm:a"
+    with pytest.raises(ParseError):
+        ww.parse_search(b"<html>")
+
+
+def test_forexfactory_calendar_rows():
+    from tmon.ingest.macro import worldwatch as ww
+
+    rows = ww.parse_calendar(
+        b'[{"title":"CPI m/m","country":"USD","date":"2026-11-19T08:30:00-05:00",'
+        b'"impact":"High","forecast":"0.3%","previous":"0.2%"}]'
+    )
+    assert rows[0]["country"] == "USD" and rows[0]["forecast"] == "0.3%"
+    with pytest.raises(ParseError):
+        ww.parse_calendar(b"nope")

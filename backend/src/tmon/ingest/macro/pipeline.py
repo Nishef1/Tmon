@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from tmon.core.db import session_scope
 from tmon.core.timeutil import utcnow
 from tmon.ingest.http import PoliteClient
-from tmon.ingest.macro import fipiran, inflation, tgju, yahoo
+from tmon.ingest.macro import fipiran, inflation, tgju, worldwatch, yahoo
 from tmon.storage.models import FundNav, Instrument, MacroSeries
 from tmon.storage.objectstore import ObjectStore, get_object_store, store_raw_payload
 from tmon.storage.repositories import upsert
@@ -95,6 +95,55 @@ async def sync_yahoo(session: Session, client: PoliteClient, store: ObjectStore)
     return out
 
 
+async def sync_worldwatch(
+    session: Session, client: PoliteClient, store: ObjectStore
+) -> dict[str, int]:
+    """Today's Polymarket probabilities and this week's Forex Factory calendar (study only)."""
+    fetched_at = utcnow()
+    day = fetched_at.date()
+    seen: dict[str, worldwatch.Market] = {}
+    for q in worldwatch.QUERIES:
+        url = worldwatch.search_url(q)
+        resp = await client.get(url)
+        store_raw_payload(
+            session,
+            store,
+            source=worldwatch.SOURCE_PM,
+            source_url=url,
+            payload=resp.content,
+            fetched_at=fetched_at,
+            ext="json",
+            content_type="application/json",
+        )
+        for m in worldwatch.parse_search(resp.content):
+            seen[m.slug] = m
+    n_pm = upsert(
+        session,
+        MacroSeries,
+        [
+            {
+                **worldwatch.snapshot_row(m, day),
+                "source_url": worldwatch.SEARCH,
+                "fetched_at": fetched_at,
+            }
+            for m in seen.values()
+        ],
+    )
+    resp = await client.get(worldwatch.FF_WEEK)
+    worldwatch.parse_calendar(resp.content)  # fail loudly on a changed format, keep the raw bytes
+    store_raw_payload(
+        session,
+        store,
+        source=worldwatch.SOURCE_FF,
+        source_url=worldwatch.FF_WEEK,
+        payload=resp.content,
+        fetched_at=fetched_at,
+        ext="json",
+        content_type="application/json",
+    )
+    return {"polymarket": n_pm, "forexfactory_events": len(worldwatch.parse_calendar(resp.content))}
+
+
 async def sync_funds(session: Session, client: PoliteClient, store: ObjectStore) -> dict[str, int]:
     fetched_at = utcnow()
     resp = await client.post(fipiran.COMPARE_URL, json={})
@@ -167,7 +216,12 @@ async def _run() -> dict[str, Any]:
         with session_scope() as session:
             store = get_object_store()
             # each source on its own: one being down must not stop the other
-            for name, fn in (("tgju", sync_tgju), ("yahoo", sync_yahoo), ("funds", sync_funds)):
+            for name, fn in (
+                ("tgju", sync_tgju),
+                ("yahoo", sync_yahoo),
+                ("worldwatch", sync_worldwatch),
+                ("funds", sync_funds),
+            ):
                 try:
                     out[name] = await fn(session, client, store)
                     session.commit()
