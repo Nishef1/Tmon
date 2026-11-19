@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import polars as pl
+import pytest
 
 from tmon.backtest import trend_ride as tr
 
@@ -68,3 +69,17 @@ def test_signal_on_the_last_day_means_buy_at_the_next_close() -> None:
     g = pl.DataFrame({"date": [0, 1], "close": close, "liquid": [True, True]})
     cur = tr.current(g, rs, trail=0.25)
     assert cur is not None and cur["status"] == "buy_next"
+
+
+def test_ranges_are_ratios_of_the_signal_close_and_of_the_stop() -> None:
+    close = np.array([100.0, 100.0, 120.0, 130.0, 125.0])
+    sig = np.array([True, False, True, False, False])
+    rs = tr.rides(close, _flat(5), _flat(5), sig, trail=0.35, max_hold=250)
+    g = pl.DataFrame({"date": list(range(5)), "close": close, "liquid": [True] * 5})
+    cur = tr.current(g, rs, 0.35, (-0.03, 0.05), (0.9, 1.02))
+    assert cur is not None
+    assert cur["buy_low"] == pytest.approx(100.0 * 0.97)
+    assert cur["buy_high"] == pytest.approx(105.0)
+    assert cur["stop"] == pytest.approx(130.0 * 0.65)
+    assert cur["stop_low"] == pytest.approx(cur["stop"] * 0.9)
+    assert cur["stop_high"] == pytest.approx(cur["stop"] * 1.02)

@@ -15,20 +15,30 @@ const GRADE: Record<Ride["grade"], { label: string; cls: string }> = {
 };
 
 const rial = (n: number | null | undefined) => (n == null ? "—" : `${faPrice(n)} ریال`);
+const range = (lo: number | null | undefined, hi: number | null | undefined) =>
+  lo == null || hi == null ? null : `${faPrice(lo)} تا ${faPrice(hi)} ریال`;
 const per100 = (n: number) => faNumber(Math.round(n * 100));
 
 /** What the rule says today, in one or two sentences; the owner reads the sell line as theirs. */
 function Now({ r, owned }: { r: Ride; owned: boolean }) {
-  const gain = r.gain == null ? null : (
-    <b className={signTone(r.gain)}>{signedPct(r.gain, 0)}</b>
-  );
+  const gain = r.gain == null ? null : <b className={signTone(r.gain)}>{signedPct(r.gain, 0)}</b>;
   switch (r.status) {
     case "buy_next":
       return (
         <p>
           نشانهٔ ورود در {jalali(r.signal_date, "short")} با قیمت پایانی {rial(r.signal_close)} آمد.
           طبق قاعده، خرید با قیمت پایانی روز معاملاتی بعد است؛ اگر آن روز صف خرید باشد، تا ۲۰ روز
-          منتظر باز شدن صف می‌ماند. از روز خرید، خط فروش ۲۵٪ زیر بالاترین قیمت پایانی خواهد بود.
+          منتظر باز شدن صف می‌ماند. از روز خرید، خط فروش {faPercent(r.trail, 0)} زیر بالاترین قیمت
+          پایانی خواهد بود.
+          {range(r.buy_low, r.buy_high) && (
+            <>
+              {" "}
+              <b data-testid="ride-buy-range">رنج خرید: {range(r.buy_low, r.buy_high)}</b>؛ در ۸۰٪
+              دوره‌های گذشته خرید در همین بازه نشست. صبر برای ارزان‌تر شدن سود نداشت: سفارش پایین‌تر
+              از قیمت پایانی نشانه در هر دو نیمه بدتر از خرید روز بعد بود، چون سهم‌هایی که بالا
+              می‌روند معمولاً برنمی‌گردند.
+            </>
+          )}
         </p>
       );
     case "open": {
@@ -37,19 +47,23 @@ function Now({ r, owned }: { r: Ride; owned: boolean }) {
         <>
           <p>
             قاعده در {jalali(r.entry_date, "short")} با {rial(r.entry_close)} خرید کرد. بالاترین
-            قیمت پایانی از آن روز {rial(r.peak_close)} در {jalali(r.peak_date, "short")} بوده و
-            سود تا امروز {gain} است (پیش از کارمزد).
+            قیمت پایانی از آن روز {rial(r.peak_close)} در {jalali(r.peak_date, "short")} بوده و سود
+            تا امروز {gain} است (پیش از کارمزد).
           </p>
           <p className="mt-2 text-lg font-bold" data-testid="ride-stop">
             خط فروش: {rial(r.stop)}
           </p>
+          {range(r.stop_low, r.stop_high) && (
+            <p className="text-sm" data-testid="ride-sell-range">
+              رنج فروش: {range(r.stop_low, r.stop_high)}. در ۸۰٪ فروش‌های گذشته، قیمت فروش (پایانی
+              روز بعد از شکستن خط) در همین بازه نشست؛ یعنی از خط فروش حدود ۸٪ پایین‌تر تا ۲٪ بالاتر.
+            </p>
+          )}
           <p className="text-sm">
             {owned
               ? "اگر قیمت پایانی یک روز زیر این خط بیاید، قاعده فروش را با قیمت پایانی روز بعد می‌گوید. با بالا رفتن قیمت، خط هم بالا می‌آید."
               : "برای کسی که این سهم را ندارد: قاعده فقط روز شروع حرکت وارد می‌شود و آن روز گذشته است. صبر تا نشانهٔ بعد."}
-            {room != null && room >= 0 && (
-              <> قیمت امروز {faPercent(room, 0)} بالای خط فروش است.</>
-            )}
+            {room != null && room >= 0 && <> قیمت امروز {faPercent(room, 0)} بالای خط فروش است.</>}
           </p>
         </>
       );
@@ -68,8 +82,8 @@ function Now({ r, owned }: { r: Ride; owned: boolean }) {
       return (
         <p>
           آخرین دوره: خرید در {jalali(r.entry_date, "short")} با {rial(r.entry_close)}، فروش در{" "}
-          {jalali(r.exit_date, "short")} با {rial(r.exit_close)}، یعنی {gain} (پیش از کارمزد). از
-          آن روز {r.days_since_exit != null && `${faNumber(r.days_since_exit)} روز معاملاتی گذشته و `}
+          {jalali(r.exit_date, "short")} با {rial(r.exit_close)}، یعنی {gain} (پیش از کارمزد). از آن
+          روز {r.days_since_exit != null && `${faNumber(r.days_since_exit)} روز معاملاتی گذشته و `}
           نشانهٔ ورود تازه‌ای نیامده است{owned ? "." : "؛ صبر تا نشانهٔ بعد."}
         </p>
       );
@@ -91,7 +105,7 @@ function Past({ h, years }: { h: Block; years: number }): ReactNode {
   );
 }
 
-/** The trend-ride hint: buy near the start of a run, sell when a close falls a quarter below the
+/** The trend-ride hint: buy near the start of a run, sell when a close falls a third below the
  *  highest close since the buy (docs/reports/trend-ride-2026-11.md). */
 export function TrendRideCard({ r, instrumentId }: { r: Ride; instrumentId: number }) {
   const owned = useOwned(instrumentId);
@@ -117,6 +131,12 @@ export function TrendRideCard({ r, instrumentId }: { r: Ride; instrumentId: numb
           میانگین ۲۰۰ روزه، و قیمت حداکثر {faPercent(r.near_high, 0)} زیر بالاترین قیمت ۲۵۰ روز. خط
           فروش {faPercent(r.trail, 0)} زیر بالاترین قیمت پایانی از روز خرید است. همهٔ قیمت‌ها
           تعدیل‌شده‌اند.
+        </p>
+        <p className="mt-1">
+          خط فروش ۳۵٪ (به‌جای ۲۵٪) و دو رنج آمده‌اند: در هر دو بازهٔ زمانی (سه سال اخیر و از ۱۳۹۰) و
+          در هر دو نیمه، خط ۳۵٪ از ۲۵٪ سود بیشتر داد. این سود بیشتر بخشی‌اش «بیشتر در روند ماندن» در
+          بازار صعودی است. رنج‌ها بازهٔ ۸۰٪ از دوره‌های گذشته‌اند، نه تضمین؛ در آزمون بیرون از نمونه
+          ۷۵ تا ۸۵٪ را پوشش دادند.
         </p>
         <p className="mt-1">
           در سه سال اخیر روی ۳۰۰ سهم پرمعامله، این ورود با همین خروج در هر دو نیمهٔ دوره از خرید در

@@ -3973,6 +3973,28 @@
       "DashRide": {
         "description": "The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,\nthe trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted\nto today's share count.",
         "properties": {
+          "buy_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy High"
+          },
+          "buy_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Low"
+          },
           "days_since_exit": {
             "anyOf": [
               {
@@ -4142,6 +4164,28 @@
             ],
             "title": "Stop"
           },
+          "stop_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop High"
+          },
+          "stop_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Low"
+          },
           "trail": {
             "title": "Trail",
             "type": "number"
@@ -4156,6 +4200,10 @@
           "peak_date",
           "peak_close",
           "stop",
+          "buy_low",
+          "buy_high",
+          "stop_low",
+          "stop_high",
           "exit_signal_date",
           "exit_date",
           "exit_close",

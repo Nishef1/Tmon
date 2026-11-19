@@ -241,6 +241,10 @@ class TrendRideCfg(_Frozen):
     max_hold_days: int = Field(ge=1)
     history_years: int = Field(ge=1)  # past rides shown on the page start this many years back
     grade: Literal["proven", "probable", "unproven"]
+    # 80% ranges measured in docs/reports/trend-ranges-2026-11.md: the buy-day close against the
+    # signal-day close, and the sale price against the stop line (both as ratios, low then high)
+    buy_range: tuple[float, float]
+    sell_range: tuple[float, float]
 
 
 class V2Cfg(_Frozen):

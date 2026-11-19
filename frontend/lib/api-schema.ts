@@ -2174,6 +2174,10 @@ export interface components {
      *     to today's share count.
      */
     DashRide: {
+      /** Buy High */
+      buy_high: number | null;
+      /** Buy Low */
+      buy_low: number | null;
       /** Days Since Exit */
       days_since_exit: number | null;
       /** Entry Close */
@@ -2223,6 +2227,10 @@ export interface components {
       status: "buy_next" | "open" | "sell_next" | "closed";
       /** Stop */
       stop: number | null;
+      /** Stop High */
+      stop_high: number | null;
+      /** Stop Low */
+      stop_low: number | null;
       /** Trail */
       trail: number;
     };

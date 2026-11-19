@@ -177,7 +177,13 @@ def history(
     }
 
 
-def current(g: pl.DataFrame, rs: list[Ride], trail: float) -> dict[str, Any] | None:
+def current(
+    g: pl.DataFrame,
+    rs: list[Ride],
+    trail: float,
+    buy_range: tuple[float, float] | None = None,
+    sell_range: tuple[float, float] | None = None,
+) -> dict[str, Any] | None:
     """The symbol's latest ride, as the page needs it; None when it never had one."""
     if not rs:
         return None
@@ -201,6 +207,8 @@ def current(g: pl.DataFrame, rs: list[Ride], trail: float) -> dict[str, Any] | N
         status = "closed"
     peak = px(r.peak)
     end = r.exit if r.exit is not None else last
+    stop = None if peak is None or status == "closed" else peak * (1 - trail)
+    sig_close = px(r.signal)
     return {
         "status": status,
         "signal_date": day(r.signal),
@@ -209,7 +217,17 @@ def current(g: pl.DataFrame, rs: list[Ride], trail: float) -> dict[str, Any] | N
         "entry_close": px(r.entry),
         "peak_date": day(r.peak),
         "peak_close": peak,
-        "stop": None if peak is None or status == "closed" else peak * (1 - trail),
+        "stop": stop,
+        # 80% price ranges: where the buy has landed against the signal close, and where a sale
+        # has landed against the stop line (docs/reports/trend-ranges-2026-11.md)
+        "buy_low": None
+        if buy_range is None or sig_close is None
+        else sig_close * (1 + buy_range[0]),
+        "buy_high": None
+        if buy_range is None or sig_close is None
+        else sig_close * (1 + buy_range[1]),
+        "stop_low": None if sell_range is None or stop is None else stop * sell_range[0],
+        "stop_high": None if sell_range is None or stop is None else stop * sell_range[1],
         "exit_signal_date": day(r.exit_signal),
         "exit_date": day(r.exit),
         "exit_close": px(r.exit),

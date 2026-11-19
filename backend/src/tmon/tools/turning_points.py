@@ -35,7 +35,7 @@ def build_document() -> dict[str, Any]:
     by_symbol = tr.all_rides(panel, rc.near_high, rc.trail, rc.max_hold_days)
     symbols = {str(k): v for k, v in tp.current_states(panel).items()}
     for iid, (g, rs) in by_symbol.items():
-        ride = tr.current(g, rs, rc.trail)
+        ride = tr.current(g, rs, rc.trail, rc.buy_range, rc.sell_range)
         if ride and str(iid) in symbols:
             symbols[str(iid)]["ride"] = ride
     return {

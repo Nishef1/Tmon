@@ -865,6 +865,10 @@ class DashRide(ApiModel):
     peak_date: dt.date | None = None
     peak_close: float | None = None
     stop: float | None = None  # sell when a close falls below this
+    buy_low: float | None = None  # 80% range of the buy price (from the signal close)
+    buy_high: float | None = None
+    stop_low: float | None = None  # 80% range of the sale price around the stop line
+    stop_high: float | None = None
     exit_signal_date: dt.date | None = None
     exit_date: dt.date | None = None
     exit_close: float | None = None
