@@ -25,3 +25,7 @@ and the AGM calculator.
   «کف» and «سقف» circles are hindsight swings (`turning.ride.swings`), a move of the trail's size
   after each. A «روند فروش» in the middle of a rising trend after 250 days is the old cap bug
   (docs/reports/trend-marks-2026-11.md). Check شکام: one open ride bought on 2025-05-24.
+- The trend card trades at the close of the crossing day (`same_day`), not the next close. With no
+  ride open it shows «قیمت نشانهٔ ورود بعدی» (`buy_trigger`), or says tomorrow cannot signal when
+  the trigger is further than the stock's largest one-day rise (`day_rise_max`). A trigger many
+  times today's price shown as reachable is a bug (docs/reports/trend-timing-2026-11.md).

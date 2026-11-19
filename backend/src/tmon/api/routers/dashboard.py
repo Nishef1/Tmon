@@ -944,6 +944,7 @@ def _ride(meta: dict[str, Any] | None, cur: dict[str, Any] | None) -> DashRide |
         near_high=meta["near_high"],
         trail=meta["trail"],
         max_hold_days=meta["max_hold_days"],
+        same_day=meta.get("same_day", False),
         grade=meta["grade"],
         history_years=meta["history_years"],
         history=RideHistory(**h) if h.get("n") else None,

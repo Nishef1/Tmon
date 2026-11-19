@@ -1,0 +1,45 @@
+{
+ "cuts": [
+  {
+   "cut": "2024-06-01",
+   "symbols": 936,
+   "marks": 9866,
+   "symbols_differing": 0,
+   "examples": [],
+   "swings": 8714,
+   "swings_not_in_full": 0,
+   "swings_only_in_full": 224
+  },
+  {
+   "cut": "2025-03-01",
+   "symbols": 985,
+   "marks": 10586,
+   "symbols_differing": 0,
+   "examples": [],
+   "swings": 9323,
+   "swings_not_in_full": 1,
+   "swings_only_in_full": 244
+  },
+  {
+   "cut": "2025-12-01",
+   "symbols": 1022,
+   "marks": 11226,
+   "symbols_differing": 0,
+   "examples": [],
+   "swings": 9984,
+   "swings_not_in_full": 1,
+   "swings_only_in_full": 171
+  },
+  {
+   "cut": "2026-06-01",
+   "symbols": 1045,
+   "marks": 11735,
+   "symbols_differing": 0,
+   "examples": [],
+   "swings": 10266,
+   "swings_not_in_full": 0,
+   "swings_only_in_full": 191
+  }
+ ],
+ "clean": false
+}

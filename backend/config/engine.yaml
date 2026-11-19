@@ -215,8 +215,7 @@ v2:
   trend_ride:
     near_high: 0.05
     trail: 0.35
-    buy_range: [-0.027, 0.048]   # next close vs signal close, 10th to 90th percentile
-    sell_range: [0.915, 1.02]    # sale price vs the stop line, 10th to 90th percentile
+    same_day: true               # buy and sell at the close of the day the line is crossed
     max_hold_days: 250
     history_years: 3
     grade: probable

@@ -892,10 +892,9 @@ class DashRide(ApiModel):
     peak_date: dt.date | None = None
     peak_close: float | None = None
     stop: float | None = None  # sell when a close falls below this
-    buy_low: float | None = None  # 80% range of the buy price (from the signal close)
-    buy_high: float | None = None
-    stop_low: float | None = None  # 80% range of the sale price around the stop line
-    stop_high: float | None = None
+    # with no ride open: the lowest close for the next day that would be an entry signal
+    buy_trigger: float | None = None
+    day_rise_max: float | None = None  # largest close-to-close rise in the last 250 days
     exit_signal_date: dt.date | None = None
     exit_date: dt.date | None = None
     exit_close: float | None = None
@@ -906,6 +905,7 @@ class DashRide(ApiModel):
     near_high: float
     trail: float
     max_hold_days: int  # a ride ends after this many days unless the trend still holds
+    same_day: bool = False  # buy and sell at the close of the day the line is crossed
     grade: Literal["proven", "probable", "unproven"]
     history_years: int
     history: RideHistory | None = None

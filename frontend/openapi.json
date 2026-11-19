@@ -3973,7 +3973,7 @@
       "DashRide": {
         "description": "The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,\nthe trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted\nto today's share count.",
         "properties": {
-          "buy_high": {
+          "buy_trigger": {
             "anyOf": [
               {
                 "type": "number"
@@ -3982,9 +3982,9 @@
                 "type": "null"
               }
             ],
-            "title": "Buy High"
+            "title": "Buy Trigger"
           },
-          "buy_low": {
+          "day_rise_max": {
             "anyOf": [
               {
                 "type": "number"
@@ -3993,7 +3993,7 @@
                 "type": "null"
               }
             ],
-            "title": "Buy Low"
+            "title": "Day Rise Max"
           },
           "days_since_exit": {
             "anyOf": [
@@ -4146,6 +4146,11 @@
             "title": "Rides",
             "type": "array"
           },
+          "same_day": {
+            "default": false,
+            "title": "Same Day",
+            "type": "boolean"
+          },
           "signal_close": {
             "title": "Signal Close",
             "type": "number"
@@ -4176,28 +4181,6 @@
             ],
             "title": "Stop"
           },
-          "stop_high": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stop High"
-          },
-          "stop_low": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stop Low"
-          },
           "swings": {
             "default": [],
             "items": {
@@ -4222,10 +4205,8 @@
           "peak_date",
           "peak_close",
           "stop",
-          "buy_low",
-          "buy_high",
-          "stop_low",
-          "stop_high",
+          "buy_trigger",
+          "day_rise_max",
           "exit_signal_date",
           "exit_date",
           "exit_close",
@@ -4236,6 +4217,7 @@
           "near_high",
           "trail",
           "max_hold_days",
+          "same_day",
           "grade",
           "history_years",
           "history"

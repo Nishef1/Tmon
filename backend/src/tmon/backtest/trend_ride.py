@@ -33,6 +33,12 @@ import polars as pl
 
 G = "instrument_id"
 QUEUE_WAIT = 20  # trading days a buy waits for a buy queue to open, as in the study
+# A flat price (a halted or locked stock) makes the 50-day average equal the close, and prices in
+# whole ticks can land exactly on a line (65% of the peak, 95% of the high); a rounding error of
+# 1e-16 from the price adjustment then decides the side. Every comparison uses this relative
+# margin, so a price on a line keeps the side its inequality names: at 95% of the high is near
+# it, at 65% of the peak is not below it (docs/reports/trend-timing-2026-11.md).
+EPS = 1e-9
 C = pl.col
 
 
@@ -45,11 +51,19 @@ class Ride:
     peak: int | None  # row of the highest close since the buy
 
 
+def trending(close: np.ndarray, sma50: np.ndarray, sma200: np.ndarray) -> np.ndarray:
+    """Close above the 50-day average above the 200-day one, by more than rounding."""
+    k = 1 + EPS
+    with np.errstate(invalid="ignore"):
+        out: np.ndarray = (close > sma50 * k) & (sma50 > sma200 * k)
+    return out
+
+
 def entry_signals(
     close: np.ndarray, sma50: np.ndarray, sma200: np.ndarray, hi250: np.ndarray, near_high: float
 ) -> np.ndarray:
     with np.errstate(invalid="ignore"):
-        on = (close > sma50) & (sma50 > sma200) & (close >= (1 - near_high) * hi250)
+        on = trending(close, sma50, sma200) & (close >= (1 - near_high) * hi250 * (1 - EPS))
     prev = np.concatenate([[True], on[:-1]])
     out: np.ndarray = on & ~prev
     return out
@@ -63,16 +77,19 @@ def rides(
     trail: float,
     max_hold: int,
     trend: np.ndarray | None = None,
+    same_day: bool = False,
 ) -> list[Ride]:
     """Every ride of one symbol, in order. Rows are the symbol's trading days. ``trend`` (one
-    flag per row) renews a ride at ``max_hold`` instead of selling; without it the ride ends."""
+    flag per row) renews a ride at ``max_hold`` instead of selling; without it the ride ends.
+    With ``same_day`` the buy is at the close of the signal day and the sale at the close of the
+    day that broke the line, unless that day is locked; otherwise both are at the next close."""
     n = len(close)
     out: list[Ride] = []
     busy = -1
     for t in map(int, np.flatnonzero(signal)):
         if t <= busy:
             continue
-        e = t + 1
+        e = t if same_day and not locked_up[t] else t + 1
         while e < n and locked_up[e] and e - t <= QUEUE_WAIT:
             e += 1
         if e >= n:
@@ -86,7 +103,7 @@ def rides(
         for j in range(e + 1, n):
             if close[j] > close[pk]:
                 pk = j
-            if close[j] < (1 - trail) * close[pk]:
+            if close[j] < (1 - trail) * close[pk] * (1 - EPS):
                 hit = j
                 break
             if j - start >= max_hold:
@@ -98,7 +115,7 @@ def rides(
         if hit < 0:
             out.append(Ride(t, e, None, None, pk))
             break
-        x = hit + 1
+        x = hit if same_day and not locked_down[hit] else hit + 1
         while x < n and locked_down[x]:
             x += 1
         if x >= n:
@@ -117,8 +134,8 @@ def _symbol_arrays(g: pl.DataFrame) -> dict[str, np.ndarray]:
         "sma50": g["sma50"].to_numpy().astype(float),
         "sma200": g["sma200"].to_numpy().astype(float),
         "hi250": g["hi250"].to_numpy().astype(float),
-        "up": locked & (r > 0),
-        "down": locked & (r < 0),
+        "up": locked & (r > EPS),  # a day with no change is not a queue either way
+        "down": locked & (r < -EPS),
     }
 
 
@@ -134,36 +151,36 @@ def swings(close: np.ndarray, size: float) -> list[tuple[int, str]]:
                 hi = j
             if close[j] < close[lo]:
                 lo = j
-            if close[j] >= (1 + size) * close[lo]:
+            if close[j] >= (1 + size) * close[lo] * (1 + EPS):
                 out.append((lo, "low"))
                 up, hi = True, j
-            elif close[j] <= (1 - size) * close[hi]:
+            elif close[j] <= (1 - size) * close[hi] * (1 - EPS):
                 out.append((hi, "high"))
                 up, lo = False, j
         elif up:
             if close[j] > close[hi]:
                 hi = j
-            elif close[j] <= (1 - size) * close[hi]:
+            elif close[j] <= (1 - size) * close[hi] * (1 - EPS):
                 out.append((hi, "high"))
                 up, lo = False, j
         elif close[j] < close[lo]:
             lo = j
-        elif close[j] >= (1 + size) * close[lo]:
+        elif close[j] >= (1 + size) * close[lo] * (1 + EPS):
             out.append((lo, "low"))
             up, hi = True, j
     return out
 
 
 def all_rides(
-    panel: pl.DataFrame, near_high: float, trail: float, max_hold: int
+    panel: pl.DataFrame, near_high: float, trail: float, max_hold: int, same_day: bool = False
 ) -> dict[int, tuple[pl.DataFrame, list[Ride]]]:
     out = {}
     for (iid,), g in panel.sort(G, "date").group_by([G], maintain_order=True):
         a = _symbol_arrays(g)
         sig = entry_signals(a["close"], a["sma50"], a["sma200"], a["hi250"], near_high)
         with np.errstate(invalid="ignore"):
-            trend = (a["close"] > a["sma50"]) & (a["sma50"] > a["sma200"])
-        rs = rides(a["close"], a["up"], a["down"], sig, trail, max_hold, trend)
+            trend = trending(a["close"], a["sma50"], a["sma200"])
+        rs = rides(a["close"], a["up"], a["down"], sig, trail, max_hold, trend, same_day)
         out[int(iid)] = (g.select("date", "close", "liquid"), rs)
     return out
 
@@ -226,12 +243,37 @@ def history(
     }
 
 
+def buy_trigger(close: np.ndarray, near_high: float) -> float | None:
+    """The lowest close for the next day that would be an entry signal, from the closes so far;
+    None when today is already in the entry state (a signal needs its first day) or the history
+    is under 250 days. The three conditions each hold above one price, because the next close
+    also enters the averages and the 250-day high:
+
+    - over its own 50-day average: x > (sum of the last 49) / 49;
+    - 50-day average over the 200-day one: x > (S199 / 200 - S49 / 50) / (1/50 - 1/200);
+    - near the high: x >= (1 - near_high) * (highest of the last 249).
+    """
+    c = close
+    if len(c) < 250:
+        return None
+    s50, s200 = c[-50:].mean(), c[-200:].mean()
+    on = bool(trending(c[-1:], np.array([s50]), np.array([s200]))[0])
+    if on and c[-1] >= (1 - near_high) * c[-250:].max() * (1 - EPS):
+        return None
+    s49, s199 = c[-49:].sum(), c[-199:].sum()
+    need = max(
+        s49 / 49,
+        (s199 / 200 - s49 / 50) / (1 / 50 - 1 / 200),
+        (1 - near_high) * c[-249:].max(),
+    )
+    return float(need * (1 + 1e-6))
+
+
 def current(
     g: pl.DataFrame,
     rs: list[Ride],
     trail: float,
-    buy_range: tuple[float, float] | None = None,
-    sell_range: tuple[float, float] | None = None,
+    near_high: float | None = None,
 ) -> dict[str, Any] | None:
     """The symbol's latest ride, as the page needs it; None when it never had one."""
     if not rs:
@@ -257,7 +299,6 @@ def current(
     peak = px(r.peak)
     end = r.exit if r.exit is not None else last
     stop = None if peak is None or status == "closed" else peak * (1 - trail)
-    sig_close = px(r.signal)
     past = []
     for q in rs:
         if q.entry is None:
@@ -283,16 +324,12 @@ def current(
         "peak_date": day(r.peak),
         "peak_close": peak,
         "stop": stop,
-        # 80% price ranges: where the buy has landed against the signal close, and where a sale
-        # has landed against the stop line (docs/reports/trend-ranges-2026-11.md)
-        "buy_low": None
-        if buy_range is None or sig_close is None
-        else sig_close * (1 + buy_range[0]),
-        "buy_high": None
-        if buy_range is None or sig_close is None
-        else sig_close * (1 + buy_range[1]),
-        "stop_low": None if sell_range is None or stop is None else stop * sell_range[0],
-        "stop_high": None if sell_range is None or stop is None else stop * sell_range[1],
+        "buy_trigger": None
+        if status != "closed" or near_high is None
+        else buy_trigger(c, near_high),
+        # the largest rise from one close to the next in the last 250 days: a trigger further
+        # than this from today's close will not be reached tomorrow
+        "day_rise_max": float((c[-250:][1:] / c[-250:][:-1]).max() - 1) if len(c) > 1 else None,
         "exit_signal_date": day(r.exit_signal),
         "exit_date": day(r.exit),
         "exit_close": px(r.exit),

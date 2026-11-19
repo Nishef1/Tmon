@@ -32,10 +32,10 @@ def build_document() -> dict[str, Any]:
     as_of: date = panel["date"].max()  # type: ignore[assignment]
     cost = CostModel.from_rules(rules, as_of, cfg.costs.slippage_fraction).round_trip
     rc = cfg.v2.trend_ride
-    by_symbol = tr.all_rides(panel, rc.near_high, rc.trail, rc.max_hold_days)
+    by_symbol = tr.all_rides(panel, rc.near_high, rc.trail, rc.max_hold_days, rc.same_day)
     symbols = {str(k): v for k, v in tp.current_states(panel).items()}
     for iid, (g, rs) in by_symbol.items():
-        ride = tr.current(g, rs, rc.trail, rc.buy_range, rc.sell_range)
+        ride = tr.current(g, rs, rc.trail, rc.near_high)
         if ride and str(iid) in symbols:
             symbols[str(iid)]["ride"] = ride
     return {
@@ -64,6 +64,7 @@ def build_document() -> dict[str, Any]:
             "near_high": rc.near_high,
             "trail": rc.trail,
             "max_hold_days": rc.max_hold_days,
+            "same_day": rc.same_day,
             "grade": rc.grade,
             "history_years": rc.history_years,
             "history": tr.history(
