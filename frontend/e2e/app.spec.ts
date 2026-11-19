@@ -171,13 +171,14 @@ test.describe("instrument page", () => {
   test("the address is industry and symbol, and the old number leads there", async ({ page }) => {
     await page.goto("/instruments/1");
     await expect(page).toHaveURL(
-      /\/instruments\/%D9%81%D9%84%D8%B2%D8%A7%D8%AA-%D8%A7%D8%B3%D8%A7%D8%B3%DB%8C\/%D9%81%D9%88%D9%84%D8%A7%D8%AF$/,
+      /\/instruments\/%D9%81%D9%84%D8%B2%D8%A7%D8%AA-%D8%A7%D8%B3%D8%A7%D8%B3%DB%8C\/symbol\/%D9%81%D9%88%D9%84%D8%A7%D8%AF$/,
     );
     await expect(page.getByTestId("chart-section")).toBeVisible();
     // a typed Arabic yeh or kaf still finds the page and is sent to the one address
     await page.goto(
       `/instruments/${encodeURIComponent("فلزات-اساسي")}/${encodeURIComponent("فولاد")}`,
     );
+    await expect(page).toHaveURL(/\/symbol\/%D9%81%D9%88%D9%84%D8%A7%D8%AF$/);
     await expect(page.getByTestId("chart-section")).toBeVisible();
     const res = await page.goto(
       `/instruments/${encodeURIComponent("فلزات-اساسی")}/${encodeURIComponent("نامعلوم")}`,
@@ -287,7 +288,9 @@ test("header search finds a symbol by name or industry and opens its page", asyn
   await box.fill("فولاد");
   await expect(hits).toHaveCount(1);
   await box.press("Enter");
-  await expect(page).toHaveURL(new RegExp("/instruments/[^/]+/%D9%81%D9%88%D9%84%D8%A7%D8%AF$"));
+  await expect(page).toHaveURL(
+    new RegExp("/instruments/[^/]+/symbol/%D9%81%D9%88%D9%84%D8%A7%D8%AF$"),
+  );
 });
 
 test("search marks a stopped symbol and can hide stopped symbols", async ({ page }) => {

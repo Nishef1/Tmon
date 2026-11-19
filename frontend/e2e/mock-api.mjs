@@ -650,7 +650,7 @@ function route(url) {
   if (path === "/market/overview") return [200, MARKET];
   if (path === "/instruments/1/slug") return [200, FOULAD_SLUG];
   if (path.startsWith("/instruments/by-slug/")) {
-    const [sector, symbol] = path
+    const [, symbol] = path
       .slice("/instruments/by-slug/".length)
       .split("/")
       .map(decodeURIComponent);
