@@ -102,3 +102,23 @@ def test_capital_decrease_and_dividend_stay_events():
 def test_absurd_factor_is_ignored():
     ev = detect_adjustments(_frame([1000.0, 40.0], [990.0, 30.0]))
     assert ev.is_empty()
+
+
+def test_fixed_income_payout_is_adjusted_only_for_payout_ids():
+    # a monthly-paying fixed-income fund: 10250 -> 10010 with no prev_close reset (TSETMC data)
+    closes = [10200.0, 10250.0, 10010.0, 10020.0]
+    df = _frame(closes, [10190.0, 10200.0, 10250.0, 10010.0])
+    assert detect_adjustments(df).height == 0
+    assert apply_adjustments(df)["adj_close"].to_list() == pytest.approx(closes)
+
+    adj = apply_adjustments(df, payout_ids=[1])["adj_close"].to_list()
+    # the payout is reinvested: the return over the payout day is the fund's real carry
+    assert adj[3] / adj[0] - 1 == pytest.approx(10250 / 10200 * 10020 / 10010 - 1)
+    assert adj[2] == pytest.approx(adj[1])
+
+
+def test_small_fixed_income_dip_is_not_a_payout():
+    df = _frame([10200.0, 10250.0, 10200.0], [10190.0, 10200.0, 10250.0])  # -0.5%
+    assert apply_adjustments(df, payout_ids=[1])["adj_close"].to_list() == pytest.approx(
+        [10200.0, 10250.0, 10200.0]
+    )

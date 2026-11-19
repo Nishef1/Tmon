@@ -34,6 +34,7 @@ from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
 from tmon.core.timeutil import TEHRAN, tehran_today, utcnow
 from tmon.domain.agm import AgmInputs, hold_or_sell, monthly_from_annual
+from tmon.domain.enums import InstrumentType
 from tmon.domain.rules import CostModel, MissingRuleError, RuleBook
 from tmon.features.adjustment import apply_adjustments
 from tmon.features.builder import get_feature_set
@@ -145,7 +146,8 @@ def instrument_detail(
                 **dict.fromkeys(PRICE_FIELDS, pl.Float64),
             },
         )
-        adj = apply_adjustments(raw).tail(days)
+        fixed = inst.instrument_type == InstrumentType.ETF_FIXED_INCOME.value
+        adj = apply_adjustments(raw, payout_ids=[instrument_id] if fixed else ()).tail(days)
         candles = [
             Candle(date=d, open=o, high=h, low=lo, close=c, volume=v)
             for d, o, h, lo, c, v in adj.select(

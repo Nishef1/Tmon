@@ -16,8 +16,9 @@ import polars as pl
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from tmon.domain.enums import InstrumentType
 from tmon.features.adjustment import apply_adjustments
-from tmon.storage.models import PriceAdjustment, PriceDaily
+from tmon.storage.models import Instrument, PriceAdjustment, PriceDaily
 
 # a larger one-day move is a first listing day or a stale reference price after a long halt,
 # not a return anyone earned
@@ -66,7 +67,18 @@ def _fingerprint(session: Session, last: dt.date) -> tuple[object, ...]:
             PriceAdjustment.date <= last
         )
     ).one()
-    return (last, *tuple(bars), *tuple(adj))
+    return (last, *tuple(bars), *tuple(adj), _payout_ids(session))
+
+
+def _payout_ids(session: Session) -> tuple[int, ...]:
+    """Fixed-income funds, whose cash payouts the price adjustment has to be told about."""
+    return tuple(
+        session.scalars(
+            select(Instrument.id)
+            .where(Instrument.instrument_type == InstrumentType.ETF_FIXED_INCOME.value)
+            .order_by(Instrument.id)
+        )
+    )
 
 
 def period_table(session: Session, last: dt.date) -> dict[int, Period]:
@@ -106,7 +118,9 @@ def _compute(session: Session, last: dt.date) -> dict[int, Period]:
             "prev_close": pl.Float64,
         },
     ).filter(pl.col("close") > 0)
-    adj = apply_adjustments(raw).select("instrument_id", "date", "adj_close")
+    adj = apply_adjustments(raw, payout_ids=_payout_ids(session)).select(
+        "instrument_id", "date", "adj_close"
+    )
     out: dict[int, dict[str, float | None]] = {
         i: {} for i in adj["instrument_id"].unique().to_list()
     }
