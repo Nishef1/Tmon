@@ -262,15 +262,30 @@ def latest_signals(
     )
 
 
+def _with_history(frame: pl.DataFrame, adj: pl.DataFrame, last: date) -> pl.DataFrame:
+    """``history_days`` (trading days on record up to ``last``) and ``too_new`` of each row."""
+    days = dict(adj.filter(pl.col("date") <= last).group_by("instrument_id").len().iter_rows())
+    return frame.with_columns(
+        pl.col("instrument_id")
+        .replace_strict(days, default=0, return_dtype=pl.Int64)
+        .alias("history_days")
+    ).with_columns((pl.col("history_days") < MIN_RANK_DAYS).alias("too_new"))
+
+
 def universe_scores(
     feats: pl.DataFrame,
     adj: pl.DataFrame,
     cfg: EngineConfig,
     last: date,
     weights: dict[str, float] | None = None,
+    comparison: tuple[pl.DataFrame, pl.DataFrame] | None = None,
 ) -> list[dict[str, Any]]:
     """The composite score of every instrument traded in the last ``STALE_DAYS`` trading days, not
     only the liquid basket.
+
+    ``comparison`` is ``(features, adjusted prices)`` of funds that never enter the model (fixed
+    income, commodity, leveraged). They are placed inside the model's own reference distributions
+    and never change them, so no stock's score moves; their items carry ``"comparison": True``.
 
     The reference cross-section is the engine's own universe (eligible, not halted, not in a sell
     queue, all four signals known). Every instrument is placed inside that reference distribution
@@ -280,17 +295,7 @@ def universe_scores(
     ``partial``; ``signals_as_of`` is the oldest date any of its signals comes from."""
     cols = list(SIGNALS)
     d = latest_signals(feats, adj, last)
-    days = dict(
-        adj.filter(pl.col("date") <= last)
-        .group_by("instrument_id")
-        .len()
-        .iter_rows()  # (instrument_id, trading days on record)
-    )
-    d = d.with_columns(
-        pl.col("instrument_id")
-        .replace_strict(days, default=0, return_dtype=pl.Int64)
-        .alias("history_days")
-    ).with_columns((pl.col("history_days") < MIN_RANK_DAYS).alias("too_new"))
+    d = _with_history(d, adj, last)
     w = np.full(len(cols), 1.0 / len(cols))
     if weights is not None:
         w = np.array([weights.get(c, 0.0) for c in cols], dtype=float)
@@ -333,30 +338,36 @@ def universe_scores(
     ]
     comp_ref = np.sort(np.array(full, dtype=float))
     pc = cfg.v2.portfolio
-    out: list[dict[str, Any]] = []
-    for r, c in zip(rows, comps, strict=True):
+
+    def item(r: dict[str, Any], c: tuple[float, dict[str, float]] | None) -> dict[str, Any]:
         missing = [k for k in cols if r[k] is None]
         score = float(_mid_rank(comp_ref, np.array([c[0]]))[0]) if c and len(comp_ref) else None
         dates = [r[f"{k}__at"] for k in cols if r[f"{k}__at"] is not None]
-        out.append(
-            {
-                "id": r["instrument_id"],
-                "eligible": bool(r["eligible"]),
-                "halted": bool(r["market_halt"]),
-                "queue_state": r["queue_state"],
-                "median_value": _f(r["median_value_20"]),
-                "missing": missing,
-                "partial": bool(missing) and score is not None,
-                "too_new": bool(r["too_new"]),
-                "history_days": int(r["history_days"]),
-                "seen": str(r["seen"]),
-                "signals_as_of": str(min(dates)) if dates else None,
-                "score": score,
-                "zone": _zone(score, pc.buy_top_frac, pc.hold_top_frac)
-                if score is not None
-                else None,
-                "signals": c[1] if c else {},
-            }
+        return {
+            "id": r["instrument_id"],
+            "eligible": bool(r["eligible"]),
+            "halted": bool(r["market_halt"]),
+            "queue_state": r["queue_state"],
+            "median_value": _f(r["median_value_20"]),
+            "missing": missing,
+            "partial": bool(missing) and score is not None,
+            "too_new": bool(r["too_new"]),
+            "history_days": int(r["history_days"]),
+            "seen": str(r["seen"]),
+            "signals_as_of": str(min(dates)) if dates else None,
+            "score": score,
+            "zone": _zone(score, pc.buy_top_frac, pc.hold_top_frac) if score is not None else None,
+            "signals": c[1] if c else {},
+        }
+
+    out: list[dict[str, Any]] = [item(r, c) for r, c in zip(rows, comps, strict=True)]
+    if comparison is not None:
+        extra = _with_history(
+            latest_signals(comparison[0], comparison[1], last), comparison[1], last
+        )
+        out.extend(
+            {**item(r, None if r["too_new"] else composite(r)), "comparison": True}
+            for r in extra.iter_rows(named=True)
         )
     return out
 
@@ -385,6 +396,7 @@ def build_document() -> dict[str, Any]:
     cfg = get_engine_config()
     with session_scope() as s:
         prices, clients, sectors = load_inputs(s)
+        fprices, fclients, fsectors = load_inputs(s, comparison_funds=True)
         rules = RuleBook.from_session(s)
         index_daily, rf = load_benchmark_inputs(s)
         names = {i.id: i for i in s.scalars(select(Instrument))}
@@ -402,9 +414,17 @@ def build_document() -> dict[str, Any]:
         panel = build_panel(feats, adj, cfg, horizons=panel_h, weights=weights)
 
     as_of = day
-    universe = universe_scores(feats, adj, cfg, as_of, weights)
+    comparison = None
+    if not fprices.is_empty():
+        comparison = (
+            build_features(fprices, fclients, rules, sectors=fsectors),
+            adjusted_close(fprices),
+        )
+    scored = universe_scores(feats, adj, cfg, as_of, weights, comparison)
+    universe = [u for u in scored if not u.get("comparison")]
+    fund_universe = [u for u in scored if u.get("comparison")]
     rows = rows_for(universe, names)
-    assign_bands(rows, universe, cfg)
+    assign_bands(rows, universe + fund_universe, cfg)
     liquidity = feats.select("instrument_id", "date", "median_value_20")
     evidence = []
     for h in HORIZONS:
@@ -490,6 +510,9 @@ def build_document() -> dict[str, Any]:
         "exposure_date": str(exp["date"]),
         "rows": rows,
         "universe": universe,
+        # funds the model does not take in (fixed income, commodity, leveraged), placed inside
+        # the same reference; kept apart so no list of stocks can pick them up
+        "fund_universe": fund_universe,
         "weights": weights or {s: 1 / len(SIGNALS) for s in SIGNALS},
         "weights_champion": champion,
         "weights_note": note,

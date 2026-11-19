@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from tmon.api.fund_notes import fund_notes
 from tmon.api.main import create_app
 from tmon.api.routers import dashboard as dash
 from tmon.core.db import get_session
@@ -98,7 +99,7 @@ def test_buy_queue_keeps_its_verdict_and_sell_queue_gets_none() -> None:
 
 
 def test_non_stock_and_missing_ranking() -> None:
-    assert "صندوق" in dash.decide(_inst("ف", "etf_equity"), _doc(), None).headline
+    assert dash.decide(_inst("ف", "etf_equity"), _doc(), None).verdict == "none"
     assert "اختیار" in dash.decide(_inst("ف", "option_call"), _doc(), None).headline
     assert dash.decide(_inst("الف"), None, None).verdict == "none"
 
@@ -348,15 +349,68 @@ def test_by_horizon_lists_the_zone_at_every_measured_period() -> None:
     assert dash._by_horizon(doc, "middle") == []
 
 
-def test_fund_gets_an_honest_none_and_waits_when_the_market_is_off() -> None:
-    eq = dash.decide(_inst("ف", "etf_equity"), _doc(), None)
-    assert eq.verdict == "none" and "مدل خرید و فروش نداریم" in eq.headline
-    assert not eq.market_warning and not any("صبر" in r for r in eq.reasons)
-    off = _doc()
+def _fund_doc(**kw: Any) -> dict[str, Any]:
+    doc = _doc(**kw)
+    sig = {"ind_buy_power": 0.9, "rv_20": 0.5, "dist_high_52w": 0.7, "mom_12_1": 0.1}
+    doc["fund_universe"] = [
+        {"id": 1, "score": 0.7, "zone": "hold", "band": "candidate", "basket_pct": 0.7,
+         "signals": sig, "comparison": True, "median_value": 3e11, "queue_state": "none"}
+    ]  # fmt: skip
+    return doc
+
+
+def test_fund_is_scored_like_a_stock_and_labelled_with_its_test() -> None:
+    # even a document that calls the zone proven must not make a fund "buy"
+    d = dash.decide(_inst("ف", "etf_equity"), _fund_doc(cand="proven"), None)
+    assert d.verdict == "candidate" and d.code == "candidate" and d.grade == "unproven"
+    assert d.gauge == 70 and not d.advice_allowed
+    assert "رتبه‌بندی مدل، توصیه نیست" in d.headline
+    assert d.horizons and d.horizons[0].reasons == [] and any("صندوق" in r for r in d.reasons)
+    assert d.horizons[0].net_excess is None and d.by_horizon == []
+    assert d.holding is not None and d.holding.expected_excess is None
+
+
+def test_fund_waits_when_the_stock_market_is_off_but_fixed_income_does_not() -> None:
+    off = _fund_doc()
     off["exposure"] = {"exposure": 0.0}
-    waiting = dash.decide(_inst("ف", "etf_equity"), off, None)
-    assert waiting.market_warning and "صبر" in waiting.reasons[0]
-    fixed = dash.decide(_inst("ف", "etf_fixed_income"), _doc(), None)
-    assert "درآمد ثابت" in fixed.headline and fixed.verdict == "none"
-    lev = dash.decide(_inst("ف", "etf_leveraged"), _doc(), None)
-    assert any("۱٫۸" in r for r in lev.reasons)
+    eq = dash.decide(_inst("ف", "etf_equity"), off, None)
+    assert eq.code == "wait_market" and eq.market_warning and "صبر" in eq.label
+    fixed = dash.decide(_inst("ف", "etf_fixed_income"), off, None)
+    assert fixed.code == "candidate" and not fixed.market_warning
+
+
+def test_fund_without_a_score_says_why() -> None:
+    doc = _fund_doc()
+    doc["fund_universe"][0].update(score=None, zone=None, band=None, too_new=True, history_days=90)
+    d = dash.decide(_inst("ف", "etf_leveraged"), doc, None)
+    assert d.verdict == "none" and "فقط 90 روز" in d.headline
+
+
+def test_every_fund_type_has_a_measured_note_and_stocks_have_none() -> None:
+    for kind in ("etf_equity", "etf_mixed", "etf_commodity", "etf_leveraged", "etf_fixed_income"):
+        n = fund_notes(kind)
+        assert n is not None and "رتبه‌بندی مدل، توصیه نیست" in n.verdict_line
+        assert "آزموده" in n.score and "آزمودیم" in n.ride and "آزموده نشده" in n.checks
+    lev = fund_notes("etf_leveraged")
+    assert lev is not None and "نمونه کوچک" in lev.score  # 9 funds: say it is small
+    assert fund_notes("stock") is None
+
+
+def test_fund_ride_has_no_stock_history_and_is_unproven(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(dash, "_stored_doc", lambda key: None)
+    doc = {
+        "as_of": "2026-11-10",
+        "trend_ride": {
+            "near_high": 0.05, "trail": 0.2, "max_hold_days": 60, "grade": "probable",
+            "history_years": 3, "history": {"n": 5},
+        },
+        "fund_rides": {
+            "1": {
+                "rides": [], "swings": [], "status": "buy_next", "signal_date": "2026-11-10",
+                "signal_close": 10.0, "last_date": "2026-11-10", "last_close": 10.0,
+            }
+        },
+    }  # fmt: skip
+    r = dash.fund_ride_out(doc, _inst("ف", "etf_leveraged"))
+    assert r is not None and r.grade == "unproven" and r.history is None
+    assert dash.fund_ride_out(doc, Instrument(id=2, ins_code="c2", symbol_fa="x")) is None

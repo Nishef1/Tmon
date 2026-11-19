@@ -159,6 +159,15 @@ function Decision({
         </ul>
       )}
 
+      {dash.fund_test && (
+        <div className="mt-3 rounded-lg bg-warn-soft p-3 text-sm" data-testid="fund-test">
+          <p className="font-semibold">
+            صندوق {dash.fund_test.group_fa}: {dash.fund_test.verdict_line}
+          </p>
+          <p className="mt-1 text-muted">{faDigits(dash.fund_test.score)}</p>
+        </div>
+      )}
+
       {!d.advice_allowed && (
         <p className="mt-3 text-xs text-muted" data-testid="not-advice">
           ⚠ این یک رتبه‌بندی آماری است، نه توصیهٔ سرمایه‌گذاری؛ آزمون‌های اعتبار مدل هنوز کامل
@@ -171,6 +180,11 @@ function Decision({
           چرا؟ چک‌لیست تصمیم
         </summary>
         <div className="mt-3">
+          {dash.fund_test && (
+            <p className="mb-2 text-sm text-muted" data-testid="fund-checks-note">
+              {faDigits(dash.fund_test.checks)}
+            </p>
+          )}
           <Checks d={dash} h={h} />
         </div>
       </details>

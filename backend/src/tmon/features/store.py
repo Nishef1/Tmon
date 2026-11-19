@@ -88,10 +88,14 @@ def _frame(session: Session, stmt: Any, schema: dict[str, Any]) -> pl.DataFrame:
 
 
 def load_inputs(
-    session: Session, *, classifier: Classifier | None = None
+    session: Session, *, classifier: Classifier | None = None, comparison_funds: bool = False
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """``(prices, client_types, sectors)`` for RECOMMENDABLE instruments (ADR 0002 section 1),
-    as float Polars frames. Funds kept only for comparison never reach the model."""
+    as float Polars frames. Funds kept only for comparison never reach the model.
+
+    With ``comparison_funds`` it returns exactly those funds instead (fixed income, commodity,
+    leveraged): the stock page shows them next to the model without changing a single stock's
+    score, because they are never part of the model's cross-section."""
     clf = classifier or get_classifier()
     inst = session.execute(
         select(
@@ -102,11 +106,21 @@ def load_inputs(
             Instrument.tags,
         )
     ).all()
+
+    def model(r: Any) -> bool:
+        return clf.is_recommendable(
+            r.instrument_type, board=r.board, group_title=(r.tags or {}).get("group_title")
+        )
+
     tradable = [
         r
         for r in inst
-        if clf.is_recommendable(
-            r.instrument_type, board=r.board, group_title=(r.tags or {}).get("group_title")
+        if (
+            clf.is_tradable(r.instrument_type)
+            and r.instrument_type.startswith("etf_")
+            and not model(r)
+            if comparison_funds
+            else model(r)
         )
     ]
     ids = [r.id for r in tradable]

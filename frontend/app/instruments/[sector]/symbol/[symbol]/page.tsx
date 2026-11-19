@@ -126,7 +126,7 @@ export default async function InstrumentPage({
       )
     : null;
   const entry = dash.ok ? dash.data.entry : null;
-  const ride = dash.ok ? (dash.data.turning?.ride ?? null) : null;
+  const ride = dash.ok ? (dash.data.turning?.ride ?? dash.data.ride_only ?? null) : null;
   const arrows = entry ? entryMarks(entry) : [];
   const marks = [...arrows, ...(ride ? rideMarks(ride, d.candles[0]?.date) : [])];
 
@@ -232,7 +232,7 @@ export default async function InstrumentPage({
 
       {ride && (
         <div id="ride" className="scroll-mt-28">
-          <TrendRideCard r={ride} instrumentId={d.instrument.id} />
+          <TrendRideCard r={ride} instrumentId={d.instrument.id} fundNote={dd?.fund_test?.ride} />
         </div>
       )}
 
@@ -244,6 +244,7 @@ export default async function InstrumentPage({
           period={period}
           href={periodHref}
           id={d.instrument.id}
+          fundNote={dd.fund_test?.ranges}
         />
       )}
 

@@ -54,7 +54,10 @@ and the AGM calculator.
   three-month verdict; a short period claiming its own buy is a bug
   (docs/reports/verdict-parts-2026-11.md). Check شکام (quarter, calibrated) and کوثر (week, trend
   entry inside the range). A period with too few separate windows says «بازه آزموده نیست».
-- A tradable fund (type `etf_*`, e.g. پیشران id 1419) must never show a verdict or score. The
-  «چه کنم؟» card says «برای صندوق‌ها مدل خرید و فروش نداریم» and `none-reasons` lists why, the
-  fund's role, and «صبر» first when the market is off (`fund_decision` in `api/routers/dashboard.py`,
-  docs/reports/fund-verdict-2026-11.md). A «بخر» or «بفروش» on a fund is a bug.
+- A tradable fund (type `etf_*`, e.g. پیشران id 1419, a leveraged fund) has every section of a stock
+  page: gauge and month verdict (`final_verdict`, grade always «ثابت‌نشده», never «بخر»), trend ride
+  (`ride_only`, `fund_rides` in turning.json), ranges and the checklist. Each carries its fund test
+  line (`fund-test`, `fund-ride-note`, `fund-ranges-note`, `fund-checks-note`, from `api/fund_notes.py`
+  and docs/reports/fund-verdict-2026-11.md). Missing test lines, a «بخر»/«بفروش» on a fund, or the
+  stock study's numbers on the fund's ride card are bugs. A fund in a sell queue or with under a year
+  of history still says «امروز تصمیمی نیست» with the reason; an unheld fund waits with «صبر».

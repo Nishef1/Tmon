@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.entry import entry_doc, entry_out
+from tmon.api.fund_notes import fund_notes
 from tmon.api.returns import day_change
 from tmon.api.schemas import (
     DashDecision,
@@ -22,6 +23,7 @@ from tmon.api.schemas import (
     DashFlow,
     DashFund,
     DashFundamental,
+    DashFundTest,
     DashHolding,
     DashHorizon,
     DashMeeting,
@@ -53,7 +55,6 @@ from tmon.engine.verdict import (
     GRADE_FA,
     Verdict,
     final_verdict,
-    market_off,
     state_meta,
     verdict_config,
     verdict_fields,
@@ -499,51 +500,28 @@ def _zone_from(top_frac: object) -> float | None:
     )
 
 
-FUND_TEST = (
-    "آزمودیم که امتیاز چهارسیگنالهٔ سهم، صندوق‌های سهامی و مختلط را رتبه می‌دهد یا نه: همبستگی "
-    "رتبه‌ای با بازده ۵ و ۲۰ روز بعد حدود صفر بود و در دو نیمهٔ زمان یک‌جور نماند "
-    "(گزارش «مدل خرید و فروش برای صندوق‌ها»، ۲۸ آبان ۱۴۰۵). "
-    "برای صندوق اهرمی و کالایی آزمون جداگانه نداریم."
-)
-
-
-def fund_decision(instrument_type: str, doc: dict[str, Any] | None) -> DashDecision:
-    """What the page says about a tradable fund. There is no buy or sell model for funds: the
-    stock model was tested on them and does not order them (docs/reports/fund-verdict-2026-11.md),
-    so the answer is the fund's role, today's market state and what was measured, never a score."""
-    off = doc is not None and market_off(doc)
+def _fund_doc(doc: dict[str, Any], instrument_type: str) -> dict[str, Any]:
+    """The ranking document as a fund is judged by it. The stock rule is applied to the fund as it
+    is, but no zone is "proven" for funds (the test is in docs/reports/fund-verdict-2026-11.md), and
+    a fixed-income fund is not told to wait because the market's stock exposure is zero."""
+    vc = {**verdict_config(doc), "candidate_grade": "unproven", "avoid_grade": "unproven"}
+    out = {**doc, "verdict": vc}
     if instrument_type == "etf_fixed_income":
-        return _none(
-            "صندوق درآمد ثابت: جای نگه‌داشتن پول است و خرید و فروش ندارد.",
-            [
-                "بازده‌اش را با تورم بسنجید، نه با سهم: بازده واقعی (پس از تورم) در صفحهٔ "
-                "«مقایسه» است.",
-                "هر چیز پرریسک‌تر باید در بلندمدت از این جلو بیفتد وگرنه ریسکش بی‌پاداش بوده است.",
-            ],
-            market_warning=off,
-        )
-    reasons = [FUND_TEST, "پس برای صندوق امتیاز و «بخر/بفروش» نمی‌دهیم؛ ساختنش بدون آزمون، حدس است."]
-    if instrument_type == "etf_leveraged":
-        reasons.append(
-            "صندوق اهرمی بازار را حدود ۱٫۸ برابر می‌کند؛ هم بالا و هم پایین. افتی تا نیمی "
-            "از ارزش را هم دیده است. تحلیل هر صندوق اهرمی در صفحهٔ «مقایسه» (بخش صندوق‌های "
-            "اهرمی) است."
-        )
-    else:
-        reasons.append(
-            "صندوق سهامی با سهم‌هایش حرکت می‌کند؛ پس همان حال بازار را دارد. «قیمت ÷ NAV» و "
-            "بازده در برابر تورم در صفحهٔ «مقایسه» است."
-        )
-    if off:
-        reasons.insert(
-            0,
-            "امروز بازار می‌گوید سهام نخرید (سهم سرمایه در سهام صفر است)؛ صندوق سهامی هم "
-            "همراه بازار است. اگر ندارید صبر کنید.",
-        )
-    return _none(
-        "برای صندوق‌ها مدل خرید و فروش نداریم؛ مدل سهم روی صندوق‌ها جواب نداد.",
-        reasons,
-        market_warning=off,
+        out["exposure"] = {}
+    return out
+
+
+def _fund_holding(doc: dict[str, Any]) -> DashHolding:
+    h = int(verdict_config(doc)["horizon_days"])
+    return DashHolding(
+        horizon_days=h,
+        expected_excess=None,
+        lines=[
+            f"امتیاز برای نگه‌داشتن حدود {h} روز کاری سنجیده شده، نه خرید و فروش روزانه.",
+            "زمان فروش: صندوق را به یک پرتفوی اضافه کنید تا هشدار خروج بگیرید؛ فروش ساده از "
+            "روی این صفحه گفته نمی‌شود.",
+            "این‌ها آمار گذشته‌اند و برای صندوق‌ها توصیهٔ مطمئن نیستند.",
+        ],
     )
 
 
@@ -558,9 +536,8 @@ def decide(
     Every stock that has the four signals gets a score and a gauge. Inside the validated liquid
     basket the verdict is the model's; outside it the same formula is applied but the verdict is
     marked unvalidated and never counts as advice."""
-    if inst.instrument_type.startswith("etf_"):
-        return fund_decision(inst.instrument_type, doc)
-    if inst.instrument_type != "stock":
+    fund = inst.instrument_type.startswith("etf_")
+    if inst.instrument_type != "stock" and not fund:
         kind = _kind(inst.instrument_type)
         return _none(
             f"این نماد {kind} است و مدل خرید/فروش فقط برای سهام ساخته شده است.",
@@ -568,13 +545,17 @@ def decide(
         )
     if doc is None:
         return _none("رتبه‌بندی مدل هنوز محاسبه نشده است.")
-    allowed = bool(doc.get("recommendation_allowed"))
+    notes = fund_notes(inst.instrument_type) if fund else None
+    if fund:
+        doc, turn_doc = _fund_doc(doc, inst.instrument_type), None  # no stock state for a fund
+    allowed = bool(doc.get("recommendation_allowed")) and not fund
     rows = doc.get("rows", [])
     size = int(doc.get("basket_size") or len(rows))
     as_of = doc.get("as_of")
     row = next((r for r in rows if r["symbol"] == inst.symbol_fa), None)
-    uni = next((u for u in doc.get("universe", []) if u["id"] == inst.id), None)
-    scored = [u for u in doc.get("universe", []) if u.get("score") is not None]
+    everyone = [*doc.get("universe", []), *doc.get("fund_universe", [])]
+    uni = next((u for u in everyone if u["id"] == inst.id), None)
+    scored = [u for u in everyone if u.get("score") is not None]
     if row is None and uni is None and "universe" in doc:
         return _none(
             f"امتیازی برای این نماد محاسبه نشد: در آخرین روز ثبت‌شده ({as_of}) معامله نشده است.",
@@ -716,9 +697,21 @@ def decide(
         )
     card = _verdict_card(doc, v, src.get("signals") or {})
     head = v.headline
+    holder_head = v.holder_headline
     if not in_basket:
         head += " (با احتیاط: این سهم کم‌معامله است و مدل روی آن آزموده نشده)"
     advice = allowed and in_basket
+    if notes is not None:
+        # the stock rule applied to the fund, with what testing it on funds showed
+        where_fa = {"candidate": "نیمهٔ بالا", "middle": "میانه", "avoid": "ناحیهٔ پایین"}[v.band]
+        head = f"امتیازش در «{where_fa}» است. {notes.verdict_line}"
+        holder_head = f"اگر دارید، هشدارهای پرتفوی را دنبال کنید. {notes.verdict_line}"
+        reasons.append(notes.score)
+        if card is not None:
+            card = card.model_copy(
+                update={"reasons": [], "top_excess": None, "net_excess": None}
+                | {"ic": None, "ic_t": None}
+            )
     return DashDecision(
         verdict=v.key,
         label=v.label,
@@ -726,7 +719,7 @@ def decide(
         holder_code=v.holder_code,
         holder_verdict=v.holder_key,
         holder_label=v.holder_label,
-        holder_headline=v.holder_headline,
+        holder_headline=holder_head,
         band=v.band,
         grade=v.grade,
         grade_label=None if v.grade is None else GRADE_FA[v.grade],
@@ -737,9 +730,9 @@ def decide(
         reasons=reasons,
         summary=SUMMARY[v.code],
         signals=_signals(src.get("signals") or {}),
-        holding=_holding(v, doc, advice),
+        holding=_fund_holding(doc) if fund else _holding(v, doc, advice),
         horizons=[] if card is None else [card],
-        by_horizon=_by_horizon(doc, v.band),
+        by_horizon=[] if fund else _by_horizon(doc, v.band),
         **base,
     )
 
@@ -813,6 +806,16 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
     if inst.instrument_type == "stock":
         fa = fundamental_out(inst, close, sector.name if sector else None)
     state, last_trade, idle_days = trade_state(session, instrument_id, market_days(session))
+    fund_note = fund_notes(inst.instrument_type)
+    turning = turning_out(turn_doc, inst.id)
+    ride_only = None
+    if fund_note is not None:
+        # a fund's ride is shown on its own prices with its own test, never with the stocks' record
+        if turning is not None and turning.ride is not None:
+            ride_only = turning.ride.model_copy(update={"grade": "unproven", "history": None})
+            turning = turning.model_copy(update={"ride": None})
+        else:
+            ride_only = fund_ride_out(turn_doc, inst)
     return InstrumentDashboard(
         instrument=instrument_out(inst),
         trade_state=state,
@@ -841,7 +844,19 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
             for c in changes
         ],
         decision=decide(inst, rank_doc, statistics.median(vals) if vals else None, turn_doc),
-        turning=turning_out(turn_doc, inst.id),
+        turning=turning,
+        ride_only=ride_only,
+        fund_test=None
+        if fund_note is None
+        else DashFundTest(
+            group=fund_note.group,
+            group_fa=fund_note.group_fa,
+            verdict_line=fund_note.verdict_line,
+            score=fund_note.score,
+            ride=fund_note.ride,
+            ranges=fund_note.ranges,
+            checks=fund_note.checks,
+        ),
         peers=peers_out(session, inst, sector.name if sector else None, rank_doc, turn_doc),
         drivers=drivers_out(drv_doc, inst.id) if inst.instrument_type == "stock" else None,
         technical=technical_out(ta_doc(), inst.id, _beta(drv_doc, inst.id)),
@@ -1031,6 +1046,17 @@ def _ride(
         history_years=meta["history_years"],
         history=RideHistory(**h) if h.get("n") else None,
     )
+
+
+def fund_ride_out(doc: dict[str, Any] | None, inst: Instrument) -> DashRide | None:
+    """The trend ride of a fund the model does not take in: the same rule on the fund's own
+    prices, graded "unproven" with no stock history (the funds' own test is on the page)."""
+    cur = ((doc or {}).get("fund_rides") or {}).get(str(inst.id))
+    if not doc or not doc.get("trend_ride") or not cur:
+        return None
+    meta = {**doc["trend_ride"], "as_of": doc.get("as_of"), "grade": "unproven"}
+    meta["history"] = {}
+    return _ride(meta, cur, _stored_doc(lines_key(inst.id)))
 
 
 def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning | None:

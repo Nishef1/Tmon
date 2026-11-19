@@ -2019,6 +2019,30 @@ export interface components {
       /** Nav Date */
       nav_date: string;
     };
+    /**
+     * DashFundTest
+     * @description What testing each part of the stock page on funds showed, one sentence per section, so a
+     *     part that failed is shown with its result (docs/reports/fund-verdict-2026-11.md).
+     */
+    DashFundTest: {
+      /** Checks */
+      checks: string;
+      /**
+       * Group
+       * @enum {string}
+       */
+      group: "equity_mixed" | "leveraged" | "commodity" | "fixed_income";
+      /** Group Fa */
+      group_fa: string;
+      /** Ranges */
+      ranges: string;
+      /** Ride */
+      ride: string;
+      /** Score */
+      score: string;
+      /** Verdict Line */
+      verdict_line: string;
+    };
     /** DashFundamental */
     DashFundamental: {
       /** Eps */
@@ -3246,6 +3270,7 @@ export interface components {
       events: components["schemas"]["DashEvent"][];
       flow: components["schemas"]["DashFlow"] | null;
       fund: components["schemas"]["DashFund"] | null;
+      fund_test: components["schemas"]["DashFundTest"] | null;
       fundamental: components["schemas"]["DashFundamental"] | null;
       /**
        * Idle Days
@@ -3263,6 +3288,7 @@ export interface components {
       peers: components["schemas"]["DashPeers"] | null;
       price: components["schemas"]["DashPrice"] | null;
       ranges: components["schemas"]["DashRanges"] | null;
+      ride_only: components["schemas"]["DashRide"] | null;
       /** Sector Name */
       sector_name: string | null;
       /**

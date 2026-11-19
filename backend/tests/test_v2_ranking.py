@@ -153,6 +153,56 @@ def test_universe_scores_match_the_engine_for_members_and_extend_to_the_rest() -
     assert got[39]["score"] is not None and got[39]["signals_as_of"] == str(last)
 
 
+def test_comparison_funds_are_scored_in_the_stocks_reference_and_move_no_stock() -> None:
+    """Funds outside the model (leveraged, commodity, fixed income) get a score placed inside the
+    stocks' own distributions; adding them never changes a stock's score."""
+    import datetime as dt
+
+    import numpy as np
+    import polars as pl
+
+    from tmon.core.engine_config import get_engine_config
+    from tmon.tools.v2_ranking import universe_scores
+
+    cfg = get_engine_config()
+    rng = np.random.default_rng(11)
+    days = [dt.date(2025, 1, 1) + dt.timedelta(days=i) for i in range(300)]
+
+    def panel(ids: range) -> tuple[pl.DataFrame, pl.DataFrame]:
+        adj_rows, feat_rows = [], []
+        for i in ids:
+            px = 1000 * np.exp(np.cumsum(rng.normal(0.0005, 0.02, len(days))))
+            for d, p in zip(days, px, strict=True):
+                adj_rows.append({"instrument_id": i, "date": d, "adj_close": float(p)})
+                feat_rows.append(
+                    {
+                        "instrument_id": i,
+                        "date": d,
+                        "eligible": True,
+                        "market_halt": False,
+                        "queue_state": "none",
+                        "median_value_20": 1e11,
+                        "ind_buy_power": float(rng.uniform(0.2, 3)),
+                        "rv_20": float(rng.uniform(0.1, 0.8)),
+                        "dist_high_52w": float(rng.uniform(0.5, 1.0)),
+                    }
+                )
+        return pl.DataFrame(feat_rows), pl.DataFrame(adj_rows)
+
+    feats, adj = panel(range(30))
+    cfeats, cadj = panel(range(100, 104))
+    alone = {r["id"]: r for r in universe_scores(feats, adj, cfg, days[-1])}
+    both = {
+        r["id"]: r for r in universe_scores(feats, adj, cfg, days[-1], comparison=(cfeats, cadj))
+    }
+    assert {i: r["score"] for i, r in alone.items()} == {i: both[i]["score"] for i in alone}
+    funds = {i: r for i, r in both.items() if i >= 100}
+    assert set(funds) == {100, 101, 102, 103}
+    assert all(r["comparison"] and r["score"] is not None for r in funds.values())
+    assert all(0 <= r["score"] <= 1 for r in funds.values())
+    assert not any(r.get("comparison") for r in alone.values())
+
+
 def test_a_partly_ingested_last_day_does_not_drop_scores() -> None:
     """The newest day often has prices but not yet client types (ind_buy_power), or no row at all
     for a halted name: each signal's newest known value is carried forward."""

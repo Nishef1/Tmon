@@ -30,10 +30,26 @@ def lines_key(instrument_id: int) -> str:
     return LINES_KEY.format(iid=instrument_id)
 
 
+def fund_rides(prices: Any, clients: Any, rc: Any) -> dict[str, Any]:
+    """``{id: current ride}`` of the comparison funds with a year of history."""
+    panel = tp.build_panel(prices, clients) if not prices.is_empty() else None
+    if panel is None or panel.is_empty():
+        return {}
+    out: dict[str, Any] = {}
+    for iid, (g, rs) in tr.all_rides(
+        panel, rc.near_high, rc.trail, rc.max_hold_days, rc.same_day
+    ).items():
+        ride = tr.current(g, rs, rc.trail, rc.near_high, rc.max_hold_days)
+        if ride:
+            out[str(iid)] = ride
+    return out
+
+
 def build_document() -> dict[str, Any]:
     cfg = get_engine_config()
     with session_scope() as s:
         prices, clients, _ = load_inputs(s)
+        fund_prices, fund_clients, _ = load_inputs(s, comparison_funds=True)
         rules = RuleBook.from_session(s)
     panel = tp.build_panel(prices, clients)
     as_of: date = panel["date"].max()  # type: ignore[assignment]
@@ -49,6 +65,10 @@ def build_document() -> dict[str, Any]:
         "as_of": str(as_of),
         "round_trip_cost": cost,
         "liquid_share": tp.LIQUID_SHARE,
+        # the ride of funds the model does not take in (fixed income, commodity, leveraged): the
+        # rule needs only the fund's own prices, so it is shown with the fund's own test and
+        # without any state, whose history is the stocks' (docs/reports/fund-verdict-2026-11.md)
+        "fund_rides": fund_rides(fund_prices, fund_clients, rc),
         "states": [
             {
                 "key": st.key,
@@ -88,8 +108,10 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document()
-    for iid, v in doc["symbols"].items():
-        ride = v.get("ride")
+    for iid, ride in [
+        *((i, v.get("ride")) for i, v in doc["symbols"].items()),
+        *doc["fund_rides"].items(),
+    ]:
         if ride and "sell_line" in ride:
             lines = {k: ride.pop(k) for k in ("sell_line", "buy_line")}
             write_artifact(lines_key(int(iid)), {"as_of": doc["as_of"], **lines})

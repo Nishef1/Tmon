@@ -3118,6 +3118,56 @@
         "title": "DashFund",
         "type": "object"
       },
+      "DashFundTest": {
+        "description": "What testing each part of the stock page on funds showed, one sentence per section, so a\npart that failed is shown with its result (docs/reports/fund-verdict-2026-11.md).",
+        "properties": {
+          "checks": {
+            "title": "Checks",
+            "type": "string"
+          },
+          "group": {
+            "enum": [
+              "equity_mixed",
+              "leveraged",
+              "commodity",
+              "fixed_income"
+            ],
+            "title": "Group",
+            "type": "string"
+          },
+          "group_fa": {
+            "title": "Group Fa",
+            "type": "string"
+          },
+          "ranges": {
+            "title": "Ranges",
+            "type": "string"
+          },
+          "ride": {
+            "title": "Ride",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "string"
+          },
+          "verdict_line": {
+            "title": "Verdict Line",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "group_fa",
+          "verdict_line",
+          "score",
+          "ride",
+          "ranges",
+          "checks"
+        ],
+        "title": "DashFundTest",
+        "type": "object"
+      },
       "DashFundamental": {
         "properties": {
           "eps": {
@@ -7105,6 +7155,16 @@
               }
             ]
           },
+          "fund_test": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashFundTest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "fundamental": {
             "anyOf": [
               {
@@ -7197,6 +7257,16 @@
               }
             ]
           },
+          "ride_only": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashRide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sector_name": {
             "anyOf": [
               {
@@ -7279,6 +7349,8 @@
           "share_changes",
           "decision",
           "turning",
+          "ride_only",
+          "fund_test",
           "peers",
           "drivers",
           "technical",

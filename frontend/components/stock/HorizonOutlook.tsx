@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { InstrumentDashboard, SymbolForecast } from "@/lib/api";
-import { faNumber, faPrice } from "@/lib/format";
+import { faDigits, faNumber, faPrice } from "@/lib/format";
 import { signedPct } from "@/lib/ui";
 import { HoldWord } from "@/components/stock/HoldWord";
 import type { Ride } from "@/components/stock/rideMarks";
@@ -61,6 +61,7 @@ export function HorizonOutlook({
   period,
   href,
   id,
+  fundNote,
 }: {
   f: SymbolForecast;
   d: D;
@@ -68,6 +69,8 @@ export function HorizonOutlook({
   period: Period;
   href: (key: string) => string;
   id: number;
+  /** for a fund: what testing the ranges on funds showed (shown, never hidden) */
+  fundNote?: string;
 }) {
   const price = f.price ?? 0;
   const low = price * (1 + period.low);
@@ -121,6 +124,12 @@ export function HorizonOutlook({
           </dd>
         </div>
       </dl>
+
+      {fundNote && (
+        <p className="mt-3 rounded-lg bg-warn-soft p-3 text-sm" data-testid="fund-ranges-note">
+          {faDigits(fundNote)}
+        </p>
+      )}
 
       <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm leading-7">
         <li data-testid="outlook-tested">

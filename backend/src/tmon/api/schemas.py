@@ -1319,6 +1319,19 @@ class DashEntry(ApiModel):
     windows: list[OwnWindow] = []  # the same over every window the symbol has data for
 
 
+class DashFundTest(ApiModel):
+    """What testing each part of the stock page on funds showed, one sentence per section, so a
+    part that failed is shown with its result (docs/reports/fund-verdict-2026-11.md)."""
+
+    group: Literal["equity_mixed", "leveraged", "commodity", "fixed_income"]
+    group_fa: str
+    verdict_line: str
+    score: str
+    ride: str
+    ranges: str
+    checks: str
+
+
 class InstrumentDashboard(ApiModel):
     instrument: InstrumentOut
     trade_state: Literal["active", "idle", "halted"] = "active"
@@ -1340,6 +1353,9 @@ class InstrumentDashboard(ApiModel):
     share_changes: list[DashShareChange] = []
     decision: DashDecision
     turning: DashTurning | None = None
+    # a fund has no turning-point state (its history is the stocks'), only the trend ride
+    ride_only: DashRide | None = None
+    fund_test: DashFundTest | None = None
     peers: DashPeers | None = None
     drivers: DashDrivers | None = None
     technical: DashTechnical | None = None
