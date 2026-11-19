@@ -18,6 +18,30 @@ describe("heikinAshi", () => {
     expect(ha[2].open).toBe(11.5);
     expect(ha[2].low).toBe(8);
   });
+  it("colours by the smoothed open and close, not by the real candle", () => {
+    const up = (b: Bar) => b.close >= b.open;
+    // a rising run, then one real red day (open 20, close 19) that is still inside the trend
+    const run: Bar[] = [
+      { time: "d1", open: 10, high: 12, low: 9, close: 11 },
+      { time: "d2", open: 11, high: 14, low: 10, close: 13 },
+      { time: "d3", open: 13, high: 17, low: 12, close: 16 },
+      { time: "d4", open: 16, high: 21, low: 15, close: 20 },
+      { time: "d5", open: 20, high: 21, low: 18, close: 19 },
+    ];
+    expect(run[4].close < run[4].open).toBe(true);
+    const ha = heikinAshi(run);
+    expect(ha[4].close).toBe(19.5);
+    expect(ha[4].open).toBe(15.4375); // previous smoothed open and close averaged
+    expect(up(ha[4])).toBe(true); // real red day, smoothed candle green
+    // a falling run gives red smoothed candles
+    const fall = heikinAshi([
+      { time: "e1", open: 20, high: 21, low: 19, close: 20 },
+      { time: "e2", open: 19, high: 19, low: 15, close: 16 },
+      { time: "e3", open: 16, high: 16, low: 11, close: 12 },
+    ]);
+    expect(fall[1].close < fall[1].open).toBe(true);
+    expect(fall[2].close < fall[2].open).toBe(true);
+  });
   it("keeps the dates and the length", () => {
     expect(heikinAshi(bars).map((b) => b.time)).toEqual(bars.map((b) => b.time));
     expect(heikinAshi([])).toEqual([]);
