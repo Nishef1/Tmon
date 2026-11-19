@@ -209,7 +209,20 @@ def current(
     end = r.exit if r.exit is not None else last
     stop = None if peak is None or status == "closed" else peak * (1 - trail)
     sig_close = px(r.signal)
+    past = []
+    for q in rs:
+        if q.entry is None:
+            continue
+        q_end = q.exit if q.exit is not None else last
+        past.append(
+            {
+                "entry_date": day(q.entry),
+                "exit_date": day(q.exit),
+                "gain": float(c[q_end] / c[q.entry] - 1),
+            }
+        )
     return {
+        "rides": past,
         "status": status,
         "signal_date": day(r.signal),
         "signal_close": px(r.signal),

@@ -160,6 +160,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/instruments/by-slug/{sector}/{symbol}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Instrument By Slug
+     * @description Finds the instrument behind ``/instruments/<sector>/<symbol>``. The slugs are compared in
+     *     their normalised form, so Arabic letter forms and half-spaces in a typed address still match.
+     *     When two instruments share a symbol, the one in that industry wins, then one still listed,
+     *     then the newer.
+     */
+    get: operations["instrument_by_slug_instruments_by_slug__sector___symbol__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}": {
     parameters: {
       query?: never;
@@ -279,6 +302,26 @@ export interface paths {
      *     state (market closed, or the live poller is not running).
      */
     get: operations["instrument_live_instruments__instrument_id__live_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/instruments/{instrument_id}/slug": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Instrument Slug
+     * @description The readable address of an instrument page, for sending an old numeric link there.
+     */
+    get: operations["instrument_slug_instruments__instrument_id__slug_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -2213,6 +2256,11 @@ export interface components {
       peak_close: number | null;
       /** Peak Date */
       peak_date: string | null;
+      /**
+       * Rides
+       * @default []
+       */
+      rides: components["schemas"]["PastRide"][];
       /** Signal Close */
       signal_close: number;
       /**
@@ -3167,6 +3215,18 @@ export interface components {
       symbol: string;
     };
     /**
+     * InstrumentSlug
+     * @description The address of an instrument page: ``/instruments/<sector>/<symbol>``.
+     */
+    InstrumentSlug: {
+      /** Id */
+      id: number;
+      /** Sector */
+      sector: string;
+      /** Symbol */
+      symbol: string;
+    };
+    /**
      * InvestedReference
      * @description What buying and holding the liquid basket (S0) and the official index returned in the
      *     Phase 2 report's window, to show beside any annual return.
@@ -3637,6 +3697,21 @@ export interface components {
        * Format: date
        */
       since: string;
+    };
+    /**
+     * PastRide
+     * @description One finished or running ride of the symbol, for the marks on the chart.
+     */
+    PastRide: {
+      /**
+       * Entry Date
+       * Format: date
+       */
+      entry_date: string;
+      /** Exit Date */
+      exit_date: string | null;
+      /** Gain */
+      gain: number;
     };
     /** PickIn */
     PickIn: {
@@ -5102,6 +5177,38 @@ export interface operations {
       };
     };
   };
+  instrument_by_slug_instruments_by_slug__sector___symbol__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sector: string;
+        symbol: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstrumentSlug"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   instrument_detail_instruments__instrument_id__get: {
     parameters: {
       query?: {
@@ -5296,6 +5403,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LiveOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  instrument_slug_instruments__instrument_id__slug_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstrumentSlug"];
         };
       };
       /** @description Validation Error */

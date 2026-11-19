@@ -23,6 +23,7 @@ from tmon.storage.models import (
     Instrument,
     MacroSeries,
     PriceDaily,
+    SectorName,
     Shareholder,
 )
 from tmon.storage.seed import seed_market_rules
@@ -52,6 +53,23 @@ def test_health(client: TestClient) -> None:
 
 def test_instrument_404(client: TestClient) -> None:
     assert client.get("/instruments/999").status_code == 404
+
+
+def test_instrument_address_is_industry_and_symbol(client: TestClient, session: Session) -> None:
+    session.add(SectorName(code="27", name="فلزات اساسی", source_url="x"))
+    a = _inst(session, "1", "فولاد")
+    other = Instrument(ins_code="2", symbol_fa="كشاورزي", sector_code=None)
+    session.add(other)
+    session.flush()
+    want = {"id": a.id, "sector": "فلزات-اساسی", "symbol": "فولاد"}
+    assert client.get(f"/instruments/{a.id}/slug").json() == want
+    assert client.get("/instruments/by-slug/فلزات-اساسی/فولاد").json() == want
+    # Arabic letter forms in a typed address still find it
+    assert client.get("/instruments/by-slug/فلزات-اساسي/فولاد").json() == want
+    assert client.get(f"/instruments/{other.id}/slug").json()["sector"] == "سایر"
+    assert client.get("/instruments/by-slug/سایر/کشاورزی").json()["id"] == other.id
+    assert client.get("/instruments/by-slug/فلزات-اساسی/نامعلوم").status_code == 404
+    assert client.get("/instruments/999/slug").status_code == 404
 
 
 def test_instrument_detail_uses_adjusted_prices(client: TestClient, session: Session) -> None:

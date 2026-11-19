@@ -192,6 +192,8 @@ const RANKING = {
   book: { n_buys: 571, cancelled_buys: 110, postponed_sells: 32, avg_held: 14.2 },
 };
 
+const FOULAD_SLUG = { id: 1, sector: "فلزات-اساسی", symbol: "فولاد" };
+
 const MARKET = {
   available: true,
   price_date: "2026-11-10",
@@ -646,6 +648,18 @@ function route(url) {
     ];
   }
   if (path === "/market/overview") return [200, MARKET];
+  if (path === "/instruments/1/slug") return [200, FOULAD_SLUG];
+  if (path.startsWith("/instruments/by-slug/")) {
+    const [sector, symbol] = path
+      .slice("/instruments/by-slug/".length)
+      .split("/")
+      .map(decodeURIComponent);
+    // the real API compares normalised slugs, so an Arabic yeh still finds the symbol
+    const same = (a, b) => a.replaceAll("ي", "ی") === b;
+    return same(symbol, FOULAD_SLUG.symbol)
+      ? [200, FOULAD_SLUG]
+      : [404, { detail: "نماد پیدا نشد" }];
+  }
   if (path === "/instruments/1") {
     return [
       200,

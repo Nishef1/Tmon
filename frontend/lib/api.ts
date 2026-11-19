@@ -9,6 +9,7 @@ import type { components } from "./api-schema";
 type S = components["schemas"];
 
 export type InstrumentDashboard = S["InstrumentDashboard"];
+export type InstrumentSlug = S["InstrumentSlug"];
 export type Candle = S["Candle"];
 export type InstrumentDetail = S["InstrumentDetail"];
 export type AgmDecision = S["AgmDecisionOut"];

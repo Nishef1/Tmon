@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   apiGet,
   entryOdds,
@@ -8,7 +8,9 @@ import {
   type InstrumentBook,
   type InstrumentDashboard,
   type InstrumentDetail,
+  type InstrumentSlug,
 } from "@/lib/api";
+import { slugPath } from "@/lib/slug";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
 import {
@@ -46,6 +48,9 @@ function isNum(v: string | undefined): v is string {
   return v !== undefined && v.trim() !== "" && Number.isFinite(Number(v));
 }
 
+// four years of candles, so earlier trend rides are on the chart too
+const CHART_DAYS = 1000;
+
 const SHORT: Record<string, string> = { better: "ورود+", worse: "ورود−" };
 
 /** One arrow per entry day of the last year whose setup had a tested edge: green up under the
@@ -69,14 +74,34 @@ export default async function InstrumentPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ sector: string; symbol: string }>;
   searchParams: Promise<Search>;
 }) {
-  const { id } = await params;
+  const p = await params;
   const q = await searchParams;
-  if (!/^\d+$/.test(id)) notFound();
+  const sector = decodeURIComponent(p.sector);
+  const symbol = decodeURIComponent(p.symbol);
+  const found = await apiGet<InstrumentSlug>(
+    `/instruments/by-slug/${encodeURIComponent(sector)}/${encodeURIComponent(symbol)}`,
+  );
+  if (!found.ok && found.status === 404) notFound();
+  if (!found.ok) {
+    return (
+      <main className="space-y-4">
+        <ErrorState message={found.error} />
+      </main>
+    );
+  }
+  const id = String(found.data.id);
+  if (found.data.sector !== sector || found.data.symbol !== symbol) {
+    // a typed variant (Arabic letters, half-space): send it to the one address
+    const keep = new URLSearchParams(
+      Object.entries(q).flatMap(([k, v]) => (v === undefined ? [] : [[k, v]])),
+    ).toString();
+    redirect(slugPath(found.data) + (keep ? `?${keep}` : ""));
+  }
   const [res, dash, odds, book] = await Promise.all([
-    apiGet<InstrumentDetail>(`/instruments/${id}`),
+    apiGet<InstrumentDetail>(`/instruments/${id}`, { days: CHART_DAYS }),
     apiGet<InstrumentDashboard>(`/instruments/${id}/dashboard`),
     entryOdds(),
     apiGet<InstrumentBook>(`/instruments/${id}/book`),
@@ -100,7 +125,7 @@ export default async function InstrumentPage({
   const entry = dash.ok ? dash.data.entry : null;
   const ride = dash.ok ? (dash.data.turning?.ride ?? null) : null;
   const arrows = entry ? entryMarks(entry) : [];
-  const marks = [...arrows, ...(ride ? rideMarks(ride) : [])];
+  const marks = [...arrows, ...(ride ? rideMarks(ride, d.candles[0]?.date) : [])];
 
   const dd = dash.ok ? dash.data : null;
   const firedHere = (dd?.technical?.fired.length ?? 0) > 0;
@@ -169,8 +194,9 @@ export default async function InstrumentPage({
               شده‌اند.
               {arrows.length > 0 &&
                 " پیکان سبز یعنی ورود در آن کندل در گذشته بهتر از بقیهٔ سهم‌ها بوده است و پیکان قرمز یعنی بدتر."}
-              {ride?.entry_date &&
-                " «روند خرید» و «روند فروش» روزهای آخرین دورهٔ قاعدهٔ ورود و خروج روند هستند."}
+              {ride &&
+                ride.rides.length > 0 &&
+                " «روند خرید» و «روند فروش» روزهای خرید و فروش قاعدهٔ ورود و خروج روند در همهٔ دوره‌های گذشتهٔ این نماد هستند؛ این قاعده فقط با اطلاع همان روز کار می‌کند، نه با دانستن قله و دره بعد از وقوع."}
             </p>
           </>
         )}

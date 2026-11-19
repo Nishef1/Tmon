@@ -20,12 +20,14 @@ from tmon.api.schemas import (
     FeatureValue,
     InstrumentBookOut,
     InstrumentDetail,
+    InstrumentSlug,
     LiveFlowOut,
     LiveOut,
     ShareholderOut,
     SymbolNewsOut,
     instrument_out,
 )
+from tmon.api.slugs import sector_slug, slugify
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
 from tmon.core.timeutil import TEHRAN, tehran_today, utcnow
@@ -44,6 +46,7 @@ from tmon.storage.models import (
     NewsRaw,
     OrderBookSnapshot,
     PriceDaily,
+    SectorName,
     Shareholder,
 )
 
@@ -62,6 +65,46 @@ EVENTS_SHOWN = 20  # latest Codal events on the instrument page
 STALE_AFTER_SECONDS = 300  # a snapshot older than this is shown as stale
 
 PRICE_FIELDS = ("open", "high", "low", "close", "last", "prev_close", "volume")
+
+
+def _slug_of(session: Session, inst: Instrument) -> InstrumentSlug:
+    name = session.scalar(select(SectorName.name).where(SectorName.code == inst.sector_code))
+    return InstrumentSlug(
+        id=inst.id, sector=sector_slug(name), symbol=slugify(inst.symbol_fa) or str(inst.id)
+    )
+
+
+@router.get("/instruments/by-slug/{sector}/{symbol}", response_model=InstrumentSlug)
+def instrument_by_slug(sector: str, symbol: str, session: SessionDep) -> InstrumentSlug:
+    """Finds the instrument behind ``/instruments/<sector>/<symbol>``. The slugs are compared in
+    their normalised form, so Arabic letter forms and half-spaces in a typed address still match.
+    When two instruments share a symbol, the one in that industry wins, then one still listed,
+    then the newer."""
+    want_symbol, want_sector = slugify(symbol), sector_slug(sector)
+    names = dict(session.execute(select(SectorName.code, SectorName.name)).all())
+    rows = session.execute(
+        select(Instrument.id, Instrument.symbol_fa, Instrument.sector_code, Instrument.delisted_at)
+    ).all()
+    found = [
+        (r.sector_code is not None and sector_slug(names.get(r.sector_code)) == want_sector,
+         r.delisted_at is None, r.id)
+        for r in rows
+        if slugify(r.symbol_fa) == want_symbol
+    ]  # fmt: skip
+    if not found:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    inst = session.get(Instrument, max(found)[2])
+    assert inst is not None
+    return _slug_of(session, inst)
+
+
+@router.get("/instruments/{instrument_id}/slug", response_model=InstrumentSlug)
+def instrument_slug(instrument_id: int, session: SessionDep) -> InstrumentSlug:
+    """The readable address of an instrument page, for sending an old numeric link there."""
+    inst = session.get(Instrument, instrument_id)
+    if inst is None:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    return _slug_of(session, inst)
 
 
 @router.get("/instruments/{instrument_id}", response_model=InstrumentDetail)

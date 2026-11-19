@@ -59,6 +59,14 @@ def instrument_out(i: Instrument) -> InstrumentOut:
     )
 
 
+class InstrumentSlug(ApiModel):
+    """The address of an instrument page: ``/instruments/<sector>/<symbol>``."""
+
+    id: int
+    sector: str
+    symbol: str
+
+
 class Candle(ApiModel):
     date: dt.date
     open: float | None
@@ -852,11 +860,20 @@ class RideHistory(RideBlock):
     halves: list[RideBlock]
 
 
+class PastRide(ApiModel):
+    """One finished or running ride of the symbol, for the marks on the chart."""
+
+    entry_date: dt.date
+    exit_date: dt.date | None = None  # None while the ride is open or the sale is still next
+    gain: float  # from the buy to the sale, or to the last close while open
+
+
 class DashRide(ApiModel):
     """The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,
     the trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted
     to today's share count."""
 
+    rides: list[PastRide] = []  # every ride the rule made on this symbol, oldest first
     status: Literal["buy_next", "open", "sell_next", "closed"]
     signal_date: dt.date
     signal_close: float

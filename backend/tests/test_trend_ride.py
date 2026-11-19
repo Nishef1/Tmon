@@ -83,3 +83,17 @@ def test_ranges_are_ratios_of_the_signal_close_and_of_the_stop() -> None:
     assert cur["stop"] == pytest.approx(130.0 * 0.65)
     assert cur["stop_low"] == pytest.approx(cur["stop"] * 0.9)
     assert cur["stop_high"] == pytest.approx(cur["stop"] * 1.02)
+
+
+def test_current_lists_every_ride_for_the_chart_marks() -> None:
+    close = np.array([100.0, 100.0, 200.0, 100.0, 100.0, 100.0, 150.0, 160.0, 170.0, 171.0])
+    sig = _flat(10)
+    sig[[0, 5]] = True
+    rs = tr.rides(close, _flat(10), _flat(10), sig, trail=0.25, max_hold=250)
+    g = pl.DataFrame({"date": list(range(10)), "close": close, "liquid": [True] * 10})
+    cur = tr.current(g, rs, trail=0.25)
+    assert cur is not None
+    assert cur["rides"] == [
+        {"entry_date": "1", "exit_date": "4", "gain": 0.0},
+        {"entry_date": "6", "exit_date": None, "gain": pytest.approx(171 / 150 - 1)},
+    ]

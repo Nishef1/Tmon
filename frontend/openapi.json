@@ -4134,6 +4134,14 @@
             ],
             "title": "Peak Date"
           },
+          "rides": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PastRide"
+            },
+            "title": "Rides",
+            "type": "array"
+          },
           "signal_close": {
             "title": "Signal Close",
             "type": "number"
@@ -4192,6 +4200,7 @@
           }
         },
         "required": [
+          "rides",
           "status",
           "signal_date",
           "signal_close",
@@ -7260,6 +7269,30 @@
         "title": "InstrumentOut",
         "type": "object"
       },
+      "InstrumentSlug": {
+        "description": "The address of an instrument page: ``/instruments/<sector>/<symbol>``.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sector",
+          "symbol"
+        ],
+        "title": "InstrumentSlug",
+        "type": "object"
+      },
       "InvestedReference": {
         "description": "What buying and holding the liquid basket (S0) and the official index returned in the\nPhase 2 report's window, to show beside any annual return.",
         "properties": {
@@ -8616,6 +8649,39 @@
           "forecast"
         ],
         "title": "OwnWindow",
+        "type": "object"
+      },
+      "PastRide": {
+        "description": "One finished or running ride of the symbol, for the marks on the chart.",
+        "properties": {
+          "entry_date": {
+            "format": "date",
+            "title": "Entry Date",
+            "type": "string"
+          },
+          "exit_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Date"
+          },
+          "gain": {
+            "title": "Gain",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entry_date",
+          "exit_date",
+          "gain"
+        ],
+        "title": "PastRide",
         "type": "object"
       },
       "PickIn": {
@@ -13240,6 +13306,58 @@
         ]
       }
     },
+    "/instruments/by-slug/{sector}/{symbol}": {
+      "get": {
+        "description": "Finds the instrument behind ``/instruments/<sector>/<symbol>``. The slugs are compared in\ntheir normalised form, so Arabic letter forms and half-spaces in a typed address still match.\nWhen two instruments share a symbol, the one in that industry wins, then one still listed,\nthen the newer.",
+        "operationId": "instrument_by_slug_instruments_by_slug__sector___symbol__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sector",
+            "required": true,
+            "schema": {
+              "title": "Sector",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "title": "Symbol",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentSlug"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Instrument By Slug",
+        "tags": [
+          "instruments"
+        ]
+      }
+    },
     "/instruments/{instrument_id}": {
       "get": {
         "description": "Adjusted daily candles (never raw prices), the latest stored features, corporate events,\nCodal letters, news and shareholders.",
@@ -13630,6 +13748,49 @@
           }
         },
         "summary": "Instrument Live",
+        "tags": [
+          "instruments"
+        ]
+      }
+    },
+    "/instruments/{instrument_id}/slug": {
+      "get": {
+        "description": "The readable address of an instrument page, for sending an old numeric link there.",
+        "operationId": "instrument_slug_instruments__instrument_id__slug_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentSlug"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Instrument Slug",
         "tags": [
           "instruments"
         ]

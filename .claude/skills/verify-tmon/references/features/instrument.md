@@ -1,4 +1,4 @@
-# One symbol (`/instruments/[id]`)
+# One symbol (`/instruments/[industry]/[symbol]`)
 
 **What exists:** from the top, the header (close, change, queue, whether this browser holds the
 stock, freshness of each source), the live quote, the **verdict** with its summary (one-month
