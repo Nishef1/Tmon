@@ -488,7 +488,7 @@ SIGNALS: dict[str, tuple[str, str, str, pl.Expr]] = {
     "fib_618_bounce": (
         "fibonacci",
         "buy",
-        "برگشت از سطح ۶۱٫۸٪ فیبوناچی",
+        "برگشت از سطح ۶۱.۸٪ فیبوناچی",
         (C("low") <= C("fib618"))
         & (cl > C("fib618"))
         & (C("ret1") > 0)
@@ -551,13 +551,13 @@ SIGNALS: dict[str, tuple[str, str, str, pl.Expr]] = {
     "per_capita_buy_high": (
         "per_capita_buy",
         "buy",
-        "سرانهٔ خرید ۵ روزه ۱٫۵ برابر سرانهٔ فروش",
+        "سرانهٔ خرید ۵ روزه ۱.۵ برابر سرانهٔ فروش",
         turns_on(C("power5") > 1.5),
     ),
     "smart_money_combo": (
         "smart_money",
         "buy",
-        "پول هوشمند: قدرت خریدار بیش از ۱٫۵، حجم دو برابر میانگین، بالای میانگین ۲۰ روزه",
+        "پول هوشمند: قدرت خریدار بیش از ۱.۵، حجم دو برابر میانگین، بالای میانگین ۲۰ روزه",
         turns_on((C("power") > 1.5) & (C("vr") > 2) & (cl > C("sma20")) & (C("ret1") > 0)),
     ),
     "drop_5d_10pct": (

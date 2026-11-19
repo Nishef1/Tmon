@@ -18,11 +18,11 @@ from tmon.core.engine_config import get_engine_config
 
 def fa_number(x: float, digits: int = 1, sign: bool = False) -> str:
     """A number with the Persian decimal separator."""
-    return f"{x:{'+' if sign else ''}.{digits}f}".replace(".", "٫")
+    return f"{x:{'+' if sign else ''}.{digits}f}".replace(".", ".")
 
 
 def signed_pct(x: float) -> str:
-    return f"{x * 100:+.2f}٪".replace(".", "٫")
+    return f"{x * 100:+.2f}٪".replace(".", ".")
 
 
 def state_meta(doc: dict[str, Any] | None) -> dict[str, dict[str, Any]]:

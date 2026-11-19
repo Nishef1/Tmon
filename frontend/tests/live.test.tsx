@@ -50,9 +50,9 @@ describe("LiveQuote", () => {
     mockFetch(base);
     render(<LiveQuote instrumentId={1} pollMs={60_000} />);
     await waitFor(() => expect(screen.getByTestId("order-book")).toBeInTheDocument());
-    expect(screen.getByText(text("+۱٫۲٪"))).toBeInTheDocument();
+    expect(screen.getByText(text("+۱.۲٪"))).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(3);
-    const link = screen.getByText(text("+۱٫۲٪")).closest("a");
+    const link = screen.getByText(text("+۱.۲٪")).closest("a");
     expect(link).toHaveAttribute("href", "/glossary/change_pct");
     expect(screen.getByTestId("live-age")).not.toHaveTextContent("قدیمی");
   });

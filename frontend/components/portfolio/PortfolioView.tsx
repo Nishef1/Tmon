@@ -688,7 +688,7 @@ function ForecastCard({ id, pkey, version }: { id: number; pkey: string; version
       <h2 className="font-bold">پیش‌بینی بازدهٔ پرتفوی</h2>
       <p className="mt-1 text-sm text-muted">
         بازهٔ ۸۰٪ یعنی بازده در ۸ از ۱۰ حالت بین این دو عدد قرار می‌گیرد. «پوشش واقعی» همین ادعا را
-        روی گذشتهٔ همین سبد می‌سنجد؛ اگر از ۰٫۸ دور باشد، بازه اصلاح شده است. نوسان سالانهٔ فعلی{" "}
+        روی گذشتهٔ همین سبد می‌سنجد؛ اگر از ۰.۸ دور باشد، بازه اصلاح شده است. نوسان سالانهٔ فعلی{" "}
         {faPercent(f.annual_vol_now ?? 0)}.
       </p>
       <p className="mt-1 rounded-lg bg-warn-soft p-2 text-sm" data-testid="forecast-caveat">

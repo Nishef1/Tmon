@@ -4,23 +4,23 @@ import { faDigits, faNumber, faPercent, faPrice, formatValue, jalali, ltr } from
 describe("number formatting", () => {
   it("uses Persian digits and separators", () => {
     expect(faNumber(1234567)).toBe("۱٬۲۳۴٬۵۶۷");
-    expect(faNumber(3.14159, 2)).toBe("۳٫۱۴");
+    expect(faNumber(3.14159, 2)).toBe("۳.۱۴");
   });
 
   it("formats percentages with an explicit sign when asked", () => {
     expect(faPercent(0.66, 0)).toBe(ltr("۶۶٪"));
-    expect(faPercent(0.031, 1, true)).toBe(ltr("+۳٫۱٪"));
-    expect(faPercent(-0.03, 1)).toBe(ltr("−۳٫۰٪"));
+    expect(faPercent(0.031, 1, true)).toBe(ltr("+۳.۱٪"));
+    expect(faPercent(-0.03, 1)).toBe(ltr("−۳.۰٪"));
   });
 
   it("never shows a signed zero", () => {
-    expect(faPercent(0.00001, 1, true)).toBe(ltr("۰٫۰٪"));
-    expect(faPercent(-0.00001, 1)).toBe(ltr("۰٫۰٪"));
+    expect(faPercent(0.00001, 1, true)).toBe(ltr("۰.۰٪"));
+    expect(faPercent(-0.00001, 1)).toBe(ltr("۰.۰٪"));
   });
 
   it("keeps sign left and percent right inside server sentences", () => {
     expect(faDigits("مازاد +1.87٪ و خالص -1.27٪ (IC +0.116، t 26.4)")).toBe(
-      `مازاد ${ltr("+۱٫۸۷٪")} و خالص ${ltr("−۱٫۲۷٪")} (IC ${ltr("+۰٫۱۱۶")}، t ۲۶٫۴)`,
+      `مازاد ${ltr("+۱.۸۷٪")} و خالص ${ltr("−۱.۲۷٪")} (IC ${ltr("+۰.۱۱۶")}، t ۲۶.۴)`,
     );
     expect(faDigits(ltr("+۱٪"))).toBe(ltr("+۱٪"));
   });

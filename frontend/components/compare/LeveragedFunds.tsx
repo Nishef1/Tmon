@@ -89,7 +89,7 @@ export function LeveragedFundsSection({ data }: { data: LeveragedFunds }) {
     <div className="space-y-4" data-testid="leveraged-funds">
       <div className="space-y-1 text-sm text-muted">
         <p>
-          صندوق اهرمی حرکت بازار را حدود <b>۱٫۸ برابر</b> می‌کند؛ ستون بتا همین را نشان می‌دهد. در
+          صندوق اهرمی حرکت بازار را حدود <b>۱.۸ برابر</b> می‌کند؛ ستون بتا همین را نشان می‌دهد. در
           بازار صعودی چند سال گذشته خوب دیده شدند، ولی ماهی {target} پایدار در تاریخ بیشترشان نبوده
           است. در افت‌ها هم همان‌قدر بزرگ‌تر پایین می‌آیند.
         </p>

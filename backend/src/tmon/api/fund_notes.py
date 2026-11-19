@@ -61,7 +61,7 @@ SMALL = 12  # fewer funds than this: say the sample is small
 
 
 def _fa(x: float, digits: int = 0) -> str:
-    return f"{x:.{digits}f}".translate(str.maketrans("0123456789.-", "۰۱۲۳۴۵۶۷۸۹٫−"))
+    return f"{x:.{digits}f}".translate(str.maketrans("0123456789.-", "۰۱۲۳۴۵۶۷۸۹.−"))
 
 
 def _pct(x: float, digits: int = 0) -> str:

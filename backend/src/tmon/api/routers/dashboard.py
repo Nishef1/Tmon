@@ -117,7 +117,7 @@ def _f(x: Any) -> float | None:
 
 
 def _pct(x: float) -> str:
-    return f"{x * 100:.1f}٪".replace(".", "٫")
+    return f"{x * 100:.1f}٪".replace(".", ".")
 
 
 def _price(rows: list[PriceDaily]) -> DashPrice | None:

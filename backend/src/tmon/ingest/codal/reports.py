@@ -197,7 +197,7 @@ def parse_report(payload: bytes) -> list[ReportTable]:
 
 def parse_number(text: str) -> float | None:
     """``۳۹,۳۹۱,۴۰۱`` -> 39391401; ``(۳,۰۱۴)`` -> -3014; ``۱۲.۵%`` -> 12.5; text -> None."""
-    s = ascii_digits(text).replace("٬", ",").replace("٫", ".").replace(" ", "")
+    s = ascii_digits(text).replace("٬", ",").replace(".", ".").replace(" ", "")
     m = _NUMBER.match(s)
     if not m or not m.group(3).strip(","):
         return None

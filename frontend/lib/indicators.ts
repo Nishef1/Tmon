@@ -308,7 +308,7 @@ export function levels(bars: Bar[]): PriceLevel[] {
     const w = bars.slice(n - 120);
     const hi = Math.max(...w.map((b) => b.high));
     const lo = Math.min(...w.map((b) => b.low));
-    out.push({ key: "fib618", title: "فیبو ۶۱٫۸٪", price: hi - 0.618 * (hi - lo) });
+    out.push({ key: "fib618", title: "فیبو ۶۱.۸٪", price: hi - 0.618 * (hi - lo) });
   }
   return out;
 }

@@ -76,7 +76,7 @@ test.describe("instrument page", () => {
     await page.goto("/instruments/1");
     const box = page.getByTestId("shareholders");
     await expect(box).toContainText("شرکت نمونه");
-    await expect(box).toContainText("۱۶٫۷۰٪");
+    await expect(box).toContainText("۱۶.۷۰٪");
     // several holders can share one name; the list must still render without key warnings
     await expect(box.getByText("شخص حقیقی")).toHaveCount(2);
     expect(errors.filter((e) => e.includes("same key"))).toEqual([]);
@@ -95,7 +95,7 @@ test.describe("instrument page", () => {
     const box = page.getByTestId("technical");
     await expect(box.getByTestId("ta-values")).toContainText("اشباع فروش");
     await expect(box.getByTestId("ta-fired")).toContainText("در گذشته جواب داده است");
-    await expect(box.getByTestId("ta-risk")).toContainText("۱٫۲۵");
+    await expect(box.getByTestId("ta-risk")).toContainText("۱.۲۵");
     await expect(box.locator('a[href="/glossary/rsi"]')).toBeVisible();
   });
 
@@ -251,7 +251,7 @@ test("home has one ranking table, the gate note and the market map; old ranking 
   await expect(page.getByTestId("stock-table")).toContainText("وبانک");
   // the market card: share of capital in equities, why, and the funds, labelled untested
   const card = page.getByTestId("market-card");
-  await expect(card).toContainText("۹۹٫۰٪");
+  await expect(card).toContainText("۹۹.۰٪");
   await expect(card.getByTestId("market-reasons")).toContainText("روند");
   await expect(card.getByTestId("market-funds")).toContainText("آزموده نشده");
   await expect(card.getByTestId("market-funds")).toContainText("اهرم");

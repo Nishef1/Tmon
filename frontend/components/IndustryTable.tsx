@@ -271,7 +271,7 @@ const COLS: Col[] = [
 // ------------------------------------------------------------------------------ form pieces
 
 function parse(text: string, scale: number): number | undefined {
-  const t = norm(text).replace(/[٫,]/g, ".").replace(/−/g, "-");
+  const t = norm(text).replace(/[.,]/g, ".").replace(/−/g, "-");
   if (t === "") return undefined;
   const n = Number(t);
   return Number.isFinite(n) ? n / scale : undefined;

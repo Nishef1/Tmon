@@ -4,7 +4,7 @@ const MINUS = "−";
 
 /**
  * Bidi isolate: a signed number or a percent keeps one fixed order inside right-to-left text,
- * sign on the left of the digits and ٪ after them ("+۵٫۷٪", "−۱٫۲٪"), wherever it appears.
+ * sign on the left of the digits and ٪ after them ("+۵.۷٪", "−۱.۲٪"), wherever it appears.
  */
 const LRI = "⁦";
 const PDI = "⁩";
@@ -15,10 +15,13 @@ export function ltr(text: string): string {
 export type NumKind = "percent" | "price" | "count" | "plain";
 
 function group(n: number, digits: number): string {
+  // the owner wants a plain dot as the decimal mark (Intl would give the Arabic «٫»)
   return new Intl.NumberFormat("fa-IR", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  }).format(n);
+  })
+    .format(n)
+    .replace(/٫/g, ".");
 }
 
 /** Latin digits inside a server-written sentence -> Persian digits. */
@@ -26,10 +29,10 @@ export function faDigits(text: string): string {
   return text
     .replace(/[⁦⁩]/g, "")
     .replace(/(\d),(?=\d{3}(?!\d))/g, "$1٬") // thousands separator
-    .replace(/(\d)\.(\d)/g, "$1٫$2") // decimal point
+    .replace(/(\d)\.(\d)/g, "$1.$2") // decimal point
     .replace(/(^|[\s(])-(?=\d)/g, "$1−") // minus sign
     .replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
-    .replace(/[+−]?[۰-۹][۰-۹٫٬]*٪?/g, (m) => (/^[+−]|٪$/.test(m) ? ltr(m) : m)); // signed numbers and percents
+    .replace(/[+−]?[۰-۹][۰-۹.٬]*٪?/g, (m) => (/^[+−]|٪$/.test(m) ? ltr(m) : m)); // signed numbers and percents
 }
 
 export function faNumber(n: number, digits = 0): string {
@@ -37,7 +40,7 @@ export function faNumber(n: number, digits = 0): string {
   return /[−-]/.test(s) ? ltr(s.replace(/[‎‏]/g, "")) : s;
 }
 
-/** ``0.031`` -> ``۳٫۱٪``. ``signed`` adds an explicit + for positive values. */
+/** ``0.031`` -> ``۳.۱٪``. ``signed`` adds an explicit + for positive values. */
 export function faPercent(fraction: number, digits = 1, signed = false): string {
   const v = fraction * 100;
   const body = group(Math.abs(v), digits);
@@ -128,7 +131,7 @@ export function jalali(iso: string | null | undefined, style: DateStyle = "long"
   }
 }
 
-/** Rial amount in short toman units: ``۱٫۲ همت``, ``۴۵٫۰ میلیارد``. */
+/** Rial amount in short toman units: ``۱.۲ همت``, ``۴۵.۰ میلیارد``. */
 export function faToman(rial: number | null | undefined): string {
   if (rial == null) return "—";
   const t = rial / 10;
@@ -139,7 +142,7 @@ export function faToman(rial: number | null | undefined): string {
   return group(t, 0);
 }
 
-/** A share count in short form: ``۲٫۵ میلیارد``, ``۳۴۰ هزار``. */
+/** A share count in short form: ``۲.۵ میلیارد``, ``۳۴۰ هزار``. */
 export function faCount(n: number | null | undefined): string {
   if (n == null) return "—";
   const a = Math.abs(n);

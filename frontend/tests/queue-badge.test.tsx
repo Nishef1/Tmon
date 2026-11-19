@@ -10,7 +10,7 @@ describe("QueueBadge", () => {
       />,
     );
     const b = screen.getByTestId("queue-badge");
-    expect(b.textContent).toBe("صف خرید سنگین (۲٫۴)");
+    expect(b.textContent).toBe("صف خرید سنگین (۲.۴)");
     expect(b.getAttribute("title")).toContain("۵۳۸ سفارش");
   });
 
@@ -40,6 +40,6 @@ describe("QueueBadge", () => {
 
   it("marks a weak line as such even when the close was not at the limit", () => {
     render(<QueueBadge r={{ queue_state: "none", queue_ratio: 0.12, queue_level: "weak" }} />);
-    expect(screen.getByTestId("queue-badge").textContent).toBe("صف خرید ضعیف (۰٫۱)");
+    expect(screen.getByTestId("queue-badge").textContent).toBe("صف خرید ضعیف (۰.۱)");
   });
 });

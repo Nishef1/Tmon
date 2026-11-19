@@ -22,7 +22,7 @@ CHEAP, EXPENSIVE = 0.8, 1.25  # P/E below 80% of the group's is "cheaper", above
 
 
 def _fmt(x: float, digits: int = 1) -> str:
-    return f"{x:,.{digits}f}".replace(",", "٬").replace(".", "٫")
+    return f"{x:,.{digits}f}".replace(",", "٬").replace(".", ".")
 
 
 def fundamental(

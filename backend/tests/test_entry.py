@@ -132,7 +132,7 @@ def test_lessons_name_the_pattern() -> None:
     from tmon.portfolio.entry import lessons
 
     text = " ".join(lessons(rows))
-    assert "۱٫۵٪" in text and "کندل سبز" in text
+    assert "۱.۵٪" in text and "کندل سبز" in text
 
 
 def test_open_features_works_on_decimal_columns(session) -> None:  # type: ignore[no-untyped-def]

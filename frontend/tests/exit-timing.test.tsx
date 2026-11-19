@@ -92,7 +92,7 @@ describe("exit ladder and time of day on the stock page", () => {
         basis: "own",
         basis_days: 64,
         last_day: "2026-11-15",
-        headline: "خرید: 10:00–10:15 (در روزهای آزمون‌شده 0٫5٪ پایین‌تر از میانگین روز).",
+        headline: "خرید: 10:00–10:15 (در روزهای آزمون‌شده 0.5٪ پایین‌تر از میانگین روز).",
         spread: 0.004,
         table: [slice(0), slice(1)],
         buy: pick("10:00–10:15", true, -0.005),

@@ -333,7 +333,7 @@ def _values(v: dict[str, Any]) -> list[DashTaValue]:
         add(
             "fib618",
             "fibonacci",
-            "فیبوناچی ۶۱٫۸٪ (دامنهٔ ۱۲۰ روز)",
+            "فیبوناچی ۶۱.۸٪ (دامنهٔ ۱۲۰ روز)",
             v["fib618"],
             "price",
             f"قیمت {abs(c / v['fib618'] - 1) * 100:.1f}٪ {'بالای' if c > v['fib618'] else 'زیر'} "

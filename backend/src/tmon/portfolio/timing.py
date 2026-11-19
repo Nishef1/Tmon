@@ -225,7 +225,7 @@ def summarize(days: list[dict[str, Any]]) -> dict[str, Any] | None:
 
 
 def _pct(x: float, digits: int = 1) -> str:
-    return f"{abs(x) * 100:.{digits}f}".replace(".", "٫")
+    return f"{abs(x) * 100:.{digits}f}".replace(".", ".")
 
 
 def _headline(res: dict[str, Any]) -> str:
@@ -285,7 +285,7 @@ def time_of_day(session: Session, instrument_id: int) -> dict[str, Any]:
     notes = [
         "قیمتِ هر بازه (میانگین زمانیِ وسطِ خریدار و فروشنده) با میانگین همان روز سنجیده شده، نه "
         "با سفارشِ پرشده. یک ساعت وقتی «معتبر» است که روی نیمهٔ قدیمی‌تر تاریخچه انتخاب شود و روی "
-        "نیمهٔ تازه‌تر، که در انتخاب نقش نداشته، هم دست‌کم ۰٫۱٪ فرق با t ≥ ۲ نشان دهد.",
+        "نیمهٔ تازه‌تر، که در انتخاب نقش نداشته، هم دست‌کم ۰.۱٪ فرق با t ≥ ۲ نشان دهد.",
         f"کمینهٔ روز در {_pct(res['open_low_share'], 0)}٪ روزها و بیشینهٔ روز در "
         f"{_pct(res['open_high_share'], 0)}٪ روزها در نیم‌ساعت اول افتاده (برای قیمتِ تصادفی "
         f"{_pct(res['open_chance_low'], 0)}٪ و {_pct(res['open_chance_high'], 0)}٪)؛ این نوسانِ "
@@ -294,7 +294,7 @@ def time_of_day(session: Session, instrument_id: int) -> dict[str, Any]:
     ]
     if res["buy"]["confirmed"] or res["sell"]["confirmed"]:
         notes.append(
-            "آزمونی با t ≥ ۲ حدود ۲٫۵٪ موارد حتی بدون هیچ اثری تصادفاً می‌گذرد؛ این ساعت را "
+            "آزمونی با t ≥ ۲ حدود ۲.۵٪ موارد حتی بدون هیچ اثری تصادفاً می‌گذرد؛ این ساعت را "
             "سفارشِ قطعی نگیرید."
         )
     if basis == "market":

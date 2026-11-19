@@ -19,7 +19,7 @@ type Queue = Partial<
   >
 >;
 
-/** «صف خرید سنگین (۲٫۴)»: how heavy the buy line is, with the ratio of the line to a usual day's
+/** «صف خرید سنگین (۲.۴)»: how heavy the buy line is, with the ratio of the line to a usual day's
  *  volume in parentheses. Under 0.3 the line is weak, up to 1 medium, above 1 heavy. A symbol that
  *  closed in a buy line but has no stored book shows the plain «صف خرید». */
 export function QueueBadge({ r, className = "" }: { r: Queue; className?: string }) {
