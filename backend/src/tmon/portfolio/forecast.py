@@ -1,4 +1,5 @@
-"""Return ranges of a portfolio and of each holding for a week, a month, 3, 6 and 12 months.
+"""Return ranges of a portfolio and of each holding for 1 and 3 days, a week, a month, 3, 6 and 12
+months.
 
 Method (filtered historical simulation, Barone-Adesi et al. 1999):
 
@@ -40,8 +41,18 @@ from sqlalchemy.orm import Session
 
 from tmon.storage.models import PriceAdjustment, PriceDaily
 
-HORIZONS: dict[str, int] = {"week": 5, "month": 20, "quarter": 60, "half": 120, "year": 240}
+HORIZONS: dict[str, int] = {
+    "day": 1,
+    "days3": 3,
+    "week": 5,
+    "month": 20,
+    "quarter": 60,
+    "half": 120,
+    "year": 240,
+}
 HORIZON_FA = {
+    "day": "یک روز",
+    "days3": "سه روز",
     "week": "یک هفته",
     "month": "یک ماه",
     "quarter": "سه ماه",

@@ -50,6 +50,12 @@ export type Path = {
   dotted?: boolean;
 };
 
+/** A forecast range drawn into the days after the last candle: the 80% range and the median. */
+export type Cone = {
+  points: { time: string; low: number; mid: number; high: number }[];
+  label: string;
+};
+
 type Kind = "candle" | "ha" | "bar" | "line";
 type Pane = "none" | "rsi" | "macd" | "stoch" | "mfi" | "adx" | "atr" | "obv";
 type Overlay = "ma1" | "ma2" | "ma3" | "ema" | "bb" | "ichi" | "vwap" | "lv" | "reg" | "fvg" | "ew";
@@ -263,11 +269,13 @@ export function CandleChart({
   levels = NO_LEVELS,
   marks = NO_MARKS,
   paths = NO_PATHS,
+  cone,
 }: {
   candles: Candle[];
   levels?: Level[];
   marks?: Mark[];
   paths?: Path[];
+  cone?: Cone | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
@@ -356,18 +364,20 @@ export function CandleChart({
     };
   }, []);
 
+  // future days of the forecast range, kept in view beside the last n candles
+  const ahead = cone ? cone.points.length - 1 : 0;
   const applySpan = useCallback(
     (chart: IChartApi, n: number) => {
       if (n > 0 && real.length > n) {
         // n bars fill the plot less the gap; the gap is n bars scaled by its share of the width
         const w = Math.max(chart.timeScale().width() - GAP, 100);
-        const to = real.length - 0.5 + (n * GAP) / w;
+        const to = real.length - 0.5 + ahead + (n * GAP) / w;
         chart.timeScale().setVisibleLogicalRange({ from: real.length - n, to });
       } else {
         chart.timeScale().fitContent();
       }
     },
-    [real.length],
+    [real.length, ahead],
   );
 
   useEffect(() => {
@@ -683,6 +693,28 @@ export function CandleChart({
             tracked.push({ label: p.title, color: tok(p.color), series: s, ended: !open });
         }
       }
+      if (cone && cone.points.length > 1) {
+        const line = (key: "low" | "mid" | "high", title: string) => {
+          const s = chart.addSeries(
+            lc.LineSeries,
+            {
+              color: accent,
+              lineWidth: key === "mid" ? 2 : 1,
+              lineStyle: key === "mid" ? Dashed : Dotted,
+              priceLineVisible: false,
+              lastValueVisible: key !== "mid",
+              crosshairMarkerVisible: false,
+              title,
+            },
+            0,
+          );
+          s.setData(cone.points.map((q) => ({ time: q.time as Time, value: q[key] })));
+          tracked.push({ label: `${title} ${cone.label}`, color: accent, series: s, ended: true });
+        };
+        line("high", "سقف بازه");
+        line("mid", "میانه");
+        line("low", "کف بازه");
+      }
       const allMarks = [...marks, ...waves];
       if (allMarks.length > 0) {
         const known = new Set(times);
@@ -750,9 +782,9 @@ export function CandleChart({
         });
       }
       const v = view.current;
-      if (v.range && v.n === real.length) chart.timeScale().setVisibleLogicalRange(v.range);
+      if (v.range && v.n === real.length + ahead) chart.timeScale().setVisibleLogicalRange(v.range);
       else applySpan(chart, span);
-      v.n = real.length;
+      v.n = real.length + ahead;
       const mark = (r: LogicalRange | null) => {
         view.current.range = r;
         // the visible span, for tests and for anyone inspecting the page
@@ -781,7 +813,7 @@ export function CandleChart({
     };
     // `span` is applied by its own effect; a rebuild keeps the user's zoom instead
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [real, levels, marks, paths, volumes, vbars, times, cfg, applySpan]);
+  }, [real, levels, marks, paths, cone, volumes, vbars, times, cfg, applySpan]);
 
   const pickSpan = (n: number) => {
     setSpan(n);

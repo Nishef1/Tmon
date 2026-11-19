@@ -163,6 +163,34 @@ class LiveFlowOut(ApiModel):
     sell_count_person: float | None = None
 
 
+class ForecastHorizonOut(ApiModel):
+    """One holding period of a symbol's price range (``portfolio/forecast.py``): the 80% range
+    and the median as returns from ``price``, calibrated by the symbol's own backtest when it had
+    enough windows, and the chance of ending above the price after one round trip of cost."""
+
+    key: str
+    label: str
+    days: int
+    low: float  # 10th percentile (calibrated when ``calibrated``)
+    mid: float
+    high: float  # 90th percentile
+    p_gain_net: float
+    calibrated: bool
+    coverage80: float | None  # share of past windows that ended inside the raw 80% range
+    windows: int  # independent past windows behind the backtest
+    reliable: bool
+    drift_weight: float
+
+
+class SymbolForecastOut(ApiModel):
+    available: bool
+    reason: str | None = None
+    as_of: str | None = None
+    price: float | None = None  # rial, the price the ranges start from
+    history_days: int = 0
+    horizons: list[ForecastHorizonOut] = []
+
+
 class LiveOut(ApiModel):
     """Price and 5-level order book of one instrument. ``source``: ``mofid`` (pushed live by
     Mofid's server, needs a linked account), ``tsetmc`` (fetched from TSETMC for this request) or

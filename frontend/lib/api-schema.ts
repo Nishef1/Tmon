@@ -289,6 +289,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/instruments/{instrument_id}/forecast": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Instrument Forecast
+     * @description Where the price may be after 1 and 3 days, a week, a month, 3 and 6 months: the
+     *     portfolio forecast run on this one symbol, with its bands checked on the symbol's own past.
+     */
+    get: operations["instrument_forecast_instruments__instrument_id__forecast_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/{instrument_id}/live": {
     parameters: {
       query?: never;
@@ -2720,6 +2741,38 @@ export interface components {
       /** Value */
       value: number | null;
     };
+    /**
+     * ForecastHorizonOut
+     * @description One holding period of a symbol's price range (``portfolio/forecast.py``): the 80% range
+     *     and the median as returns from ``price``, calibrated by the symbol's own backtest when it had
+     *     enough windows, and the chance of ending above the price after one round trip of cost.
+     */
+    ForecastHorizonOut: {
+      /** Calibrated */
+      calibrated: boolean;
+      /** Coverage80 */
+      coverage80: number | null;
+      /** Days */
+      days: number;
+      /** Drift Weight */
+      drift_weight: number;
+      /** High */
+      high: number;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Low */
+      low: number;
+      /** Mid */
+      mid: number;
+      /** P Gain Net */
+      p_gain_net: number;
+      /** Reliable */
+      reliable: boolean;
+      /** Windows */
+      windows: number;
+    };
     /** FreshnessItem */
     FreshnessItem: {
       /** Date */
@@ -4631,6 +4684,27 @@ export interface components {
        */
       kind: "low" | "high";
     };
+    /** SymbolForecastOut */
+    SymbolForecastOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /**
+       * History Days
+       * @default 0
+       */
+      history_days: number;
+      /**
+       * Horizons
+       * @default []
+       */
+      horizons: components["schemas"]["ForecastHorizonOut"][];
+      /** Price */
+      price: number | null;
+      /** Reason */
+      reason: string | null;
+    };
     /** SymbolNewsOut */
     SymbolNewsOut: {
       /** Published At */
@@ -5424,6 +5498,37 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  instrument_forecast_instruments__instrument_id__forecast_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SymbolForecastOut"];
         };
       };
       /** @description Validation Error */

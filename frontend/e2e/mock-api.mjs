@@ -702,6 +702,39 @@ function route(url) {
       },
     ];
   }
+  if (path === "/instruments/1/forecast") {
+    const h = (key, label, days, low, mid, high, p, reliable) => ({
+      key,
+      label,
+      days,
+      low,
+      mid,
+      high,
+      p_gain_net: p,
+      calibrated: reliable,
+      coverage80: reliable ? 0.74 : null,
+      windows: reliable ? 30 : 4,
+      reliable,
+      drift_weight: 0.25,
+    });
+    return [
+      200,
+      {
+        available: true,
+        as_of: "2025-03-01",
+        price: 1000,
+        history_days: 900,
+        horizons: [
+          h("day", "یک روز", 1, -0.03, 0, 0.03, 0.4, true),
+          h("days3", "سه روز", 3, -0.05, 0, 0.05, 0.42, true),
+          h("week", "یک هفته", 5, -0.07, 0.002, 0.08, 0.44, true),
+          h("month", "یک ماه", 20, -0.13, 0.02, 0.18, 0.52, true),
+          h("quarter", "سه ماه", 60, -0.2, 0.06, 0.4, 0.6, true),
+          h("half", "شش ماه", 120, -0.3, 0.1, 0.6, 0.62, false),
+        ],
+      },
+    ];
+  }
   if (path === "/instruments/1/dashboard") {
     return [
       200,
@@ -952,6 +985,27 @@ function route(url) {
           zone_buy_from: 90,
           queue_state: "none",
           summary: "نامزد خرید با شواهد ثابت‌نشده؛ اگر دارید نگه دارید.",
+          by_horizon: [
+            {
+              days: 3,
+              label: "سه روز",
+              net: -0.012,
+              net_h1: -0.01,
+              net_h2: -0.014,
+              windows: 240,
+              status: "loss",
+            },
+            {
+              days: 60,
+              label: "سه ماه",
+              net: 0.004,
+              net_h1: 0.006,
+              net_h2: 0.002,
+              windows: 12,
+              status: "unproven",
+              verdict_horizon: true,
+            },
+          ],
           horizons: [
             {
               key: "Q1",

@@ -164,13 +164,13 @@ def test_forecast_bands_are_ordered_and_backtested() -> None:
     doc = forecast(pos, dates, closes)
     assert doc["available"]
     keys = [h["key"] for h in doc["horizons"]]
-    assert keys[0] == "week" and keys[-1] == "year"
+    assert keys[:3] == ["day", "days3", "week"] and keys[-1] == "year"
     for h in doc["horizons"]:
         b = h["portfolio"]
         assert b["q05"] <= b["q50"] <= b["q95"]
         assert 0 <= b["p_gain"] <= 1
         assert {s["symbol"] for s in h["symbols"]} == {"الف", "ب"}
-    week = doc["horizons"][0]["backtest"]
+    week = next(h for h in doc["horizons"] if h["key"] == "week")["backtest"]
     assert week["n"] > 0 and 0 <= week["coverage80"] <= 1
 
 
@@ -273,7 +273,15 @@ def test_portfolio_flow(
     assert adv["validated"] is False
 
     fc = client.get(f"/portfolios/{pid}/forecast", headers=hdr).json()
-    assert fc["available"] and len(fc["horizons"]) == 5
+    assert fc["available"] and len(fc["horizons"]) == 7
+
+    # one symbol on its own, for the symbol page: 1 day to 6 months, ranges around the median
+    one = client.get(f"/instruments/{strong}/forecast").json()
+    assert one["available"] and one["price"] > 0
+    assert [h["days"] for h in one["horizons"]] == [1, 3, 5, 20, 60, 120]
+    for h in one["horizons"]:
+        assert -0.99 <= h["low"] <= h["mid"] <= h["high"] and 0 <= h["p_gain_net"] <= 1
+    assert client.get("/instruments/999999/forecast").status_code == 404
 
     r = client.patch(
         f"/portfolios/{pid}",

@@ -2,6 +2,7 @@ import type { InstrumentDashboard } from "@/lib/api";
 import { trustWord } from "@/components/PlainSummary";
 import { faNumber, faPercent } from "@/lib/format";
 import { shortLabel, signedPct } from "@/lib/ui";
+import { rideWarning } from "@/components/stock/rideMarks";
 
 type D = InstrumentDashboard;
 type H = D["decision"]["horizons"][number];
@@ -100,6 +101,28 @@ export function buildChecks(d: D, h: H | undefined): Check[] {
           سهم‌های هم‌حالت{d.turning ? ` («${d.turning.state.title}»)` : ""} در گذشته{" "}
           <b>{per100(r.rate)} بار از هر ۱۰۰ بار</b> در شش ماه از بازار جلو زدند؛ برای همهٔ سهم‌ها این
           عدد {per100(r.base)} است.
+        </>
+      ),
+    });
+  }
+  const ride = d.turning?.ride;
+  if (ride) {
+    const warn = rideWarning(ride);
+    const open = ride.status === "open";
+    out.push({
+      key: "ride",
+      status: warn ? "warn" : "info",
+      ask: "قاعدهٔ ورود و خروج روند چه می‌گوید؟",
+      answer: (
+        <>
+          {open ? "دورهٔ روند باز است" : "دورهٔ روندی باز نیست"}
+          {warn &&
+            (warn.side === "sell"
+              ? `؛ قیمت فقط ${faPercent(warn.move, 1)} بالای خط فروش است و فروش روند نزدیک است`
+              : `؛ با ${faPercent(warn.move, 1)} رشد نشانهٔ ورود روند می‌آید`)}
+          . آزمون سه سال اخیر نشان داد باز یا بسته بودن این دوره، کنار امتیاز سهم، سود اضافهٔ
+          ثابت‌شده‌ای نمی‌افزاید؛ برای همین حکم را عوض نمی‌کند و فقط زمان خرید و فروش را نشان
+          می‌دهد.
         </>
       ),
     });

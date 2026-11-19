@@ -99,6 +99,7 @@ export type OrderbookResearch = S["OrderbookResearchOut"];
 export type BookFeatureRow = S["BookFeature"];
 export type BookPoint = S["BookPoint"];
 export type InstrumentBook = S["InstrumentBookOut"];
+export type SymbolForecast = S["SymbolForecastOut"];
 
 /** What the order book and the queues add to the score and what a realistic portfolio earned in
  *  the tested history. Always read fresh; null when unreachable. */

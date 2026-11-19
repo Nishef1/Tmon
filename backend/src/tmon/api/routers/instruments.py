@@ -18,12 +18,14 @@ from tmon.api.schemas import (
     CodalLetterOut,
     CorporateEventOut,
     FeatureValue,
+    ForecastHorizonOut,
     InstrumentBookOut,
     InstrumentDetail,
     InstrumentSlug,
     LiveFlowOut,
     LiveOut,
     ShareholderOut,
+    SymbolForecastOut,
     SymbolNewsOut,
     instrument_out,
 )
@@ -545,6 +547,54 @@ def instrument_entry(
         if paid
         else None,
     }
+
+
+@router.get("/instruments/{instrument_id}/forecast", response_model=SymbolForecastOut)
+def instrument_forecast(instrument_id: int, session: SessionDep) -> SymbolForecastOut:
+    """Where the price may be after 1 and 3 days, a week, a month, 3 and 6 months: the
+    portfolio forecast run on this one symbol, with its bands checked on the symbol's own past."""
+    from tmon.portfolio.advice import last_prices
+    from tmon.portfolio.forecast import Position, portfolio_forecast
+
+    inst = session.get(Instrument, instrument_id)
+    if inst is None:
+        raise HTTPException(status_code=404, detail="نماد پیدا نشد")
+    px = last_prices(session, [instrument_id], live=True).get(instrument_id)
+    if px is None:
+        return SymbolForecastOut(available=False, reason="قیمتی برای این نماد ثبت نشده است")
+    price = px[0]
+    doc = portfolio_forecast(session, [Position(instrument_id, inst.symbol_fa, 1.0, price, price)])
+    if not doc.get("available"):
+        return SymbolForecastOut(available=False, reason=doc.get("reason"))
+    out: list[ForecastHorizonOut] = []
+    for h in doc["horizons"]:
+        if h["key"] == "year":
+            continue
+        raw, cal, bt = h["portfolio"], h["calibrated"], h["backtest"]
+        band = cal or raw
+        out.append(
+            ForecastHorizonOut(
+                key=h["key"],
+                label=h["label"],
+                days=h["days"],
+                low=max(band["q10"], -0.99),  # a price cannot fall below zero
+                mid=raw["q50"],
+                high=band["q90"],
+                p_gain_net=raw["p_gain_net"],
+                calibrated=bool(cal),
+                coverage80=bt.get("coverage80"),
+                windows=int(bt.get("n_effective") or 0),
+                reliable=bool(bt.get("reliable")),
+                drift_weight=h["drift_weight"],
+            )
+        )
+    return SymbolForecastOut(
+        available=True,
+        as_of=doc.get("as_of"),
+        price=price,
+        history_days=doc["history_days"],
+        horizons=out,
+    )
 
 
 def _prev_close(session: Session, instrument_id: int) -> float | None:

@@ -359,19 +359,28 @@ test.describe("entry odds and the chart", () => {
     // every state of today made no difference, so there is no card, only the one line
     await expect(page.getByTestId("entry-odds")).toHaveCount(0);
     await expect(page.getByTestId("entry-none")).toContainText("بهتر یا بدتر نبوده");
-    // the price range is its own card, open by default, apart from the verdict
-    const range = page.getByTestId("price-range");
-    await expect(range.getByTestId("candles-vs-verdict")).toContainText(
-      "از حکم «چه کنم؟» مستقل است",
-    );
-    const next = range.getByTestId("next-candles");
-    // this year is the default; each row is one plain range with one percentage
-    await expect(next).toHaveAttribute("data-window", "year");
-    await expect(next.locator('tr[data-h="5"]')).toContainText("۹۴۰ تا ۱٬۰۹۰");
-    await expect(next).toContainText("۸ مورد از هر ۱۰ مورد گذشته");
-    await expect(next).not.toContainText("بالاتر از قیمت خرید");
-    await next.getByRole("button", { name: "۳ سال" }).click();
-    await expect(next).toHaveAttribute("data-window", "y3");
+  });
+
+  test("symbol page shows each holding period's range and leads back to the one verdict", async ({
+    page,
+  }) => {
+    await page.goto("/instruments/1");
+    const card = page.getByTestId("outlook");
+    // the verdict's own three months is the default; the range is drawn on the chart too
+    await expect(card).toHaveAttribute("data-period", "quarter");
+    await expect(card.getByTestId("outlook-range")).toContainText("۸۰۰ ریال تا ۱٬۴۰۰ ریال");
+    await expect(card.getByTestId("outlook-chance")).toContainText("۶۰ مسیر از ۱۰۰");
+    await expect(card.getByTestId("outlook-verdict")).toContainText("حکم نهایی صفحه (سه ماه)");
+    await card.getByTestId("period-days3").click();
+    await expect(card).toHaveAttribute("data-period", "days3");
+    await expect(card.getByTestId("outlook-range")).toContainText("۹۵۰ ریال تا ۱٬۰۵۰ ریال");
+    // the candidate zone lost after costs over three days: no buy signal for it, same final verdict
+    await expect(card.getByTestId("outlook-verdict")).toContainText("برای سه روز نشانهٔ خرید نیست");
+    await expect(card.getByTestId("outlook-verdict")).toContainText("حکم نهایی صفحه (سه ماه)");
+    await card.getByTestId("period-week").click();
+    await expect(card.getByTestId("outlook-verdict")).toContainText("حکم فقط برای سه ماه");
+    await card.getByTestId("period-half").click();
+    await expect(card.getByTestId("outlook-tested")).toContainText("بازه آزموده نیست");
   });
 
   test("model page leads with the entry lab", async ({ page }) => {

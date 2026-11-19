@@ -5458,6 +5458,82 @@
         "title": "FeatureValue",
         "type": "object"
       },
+      "ForecastHorizonOut": {
+        "description": "One holding period of a symbol's price range (``portfolio/forecast.py``): the 80% range\nand the median as returns from ``price``, calibrated by the symbol's own backtest when it had\nenough windows, and the chance of ending above the price after one round trip of cost.",
+        "properties": {
+          "calibrated": {
+            "title": "Calibrated",
+            "type": "boolean"
+          },
+          "coverage80": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage80"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "drift_weight": {
+            "title": "Drift Weight",
+            "type": "number"
+          },
+          "high": {
+            "title": "High",
+            "type": "number"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "low": {
+            "title": "Low",
+            "type": "number"
+          },
+          "mid": {
+            "title": "Mid",
+            "type": "number"
+          },
+          "p_gain_net": {
+            "title": "P Gain Net",
+            "type": "number"
+          },
+          "reliable": {
+            "title": "Reliable",
+            "type": "boolean"
+          },
+          "windows": {
+            "title": "Windows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "days",
+          "low",
+          "mid",
+          "high",
+          "p_gain_net",
+          "calibrated",
+          "coverage80",
+          "windows",
+          "reliable",
+          "drift_weight"
+        ],
+        "title": "ForecastHorizonOut",
+        "type": "object"
+      },
       "FreshnessItem": {
         "properties": {
           "date": {
@@ -11849,6 +11925,70 @@
         "title": "Swing",
         "type": "object"
       },
+      "SymbolForecastOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "history_days": {
+            "default": 0,
+            "title": "History Days",
+            "type": "integer"
+          },
+          "horizons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ForecastHorizonOut"
+            },
+            "title": "Horizons",
+            "type": "array"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "available",
+          "reason",
+          "as_of",
+          "price",
+          "history_days",
+          "horizons"
+        ],
+        "title": "SymbolForecastOut",
+        "type": "object"
+      },
       "SymbolNewsOut": {
         "properties": {
           "published_at": {
@@ -13787,6 +13927,49 @@
           }
         },
         "summary": "Instrument Entry",
+        "tags": [
+          "instruments"
+        ]
+      }
+    },
+    "/instruments/{instrument_id}/forecast": {
+      "get": {
+        "description": "Where the price may be after 1 and 3 days, a week, a month, 3 and 6 months: the\nportfolio forecast run on this one symbol, with its bands checked on the symbol's own past.",
+        "operationId": "instrument_forecast_instruments__instrument_id__forecast_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instrument_id",
+            "required": true,
+            "schema": {
+              "title": "Instrument Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SymbolForecastOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Instrument Forecast",
         "tags": [
           "instruments"
         ]

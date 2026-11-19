@@ -35,3 +35,10 @@ and the AGM calculator.
   near trigger applies; they come from `v2/ride_lines/{iid}.json` and only when its `as_of` matches
   turning.json. A step line running across a gap is a bug (docs/reports/trend-warn-2026-11.md).
   Check کوثر for a buy warning.
+- The «اگر این مدت نگه دارید» card (`data-testid="outlook"`, `?p=day|days3|week|month|quarter|half`,
+  default quarter) comes from `GET /instruments/{id}/forecast`. Compare `low`, `mid`, `high` times
+  `price` with the card, and check the chart draws the same range after the last candle as dotted
+  «سقف بازه» and «کف بازه» and a dashed «میانه». Every period must end with the page's one
+  three-month verdict; a short period claiming its own buy is a bug
+  (docs/reports/verdict-parts-2026-11.md). Check شکام (quarter, calibrated) and کوثر (week, trend
+  entry inside the range). A period with too few separate windows says «بازه آزموده نیست».
