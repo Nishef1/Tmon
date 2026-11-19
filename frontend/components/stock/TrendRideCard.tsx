@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { faNumber, faPercent, faPrice, jalali } from "@/lib/format";
 import { signedPct, signTone } from "@/lib/ui";
 import { useOwned } from "@/components/stock/HoldWord";
-import { rideWarning, type Ride } from "@/components/stock/rideMarks";
+import { rideStale, rideWarning, type Ride } from "@/components/stock/rideMarks";
 
 type Block = NonNullable<Ride["history"]>["halves"][number];
 
@@ -161,7 +161,7 @@ function Now({ r, owned }: { r: Ride; owned: boolean }) {
               </>
             )}
           </p>
-          {r.buy_trigger != null && <Trigger r={r} />}
+          {r.buy_trigger != null && !rideStale(r) && <Trigger r={r} />}
         </>
       );
   }
@@ -195,6 +195,12 @@ export function TrendRideCard({ r, instrumentId }: { r: Ride; instrumentId: numb
         <span className={`pill ${g.cls}`}>شواهد: {g.label}</span>
         <span className="text-sm text-muted">قاعدهٔ آزموده، توصیه نیست</span>
       </div>
+      {rideStale(r) && (
+        <p className="mb-2 rounded-lg bg-warn-soft p-3 text-sm" data-testid="ride-stale">
+          این سهم از {jalali(r.last_date)} معامله نشده است. آنچه در ادامه می‌آید وضعیت
+          قاعده در آخرین روز معامله است؛ تا سهم دوباره معامله نشود، نشانهٔ خرید یا فروشی نمی‌آید.
+        </p>
+      )}
       <Now r={r} owned={owned} />
       <Warn r={r} owned={owned} />
       {h && (

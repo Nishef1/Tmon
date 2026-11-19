@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IChartApi, ISeriesApi, LogicalRange, SeriesType, Time } from "lightweight-charts";
 import type { Candle } from "@/lib/api";
+import { aggregate, regroup, TF_DAYS, TF_NAME, TFS, type Tf } from "@/lib/timeframe";
 import { faNumber, faPercent, faPrice, jalali } from "@/lib/format";
 import Link from "next/link";
 import {
@@ -268,11 +269,11 @@ type Tracked = {
 };
 
 export function CandleChart({
-  candles,
+  candles: daily,
   levels = NO_LEVELS,
-  marks = NO_MARKS,
-  paths = NO_PATHS,
-  cone,
+  marks: dailyMarks = NO_MARKS,
+  paths: dailyPaths = NO_PATHS,
+  cone: dailyCone,
 }: {
   candles: Candle[];
   levels?: Level[];
@@ -284,6 +285,33 @@ export function CandleChart({
   const shell = useRef<HTMLDivElement>(null);
   const [cfg, setCfgState] = useState<Cfg>(DEFAULT);
   const [span, setSpan] = useState(0);
+  // one candle per day, week, month, season or half year; marks and lines move onto their candle
+  const [tf, setTf] = useState<Tf>("1d");
+  const { candles, at } = useMemo(() => aggregate(daily, tf), [daily, tf]);
+  const marks = useMemo(
+    () =>
+      tf === "1d"
+        ? dailyMarks
+        : dailyMarks.flatMap((m) => {
+            const t = at.get(m.time);
+            return t ? [{ ...m, time: t }] : [];
+          }),
+    [dailyMarks, tf, at],
+  );
+  const paths = useMemo(
+    () =>
+      tf === "1d"
+        ? dailyPaths
+        : dailyPaths.map((p) => ({ ...p, points: regroup(p.points, tf, at) })),
+    [dailyPaths, tf, at],
+  );
+  const cone = useMemo(
+    () =>
+      dailyCone && tf !== "1d"
+        ? { ...dailyCone, points: regroup(dailyCone.points, tf, at) }
+        : dailyCone,
+    [dailyCone, tf, at],
+  );
   const [panel, setPanel] = useState(false);
   const [full, setFull] = useState(false);
   const [hover, setHover] = useState<Bar | null>(null);
@@ -370,7 +398,9 @@ export function CandleChart({
   // future days of the forecast range, kept in view beside the last n candles
   const ahead = cone ? cone.points.length - 1 : 0;
   const applySpan = useCallback(
-    (chart: IChartApi, n: number) => {
+    (chart: IChartApi, days: number) => {
+      // the span buttons count trading days; a longer candle shows fewer of them, at least four
+      const n = days > 0 ? Math.max(Math.ceil(days / TF_DAYS[tf]), 4) : 0;
       if (n > 0 && real.length > n) {
         // n bars fill the plot less the gap; the gap is n bars scaled by its share of the width
         const w = Math.max(chart.timeScale().width() - GAP, 100);
@@ -380,7 +410,7 @@ export function CandleChart({
         chart.timeScale().fitContent();
       }
     },
-    [real.length, ahead],
+    [real.length, ahead, tf],
   );
 
   useEffect(() => {
@@ -967,6 +997,13 @@ export function CandleChart({
             </button>
           )}
           <span className="ms-auto flex flex-wrap items-center gap-2">
+            <span className="seg" role="group" aria-label="اندازهٔ هر شمع" data-testid="chart-tf">
+              {TFS.map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={tf === k} onClick={() => setTf(k)}>
+                  {label}
+                </button>
+              ))}
+            </span>
             <span className="seg" role="group" aria-label="بازهٔ زمانی">
               {SPANS.map(([n, label]) => (
                 <button key={n} type="button" aria-pressed={span === n} onClick={() => pickSpan(n)}>
@@ -1003,6 +1040,14 @@ export function CandleChart({
             </span>
           </span>
         </div>
+        {tf !== "1d" && (
+          <p className="mt-1 text-xs leading-6 text-muted" data-testid="chart-tf-note">
+            هر شمع یک {TF_NAME[tf]} است (ماه‌ها و فصل‌ها به تقویم شمسی، هفته از شنبه) و تاریخ آن
+            اولین روز معاملهٔ همان دوره است. میانگین‌ها و شاخص‌ها روی همین شمع‌ها حساب می‌شوند.
+            نشانه‌ها و خط‌های قاعدهٔ روند روی شمع روزانه ساخته شده‌اند و اینجا روی شمع همان دوره
+            نشسته‌اند؛ خط در هر شمع مقدار روز آخر آن دوره است. شمع آخر ممکن است هنوز تمام نشده باشد.
+          </p>
+        )}
         <div className="chart-ind" data-testid="chart-indicators">
           <div className="chart-ind-row" role="group" aria-label="خط‌های روی قیمت">
             <span className="chart-ind-label">روی قیمت</span>

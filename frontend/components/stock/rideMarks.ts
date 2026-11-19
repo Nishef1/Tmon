@@ -67,9 +67,15 @@ export function rideLevels(r: Ride): Level[] {
 /** How close the next close is to crossing the rule's line, when it is inside the warning band:
  *  how far the close is from it, as in the study (the rise to the entry price, the height above
  *  the sell line). The chart draws the same bands. */
+/** The symbol has not traded since the ride's last day (halted or delisted): the ride and its
+ *  lines are as of that day, so no buy or sale can come until it trades again. */
+export function rideStale(r: Ride): boolean {
+  return r.market_date != null && r.last_date < r.market_date;
+}
+
 export function rideWarning(r: Ride): { side: "buy" | "sell"; move: number } | null {
   const w = r.warn_band;
-  if (!w) return null;
+  if (!w || rideStale(r)) return null;
   if (r.status === "open" && r.stop != null) {
     const move = r.last_close / r.stop - 1;
     return move <= w ? { side: "sell", move } : null;

@@ -2276,6 +2276,8 @@ export interface components {
        * Format: date
        */
       last_date: string;
+      /** Market Date */
+      market_date: string | null;
       /** Max Hold Days */
       max_hold_days: number;
       /** Near High */

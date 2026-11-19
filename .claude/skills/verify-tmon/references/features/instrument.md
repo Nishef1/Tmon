@@ -40,6 +40,13 @@ and the AGM calculator.
   near trigger applies; they come from `v2/ride_lines/{iid}.json` and only when its `as_of` matches
   turning.json. A step line running across a gap is a bug (docs/reports/trend-warn-2026-11.md).
   Check کوثر for a buy warning.
+- A halted or delisted symbol (`ride.last_date` before `ride.market_date`) shows `ride-stale` and
+  no `ride-warn` or buy trigger. Check بتک (id 4058, last trade 2011). A ride shown as open «today» for it is a bug.
+- The chart's «اندازهٔ هر شمع» buttons (`chart-tf`) switch to weekly, monthly, 3-month and 6-month
+  candles (Persian calendar, `lib/timeframe.ts`) and show `chart-tf-note`. The trend marks must
+  stay on the candle of their period, and the sell line must step once per candle. A mark missing
+  after a switch, or a candle whose high is under its close, is a bug
+  (docs/reports/trend-audit-2026-11.md).
 - The «اگر این مدت نگه دارید» card (`data-testid="outlook"`, `?p=day|days3|week|month|quarter|half`,
   default quarter) comes from `GET /instruments/{id}/forecast`. Compare `low`, `mid`, `high` times
   `price` with the card, and check the chart draws the same range after the last candle as dotted

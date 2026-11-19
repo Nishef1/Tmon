@@ -4115,6 +4115,18 @@
             "title": "Last Date",
             "type": "string"
           },
+          "market_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Date"
+          },
           "max_hold_days": {
             "title": "Max Hold Days",
             "type": "integer"
@@ -4239,6 +4251,7 @@
           "exit_close",
           "last_date",
           "last_close",
+          "market_date",
           "gain",
           "days_since_exit",
           "sell_line",

@@ -935,6 +935,9 @@ class DashRide(ApiModel):
     exit_close: float | None = None
     last_date: dt.date
     last_close: float
+    # the newest market day of the document: a later day than last_date means the symbol has not
+    # traded since (halted or delisted), so the ride is as of its last trade, not today
+    market_date: dt.date | None = None
     gain: float | None = None  # from the buy to the sale, or to the last close while open
     days_since_exit: int | None = None
     # chart lines, as steps on the day whose close is compared with them: the sell line while a

@@ -970,6 +970,7 @@ def _ride(
         **{k: v for k, v in cur.items() if k not in ("sell_line", "buy_line")},
         sell_line=lines.get("sell_line", []),
         buy_line=lines.get("buy_line", []),
+        market_date=meta.get("as_of"),
         near_high=meta["near_high"],
         trail=meta["trail"],
         max_hold_days=meta["max_hold_days"],
