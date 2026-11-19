@@ -17,6 +17,7 @@
 - ورود SSH با کلید (`~/.ssh/tmon_vps`) است. اگر ورود با رمز هنوز باز است، پس از اطمینان از کلید آن را ببند (`PasswordAuthentication no` در `/etc/ssh/sshd_config`، سپس `systemctl restart ssh`).
 - گواهی خودامضاست (بدون دامنه). با داشتن دامنه، certbot گواهی معتبر می‌دهد.
 - تغییر رمز سایت: `htpasswd -B /etc/nginx/tmon/htpasswd tmon && systemctl reload nginx`.
+- «مرا وارد نگه دار»: پس از یک ورود درست، nginx کوکی `tmon_key` (۳۰ روز، `HttpOnly`، `Secure`) می‌گذارد و تا آن زمان پنجرهٔ رمز دوباره نمی‌آید. کوکی یک توکن تصادفی سمت سرور است، نه رمز (`/etc/nginx/tmon/cookie.conf`). برای بیرون انداختن همهٔ مرورگرها: `rm /etc/nginx/tmon/cookie*.conf` و اجرای دوبارهٔ بخش nginx در `server-setup.sh`، یا ساختن توکن تازه.
 - لاگ‌ها: `journalctl -u tmon-api -u tmon-web -u tmon-monitor`.
 
 ## یادداشت‌های نصب واقعی (Ubuntu 24.04)

@@ -102,7 +102,16 @@ mkdir -p /etc/nginx/tmon
   -keyout /etc/nginx/tmon/key.pem -out /etc/nginx/tmon/cert.pem -subj "/CN=$IP" -addext "subjectAltName=IP:$IP"
 htpasswd -bcB /etc/nginx/tmon/htpasswd "$SITE_USER" "$SITE_PASS"
 chmod 640 /etc/nginx/tmon/htpasswd /etc/nginx/tmon/key.pem; chgrp www-data /etc/nginx/tmon/htpasswd /etc/nginx/tmon/key.pem
+# "stay signed in": after one good login nginx sets a 30-day cookie holding a random server-side
+# token (never the password); the cookie skips the login box. Delete cookie.conf to sign everyone out.
+[ -f /etc/nginx/tmon/cookie.conf ] || {
+  TOK=$(openssl rand -hex 32)
+  printf 'map_hash_bucket_size 128;\nmap $cookie_tmon_key $tmon_realm { "%s" off; default "Tmon"; }\n' "$TOK" > /etc/nginx/tmon/cookie.conf
+  printf 'add_header Set-Cookie "tmon_key=%s; Max-Age=2592000; Path=/; Secure; HttpOnly; SameSite=Strict";\n' "$TOK" > /etc/nginx/tmon/cookie-set.conf
+}
+chmod 640 /etc/nginx/tmon/cookie*.conf; chgrp www-data /etc/nginx/tmon/cookie*.conf
 cat > /etc/nginx/sites-available/tmon <<'NGX'
+include /etc/nginx/tmon/cookie.conf;
 limit_req_zone $binary_remote_addr zone=tmon:10m rate=20r/s;
 server { listen 80 default_server; return 301 https://$host$request_uri; }
 server {
@@ -115,7 +124,8 @@ server {
   add_header X-Content-Type-Options nosniff always;
   add_header X-Frame-Options DENY always;
   add_header Referrer-Policy no-referrer always;
-  auth_basic "Tmon";
+  include /etc/nginx/tmon/cookie-set.conf;   # no "always": only successful (logged-in) answers set it
+  auth_basic $tmon_realm;
   auth_basic_user_file /etc/nginx/tmon/htpasswd;
   limit_req zone=tmon burst=60 nodelay;
   location / {
