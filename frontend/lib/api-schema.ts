@@ -181,6 +181,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/industries/overview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Overview
+     * @description One card per industry: the consensus move of its symbols, breadth, value and money.
+     */
+    get: operations["overview_industries_overview_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/industries/{code}/detail": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Detail
+     * @description One industry: consensus candles of all its symbols and a row for each symbol.
+     */
+    get: operations["detail_industries__code__detail_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/instruments/by-slug/{sector}/{symbol}": {
     parameters: {
       query?: never;
@@ -385,6 +425,27 @@ export interface paths {
      *     and Brent in ounces of gold, each against its own past (docs/reports/gold-oil-2026-11.md).
      */
     get: operations["gold_oil_macro_gold_oil_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/market/index": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Index Detail
+     * @description The two official indices with candles, the day's range and period returns, plus breadth,
+     *     value and median move of the last full days. End-of-day only.
+     */
+    get: operations["index_detail_market_index_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1558,6 +1619,23 @@ export interface components {
       t20: number;
       /** T5 */
       t5: number;
+    };
+    /** BreadthDay */
+    BreadthDay: {
+      /** Date */
+      date: string;
+      /** Down */
+      down: number;
+      /** Flat */
+      flat: number;
+      /** Median Change */
+      median_change: number | null;
+      /** N */
+      n: number;
+      /** Up */
+      up: number;
+      /** Value */
+      value: number;
     };
     /** BriefingOut */
     BriefingOut: {
@@ -3110,12 +3188,215 @@ export interface components {
       /** Stop Price */
       stop_price?: number | null;
     };
+    /** IndexReturn */
+    IndexReturn: {
+      /** Label */
+      label: string;
+      /** Value */
+      value: number | null;
+    };
+    /**
+     * IndexSeries
+     * @description One official index with its candles. The feed has no open, so each candle opens at the
+     *     previous close; the volume bars are the value traded by all stocks that day.
+     */
+    IndexSeries: {
+      /** Above Year Low */
+      above_year_low: number | null;
+      /**
+       * Candles
+       * @default []
+       */
+      candles: components["schemas"]["Candle"][];
+      /** Change */
+      change: number | null;
+      /** Close */
+      close: number;
+      /** Date */
+      date: string;
+      /** From Year High */
+      from_year_high: number | null;
+      /** High */
+      high: number | null;
+      /**
+       * Key
+       * @enum {string}
+       */
+      key: "tedpix" | "equal_weight";
+      /** Low */
+      low: number | null;
+      /** Name */
+      name: string;
+      /** Position */
+      position: number | null;
+      /** Prev Close */
+      prev_close: number | null;
+      /** Range Pct */
+      range_pct: number | null;
+      /**
+       * Returns
+       * @default []
+       */
+      returns: components["schemas"]["IndexReturn"][];
+      /** Year High */
+      year_high: number | null;
+      /** Year Low */
+      year_low: number | null;
+    };
+    /** IndustryBreadth */
+    IndustryBreadth: {
+      /** Above Sma20 */
+      above_sma20: number;
+      /** Above Sma50 */
+      above_sma50: number;
+      /** Down */
+      down: number;
+      /** Flat */
+      flat: number;
+      /** N */
+      n: number;
+      /** N Trend */
+      n_trend: number;
+      /** Near Year High */
+      near_year_high: number;
+      /** Up */
+      up: number;
+    };
+    /** IndustryCard */
+    IndustryCard: {
+      /**
+       * Above Sma20
+       * @default 0
+       */
+      above_sma20: number;
+      /** Code */
+      code: string;
+      /** Day */
+      day: number | null;
+      /** Day Value */
+      day_value: number | null;
+      /**
+       * Down
+       * @default 0
+       */
+      down: number;
+      /**
+       * Flat
+       * @default 0
+       */
+      flat: number;
+      /** M3 */
+      m3: number | null;
+      /** Month */
+      month: number | null;
+      /** N */
+      n: number;
+      /** N Traded */
+      n_traded: number;
+      /**
+       * N Trend
+       * @default 0
+       */
+      n_trend: number;
+      /** Name */
+      name: string;
+      /** Net Real Flow */
+      net_real_flow: number | null;
+      /**
+       * Spark
+       * @default []
+       */
+      spark: number[];
+      /**
+       * Up
+       * @default 0
+       */
+      up: number;
+      /**
+       * Value
+       * @default 0
+       */
+      value: number;
+      /**
+       * Value Share
+       * @default 0
+       */
+      value_share: number;
+      /** Week */
+      week: number | null;
+      /** Year */
+      year: number | null;
+    };
     /** IndustryCorr */
     IndustryCorr: {
       /** Order */
       order: string[];
       /** Values */
       values: (number | null)[][];
+    };
+    /** IndustryDetail */
+    IndustryDetail: {
+      /** As Of */
+      as_of: string;
+      breadth: components["schemas"]["IndustryBreadth"];
+      /**
+       * Candles
+       * @default []
+       */
+      candles: components["schemas"]["Candle"][];
+      /**
+       * Candles Value
+       * @default []
+       */
+      candles_value: components["schemas"]["Candle"][];
+      /** Code */
+      code: string;
+      /** Day */
+      day: number | null;
+      /** Day Value */
+      day_value: number | null;
+      /**
+       * Flow
+       * @default []
+       */
+      flow: components["schemas"]["IndustryFlowDay"][];
+      /** Flow Date */
+      flow_date: string | null;
+      /**
+       * Members
+       * @default []
+       */
+      members: components["schemas"]["IndustryMember"][];
+      /** N Members */
+      n_members: number;
+      /** N Traded */
+      n_traded: number;
+      /** Name */
+      name: string;
+      /** Net Real Flow */
+      net_real_flow: number | null;
+      /**
+       * Returns
+       * @default []
+       */
+      returns: components["schemas"]["IndustryReturn"][];
+      /**
+       * Value
+       * @default 0
+       */
+      value: number;
+      /**
+       * Value Share
+       * @default 0
+       */
+      value_share: number;
+    };
+    /** IndustryFlowDay */
+    IndustryFlowDay: {
+      /** Date */
+      date: string;
+      /** Net Real */
+      net_real: number;
     };
     /**
      * IndustryMapOut
@@ -3193,12 +3474,85 @@ export interface components {
       /** Ret 52W */
       ret_52w: number | null;
     };
+    /** IndustryMember */
+    IndustryMember: {
+      /** Above Sma20 */
+      above_sma20: boolean | null;
+      /** Close */
+      close: number | null;
+      /** Contrib */
+      contrib: number | null;
+      /** Day */
+      day: number | null;
+      /** From Year High */
+      from_year_high: number | null;
+      /** Gauge */
+      gauge: number | null;
+      /** Instrument Id */
+      instrument_id: number;
+      /** M3 */
+      m3: number | null;
+      /** Month */
+      month: number | null;
+      /** Name */
+      name: string | null;
+      /** Net Real Flow */
+      net_real_flow: number | null;
+      /**
+       * Spark
+       * @default []
+       */
+      spark: number[];
+      /** Symbol */
+      symbol: string;
+      /** Value */
+      value: number | null;
+      /** Value Share */
+      value_share: number | null;
+      /**
+       * Verdict
+       * @default none
+       */
+      verdict: string;
+      /**
+       * Verdict Label
+       * @default
+       */
+      verdict_label: string;
+      /** Week */
+      week: number | null;
+      /** Year */
+      year: number | null;
+    };
+    /** IndustryOverview */
+    IndustryOverview: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /**
+       * Industries
+       * @default []
+       */
+      industries: components["schemas"]["IndustryCard"][];
+      /** Market Day */
+      market_day: number | null;
+    };
     /** IndustryPeer */
     IndustryPeer: {
       /** Corr */
       corr: number;
       /** Sector */
       sector: string;
+    };
+    /** IndustryReturn */
+    IndustryReturn: {
+      /** Label */
+      label: string;
+      /** Value */
+      value: number | null;
+      /** Vs Market */
+      vs_market: number | null;
     };
     /** InflationOut */
     InflationOut: {
@@ -3651,6 +4005,23 @@ export interface components {
       symbol: string;
       /** Value */
       value: number;
+    };
+    /** MarketIndexOut */
+    MarketIndexOut: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /**
+       * Days
+       * @default []
+       */
+      days: components["schemas"]["BreadthDay"][];
+      /**
+       * Series
+       * @default []
+       */
+      series: components["schemas"]["IndexSeries"][];
     };
     /** MarketIndexPoint */
     MarketIndexPoint: {
@@ -5483,6 +5854,59 @@ export interface operations {
       };
     };
   };
+  overview_industries_overview_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IndustryOverview"];
+        };
+      };
+    };
+  };
+  detail_industries__code__detail_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path: {
+        code: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IndustryDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   instrument_by_slug_instruments_by_slug__sector___symbol__get: {
     parameters: {
       query?: never;
@@ -5800,6 +6224,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GoldOilOut"];
+        };
+      };
+    };
+  };
+  index_detail_market_index_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MarketIndexOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

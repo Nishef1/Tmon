@@ -1745,3 +1745,140 @@ class IndustryMapOut(ApiModel):
     market: IndustryMarketReturns
     sectors: list[IndustryMapRow]
     corr: IndustryCorr
+
+
+class IndexReturn(ApiModel):
+    label: str
+    value: float | None = None
+
+
+class IndexSeries(ApiModel):
+    """One official index with its candles. The feed has no open, so each candle opens at the
+    previous close; the volume bars are the value traded by all stocks that day."""
+
+    key: Literal["tedpix", "equal_weight"]
+    name: str
+    date: str
+    close: float
+    prev_close: float | None = None
+    change: float | None = None
+    high: float | None = None
+    low: float | None = None
+    range_pct: float | None = None  # day's high to low
+    position: float | None = None  # where the close sits inside the day's range, 0 to 1
+    year_high: float | None = None
+    year_low: float | None = None
+    from_year_high: float | None = None  # close against the year's high, <= 0
+    above_year_low: float | None = None
+    returns: list[IndexReturn] = []
+    candles: list[Candle] = []
+
+
+class BreadthDay(ApiModel):
+    date: str
+    n: int
+    up: int
+    down: int
+    flat: int
+    value: float
+    median_change: float | None = None
+
+
+class MarketIndexOut(ApiModel):
+    available: bool
+    as_of: str | None = None
+    series: list[IndexSeries] = []
+    days: list[BreadthDay] = []
+
+
+class IndustryReturn(ApiModel):
+    label: str
+    value: float | None = None
+    vs_market: float | None = None  # minus the equal-weight market index over the same days
+
+
+class IndustryBreadth(ApiModel):
+    n: int
+    up: int
+    down: int
+    flat: int
+    above_sma20: int
+    above_sma50: int
+    near_year_high: int  # within 3% of the year's high
+    n_trend: int  # symbols with enough history for the averages
+
+
+class IndustryFlowDay(ApiModel):
+    date: str
+    net_real: float
+
+
+class IndustryMember(ApiModel):
+    instrument_id: int
+    symbol: str
+    name: str | None = None
+    close: float | None = None
+    day: float | None = None
+    week: float | None = None
+    month: float | None = None
+    m3: float | None = None
+    year: float | None = None
+    value: float | None = None
+    value_share: float | None = None  # of the industry's traded value
+    net_real_flow: float | None = None
+    contrib: float | None = None  # points the symbol added to the equal-weight day move
+    verdict: str = "none"
+    verdict_label: str = ""
+    gauge: float | None = None
+    from_year_high: float | None = None
+    above_sma20: bool | None = None
+    spark: list[float] = []
+
+
+class IndustryDetail(ApiModel):
+    code: str
+    name: str
+    as_of: str
+    n_members: int
+    n_traded: int
+    day: float | None = None  # equal-weight consensus
+    day_value: float | None = None  # weighted by the value traded the day before
+    value: float = 0.0
+    value_share: float = 0.0
+    net_real_flow: float | None = None
+    flow_date: str | None = None
+    returns: list[IndustryReturn] = []
+    breadth: IndustryBreadth
+    flow: list[IndustryFlowDay] = []
+    candles: list[Candle] = []  # equal weight
+    candles_value: list[Candle] = []  # value weight
+    members: list[IndustryMember] = []
+
+
+class IndustryCard(ApiModel):
+    code: str
+    name: str
+    n: int
+    n_traded: int
+    day: float | None = None
+    day_value: float | None = None
+    week: float | None = None
+    month: float | None = None
+    m3: float | None = None
+    year: float | None = None
+    value: float = 0.0
+    value_share: float = 0.0
+    net_real_flow: float | None = None
+    up: int = 0
+    down: int = 0
+    flat: int = 0
+    above_sma20: int = 0
+    n_trend: int = 0
+    spark: list[float] = []
+
+
+class IndustryOverview(ApiModel):
+    available: bool
+    as_of: str | None = None
+    market_day: float | None = None  # equal-weight index of the exchange
+    industries: list[IndustryCard] = []

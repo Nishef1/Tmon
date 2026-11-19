@@ -8,6 +8,14 @@
   high/normal/low pill, and Brent in ounces of gold. Compare `gold_prem.value` with the big number.
   The Bahar Azadi card (`coin-bahar-bubble`) shows `coin_bahar`, its gold value and the ounce, with
   no gauge or pill (only Emami was studied).
+- `/` top card (`GET /market/index`): TEDPIX and equal-weight index with candles, today's range,
+  year high/low, week-to-year returns and 30-day breadth. Check the big close and change against the
+  JSON `close` / `change`; volume bars are traded value in toman.
+- `/industries`, «نبض صنایع» (`GET /industries/overview`): one card per industry, sortable. A card
+  opens `/industries/<code>` (`GET /industries/<code>/detail`): consensus candles (equal / value
+  weight toggle), returns against the market, breadth, 30-day real-money flow and one row per symbol
+  (sortable; a click opens the symbol's own chart). Check `day` equals the mean of the members'
+  `day` and that the members' `contrib` sum to it.
 - `/industries`, top section «صادرات‌محور یا داخلی؟» (`GET /industries/map`, artifact
   `v2/industry_map.json`): three group cards that filter, one row per industry (axis bar, dollar
   badge, beta, cohesion, 3-month return; a click opens symbols and both halves' dollar link) and a

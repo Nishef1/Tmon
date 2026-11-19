@@ -167,3 +167,11 @@ export type IndustryMap = S["IndustryMapOut"];
 export type IndustryMapRow = S["IndustryMapRow"];
 export type GoldOil = S["GoldOilOut"];
 export type GoldRatio = S["GoldRatioOut"];
+
+export type MarketIndex = S["MarketIndexOut"];
+export type IndexSeries = S["IndexSeries"];
+export type BreadthDay = S["BreadthDay"];
+export type IndustryOverview = S["IndustryOverview"];
+export type IndustryCard = S["IndustryCard"];
+export type IndustryDetail = S["IndustryDetail"];
+export type IndustryMember = S["IndustryMember"];

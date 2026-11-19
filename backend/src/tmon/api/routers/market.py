@@ -9,16 +9,22 @@ from __future__ import annotations
 
 import datetime as dt
 import statistics
+from itertools import pairwise
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tmon.api.returns import MAX_DAY_MOVE
 from tmon.api.schemas import (
+    BreadthDay,
+    Candle,
+    IndexReturn,
+    IndexSeries,
     MarketBand,
     MarketFlow,
+    MarketIndexOut,
     MarketIndexPoint,
     MarketMover,
     MarketOverviewOut,
@@ -233,3 +239,143 @@ def overview(session: SessionDep) -> MarketOverviewOut:
                 )
             )
     return out
+
+
+INDEX_KEYS: list[tuple[str, str]] = [("tedpix", "شاخص کل"), ("equal_weight", "شاخص کل (هم‌وزن)")]
+INDEX_RETURNS = [("هفته", 7), ("ماه", 30), ("سه ماه", 90), ("سال", 365)]
+BREADTH_DAYS = 30
+
+
+def _index_series(
+    session: Session, key: str, name: str, days: int, value_by_day: dict[dt.date, float]
+) -> IndexSeries | None:
+    code = get_engine_config().benchmarks.indices.get(key)
+    if code is None:
+        return None
+    rows = list(
+        reversed(
+            session.execute(
+                select(
+                    MarketIndexDaily.date,
+                    MarketIndexDaily.close,
+                    MarketIndexDaily.high,
+                    MarketIndexDaily.low,
+                )
+                .where(MarketIndexDaily.index_code == code)
+                .order_by(MarketIndexDaily.date.desc())
+                .limit(max(days, 300) + 1)
+            ).all()
+        )
+    )
+    if len(rows) < 2:
+        return None
+    candles = []
+    for (_, prev_close, _, _), (d, close, high, low) in pairwise(rows):
+        # the feed has no open: it is the previous close, or the nearest edge of the day when the
+        # index gapped past it, so a gap shows as a gap between candles and not as a long shadow
+        hi = max(x for x in (high, close) if x is not None)
+        lo = min(x for x in (low, close) if x is not None)
+        opened = min(max(prev_close, lo), hi)
+        candles.append(
+            Candle(
+                date=d,
+                open=opened,
+                high=hi,
+                low=lo,
+                close=close,
+                volume=value_by_day.get(d),
+            )
+        )
+    last_d, last_c, last_h, last_l = rows[-1]
+    prev_c = rows[-2][1]
+    year = [r for r in rows if r[0] > last_d - dt.timedelta(days=365)]
+    y_hi = max(r[2] if r[2] is not None else r[1] for r in year)
+    y_lo = min(r[3] if r[3] is not None else r[1] for r in year)
+
+    def back(days_back: int) -> float | None:
+        target = last_d - dt.timedelta(days=days_back)
+        base = [r for r in rows if r[0] <= target]
+        if not base or target - base[-1][0] > dt.timedelta(days=10):
+            return None
+        return last_c / base[-1][1] - 1.0
+
+    span = (last_h - last_l) if last_h is not None and last_l is not None else None
+    return IndexSeries(
+        key="tedpix" if key == "tedpix" else "equal_weight",
+        name=name,
+        date=str(last_d),
+        close=last_c,
+        prev_close=prev_c,
+        change=last_c / prev_c - 1.0 if prev_c else None,
+        high=last_h,
+        low=last_l,
+        range_pct=(last_h / last_l - 1.0) if last_h and last_l else None,
+        position=((last_c - last_l) / span) if span and last_l is not None else None,
+        year_high=y_hi,
+        year_low=y_lo,
+        from_year_high=last_c / y_hi - 1.0,
+        above_year_low=last_c / y_lo - 1.0,
+        returns=[IndexReturn(label=lb, value=back(n)) for lb, n in INDEX_RETURNS],
+        candles=candles[-days:],
+    )
+
+
+@router.get("/market/index", response_model=MarketIndexOut)
+def index_detail(
+    session: SessionDep, days: Annotated[int, Query(ge=20, le=1500)] = 250
+) -> MarketIndexOut:
+    """The two official indices with candles, the day's range and period returns, plus breadth,
+    value and median move of the last full days. End-of-day only."""
+    last = _latest_full(session, PriceDaily.date)
+    if last is None:
+        return MarketIndexOut(available=False)
+    since = last - dt.timedelta(days=int(max(days, 300) * 1.6) + 10)
+    by_day = session.execute(
+        select(PriceDaily.date, func.sum(PriceDaily.value))
+        .join(Instrument, Instrument.id == PriceDaily.instrument_id)
+        .where(Instrument.instrument_type == "stock", PriceDaily.date >= since)
+        .group_by(PriceDaily.date)
+    ).all()
+    value_by_day = {d: float(v or 0.0) for d, v in by_day}
+    series = [
+        s
+        for key, name in INDEX_KEYS
+        if (s := _index_series(session, key, name, days, value_by_day)) is not None
+    ]
+    if not series:
+        return MarketIndexOut(available=False)
+
+    rows = session.execute(
+        select(PriceDaily.date, PriceDaily.close, PriceDaily.prev_close, PriceDaily.market_halt)
+        .join(Instrument, Instrument.id == PriceDaily.instrument_id)
+        .where(
+            Instrument.instrument_type == "stock",
+            PriceDaily.date > last - dt.timedelta(days=BREADTH_DAYS * 2 + 10),
+            PriceDaily.date <= last,
+        )
+    ).all()
+    per: dict[dt.date, list[float]] = {}
+    seen: dict[dt.date, int] = {}
+    for d, close, prev, halt in rows:
+        seen[d] = seen.get(d, 0) + 1
+        if close and prev and prev > 0 and not halt:
+            move = float(close) / float(prev) - 1.0
+            if abs(move) <= MAX_CHANGE:
+                per.setdefault(d, []).append(move)
+    biggest = max(seen.values(), default=0)
+    days_out = [
+        BreadthDay(
+            date=str(d),
+            n=len(ch),
+            up=sum(c > 0.0005 for c in ch),
+            down=sum(c < -0.0005 for c in ch),
+            flat=sum(abs(c) <= 0.0005 for c in ch),
+            value=value_by_day.get(d, 0.0),
+            median_change=statistics.median(ch) if ch else None,
+        )
+        for d, ch in sorted(per.items())
+        if seen[d] >= MIN_COVERAGE * biggest
+    ][-BREADTH_DAYS:]
+    return MarketIndexOut(
+        available=True, as_of=max(s.date for s in series), series=series, days=days_out
+    )

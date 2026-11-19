@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { apiGet, type GoldOil, type MarketOverview, type Ranking } from "@/lib/api";
+import {
+  apiGet,
+  type GoldOil,
+  type MarketIndex,
+  type MarketOverview,
+  type Ranking,
+} from "@/lib/api";
 import { jalali } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
 import { ExposureCard } from "@/components/ExposureCard";
+import { IndexHero } from "@/components/market/IndexHero";
 import { Heatmap } from "@/components/today/Heatmap";
 import { MarketStrip } from "@/components/today/MarketStrip";
 import { QuickLook } from "@/components/today/QuickLook";
@@ -11,10 +18,11 @@ import { StockTable } from "@/components/today/StockTable";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [rank, market, gold] = await Promise.all([
+  const [rank, market, gold, index] = await Promise.all([
     apiGet<Ranking>("/v2/ranking"),
     apiGet<MarketOverview>("/market/overview"),
     apiGet<GoldOil>("/macro/gold-oil"),
+    apiGet<MarketIndex>("/market/index", { days: 300 }),
   ]);
   const ranked = rank.ok && rank.data.available ? rank.data : null;
   // what an ordinary buyer can act on: no funds, nothing stuck in a sell queue
@@ -34,6 +42,7 @@ export default async function Home() {
         </p>
       </div>
 
+      {index.ok && index.data.available && <IndexHero m={index.data} />}
       {market.ok && market.data.available && <MarketStrip m={market.data} />}
       <QuickLook gold={gold.ok ? gold.data : null} />
 

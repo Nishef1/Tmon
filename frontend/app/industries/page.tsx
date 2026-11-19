@@ -1,9 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { apiGet, type IndustryMap as MapDoc, type Screener } from "@/lib/api";
+import {
+  apiGet,
+  type IndustryMap as MapDoc,
+  type IndustryOverview,
+  type Screener,
+} from "@/lib/api";
 import { jalali } from "@/lib/format";
 import { toRow } from "@/lib/industry";
 import { ErrorState } from "@/components/ErrorState";
+import { IndustryCards } from "@/components/industry/IndustryCards";
 import { IndustryMap } from "@/components/IndustryMap";
 import { IndustryTable } from "@/components/IndustryTable";
 
@@ -16,13 +22,14 @@ export default async function IndustriesPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const all = sp.kind === "all";
   const q = (sp.q ?? "").slice(0, 64);
-  const [res, map] = await Promise.all([
+  const [res, map, overview] = await Promise.all([
     apiGet<Screener>("/screener", {
       sort: "value",
       stocks_only: all ? "false" : "true",
       limit: 3000,
     }),
     apiGet<MapDoc>("/industries/map"),
+    apiGet<IndustryOverview>("/industries/overview"),
   ]);
   return (
     <main className="space-y-5">
@@ -35,6 +42,7 @@ export default async function IndustriesPage({ searchParams }: { searchParams: P
           روی هر نماد بزنید تا همهٔ داده‌هایش باز شود.
         </p>
       </div>
+      {overview.ok && overview.data.available && <IndustryCards doc={overview.data} />}
       {map.ok && <IndustryMap doc={map.data} />}
       {!res.ok ? (
         <ErrorState message={res.error} />

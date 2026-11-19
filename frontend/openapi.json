@@ -1544,6 +1544,56 @@
         "title": "BookSelection",
         "type": "object"
       },
+      "BreadthDay": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "down": {
+            "title": "Down",
+            "type": "integer"
+          },
+          "flat": {
+            "title": "Flat",
+            "type": "integer"
+          },
+          "median_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Change"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "up": {
+            "title": "Up",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "n",
+          "up",
+          "down",
+          "flat",
+          "value",
+          "median_change"
+        ],
+        "title": "BreadthDay",
+        "type": "object"
+      },
       "BriefingOut": {
         "properties": {
           "created_at": {
@@ -6608,6 +6658,413 @@
         "title": "HoldingPatch",
         "type": "object"
       },
+      "IndexReturn": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "IndexReturn",
+        "type": "object"
+      },
+      "IndexSeries": {
+        "description": "One official index with its candles. The feed has no open, so each candle opens at the\nprevious close; the volume bars are the value traded by all stocks that day.",
+        "properties": {
+          "above_year_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Above Year Low"
+          },
+          "candles": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Candle"
+            },
+            "title": "Candles",
+            "type": "array"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "from_year_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Year High"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "key": {
+            "enum": [
+              "tedpix",
+              "equal_weight"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "prev_close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Close"
+          },
+          "range_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Pct"
+          },
+          "returns": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IndexReturn"
+            },
+            "title": "Returns",
+            "type": "array"
+          },
+          "year_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year High"
+          },
+          "year_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Low"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "date",
+          "close",
+          "prev_close",
+          "change",
+          "high",
+          "low",
+          "range_pct",
+          "position",
+          "year_high",
+          "year_low",
+          "from_year_high",
+          "above_year_low",
+          "returns",
+          "candles"
+        ],
+        "title": "IndexSeries",
+        "type": "object"
+      },
+      "IndustryBreadth": {
+        "properties": {
+          "above_sma20": {
+            "title": "Above Sma20",
+            "type": "integer"
+          },
+          "above_sma50": {
+            "title": "Above Sma50",
+            "type": "integer"
+          },
+          "down": {
+            "title": "Down",
+            "type": "integer"
+          },
+          "flat": {
+            "title": "Flat",
+            "type": "integer"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "n_trend": {
+            "title": "N Trend",
+            "type": "integer"
+          },
+          "near_year_high": {
+            "title": "Near Year High",
+            "type": "integer"
+          },
+          "up": {
+            "title": "Up",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "n",
+          "up",
+          "down",
+          "flat",
+          "above_sma20",
+          "above_sma50",
+          "near_year_high",
+          "n_trend"
+        ],
+        "title": "IndustryBreadth",
+        "type": "object"
+      },
+      "IndustryCard": {
+        "properties": {
+          "above_sma20": {
+            "default": 0,
+            "title": "Above Sma20",
+            "type": "integer"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day"
+          },
+          "day_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Value"
+          },
+          "down": {
+            "default": 0,
+            "title": "Down",
+            "type": "integer"
+          },
+          "flat": {
+            "default": 0,
+            "title": "Flat",
+            "type": "integer"
+          },
+          "m3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "M3"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "n_traded": {
+            "title": "N Traded",
+            "type": "integer"
+          },
+          "n_trend": {
+            "default": 0,
+            "title": "N Trend",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "net_real_flow": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Flow"
+          },
+          "spark": {
+            "default": [],
+            "items": {
+              "type": "number"
+            },
+            "title": "Spark",
+            "type": "array"
+          },
+          "up": {
+            "default": 0,
+            "title": "Up",
+            "type": "integer"
+          },
+          "value": {
+            "default": 0.0,
+            "title": "Value",
+            "type": "number"
+          },
+          "value_share": {
+            "default": 0.0,
+            "title": "Value Share",
+            "type": "number"
+          },
+          "week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "n",
+          "n_traded",
+          "day",
+          "day_value",
+          "week",
+          "month",
+          "m3",
+          "year",
+          "value",
+          "value_share",
+          "net_real_flow",
+          "up",
+          "down",
+          "flat",
+          "above_sma20",
+          "n_trend",
+          "spark"
+        ],
+        "title": "IndustryCard",
+        "type": "object"
+      },
       "IndustryCorr": {
         "properties": {
           "order": {
@@ -6640,6 +7097,166 @@
           "values"
         ],
         "title": "IndustryCorr",
+        "type": "object"
+      },
+      "IndustryDetail": {
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "breadth": {
+            "$ref": "#/components/schemas/IndustryBreadth"
+          },
+          "candles": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Candle"
+            },
+            "title": "Candles",
+            "type": "array"
+          },
+          "candles_value": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Candle"
+            },
+            "title": "Candles Value",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day"
+          },
+          "day_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Value"
+          },
+          "flow": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IndustryFlowDay"
+            },
+            "title": "Flow",
+            "type": "array"
+          },
+          "flow_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Date"
+          },
+          "members": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IndustryMember"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "n_members": {
+            "title": "N Members",
+            "type": "integer"
+          },
+          "n_traded": {
+            "title": "N Traded",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "net_real_flow": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Flow"
+          },
+          "returns": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IndustryReturn"
+            },
+            "title": "Returns",
+            "type": "array"
+          },
+          "value": {
+            "default": 0.0,
+            "title": "Value",
+            "type": "number"
+          },
+          "value_share": {
+            "default": 0.0,
+            "title": "Value Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "as_of",
+          "n_members",
+          "n_traded",
+          "day",
+          "day_value",
+          "value",
+          "value_share",
+          "net_real_flow",
+          "flow_date",
+          "returns",
+          "breadth",
+          "flow",
+          "candles",
+          "candles_value",
+          "members"
+        ],
+        "title": "IndustryDetail",
+        "type": "object"
+      },
+      "IndustryFlowDay": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "net_real": {
+            "title": "Net Real",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "net_real"
+        ],
+        "title": "IndustryFlowDay",
         "type": "object"
       },
       "IndustryMapOut": {
@@ -6927,6 +7544,259 @@
         "title": "IndustryMarketReturns",
         "type": "object"
       },
+      "IndustryMember": {
+        "properties": {
+          "above_sma20": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Above Sma20"
+          },
+          "close": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close"
+          },
+          "contrib": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrib"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day"
+          },
+          "from_year_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Year High"
+          },
+          "gauge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gauge"
+          },
+          "instrument_id": {
+            "title": "Instrument Id",
+            "type": "integer"
+          },
+          "m3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "M3"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "net_real_flow": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Real Flow"
+          },
+          "spark": {
+            "default": [],
+            "items": {
+              "type": "number"
+            },
+            "title": "Spark",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "value_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Share"
+          },
+          "verdict": {
+            "default": "none",
+            "title": "Verdict",
+            "type": "string"
+          },
+          "verdict_label": {
+            "default": "",
+            "title": "Verdict Label",
+            "type": "string"
+          },
+          "week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "symbol",
+          "name",
+          "close",
+          "day",
+          "week",
+          "month",
+          "m3",
+          "year",
+          "value",
+          "value_share",
+          "net_real_flow",
+          "contrib",
+          "verdict",
+          "verdict_label",
+          "gauge",
+          "from_year_high",
+          "above_sma20",
+          "spark"
+        ],
+        "title": "IndustryMember",
+        "type": "object"
+      },
+      "IndustryOverview": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "industries": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IndustryCard"
+            },
+            "title": "Industries",
+            "type": "array"
+          },
+          "market_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Day"
+          }
+        },
+        "required": [
+          "available",
+          "as_of",
+          "market_day",
+          "industries"
+        ],
+        "title": "IndustryOverview",
+        "type": "object"
+      },
       "IndustryPeer": {
         "properties": {
           "corr": {
@@ -6943,6 +7813,43 @@
           "corr"
         ],
         "title": "IndustryPeer",
+        "type": "object"
+      },
+      "IndustryReturn": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "vs_market": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Market"
+          }
+        },
+        "required": [
+          "label",
+          "value",
+          "vs_market"
+        ],
+        "title": "IndustryReturn",
         "type": "object"
       },
       "InflationOut": {
@@ -8421,6 +9328,49 @@
           "premium"
         ],
         "title": "MarketFund",
+        "type": "object"
+      },
+      "MarketIndexOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "days": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BreadthDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/IndexSeries"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "available",
+          "as_of",
+          "series",
+          "days"
+        ],
+        "title": "MarketIndexOut",
         "type": "object"
       },
       "MarketIndexPoint": {
@@ -13939,6 +14889,83 @@
         ]
       }
     },
+    "/industries/overview": {
+      "get": {
+        "description": "One card per industry: the consensus move of its symbols, breadth, value and money.",
+        "operationId": "overview_industries_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndustryOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "industries"
+        ]
+      }
+    },
+    "/industries/{code}/detail": {
+      "get": {
+        "description": "One industry: consensus candles of all its symbols and a row for each symbol.",
+        "operationId": "detail_industries__code__detail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 400,
+              "minimum": 20,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndustryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Detail",
+        "tags": [
+          "industries"
+        ]
+      }
+    },
     "/instruments/by-slug/{sector}/{symbol}": {
       "get": {
         "description": "Finds the instrument behind ``/instruments/<sector>/<symbol>``. The slugs are compared in\ntheir normalised form, so Arabic letter forms and half-spaces in a typed address still match.\nWhen two instruments share a symbol, the one in that industry wins, then one still listed,\nthen the newer.",
@@ -14491,6 +15518,52 @@
         "summary": "Gold Oil",
         "tags": [
           "macro"
+        ]
+      }
+    },
+    "/market/index": {
+      "get": {
+        "description": "The two official indices with candles, the day's range and period returns, plus breadth,\nvalue and median move of the last full days. End-of-day only.",
+        "operationId": "index_detail_market_index_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 1500,
+              "minimum": 20,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketIndexOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Index Detail",
+        "tags": [
+          "market"
         ]
       }
     },
