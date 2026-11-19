@@ -37,6 +37,8 @@ export type Row = {
   rank: number | null;
   perBuy: number | null;
   perSell: number | null;
+  /** derived columns asked for with the screener (`lib/columns.ts`), by key */
+  x: Record<string, number | string | null>;
 };
 
 const NO_SECTOR = "بدون گروه صنعتی";
@@ -73,6 +75,7 @@ export function toRow(r: ScreenerRow): Row {
     rank: r.rank ?? null,
     perBuy: r.per_capita_buy ?? null,
     perSell: r.per_capita_sell ?? null,
+    x: r.cols,
   };
 }
 
@@ -296,38 +299,41 @@ export function industries(rows: Row[], by: IndustrySort = "value"): Industry[] 
 
 // ------------------------------------------------------------------------------------ sorting
 
-export type SortKey = keyof Pick<
-  Row,
-  | "symbol"
-  | "gauge"
-  | "close"
-  | "day"
-  | "week"
-  | "month"
-  | "m3"
-  | "year"
-  | "fromHigh"
-  | "value"
-  | "volume"
-  | "cap"
-  | "pe"
-  | "eps"
-  | "power"
-  | "netReal"
-  | "volRatio"
-  | "rsi"
-  | "meeting"
-  | "rank"
-  | "perBuy"
-  | "perSell"
->;
+export type SortKey =
+  | `x:${string}`
+  | keyof Pick<
+      Row,
+      | "symbol"
+      | "gauge"
+      | "close"
+      | "day"
+      | "week"
+      | "month"
+      | "m3"
+      | "year"
+      | "fromHigh"
+      | "value"
+      | "volume"
+      | "cap"
+      | "pe"
+      | "eps"
+      | "power"
+      | "netReal"
+      | "volRatio"
+      | "rsi"
+      | "meeting"
+      | "rank"
+      | "perBuy"
+      | "perSell"
+    >;
 
 /** ``dir`` 1 = ascending, -1 = descending; rows with no number always go last. */
 export function sortRows(rows: Row[], key: SortKey, dir: 1 | -1): Row[] {
+  const derived = key.startsWith("x:") ? key.slice(2) : null;
   const text = key === "symbol" || key === "meeting";
   return [...rows].sort((a, b) => {
-    const x = a[key];
-    const y = b[key];
+    const x = derived ? (a.x[derived] ?? null) : a[key as keyof Row];
+    const y = derived ? (b.x[derived] ?? null) : b[key as keyof Row];
     if (x == null && y == null) return 0;
     if (x == null) return 1;
     if (y == null) return -1;

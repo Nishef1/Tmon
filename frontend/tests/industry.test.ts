@@ -12,6 +12,7 @@ import {
 } from "@/lib/industry";
 
 const base: Row = {
+  x: {},
   id: 0,
   symbol: "",
   name: "",

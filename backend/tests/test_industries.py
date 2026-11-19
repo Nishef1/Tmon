@@ -204,7 +204,8 @@ def test_overview_has_a_card_per_industry_with_its_stocks_only(
     assert m["net_real_flow"] == pytest.approx((3e9 - 1e9) + (6e9 - 1e9))
     assert m["up"] == 1 and m["down"] == 1
     assert len(m["spark"]) == 60
-    assert j["industries"][0]["code"] == "44"  # biggest value first
+    values = [c["value"] for c in j["industries"]]
+    assert values == sorted(values, reverse=True)  # biggest value first; a tie keeps no order
     assert cards["44"]["day"] == pytest.approx(0.0, abs=1e-4)
 
 

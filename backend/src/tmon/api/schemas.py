@@ -414,6 +414,7 @@ class GoldOilOut(ApiModel):
 class ScreenerRow(VerdictFields):
     """One symbol on the latest trading day: market data, a few features and its verdict."""
 
+    cols: dict[str, float | str | None] = {}  # derived columns asked for with ?columns=
     instrument: InstrumentOut
     close: float | None = None
     change_pct: float | None = None
@@ -454,6 +455,7 @@ class ScreenerRow(VerdictFields):
 
 
 class ScreenerOut(ApiModel):
+    columns: list[str] = []  # derived columns asked for, in order
     prices_date: dt.date | None = None
     verdict_counts: dict[str, int] = {}
     flow_date: dt.date | None = None
@@ -1814,6 +1816,7 @@ class IndustryFlowDay(ApiModel):
 
 
 class IndustryMember(ApiModel):
+    cols: dict[str, float | str | None] = {}
     instrument_id: int
     symbol: str
     name: str | None = None
@@ -1836,6 +1839,8 @@ class IndustryMember(ApiModel):
 
 
 class IndustryDetail(ApiModel):
+    medians: dict[str, float | None] = {}  # median of the members' derived columns
+    market_medians: dict[str, float | None] = {}  # the same over every stock that traded
     code: str
     name: str
     as_of: str
@@ -1855,7 +1860,17 @@ class IndustryDetail(ApiModel):
     members: list[IndustryMember] = []
 
 
+class MarketBlock(ApiModel):
+    mcap: float | None = None  # rial, stocks that traded on the last day
+    usd: float | None = None  # rial per dollar, free market
+    mcap_usd: float | None = None
+    index_usd: float | None = None  # the total index divided by the dollar rate
+    index_year_rial: float | None = None
+    index_year_usd: float | None = None
+
+
 class IndustryCard(ApiModel):
+    medians: dict[str, float | None] = {}
     code: str
     name: str
     n: int
@@ -1878,7 +1893,55 @@ class IndustryCard(ApiModel):
 
 
 class IndustryOverview(ApiModel):
+    market: MarketBlock | None = None
     available: bool
     as_of: str | None = None
     market_day: float | None = None  # equal-weight index of the exchange
     industries: list[IndustryCard] = []
+
+
+class ColumnDef(ApiModel):
+    key: str
+    label: str
+    group: str
+    kind: str  # percent | ratio | multiple | money | count | price | score | text
+    hint: str = ""
+    default: bool = False
+
+
+class ColumnGroup(ApiModel):
+    key: str
+    label: str
+
+
+class ColumnCatalog(ApiModel):
+    groups: list[ColumnGroup]
+    columns: list[ColumnDef]
+
+
+class ColumnItem(ApiModel):
+    key: str
+    label: str
+    kind: str
+    hint: str = ""
+    value: float | str | None = None
+    industry_median: float | None = None
+    market_median: float | None = None
+
+
+class ColumnSection(ApiModel):
+    key: str
+    label: str
+    items: list[ColumnItem]
+    note: str | None = None  # why the section is empty or partial
+
+
+class InstrumentColumns(ApiModel):
+    instrument_id: int
+    available: bool
+    as_of: str | None = None
+    flow_date: str | None = None
+    book_date: str | None = None
+    statement_kind: str | None = None
+    statement_period_end: str | None = None
+    sections: list[ColumnSection] = []

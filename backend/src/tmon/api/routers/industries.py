@@ -33,9 +33,11 @@ from tmon.api.schemas import (
     IndustryMember,
     IndustryOverview,
     IndustryReturn,
+    MarketBlock,
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
+from tmon.features import columns as colmod
 from tmon.storage.models import (
     ClientTypeDaily,
     Instrument,
@@ -49,6 +51,13 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 FLOW_DAYS = 30
 NEAR_HIGH = -0.03  # "near the year's high": within 3%
+# derived columns every member row carries, and the ones whose industry median is shown
+DETAIL_COLUMNS = [c.key for c in colmod.CATALOG if c.kind != "text"]
+OVERVIEW_MEDIANS = ["pe_ttm", "pb", "roe", "beta_90d", "vol_vs_30", "real_net_pct"]
+MEDIAN_COLUMNS = [
+    "pe_ttm", "pb", "ps_ttm", "roe", "net_margin", "beta_90d", "vol_vs_30",
+    "real_net_pct", "ret_1m", "ret_1y", "to_high_1y", "float_pct", "debt_to_assets",
+]  # fmt: skip
 
 
 def _names(session: Session) -> dict[str, str]:
@@ -133,6 +142,7 @@ def overview(session: SessionDep) -> IndustryOverview:
     total = sum(value_today.values()) or 1.0
     flow = _flows(session, sector)
     mday, _ = _market_returns(session, last)
+    table = colmod.compute(session, last, _latest_full(session, ClientTypeDaily.date))
 
     cards: list[IndustryCard] = []
     for sec, c in eq.items():
@@ -161,10 +171,19 @@ def overview(session: SessionDep) -> IndustryOverview:
                 above_sma20=sum(1 for i in ids if trend[i].above_sma20),
                 n_trend=sum(1 for i in ids if trend[i].above_sma20 is not None),
                 spark=spark(c),
+                medians=colmod.medians(
+                    [table.rows[i] for i in ids if i in table.rows], OVERVIEW_MEDIANS
+                ),
             )
         )
     cards.sort(key=lambda x: -x.value)
-    return IndustryOverview(available=True, as_of=str(last), market_day=mday, industries=cards)
+    return IndustryOverview(
+        available=True,
+        as_of=str(last),
+        market_day=mday,
+        industries=cards,
+        market=MarketBlock.model_validate(colmod.market_summary(session, table)),
+    )
 
 
 @router.get("/industries/{code}/detail", response_model=IndustryDetail)
@@ -245,6 +264,7 @@ def detail(
             )
         )
     }
+    table = colmod.compute(session, last, fd)
     members: list[IndustryMember] = []
     for inst in insts:
         tr = trend.get(inst.id)
@@ -276,6 +296,7 @@ def detail(
                 from_year_high=tr.from_year_high,
                 above_sma20=tr.above_sma20,
                 spark=tr.spark,
+                cols={k: table.rows.get(inst.id, {}).get(k) for k in DETAIL_COLUMNS},
             )
         )
     members.sort(key=lambda m: -(m.value or 0.0))
@@ -293,6 +314,11 @@ def detail(
         net_real_flow=sum(nets.values()) if nets else None,
         flow_date=str(fd) if fd else None,
         returns=returns,
+        medians=colmod.medians(
+            [table.rows[m.instrument_id] for m in members if m.instrument_id in table.rows],
+            MEDIAN_COLUMNS,
+        ),
+        market_medians=colmod.medians(list(table.rows.values()), MEDIAN_COLUMNS),
         breadth=IndustryBreadth(
             n=eq.members[-1],
             up=eq.up[-1],

@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { Gauge } from "@/components/Gauge";
+import { colTone, fmtCol, groupLabel, type ColumnCatalog } from "@/lib/columns";
 import { faCount, faNumber, faPercent, faToman, jalali } from "@/lib/format";
 import {
   EMPTY,
@@ -60,7 +61,28 @@ type Col = {
   agg?: (i: Industry) => ReactNode;
   cls?: (r: Row) => string;
   aggCls?: (i: Industry) => string;
+  /** derived columns carry the catalog group they are listed under in the picker */
+  group?: string;
 };
+
+/** Returns the table already has (week, month, 3 months, year), so those are not offered twice. */
+const HAVE = new Set(["ret_1w", "ret_1m", "ret_3m", "ret_1y"]);
+
+/** The columns of the derived-column catalog, written the way the backend defines them. */
+function derivedCols(cat: ColumnCatalog | null | undefined): Col[] {
+  if (!cat) return [];
+  return cat.columns
+    .filter((c) => c.kind !== "text" && c.key !== "first_day" && !HAVE.has(c.key))
+    .map((c) => ({
+      key: `x:${c.key}` as SortKey,
+      label: c.label,
+      title: c.hint || c.label,
+      on: false,
+      group: c.group,
+      cell: (r: Row) => fmtCol(c, r.x[c.key]),
+      cls: (r: Row) => colTone(c, r.x[c.key]),
+    }));
+}
 
 const COLS: Col[] = [
   {
@@ -383,13 +405,22 @@ function Check({
 
 // ------------------------------------------------------------------------------------ page
 
-export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initialQuery?: string }) {
+export function IndustryTable({
+  rows,
+  initialQuery = "",
+  catalog = null,
+}: {
+  rows: Row[];
+  initialQuery?: string;
+  catalog?: ColumnCatalog | null;
+}) {
   const router = useRouter();
   const [f, setF] = useState<Filters>({ ...EMPTY, q: initialQuery });
   const [reset, setReset] = useState(0);
   const [grouped, setGrouped] = useState(true);
   const [order, setOrder] = useState<IndustrySort>("value");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
+  const allCols = useMemo(() => [...COLS, ...derivedCols(catalog)], [catalog]);
   const [shown, setShown] = useState<Set<SortKey>>(
     () => new Set(COLS.filter((c) => c.on).map((c) => c.key)),
   );
@@ -402,7 +433,7 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
   const totalValue = useMemo(() => all.reduce((a, i) => a + i.value, 0), [all]);
 
   const set = (p: Partial<Filters>) => setF((cur) => ({ ...cur, ...p }));
-  const cols = useMemo(() => COLS.filter((c) => shown.has(c.key)), [shown]);
+  const cols = useMemo(() => allCols.filter((c) => shown.has(c.key)), [allCols, shown]);
   const [, startTransition] = useTransition();
   const go = useCallback((id: number) => router.push(`/instruments/${id}`), [router]);
 
@@ -625,8 +656,13 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
             </label>
             <details className="relative">
               <summary className="btn">ستون‌ها ({faNumber(shown.size)})</summary>
-              <ul className="absolute end-0 z-30 mt-1 max-h-80 w-56 space-y-1 overflow-auto popover p-3">
-                {COLS.map((c) => (
+              <ul className="absolute end-0 z-30 mt-1 max-h-96 w-72 space-y-1 overflow-auto popover p-3">
+                {allCols.map((c, k) => [
+                  c.group && c.group !== allCols[k - 1]?.group && catalog ? (
+                    <li key={`g-${c.group}`} className="pt-2 text-xs font-bold text-muted">
+                      {groupLabel(catalog, c.group)}
+                    </li>
+                  ) : null,
                   <li key={c.key}>
                     <label className="flex cursor-pointer items-center gap-2">
                       <input
@@ -644,8 +680,8 @@ export function IndustryTable({ rows, initialQuery = "" }: { rows: Row[]; initia
                       />
                       {c.label}
                     </label>
-                  </li>
-                ))}
+                  </li>,
+                ])}
               </ul>
             </details>
           </div>

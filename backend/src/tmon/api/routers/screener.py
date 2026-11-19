@@ -20,6 +20,7 @@ from tmon.api.routers.dashboard import (
 from tmon.api.routers.market import _latest_full
 from tmon.api.schemas import IndustryMapOut, ScreenerOut, ScreenerRow, instrument_out
 from tmon.core.db import get_session
+from tmon.features import columns as colmod
 from tmon.features.builder import get_feature_set
 from tmon.ingest.tsetmc.parsers import normalize_fa
 from tmon.storage.models import (
@@ -68,12 +69,19 @@ def screener(
     verdict: Literal["buy", "candidate", "hold", "sell", "none"] | None = None,
     stocks_only: bool = False,
     limit: Annotated[int, Query(ge=1, le=3000)] = 200,
+    columns: Annotated[str | None, Query(max_length=800)] = None,
+    sort_col: Annotated[str | None, Query(max_length=40)] = None,
+    sort_asc: bool = False,
 ) -> ScreenerOut:
     """Every symbol that traded on the latest stored day, with its market data, a few features
-    and the verdict of the v2 ranking."""
+    and the verdict of the v2 ranking. ``columns`` adds derived columns (``/columns/catalog``) to
+    each row; ``sort_col`` sorts by one of them before the limit is applied."""
     last = session.scalar(select(func.max(PriceDaily.date)))
     if last is None:
         return ScreenerOut(total=0, rows=[])
+    keys = [k for k in dict.fromkeys((columns or "").split(",")) if k in colmod.BY_KEY]
+    if sort_col in colmod.BY_KEY and sort_col not in keys:
+        keys.append(sort_col)
     prices = session.execute(
         select(PriceDaily, Instrument)
         .join(Instrument, Instrument.id == PriceDaily.instrument_id)
@@ -101,6 +109,7 @@ def screener(
             c.instrument_id: c
             for c in session.scalars(select(ClientTypeDaily).where(ClientTypeDaily.date == fd))
         }
+    derived = colmod.compute(session, last, fd).rows if keys else {}
     ranking = _ranking_doc()
     turning = _turning_doc()
 
@@ -178,14 +187,26 @@ def screener(
                 pe=fa.pe if fa else None,
                 sector_pe=fa.sector_pe if fa else None,
                 **{k: _num(f.get(k)) for k in FEATURES},
+                cols={k: derived.get(inst.id, {}).get(k) for k in keys},
             )
         )
-    sign = 1.0 if sort in ("rank", "pe") else -1.0  # rank 1 and the cheapest P/E come first
-    rows.sort(key=lambda r: (getattr(r, sort) is None, sign * (getattr(r, sort) or 0.0)))
+    if sort_col in colmod.BY_KEY and colmod.BY_KEY[sort_col].kind != "text":
+        sc: str = sort_col
+        flip = 1.0 if sort_asc else -1.0
+
+        def num(r: ScreenerRow) -> float | None:
+            v = r.cols.get(sc)
+            return None if v is None or isinstance(v, str) else float(v)
+
+        rows.sort(key=lambda r: (num(r) is None, flip * (num(r) or 0.0)))
+    else:
+        sign = 1.0 if sort in ("rank", "pe") else -1.0  # rank 1 and the cheapest P/E come first
+        rows.sort(key=lambda r: (getattr(r, sort) is None, sign * (getattr(r, sort) or 0.0)))
     return ScreenerOut(
         prices_date=last,
         verdict_counts=counts,
         flow_date=fd,
+        columns=keys,
         ranking_date=dt.date.fromisoformat(ranking["as_of"]) if ranking else None,
         total=len(rows),
         rows=rows[:limit],

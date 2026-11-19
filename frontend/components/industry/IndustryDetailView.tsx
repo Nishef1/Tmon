@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Candle, IndustryDetail, IndustryMember } from "@/lib/api";
 import { faNumber, faPercent, faPrice, faToman, jalali } from "@/lib/format";
 import { signTone, verdictPill } from "@/lib/ui";
+import type { ColumnCatalog } from "@/lib/columns";
 import { CandleChart } from "@/components/CandleChart";
+import { IndustryColumns } from "@/components/industry/IndustryColumns";
 import { BreadthBar, Spark } from "@/components/market/Spark";
 
 type Weight = "equal" | "value";
@@ -264,7 +266,13 @@ function Members({ d }: { d: IndustryDetail }) {
 }
 
 /** One industry as the consensus of its symbols, and then each symbol. */
-export function IndustryDetailView({ d }: { d: IndustryDetail }) {
+export function IndustryDetailView({
+  d,
+  catalog = null,
+}: {
+  d: IndustryDetail;
+  catalog?: ColumnCatalog | null;
+}) {
   const [weight, setWeight] = useState<Weight>("equal");
   const candles = weight === "equal" ? d.candles : d.candles_value;
   const day = weight === "equal" ? d.day : d.day_value;
@@ -402,6 +410,7 @@ export function IndustryDetailView({ d }: { d: IndustryDetail }) {
       </div>
 
       <Members d={d} />
+      {catalog && <IndustryColumns d={d} catalog={catalog} />}
     </div>
   );
 }

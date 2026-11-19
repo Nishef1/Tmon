@@ -6,10 +6,12 @@ import {
   type IndustryOverview,
   type Screener,
 } from "@/lib/api";
+import { numericKeys, type ColumnCatalog } from "@/lib/columns";
 import { jalali } from "@/lib/format";
 import { toRow } from "@/lib/industry";
 import { ErrorState } from "@/components/ErrorState";
 import { IndustryCards } from "@/components/industry/IndustryCards";
+import { MarketBlockCard } from "@/components/industry/MarketBlockCard";
 import { IndustryMap } from "@/components/IndustryMap";
 import { IndustryTable } from "@/components/IndustryTable";
 
@@ -22,11 +24,13 @@ export default async function IndustriesPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const all = sp.kind === "all";
   const q = (sp.q ?? "").slice(0, 64);
+  const catalog = await apiGet<ColumnCatalog>("/columns/catalog");
   const [res, map, overview] = await Promise.all([
     apiGet<Screener>("/screener", {
       sort: "value",
       stocks_only: all ? "false" : "true",
       limit: 3000,
+      columns: catalog.ok ? numericKeys(catalog.data).join(",") : undefined,
     }),
     apiGet<MapDoc>("/industries/map"),
     apiGet<IndustryOverview>("/industries/overview"),
@@ -42,6 +46,7 @@ export default async function IndustriesPage({ searchParams }: { searchParams: P
           روی هر نماد بزنید تا همهٔ داده‌هایش باز شود.
         </p>
       </div>
+      {overview.ok && overview.data.market && <MarketBlockCard m={overview.data.market} />}
       {overview.ok && overview.data.available && <IndustryCards doc={overview.data} />}
       {map.ok && <IndustryMap doc={map.data} />}
       {!res.ok ? (
@@ -62,7 +67,11 @@ export default async function IndustriesPage({ searchParams }: { searchParams: P
               {all ? "نمایش فقط سهام" : "نمایش صندوق، اختیار و اوراق هم"}
             </Link>
           </p>
-          <IndustryTable rows={res.data.rows.map(toRow)} initialQuery={q} />
+          <IndustryTable
+            rows={res.data.rows.map(toRow)}
+            initialQuery={q}
+            catalog={catalog.ok ? catalog.data : null}
+          />
         </>
       )}
     </main>

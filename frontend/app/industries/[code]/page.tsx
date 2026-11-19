@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiGet, type IndustryDetail } from "@/lib/api";
+import type { ColumnCatalog } from "@/lib/columns";
 import { ErrorState } from "@/components/ErrorState";
 import { IndustryDetailView } from "@/components/industry/IndustryDetailView";
 
@@ -20,7 +21,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function IndustryPage({ params }: Props) {
   const { code } = await params;
   if (!/^\d{1,3}$/.test(code)) notFound();
-  const res = await apiGet<IndustryDetail>(`/industries/${code}/detail`, { days: 300 });
+  const [res, catalog] = await Promise.all([
+    apiGet<IndustryDetail>(`/industries/${code}/detail`, { days: 300 }),
+    apiGet<ColumnCatalog>("/columns/catalog"),
+  ]);
   if (!res.ok && res.status === 404) notFound();
   return (
     <main className="space-y-5">
@@ -35,7 +39,11 @@ export default async function IndustryPage({ params }: Props) {
           صنعت به‌صورت اجماع همهٔ نمادهایش: کندل‌های صنعت، حال نمادها و جای هر نماد در حرکت صنعت.
         </p>
       </div>
-      {res.ok ? <IndustryDetailView d={res.data} /> : <ErrorState message={res.error} />}
+      {res.ok ? (
+        <IndustryDetailView d={res.data} catalog={catalog.ok ? catalog.data : null} />
+      ) : (
+        <ErrorState message={res.error} />
+      )}
     </main>
   );
 }

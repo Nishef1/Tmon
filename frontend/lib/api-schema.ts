@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+  "/columns/catalog": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Catalog */
+    get: operations["catalog_columns_catalog_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/columns/market": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Market Block */
+    get: operations["market_block_columns_market_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/compare": {
     parameters: {
       query?: never;
@@ -300,6 +334,23 @@ export interface paths {
      *     stored book on the latest day. ``available=false`` for symbols outside the 100 most traded.
      */
     get: operations["instrument_book_instruments__instrument_id__book_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/instruments/{instrument_id}/columns": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Instrument Columns */
+    get: operations["instrument_columns_instruments__instrument_id__columns_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1030,7 +1081,8 @@ export interface paths {
     /**
      * Screener
      * @description Every symbol that traded on the latest stored day, with its market data, a few features
-     *     and the verdict of the v2 ranking.
+     *     and the verdict of the v2 ranking. ``columns`` adds derived columns (``/columns/catalog``) to
+     *     each row; ``sort_col`` sorts by one of them before the limit is applied.
      */
     get: operations["screener_screener_get"];
     put?: never;
@@ -1720,6 +1772,72 @@ export interface components {
       title: string;
       /** Url */
       url: string | null;
+    };
+    /** ColumnCatalog */
+    ColumnCatalog: {
+      /** Columns */
+      columns: components["schemas"]["ColumnDef"][];
+      /** Groups */
+      groups: components["schemas"]["ColumnGroup"][];
+    };
+    /** ColumnDef */
+    ColumnDef: {
+      /**
+       * Default
+       * @default false
+       */
+      default: boolean;
+      /** Group */
+      group: string;
+      /**
+       * Hint
+       * @default
+       */
+      hint: string;
+      /** Key */
+      key: string;
+      /** Kind */
+      kind: string;
+      /** Label */
+      label: string;
+    };
+    /** ColumnGroup */
+    ColumnGroup: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+    };
+    /** ColumnItem */
+    ColumnItem: {
+      /**
+       * Hint
+       * @default
+       */
+      hint: string;
+      /** Industry Median */
+      industry_median: number | null;
+      /** Key */
+      key: string;
+      /** Kind */
+      kind: string;
+      /** Label */
+      label: string;
+      /** Market Median */
+      market_median: number | null;
+      /** Value */
+      value: number | string | null;
+    };
+    /** ColumnSection */
+    ColumnSection: {
+      /** Items */
+      items: components["schemas"]["ColumnItem"][];
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Note */
+      note: string | null;
     };
     /** CompareOut */
     CompareOut: {
@@ -3287,6 +3405,13 @@ export interface components {
       flat: number;
       /** M3 */
       m3: number | null;
+      /**
+       * Medians
+       * @default {}
+       */
+      medians: {
+        [key: string]: number | null;
+      };
       /** Month */
       month: number | null;
       /** N */
@@ -3362,6 +3487,20 @@ export interface components {
       flow: components["schemas"]["IndustryFlowDay"][];
       /** Flow Date */
       flow_date: string | null;
+      /**
+       * Market Medians
+       * @default {}
+       */
+      market_medians: {
+        [key: string]: number | null;
+      };
+      /**
+       * Medians
+       * @default {}
+       */
+      medians: {
+        [key: string]: number | null;
+      };
       /**
        * Members
        * @default []
@@ -3480,6 +3619,13 @@ export interface components {
       above_sma20: boolean | null;
       /** Close */
       close: number | null;
+      /**
+       * Cols
+       * @default {}
+       */
+      cols: {
+        [key: string]: number | string | null;
+      };
       /** Contrib */
       contrib: number | null;
       /** Day */
@@ -3535,6 +3681,7 @@ export interface components {
        * @default []
        */
       industries: components["schemas"]["IndustryCard"][];
+      market: components["schemas"]["MarketBlock"] | null;
       /** Market Day */
       market_day: number | null;
     };
@@ -3611,6 +3758,28 @@ export interface components {
       score_percentile: number | null;
       /** Universe Size */
       universe_size: number | null;
+    };
+    /** InstrumentColumns */
+    InstrumentColumns: {
+      /** As Of */
+      as_of: string | null;
+      /** Available */
+      available: boolean;
+      /** Book Date */
+      book_date: string | null;
+      /** Flow Date */
+      flow_date: string | null;
+      /** Instrument Id */
+      instrument_id: number;
+      /**
+       * Sections
+       * @default []
+       */
+      sections: components["schemas"]["ColumnSection"][];
+      /** Statement Kind */
+      statement_kind: string | null;
+      /** Statement Period End */
+      statement_period_end: string | null;
     };
     /** InstrumentDashboard */
     InstrumentDashboard: {
@@ -3933,6 +4102,21 @@ export interface components {
       count: number;
       /** Label */
       label: string;
+    };
+    /** MarketBlock */
+    MarketBlock: {
+      /** Index Usd */
+      index_usd: number | null;
+      /** Index Year Rial */
+      index_year_rial: number | null;
+      /** Index Year Usd */
+      index_year_usd: number | null;
+      /** Mcap */
+      mcap: number | null;
+      /** Mcap Usd */
+      mcap_usd: number | null;
+      /** Usd */
+      usd: number | null;
     };
     /**
      * MarketCard
@@ -4993,6 +5177,11 @@ export interface components {
     };
     /** ScreenerOut */
     ScreenerOut: {
+      /**
+       * Columns
+       * @default []
+       */
+      columns: string[];
       /** Flow Date */
       flow_date: string | null;
       /** Prices Date */
@@ -5028,6 +5217,13 @@ export interface components {
       close: number | null;
       /** Code */
       code: string | null;
+      /**
+       * Cols
+       * @default {}
+       */
+      cols: {
+        [key: string]: number | string | null;
+      };
       /** Eps */
       eps: number | null;
       /** From Year High */
@@ -5637,6 +5833,46 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  catalog_columns_catalog_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ColumnCatalog"];
+        };
+      };
+    };
+  };
+  market_block_columns_market_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MarketBlock"];
+        };
+      };
+    };
+  };
   compare_compare_get: {
     parameters: {
       query?: {
@@ -6036,6 +6272,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["InstrumentBookOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  instrument_columns_instruments__instrument_id__columns_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        instrument_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstrumentColumns"];
         };
       };
       /** @description Validation Error */
@@ -7370,6 +7637,9 @@ export interface operations {
         verdict?: ("buy" | "candidate" | "hold" | "sell" | "none") | null;
         stocks_only?: boolean;
         limit?: number;
+        columns?: string | null;
+        sort_col?: string | null;
+        sort_asc?: boolean;
       };
       header?: never;
       path?: never;

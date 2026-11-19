@@ -11,6 +11,7 @@ import {
   type InstrumentSlug,
   type SymbolForecast,
 } from "@/lib/api";
+import type { InstrumentColumns } from "@/lib/columns";
 import { slugPath } from "@/lib/slug";
 import { faNumber, faPercent, jalali } from "@/lib/format";
 import { signTone } from "@/lib/ui";
@@ -22,6 +23,7 @@ import {
   SymbolTechnical,
   SymbolValuation,
 } from "@/components/SymbolDashboard";
+import { ColumnsCard } from "@/components/stock/ColumnsCard";
 import { Fold } from "@/components/stock/Fold";
 import { PeersCard } from "@/components/PeersCard";
 import { TurningCard } from "@/components/TurningCard";
@@ -102,12 +104,13 @@ export default async function InstrumentPage({
     ).toString();
     redirect(slugPath(found.data) + (keep ? `?${keep}` : ""));
   }
-  const [res, dash, odds, book, fc] = await Promise.all([
+  const [res, dash, odds, book, fc, derived] = await Promise.all([
     apiGet<InstrumentDetail>(`/instruments/${id}`, { days: CHART_DAYS }),
     apiGet<InstrumentDashboard>(`/instruments/${id}/dashboard`),
     entryOdds(),
     apiGet<InstrumentBook>(`/instruments/${id}/book`),
     apiGet<SymbolForecast>(`/instruments/${id}/forecast`),
+    apiGet<InstrumentColumns>(`/instruments/${id}/columns`),
   ]);
   if (!res.ok && res.status === 404) notFound();
   if (!res.ok) {
@@ -153,6 +156,7 @@ export default async function InstrumentPage({
     ...(ride ? [{ id: "ride", label: "ورود و خروج روند" }] : []),
     ...(dd?.peers ? [{ id: "peers", label: "همگروه‌ها" }] : []),
     ...(dd ? [{ id: "facts", label: "پول و ارزش‌گذاری" }] : []),
+    ...(derived.ok && derived.data.available ? [{ id: "columns", label: "ستون‌های ترکیبی" }] : []),
     ...(book.ok ? [{ id: "book", label: "خریداران و فروشندگان" }] : []),
     ...(entryDecisive ? [{ id: "entry", label: "آزمایشگاه ورود" }] : []),
     ...(dd && (dd.technical || dd.turning || dd.drivers)
@@ -261,6 +265,17 @@ export default async function InstrumentPage({
             <SymbolValuation d={dd} />
           </div>
           <SymbolFacts d={dd} />
+        </Fold>
+      )}
+
+      {derived.ok && derived.data.available && (
+        <Fold
+          id="columns"
+          title="ستون‌های ترکیبی"
+          hint="بازدهی، حجم، بتا، پول حقیقی، شناوری، رشد و ارزش‌گذاری"
+          open={false}
+        >
+          <ColumnsCard c={derived.data} />
         </Fold>
       )}
 
