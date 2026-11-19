@@ -3973,6 +3973,14 @@
       "DashRide": {
         "description": "The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,\nthe trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted\nto today's share count.",
         "properties": {
+          "buy_line": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RideLinePoint"
+            },
+            "title": "Buy Line",
+            "type": "array"
+          },
           "buy_trigger": {
             "anyOf": [
               {
@@ -4151,6 +4159,14 @@
             "title": "Same Day",
             "type": "boolean"
           },
+          "sell_line": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RideLinePoint"
+            },
+            "title": "Sell Line",
+            "type": "array"
+          },
           "signal_close": {
             "title": "Signal Close",
             "type": "number"
@@ -4192,6 +4208,17 @@
           "trail": {
             "title": "Trail",
             "type": "number"
+          },
+          "warn_band": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warn Band"
           }
         },
         "required": [
@@ -4214,10 +4241,13 @@
           "last_close",
           "gain",
           "days_since_exit",
+          "sell_line",
+          "buy_line",
           "near_high",
           "trail",
           "max_hold_days",
           "same_day",
+          "warn_band",
           "grade",
           "history_years",
           "history"
@@ -10647,6 +10677,33 @@
           "halves"
         ],
         "title": "RideHistory",
+        "type": "object"
+      },
+      "RideLinePoint": {
+        "description": "One step of a chart line; a null value ends the run (a gap until the next point).",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "date",
+          "value"
+        ],
+        "title": "RideLinePoint",
         "type": "object"
       },
       "RightOut": {

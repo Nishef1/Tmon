@@ -29,3 +29,9 @@ and the AGM calculator.
   ride open it shows «قیمت نشانهٔ ورود بعدی» (`buy_trigger`), or says tomorrow cannot signal when
   the trigger is further than the stock's largest one-day rise (`day_rise_max`). A trigger many
   times today's price shown as reachable is a bug (docs/reports/trend-timing-2026-11.md).
+- Within `warn_band` (3%) of tomorrow's entry price or sell line the card shows `ride-warn`
+  (`data-side` buy or sell) with the measured hit rate. The chart draws the history of «خط فروش»
+  (red) and «قیمت ورود» (green) as dashed steps with a dotted band edge, broken where no ride or no
+  near trigger applies; they come from `v2/ride_lines/{iid}.json` and only when its `as_of` matches
+  turning.json. A step line running across a gap is a bug (docs/reports/trend-warn-2026-11.md).
+  Check کوثر for a buy warning.

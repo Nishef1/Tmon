@@ -71,6 +71,7 @@ from tmon.storage.models import (
 from tmon.storage.objectstore import read_artifact
 from tmon.tools.stock_drivers import KEY as DRIVERS_KEY
 from tmon.tools.turning_points import KEY as TURNING_KEY
+from tmon.tools.turning_points import lines_key
 from tmon.tools.v2_ranking import KEY, MIN_RANK_DAYS
 
 log = logging.getLogger(__name__)
@@ -935,16 +936,25 @@ def _warning(w: dict[str, Any] | None, cur: dict[str, Any]) -> TurningWarning | 
     )
 
 
-def _ride(meta: dict[str, Any] | None, cur: dict[str, Any] | None) -> DashRide | None:
+def _ride(
+    meta: dict[str, Any] | None, cur: dict[str, Any] | None, lines: dict[str, Any] | None = None
+) -> DashRide | None:
+    """``lines`` is the symbol's chart-line document; it counts only when it is of the same day
+    as the turning document, so the lines never belong to other closes than the card."""
     if not meta or not cur:
         return None
     h = meta.get("history") or {}
+    if not lines or lines.get("as_of") != meta.get("as_of"):
+        lines = {}
     return DashRide(
-        **cur,
+        **{k: v for k, v in cur.items() if k not in ("sell_line", "buy_line")},
+        sell_line=lines.get("sell_line", []),
+        buy_line=lines.get("buy_line", []),
         near_high=meta["near_high"],
         trail=meta["trail"],
         max_hold_days=meta["max_hold_days"],
         same_day=meta.get("same_day", False),
+        warn_band=meta.get("warn_band"),
         grade=meta["grade"],
         history_years=meta["history_years"],
         history=RideHistory(**h) if h.get("n") else None,
@@ -995,7 +1005,11 @@ def turning_out(doc: dict[str, Any] | None, instrument_id: int) -> DashTurning |
         history_last=dt.date.fromisoformat(hist["last"]),
         split_date=dt.date.fromisoformat(hist["split_date"]),
         warning=_warning(doc.get("warning"), cur),
-        ride=_ride(doc.get("trend_ride"), cur.get("ride")),
+        ride=_ride(
+            {**doc["trend_ride"], "as_of": doc.get("as_of")} if doc.get("trend_ride") else None,
+            cur.get("ride"),
+            _stored_doc(lines_key(instrument_id)) if cur.get("ride") else None,
+        ),
     )
 
 

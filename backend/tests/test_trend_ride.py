@@ -156,3 +156,35 @@ def test_swings_mark_only_lows_and_highs_a_full_move_confirmed() -> None:
     # of 36% (high at row 6); the dip 130 -> 120 is too small and the last low is not confirmed
     assert tr.swings(close, 0.35) == [(2, "low"), (6, "high")]
     assert tr.swings(close[:4], 0.35) == []
+
+
+def test_trigger_line_matches_buy_trigger_on_every_row() -> None:
+    rng = np.random.default_rng(3)
+    close = np.exp(np.cumsum(rng.normal(0.001, 0.02, 500))) * 100
+    line = tr.trigger_line(close, 0.05)
+    assert np.isnan(line[:249]).all()
+    for t in range(249, 500, 7):
+        want = tr.buy_trigger(close[: t + 1], 0.05)
+        assert (want is None and np.isnan(line[t])) or line[t] == pytest.approx(want)
+
+
+def test_stop_line_trails_the_peak_and_ends_before_the_break() -> None:
+    close = np.array([100.0, 100.0, 120.0, 110.0, 130.0, 80.0, 85.0])
+    sig = _flat(7)
+    sig[0] = True
+    rs = tr.rides(close, _flat(7), _flat(7), sig, trail=0.35, max_hold=250)
+    assert (rs[0].entry, rs[0].exit_signal) == (1, 5)
+    line = tr.stop_line(close, rs, 0.35, 250)
+    assert np.isnan(line[0]) and np.isnan(line[5:]).all()
+    assert line[1:5] == pytest.approx([65.0, 78.0, 78.0, 84.5])
+
+
+def test_chart_line_keeps_steps_and_gaps_on_the_compared_day() -> None:
+    d = list(range(8))
+    line = np.array([np.nan, 5.0, 5.0, 5.0, 6.0, np.nan, np.nan, np.nan])
+    assert tr.chart_line(d, line) == [  # type: ignore[arg-type]
+        {"date": "2", "value": 5.0},
+        {"date": "4", "value": 5.0},
+        {"date": "5", "value": 6.0},
+        {"date": "6", "value": None},
+    ]

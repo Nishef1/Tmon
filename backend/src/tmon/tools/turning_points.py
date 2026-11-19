@@ -21,6 +21,13 @@ from tmon.features.store import load_inputs
 from tmon.storage.objectstore import write_artifact
 
 KEY = "v2/turning.json"
+# the trend ride's chart lines, one small document per symbol: in the shared document they would
+# make it about six times larger, and every page and search reads that one whole
+LINES_KEY = "v2/ride_lines/{iid}.json"
+
+
+def lines_key(instrument_id: int) -> str:
+    return LINES_KEY.format(iid=instrument_id)
 
 
 def build_document() -> dict[str, Any]:
@@ -35,7 +42,7 @@ def build_document() -> dict[str, Any]:
     by_symbol = tr.all_rides(panel, rc.near_high, rc.trail, rc.max_hold_days, rc.same_day)
     symbols = {str(k): v for k, v in tp.current_states(panel).items()}
     for iid, (g, rs) in by_symbol.items():
-        ride = tr.current(g, rs, rc.trail, rc.near_high)
+        ride = tr.current(g, rs, rc.trail, rc.near_high, rc.max_hold_days)
         if ride and str(iid) in symbols:
             symbols[str(iid)]["ride"] = ride
     return {
@@ -65,6 +72,7 @@ def build_document() -> dict[str, Any]:
             "trail": rc.trail,
             "max_hold_days": rc.max_hold_days,
             "same_day": rc.same_day,
+            "warn_band": rc.warn_band,
             "grade": rc.grade,
             "history_years": rc.history_years,
             "history": tr.history(
@@ -80,6 +88,11 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="also write the JSON to this file")
     a = ap.parse_args()
     doc = build_document()
+    for iid, v in doc["symbols"].items():
+        ride = v.get("ride")
+        if ride and "sell_line" in ride:
+            lines = {k: ride.pop(k) for k in ("sell_line", "buy_line")}
+            write_artifact(lines_key(int(iid)), {"as_of": doc["as_of"], **lines})
     write_artifact(KEY, doc, a.out)
     counts = Counter(v["state"] for v in doc["symbols"].values())
     print(f"as_of={doc['as_of']} symbols={len(doc['symbols'])} states={dict(counts)}")

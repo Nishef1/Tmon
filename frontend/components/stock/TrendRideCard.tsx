@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { faNumber, faPercent, faPrice, jalali } from "@/lib/format";
 import { signedPct, signTone } from "@/lib/ui";
 import { useOwned } from "@/components/stock/HoldWord";
-import type { Ride } from "@/components/stock/rideMarks";
+import { rideWarning, type Ride } from "@/components/stock/rideMarks";
 
 type Block = NonNullable<Ride["history"]>["halves"][number];
 
@@ -35,6 +35,42 @@ function Trigger({ r }: { r: Ride }) {
       بالای این عدد باشد، نشانهٔ ورود می‌آید و قاعده در دقایق آخر همان روز می‌خرد، پیش از آنکه صف
       خرید ببندد. این عدد هر روز با قیمت‌های تازه عوض می‌شود.
     </p>
+  );
+}
+
+// How often a signal came within 5 trading days of a day inside the 3% band, in the two halves
+// of the last three years (docs/reports/trend-warn-2026-11.md); they hold only for that band.
+const WARN_HIT = { buy: [56, 78], sell: [57, 74] } as const;
+
+/** A buy or a sale is near: the next close needs only a small move to cross the line. */
+function Warn({ r, owned }: { r: Ride; owned: boolean }) {
+  const w = rideWarning(r);
+  if (!w || r.warn_band == null) return null;
+  const [lo, hi] = WARN_HIT[w.side];
+  const band = faPercent(r.warn_band, 0);
+  const buy = w.side === "buy";
+  return (
+    <div
+      className="mt-3 rounded-lg border border-warn/40 bg-warn-soft p-3 text-sm"
+      data-testid="ride-warn"
+      data-side={w.side}
+    >
+      <p className="font-bold">
+        {buy
+          ? `هشدار: نشانهٔ ورود نزدیک است. قیمت فقط ${faPercent(Math.max(0, w.move), 1)} تا قیمت ورود فاصله دارد.`
+          : `هشدار: فروش نزدیک است. قیمت فقط ${faPercent(Math.max(0, w.move), 1)} بالای خط فروش است.`}
+      </p>
+      <p className="mt-1">
+        در سه سال اخیر، روزهایی که فاصله کمتر از {band} بود، از هر ۱۰۰ بار {faNumber(lo)} تا{" "}
+        {faNumber(hi)} بار تا ۵ روز معاملاتی {buy ? "نشانهٔ ورود" : "فروش"} آمد. این هشدار خودش نشانه
+        نیست:{" "}
+        {buy
+          ? "خرید فقط وقتی است که قیمت در دقایق آخر بازار بالای قیمت ورود باشد."
+          : owned
+            ? "فروش فقط وقتی است که قیمت در دقایق آخر بازار زیر خط فروش باشد. فردا نزدیک پایان بازار قیمت را با خط مقایسه کن."
+            : "برای دارندهٔ سهم، فروش فقط وقتی است که قیمت در دقایق آخر بازار زیر خط فروش باشد."}
+      </p>
+    </div>
   );
 }
 
@@ -160,6 +196,7 @@ export function TrendRideCard({ r, instrumentId }: { r: Ride; instrumentId: numb
         <span className="text-sm text-muted">قاعدهٔ آزموده، توصیه نیست</span>
       </div>
       <Now r={r} owned={owned} />
+      <Warn r={r} owned={owned} />
       {h && (
         <p className="mt-3 text-sm" data-testid="ride-history">
           <Past h={h} years={r.history_years} />

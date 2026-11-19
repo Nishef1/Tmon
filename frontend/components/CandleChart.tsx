@@ -41,6 +41,15 @@ export type Mark = {
   shape?: "circle" | "arrowUp" | "arrowDown";
 };
 
+/** A line drawn as steps over the price, e.g. a rule's sell line; a null value is a gap. Only
+ *  points on a candle's day are drawn. An unnamed path stays out of the hover legend. */
+export type Path = {
+  points: { time: string; value: number | null }[];
+  color: string;
+  title?: string;
+  dotted?: boolean;
+};
+
 type Kind = "candle" | "ha" | "bar" | "line";
 type Pane = "none" | "rsi" | "macd" | "stoch" | "mfi" | "adx" | "atr" | "obv";
 type Overlay = "ma1" | "ma2" | "ma3" | "ema" | "bb" | "ichi" | "vwap" | "lv" | "reg" | "fvg" | "ew";
@@ -221,6 +230,7 @@ function iso(t: Time): string {
 
 const NO_LEVELS: Level[] = [];
 const NO_MARKS: Mark[] = [];
+const NO_PATHS: Path[] = [];
 
 /** Empty pixels kept right of the last candle at any zoom, so price-line titles («حد ضرر»، «مرجع»)
  *  sit beside the latest days instead of on top of them. */
@@ -240,16 +250,24 @@ const faded = (hex: string, a = "99") => (/^#[0-9a-f]{6}$/i.test(hex) ? `${hex}$
 type Geom = { x1: number; y1: number; x2: number; y2: number; w: number };
 /** A line in the hover legend: its name, colour and value at the hovered candle. */
 type LegendItem = { label: string; color: string; value: number | null; pct?: boolean };
-type Tracked = { label: string; color: string; series: ISeriesApi<SeriesType>; pct?: boolean };
+type Tracked = {
+  label: string;
+  color: string;
+  series: ISeriesApi<SeriesType>;
+  pct?: boolean;
+  ended?: boolean; // a path that stops before the last candle has no value there
+};
 
 export function CandleChart({
   candles,
   levels = NO_LEVELS,
   marks = NO_MARKS,
+  paths = NO_PATHS,
 }: {
   candles: Candle[];
   levels?: Level[];
   marks?: Mark[];
+  paths?: Path[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
@@ -632,6 +650,39 @@ export function CandleChart({
             },
           ])
         : [];
+      if (paths.length > 0) {
+        const known = new Set(times);
+        for (const p of paths) {
+          const s = chart.addSeries(
+            lc.LineSeries,
+            {
+              color: tok(p.color),
+              lineWidth: p.dotted ? 1 : 2,
+              lineStyle: p.dotted ? Dotted : Dashed,
+              lineType: lc.LineType.WithSteps,
+              priceLineVisible: false,
+              lastValueVisible: false,
+              crosshairMarkerVisible: false,
+            },
+            0,
+          );
+          // a gap on a day without a candle moves to the next candle, or the line would run on
+          const gapAt = (t: string) => times.find((x) => x >= t);
+          const data = new Map<string, number | null>();
+          for (const q of p.points) {
+            const t = q.value == null ? gapAt(q.time) : known.has(q.time) ? q.time : undefined;
+            if (t && !(q.value == null && data.has(t))) data.set(t, q.value);
+          }
+          s.setData(
+            [...data]
+              .sort(([x], [y]) => (x < y ? -1 : 1))
+              .map(([t, v]) => (v == null ? { time: t as Time } : { time: t as Time, value: v })),
+          );
+          const open = p.points.length > 0 && p.points[p.points.length - 1].value != null;
+          if (p.title)
+            tracked.push({ label: p.title, color: tok(p.color), series: s, ended: !open });
+        }
+      }
       const allMarks = [...marks, ...waves];
       if (allMarks.length > 0) {
         const known = new Set(times);
@@ -660,7 +711,7 @@ export function CandleChart({
           } else {
             const all = t.series.data();
             const lastPt = all[all.length - 1] as { value?: number } | undefined;
-            v = lastPt?.value ?? null;
+            v = t.ended ? null : (lastPt?.value ?? null);
           }
           return { label: t.label, color: t.color, value: v, pct: t.pct };
         });
@@ -730,7 +781,7 @@ export function CandleChart({
     };
     // `span` is applied by its own effect; a rebuild keeps the user's zoom instead
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [real, levels, marks, volumes, vbars, times, cfg, applySpan]);
+  }, [real, levels, marks, paths, volumes, vbars, times, cfg, applySpan]);
 
   const pickSpan = (n: number) => {
     setSpan(n);

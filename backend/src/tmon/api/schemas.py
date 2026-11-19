@@ -877,6 +877,13 @@ class Swing(ApiModel):
     close: float
 
 
+class RideLinePoint(ApiModel):
+    """One step of a chart line; a null value ends the run (a gap until the next point)."""
+
+    date: dt.date
+    value: float | None = None
+
+
 class DashRide(ApiModel):
     """The trend-ride hint (docs/reports/trend-ride-2026-11.md): the symbol's latest entry signal,
     the trailing exit line while the ride is open, and the rule's past rides. Prices are adjusted
@@ -902,10 +909,15 @@ class DashRide(ApiModel):
     last_close: float
     gain: float | None = None  # from the buy to the sale, or to the last close while open
     days_since_exit: int | None = None
+    # chart lines, as steps on the day whose close is compared with them: the sell line while a
+    # ride was held, and the entry trigger on free days it was within 10% of the close
+    sell_line: list[RideLinePoint] = []
+    buy_line: list[RideLinePoint] = []
     near_high: float
     trail: float
     max_hold_days: int  # a ride ends after this many days unless the trend still holds
     same_day: bool = False  # buy and sell at the close of the day the line is crossed
+    warn_band: float | None = None  # a buy or a sale is "near" within this move of its line
     grade: Literal["proven", "probable", "unproven"]
     history_years: int
     history: RideHistory | None = None

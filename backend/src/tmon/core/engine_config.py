@@ -244,6 +244,10 @@ class TrendRideCfg(_Frozen):
     # buy at the close of the signal day and sell at the close of the day that broke the line,
     # unless that day is locked; else at the next close (docs/reports/trend-timing-2026-11.md)
     same_day: bool
+    # warn that a buy or a sale is near when the next close needs less than this move to cross
+    # the line: below it a signal came within 5 days more often than not, in both halves of both
+    # periods (docs/reports/trend-warn-2026-11.md)
+    warn_band: float = Field(gt=0, lt=1)
 
 
 class V2Cfg(_Frozen):

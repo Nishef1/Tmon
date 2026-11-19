@@ -2217,6 +2217,11 @@ export interface components {
      *     to today's share count.
      */
     DashRide: {
+      /**
+       * Buy Line
+       * @default []
+       */
+      buy_line: components["schemas"]["RideLinePoint"][];
       /** Buy Trigger */
       buy_trigger: number | null;
       /** Day Rise Max */
@@ -2268,6 +2273,11 @@ export interface components {
        * @default false
        */
       same_day: boolean;
+      /**
+       * Sell Line
+       * @default []
+       */
+      sell_line: components["schemas"]["RideLinePoint"][];
       /** Signal Close */
       signal_close: number;
       /**
@@ -2289,6 +2299,8 @@ export interface components {
       swings: components["schemas"]["Swing"][];
       /** Trail */
       trail: number;
+      /** Warn Band */
+      warn_band: number | null;
     };
     /**
      * DashRisk
@@ -4337,6 +4349,19 @@ export interface components {
       split_date: string;
       /** Win */
       win: number;
+    };
+    /**
+     * RideLinePoint
+     * @description One step of a chart line; a null value ends the run (a gap until the next point).
+     */
+    RideLinePoint: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Value */
+      value: number | null;
     };
     /** RightOut */
     RightOut: {

@@ -25,7 +25,7 @@ import { Fold } from "@/components/stock/Fold";
 import { PeersCard } from "@/components/PeersCard";
 import { TurningCard } from "@/components/TurningCard";
 import { TrendRideCard } from "@/components/stock/TrendRideCard";
-import { rideMarks } from "@/components/stock/rideMarks";
+import { rideLevels, rideMarks, ridePaths } from "@/components/stock/rideMarks";
 import { DriversCard } from "@/components/DriversCard";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { JumpNav, type JumpItem } from "@/components/stock/JumpNav";
@@ -185,7 +185,12 @@ export default async function InstrumentPage({
           <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
         ) : (
           <>
-            <CandleChart candles={d.candles} marks={marks} />
+            <CandleChart
+              candles={d.candles}
+              marks={marks}
+              paths={ride ? ridePaths(ride) : undefined}
+              levels={ride ? rideLevels(ride) : undefined}
+            />
             <p className="mt-2 text-xs text-muted">
               قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
               <Link href="/glossary/adjusted_price" className="underline">
@@ -197,6 +202,9 @@ export default async function InstrumentPage({
               {ride &&
                 ride.rides.length > 0 &&
                 " «روند خرید» و «روند فروش» روزهای خرید و فروش قاعدهٔ ورود و خروج روند در همهٔ دوره‌های گذشتهٔ این نماد هستند؛ این قاعده فقط با اطلاع همان روز کار می‌کند."}
+              {ride &&
+                ride.sell_line.length + ride.buy_line.length > 0 &&
+                " خط‌چین قرمز «خط فروش» قاعده در دوره‌های خرید و خط‌چین سبز «قیمت ورود» است وقتی ورود نزدیک بوده؛ هر روز همان قیمتی را نشان می‌دهد که قیمت پایانی آن روز با آن سنجیده شد. نقطه‌چین کنار هرکدام مرز هشدار است: قیمت بین خط و نقطه‌چین یعنی خرید یا فروش نزدیک است. خط افقی «فردا» قیمت روز بعد است."}
               {ride &&
                 (ride.swings?.length ?? 0) > 0 &&
                 " «کف» و «سقف» خاکستری کف‌ها و سقف‌هایی‌اند که فقط بعداً معلوم شد: بعد از هرکدام قیمت دست‌کم به اندازهٔ خط فروش برگشت. نشانهٔ خرید و فروش نیستند."}

@@ -216,6 +216,7 @@ v2:
     near_high: 0.05
     trail: 0.35
     same_day: true               # buy and sell at the close of the day the line is crossed
+    warn_band: 0.03              # "near" warning: docs/reports/trend-warn-2026-11.md
     max_hold_days: 250
     history_years: 3
     grade: probable

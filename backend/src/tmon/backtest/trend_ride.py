@@ -181,7 +181,7 @@ def all_rides(
         with np.errstate(invalid="ignore"):
             trend = trending(a["close"], a["sma50"], a["sma200"])
         rs = rides(a["close"], a["up"], a["down"], sig, trail, max_hold, trend, same_day)
-        out[int(iid)] = (g.select("date", "close", "liquid"), rs)
+        out[int(iid)] = (g.select("date", "close", "liquid").with_columns(trend=trend), rs)
     return out
 
 
@@ -269,18 +269,115 @@ def buy_trigger(close: np.ndarray, near_high: float) -> float | None:
     return float(need * (1 + 1e-6))
 
 
+def trigger_line(close: np.ndarray, near_high: float) -> np.ndarray:
+    """``buy_trigger`` for every row: entry ``t`` is the lowest close of row ``t + 1`` that would
+    be an entry signal, from the closes up to ``t``; NaN where ``buy_trigger`` is None."""
+    c = np.asarray(close, dtype=float)
+    n = len(c)
+    out = np.full(n, np.nan)
+    if n < 250:
+        return out
+    cs = np.concatenate([[0.0], np.cumsum(c)])
+    t = np.arange(249, n)
+
+    def tail(k: int) -> np.ndarray:
+        s: np.ndarray = cs[t + 1] - cs[t + 1 - k]
+        return s
+
+    win = np.lib.stride_tricks.sliding_window_view(c, 250)  # row i holds closes i..i+249
+    hi250 = win.max(axis=1)[t - 249]
+    hi249 = win[:, 1:].max(axis=1)[t - 249]
+    on = trending(c[t], tail(50) / 50, tail(200) / 200) & (
+        c[t] >= (1 - near_high) * hi250 * (1 - EPS)
+    )
+    s49, s199 = tail(49), tail(199)
+    need = np.maximum.reduce(
+        [s49 / 49, (s199 / 200 - s49 / 50) / (1 / 50 - 1 / 200), (1 - near_high) * hi249]
+    )
+    out[t] = np.where(on, np.nan, need * (1 + 1e-6))
+    return out
+
+
+def stop_line(
+    close: np.ndarray,
+    rs: list[Ride],
+    trail: float,
+    max_hold: int,
+    trend: np.ndarray | None = None,
+) -> np.ndarray:
+    """The sell line for every row a ride holds: entry ``t`` is the price the close of ``t + 1``
+    must stay at or above, ``trail`` under the highest close up to ``t``; NaN on other rows. It
+    follows ``rides`` (the count and the peak start again when a ride is renewed at
+    ``max_hold``) and ends on the row before the close that broke it."""
+    n = len(close)
+    out = np.full(n, np.nan)
+    for r in rs:
+        if r.entry is None:
+            continue
+        end = r.exit_signal if r.exit_signal is not None else n
+        pk = start = r.entry
+        for j in range(r.entry, end):
+            if close[j] > close[pk]:
+                pk = j
+            if j > start and j - start >= max_hold and trend is not None and trend[j]:
+                start = pk = j
+            out[j] = close[pk] * (1 - trail)
+    return out
+
+
+def free_rows(n: int, rs: list[Ride]) -> np.ndarray:
+    """Rows on which no ride is held or waiting, so a new signal would count."""
+    free = np.ones(n, dtype=bool)
+    for r in rs:
+        free[r.signal : (n - 1 if r.exit is None else r.exit) + 1] = False
+    return free
+
+
+def chart_line(d: list[date], line: np.ndarray) -> list[dict[str, Any]]:
+    """A line for the price chart as steps: the value of row ``t`` is drawn on day ``t + 1``,
+    the day whose close it is compared with. Only the days the value changes, the last day of
+    each run and a null after it (a gap) are kept, so a run of equal values costs two points."""
+    out: list[dict[str, Any]] = []
+    n = len(line)
+    for t in range(n - 1):
+        v = line[t]
+        on = bool(np.isfinite(v))
+        was = t > 0 and bool(np.isfinite(line[t - 1]))
+        nxt = t + 1 < n - 1 and bool(np.isfinite(line[t + 1]))
+        if on and (not was or v != line[t - 1] or not nxt or line[t + 1] != v):
+            out.append({"date": str(d[t + 1]), "value": round(float(v), 2)})
+        elif not on and was:
+            out.append({"date": str(d[t + 1]), "value": None})
+    return out
+
+
 def current(
     g: pl.DataFrame,
     rs: list[Ride],
     trail: float,
     near_high: float | None = None,
+    max_hold: int | None = None,
+    show_near: float = 0.10,
 ) -> dict[str, Any] | None:
-    """The symbol's latest ride, as the page needs it; None when it never had one."""
+    """The symbol's latest ride, as the page needs it; None when it never had one. With
+    ``max_hold`` (and a ``trend`` column in ``g``) it adds the chart's lines: the sell line on
+    every day a ride was held, and the entry trigger on the free days it was within
+    ``show_near`` of the close (further away it is no warning and would squash the chart)."""
     if not rs:
         return None
     r = rs[-1]
     d, c = g["date"].to_list(), g["close"].to_numpy()
     last = len(c) - 1
+    lines: dict[str, Any] = {}
+    if max_hold is not None and near_high is not None:
+        trend = g["trend"].to_numpy() if "trend" in g.columns else None
+        trig = trigger_line(c, near_high)
+        with np.errstate(invalid="ignore"):
+            near = free_rows(len(c), rs) & (trig <= (1 + show_near) * c)
+        lines = {
+            "sell_line": chart_line(d, stop_line(c, rs, trail, max_hold, trend)),
+            "buy_line": chart_line(d, np.where(near, trig, np.nan)),
+        }
 
     def day(i: int | None) -> str | None:
         return None if i is None else str(d[i])
@@ -337,4 +434,5 @@ def current(
         "last_close": float(c[last]),
         "gain": None if r.entry is None else float(c[end] / c[r.entry] - 1),
         "days_since_exit": None if r.exit is None else last - r.exit,
+        **lines,
     }
