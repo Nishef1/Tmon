@@ -38,6 +38,7 @@ from tmon.api.schemas import (
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
+from tmon.core.memory import release_memory
 from tmon.features import columns as colmod
 from tmon.storage.models import (
     ClientTypeDaily,
@@ -139,6 +140,7 @@ def overview(session: SessionDep) -> IndustryOverview:
     with _overview_lock:  # one request builds it; the others wait and then find it kept
         if _overview_cache.get("key") != key:
             _overview_cache["key"], _overview_cache["doc"] = key, _build_overview(session, last)
+            release_memory()
         return _overview_cache["doc"]  # type: ignore[return-value]
 
 

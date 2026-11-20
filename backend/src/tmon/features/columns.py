@@ -29,6 +29,7 @@ from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 
 from tmon.core.engine_config import get_engine_config
+from tmon.core.memory import release_memory
 from tmon.domain.enums import InstrumentType
 from tmon.features import fundamentals
 from tmon.features.adjustment import apply_adjustments
@@ -878,6 +879,7 @@ def compute(session: Session, last: dt.date, flow_date: dt.date | None) -> Table
         if hit is not None:
             return hit
         out = _compute(session, last, flow_date)
+        release_memory()  # the build held years of bars and every statement
         with _lock:
             _table_cache.clear()  # only the latest state is ever asked for
             _table_cache[key] = out
