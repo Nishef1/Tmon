@@ -923,6 +923,13 @@ main > *:nth-child(n + 5) {
     0 1px 0 var(--line),
     0 8px 24px -18px rgb(var(--shadow-color) / 0.5);
 }
+/* the section jump bar under the header: a frosted band, so the chart behind it never shows through */
+.jump-nav {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px);
+  backdrop-filter: saturate(1.6) blur(16px);
+  box-shadow: 0 8px 20px -18px rgb(var(--shadow-color) / 0.5);
+}
 .logo-mark {
   background:
     radial-gradient(circle at 30% 25%, var(--accent-glow), transparent 60%),

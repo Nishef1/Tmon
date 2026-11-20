@@ -47,7 +47,7 @@ export function JumpNav({ items }: { items: JumpItem[] }) {
       data-testid="jump-nav"
       className="jump-nav sticky top-[4.05rem] z-20 overflow-x-auto pb-1 pt-0.5 [scrollbar-width:none]"
     >
-      <ul className="mx-auto flex w-max gap-1 rounded-full border border-line/60 bg-surface/55 p-1 shadow-sm shadow-black/5 ring-1 ring-inset ring-white/10 backdrop-blur-xl backdrop-saturate-150">
+      <ul className="mx-auto flex w-max gap-1 rounded-full border border-line/60 bg-surface/70 p-1 shadow-sm shadow-black/5 ring-1 ring-inset ring-white/10">
         {items.map((i) => (
           <li key={i.id}>
             <a
