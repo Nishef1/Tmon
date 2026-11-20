@@ -565,7 +565,10 @@ def instrument_forecast(instrument_id: int, session: SessionDep) -> SymbolForeca
     if px is None:
         return SymbolForecastOut(available=False, reason="قیمتی برای این نماد ثبت نشده است")
     price = px[0]
-    doc = portfolio_forecast(session, [Position(instrument_id, inst.symbol_fa, 1.0, price, price)])
+    # One holding has weight 1 whatever its price, so the bands do not depend on it. A fixed unit
+    # price keeps the forecast's cache key steady within a day; the live price would change the
+    # key on every tick and recompute the whole simulation (seconds on the server) each time.
+    doc = portfolio_forecast(session, [Position(instrument_id, inst.symbol_fa, 1.0, 1.0, 1.0)])
     if not doc.get("available"):
         return SymbolForecastOut(available=False, reason=doc.get("reason"))
     out: list[ForecastHorizonOut] = []
