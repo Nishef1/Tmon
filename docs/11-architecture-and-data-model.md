@@ -24,7 +24,7 @@ Docker، Postgres، Redis و Celery کنار گذاشته شده‌اند. ذخ�
 | `domain` | قواعد بازار (`rules.py`: کارمزد، دامنه، ساعت)، تقویم، مجمع، مقایسه با تورم |
 | `storage` | مدل‌های SQLAlchemy (`models.py`)، seed قواعد، ذخیره‌ساز فایل |
 | `ingest` | `tsetmc` (قیمت، حقیقی/حقوقی، تابلو، لحظه‌ای)، `codal`، `macro` (fipiran، tgju، yahoo، تورم)، `news` |
-| `features` | ساخت ویژگی‌ها، تعدیل قیمت، اندیکاتورها، تابلو، کیفیت داده؛ ستون‌های ترکیبی نمایشی (`columns.py`، `fundamentals.py`) که روترهای `screener`، `industries` و `columns` می‌خوانند |
+| `features` | ساخت ویژگی‌ها، تعدیل قیمت، اندیکاتورها، تابلو، کیفیت داده؛ ستون‌های ترکیبی نمایشی (`columns.py`، `fundamentals.py`) که روترهای `screener`، `industries` و `columns` می‌خوانند؛ نسخهٔ آموزشی بدون نگاه‌به‌آینده برای پژوهش (`extra.py`، `relative.py`) که هنوز وارد مدل تولید نیست |
 | `labeling` | برچسب triple-barrier و نسبی (v1) |
 | `models` | LightGBM، تقسیم walk-forward، توضیح SHAP (v1) |
 | `engine` | دروازه‌ها، آستانه‌ها، حالت دفاعی، مواجهه، وزن زنده (`adapt.py`)، رژیم، حکم هر نماد (`verdict.py`: توابع خالص روی سندهای ذخیره‌شده) |

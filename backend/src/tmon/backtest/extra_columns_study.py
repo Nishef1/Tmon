@@ -1,6 +1,8 @@
 """Do the new derived columns help a model? Old D1 feature set against old plus new.
 
 ``python -m tmon.backtest.extra_columns_study --json docs/data/extra-columns-study.json``.
+``--relative`` tests the trend, peer and pairwise readings of ``features/relative.py`` instead
+(``docs/data/relative-columns-study.json``).
 The same walk-forward, labels and round-trip costs as ``tmon.backtest.ablation``; only the column
 list differs. Quality is read on all scored rows (AUC, Brier skill) and on the trades of each
 variant (net of costs), each over the whole out-of-sample span and again over its first and second
@@ -25,13 +27,22 @@ from tmon.domain.rules import RuleBook
 from tmon.features.builder import KEYS, get_feature_set
 from tmon.features.extra import GROUPS, build_extra, shares_frame
 from tmon.features.fundamentals import load_statements
+from tmon.features.relative import REL_GROUPS, build_relative
 from tmon.models.lgbm import LightGBMStrategy
 from tmon.storage.models import Instrument, OrderBookDaily, ShareChange
 
 
-def variants(timeframe: str) -> dict[str, list[str]]:
+def variants(timeframe: str, relative: bool = False) -> dict[str, list[str]]:
     old = list(get_feature_set(timeframe).columns)
     out = {"old": old}
+    if relative:
+        rel_all = [c for cols in REL_GROUPS.values() for c in cols]
+        extra_all = [c for cols in GROUPS.values() for c in cols]
+        for g, cols in REL_GROUPS.items():
+            out[f"old+{g}"] = old + list(cols)
+        out["old+rel"] = old + rel_all
+        out["old+extra+rel"] = old + extra_all + rel_all
+        return out
     for g, cols in GROUPS.items():
         out[f"old+{g}"] = old + list(cols)
     out["old+all"] = old + [c for cols in GROUPS.values() for c in cols]
@@ -72,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="tmon-extra-columns-study")
     ap.add_argument("--timeframe", default="D1")
     ap.add_argument("--json", type=Path)
+    ap.add_argument("--relative", action="store_true")
     args = ap.parse_args(argv)
     tf = args.timeframe
 
@@ -121,11 +133,15 @@ def main(argv: list[str] | None = None) -> int:
     ds = prepare_dataset(prices, clients, rules, sectors=sectors, timeframe=tf).join(
         extra, on=list(KEYS), how="left"
     )
-    vs = variants(tf)
+    if args.relative:
+        rel = build_relative(prices, clients, extra, sectors=sectors, index_close=ix)
+        ds = ds.join(rel, on=list(KEYS), how="left")
+    vs = variants(tf, args.relative)
     strategies = {n: (lambda n=n, c=c: _strategy(rules, tf, c, n)) for n, c in vs.items()}
     run = run_backtest(ds, rules, strategies, timeframe=tf, index_daily=index_daily, rf=rf)
     out: dict[str, Any] = {"timeframe": tf, "folds": len(run.folds), "variants": {}}
-    coverage = {c: float(ds[c].is_not_null().sum()) / ds.height for g in GROUPS.values() for c in g}
+    groups = REL_GROUPS if args.relative else GROUPS
+    coverage = {c: float(ds[c].is_not_null().sum()) / ds.height for g in groups.values() for c in g}
     out["coverage"] = coverage
     # One cut for every variant: the median entry date of the old set's trades. Predictions exist
     # for far more dates than trades (thin early years), so the cut is set by where trading is.
