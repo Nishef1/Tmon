@@ -13,8 +13,17 @@
 ## انتشار کد بعد از هر تغییر
 بعد از **هر** کامیت و پوش: `bash deploy/release.sh` (حدود ۴ تا ۶ دقیقه؛ ساخت سایت روی سرور). کد را می‌فرستد، سایت را می‌سازد، `tmon-api` و `tmon-web` را دوباره بالا می‌آورد و سلامتشان را می‌سنجد؛ شمارهٔ کامیت در `/opt/tmon/RELEASE` ثبت می‌شود. دادهٔ جدید جداگانه با `deploy/sync-data.sh` می‌رود (بعد از پایان چرخهٔ PC).
 
+## انتشار امن و برگشت
+- `release.sh` بعد از ری‌استارت تا آماده شدن API صبر می‌کند: `/health` یعنی فرایند بالاست و `/ready` یعنی ساخت اولیهٔ جدول ستون‌ها تمام شده (۵۰۳ با «warming» تا آن موقع، یک تا دو دقیقه). اگر تا ۵ دقیقه آماده نشد، با خطا تمام می‌شود.
+- ری‌استارت بعد از هر انتشار، یک تا دو دقیقه صفحه‌های سنگین را کند می‌کند؛ پس در ساعت بازار (۹ تا ۱۲:۳۰ تهران) انتشار نده مگر اصلاح فوری باشد.
+- سه نسخهٔ آخر کد در `/opt/tmon/releases/` می‌ماند. `bash deploy/rollback.sh` آن‌ها را فهرست می‌کند و `bash deploy/rollback.sh <commit>` یکی را برمی‌گرداند (ساخت سایت دوباره انجام می‌شود، حدود ۴ دقیقه). داده دست نمی‌خورد. بعد از برگشت، علت را درست کن و دوباره `release.sh` بزن.
+- `tmon-watchdog.timer` هر دقیقه `/health` سرویس API و صفحهٔ اصلی وب را می‌زند و سرویسی را که سه بار پیاپی جواب نداد ری‌استارت می‌کند (تا ۵ دقیقه بعد از بالا آمدنش دست نمی‌زند). رد پایش در `journalctl -t tmon-watchdog`. اگر در `/etc/tmon.env` خط `TMON_WATCH_NOTIFY_URL=<آدرس موضوع ntfy>` باشد، پیام یک‌خطی هم می‌فرستد (اختیاری؛ فعلاً تنظیم نیست).
+- API قیمت‌ها را قبل از اولین درخواست در پس‌زمینه می‌سازد (`_warm_columns` در `api/main.py`)؛ سقف حافظهٔ نرم آن ۱۲۰۰ مگ است (`/etc/systemd/system/tmon-api.service.d/limits.conf`). ساخت اولیه حدود ۳۱۰ مگ می‌ماند؛ اگر `memory.events` خط `high` بالا رفت، یعنی کدی دوباره حافظه را بالا برده است:
+  `cat /sys/fs/cgroup/system.slice/tmon-api.service/memory.events`.
+
 ## امنیت
-- ورود SSH با کلید (`~/.ssh/tmon_vps`) است. اگر ورود با رمز هنوز باز است، پس از اطمینان از کلید آن را ببند (`PasswordAuthentication no` در `/etc/ssh/sshd_config`، سپس `systemctl restart ssh`).
+- ورود SSH فقط با کلید است (`~/.ssh/tmon_vps`): `PasswordAuthentication no` و `PermitRootLogin prohibit-password` در `/etc/ssh/sshd_config.d/00-tmon.conf` (۳۰ آبان ۱۴۰۵؛ ورود با رمز آزموده شد و رد شد). این فایل را `server-setup.sh` نمی‌سازد؛ روی سرور جدید دستی بساز. fail2ban، ufw (فقط ۸۰، ۴۴۳، ۱۴۱۵) و به‌روزرسانی امنیتی خودکار فعال‌اند.
+- مخزن عمومی است. تاریخچهٔ گیت با جستجوی الگوی توکن، کلید خصوصی و رمز وارسی شد (۳۰ آبان ۱۴۰۵) و چیزی جز نشانی سرور و پورت SSH (E4 در OPEN_QUESTIONS) و رمز نمایشی `docker-compose` پیدا نشد. پیش از هر انتشار بزرگ دوباره با `git log --all -p | grep -iE "token|secret|password|BEGIN .*PRIVATE"` بسنج.
 - گواهی خودامضاست (بدون دامنه). با داشتن دامنه، certbot گواهی معتبر می‌دهد.
 - تغییر رمز سایت: `htpasswd -B /etc/nginx/tmon/htpasswd tmon && systemctl reload nginx`.
 - «مرا وارد نگه دار»: پس از یک ورود درست، nginx کوکی `tmon_key` (۳۰ روز، `HttpOnly`، `Secure`) می‌گذارد و تا آن زمان پنجرهٔ رمز دوباره نمی‌آید. کوکی یک توکن تصادفی سمت سرور است، نه رمز (`/etc/nginx/tmon/cookie.conf`). برای بیرون انداختن همهٔ مرورگرها: `rm /etc/nginx/tmon/cookie*.conf` و اجرای دوبارهٔ بخش nginx در `server-setup.sh`، یا ساختن توکن تازه.

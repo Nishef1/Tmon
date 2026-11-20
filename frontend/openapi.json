@@ -15553,6 +15553,7 @@
     },
     "/health": {
       "get": {
+        "description": "The process is up. A deploy or a watchdog uses this one to see that it answers.",
         "operationId": "health_health_get",
         "responses": {
           "200": {
@@ -16274,7 +16275,7 @@
     },
     "/market/index": {
       "get": {
-        "description": "The two official indices with candles, the day's range and period returns, plus breadth,\nvalue and median move of the last full days. End-of-day only.",
+        "description": "The two official indices with candles, the day's range and period returns, plus breadth,\nvalue and median move of the last full days. End-of-day only. The answer is kept while the\nstored bars and index rows are unchanged (a fingerprint, never a clock).",
         "operationId": "index_detail_market_index_get",
         "parameters": [
           {
@@ -17997,6 +17998,32 @@
         "summary": "Delete Trade",
         "tags": [
           "portfolios"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "The pages answer fast: 503 while the start-up build of the derived columns still runs.",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Ready Ready Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "meta"
         ]
       }
     },

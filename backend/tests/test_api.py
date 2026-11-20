@@ -51,6 +51,17 @@ def test_health(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
 
 
+def test_ready_waits_for_the_warm_up(client: TestClient) -> None:
+    from tmon.api import main
+
+    main._warm.clear()
+    r = client.get("/ready")
+    assert r.status_code == 503 and r.json() == {"status": "warming"}
+    assert r.headers["retry-after"] == "5"
+    main._warm.set()
+    assert client.get("/ready").json() == {"status": "ready"}
+
+
 def test_instrument_404(client: TestClient) -> None:
     assert client.get("/instruments/999").status_code == 404
 

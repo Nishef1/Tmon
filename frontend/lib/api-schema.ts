@@ -185,7 +185,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Health */
+    /**
+     * Health
+     * @description The process is up. A deploy or a watchdog uses this one to see that it answers.
+     */
     get: operations["health_health_get"];
     put?: never;
     post?: never;
@@ -494,7 +497,8 @@ export interface paths {
     /**
      * Index Detail
      * @description The two official indices with candles, the day's range and period returns, plus breadth,
-     *     value and median move of the last full days. End-of-day only.
+     *     value and median move of the last full days. End-of-day only. The answer is kept while the
+     *     stored bars and index rows are unchanged (a fingerprint, never a clock).
      */
     get: operations["index_detail_market_index_get"];
     put?: never;
@@ -915,6 +919,26 @@ export interface paths {
     post?: never;
     /** Delete Trade */
     delete: operations["delete_trade_portfolios__portfolio_id__trades__trade_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/ready": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ready
+     * @description The pages answer fast: 503 while the start-up build of the derived columns still runs.
+     */
+    get: operations["ready_ready_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -7531,6 +7555,28 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  ready_ready_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: string;
+          };
         };
       };
     };

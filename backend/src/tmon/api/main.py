@@ -29,6 +29,9 @@ from tmon.core.db import session_scope
 
 log = logging.getLogger(__name__)
 
+# set when the start-up build of the derived columns has finished (or failed): /ready says so
+_warm = threading.Event()
+
 
 def _warm_columns() -> None:
     """Builds the derived-columns table once at start, off the request path. Without it the first
@@ -38,6 +41,8 @@ def _warm_columns() -> None:
             columns.table_for(session)
     except Exception:
         log.warning("warm-up of the derived columns failed", exc_info=True)
+    finally:
+        _warm.set()
 
 
 @asynccontextmanager
@@ -69,7 +74,17 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["meta"])
     def health() -> dict[str, str]:
+        """The process is up. A deploy or a watchdog uses this one to see that it answers."""
         return {"status": "ok"}
+
+    @app.get("/ready", tags=["meta"])
+    def ready(response: Response) -> dict[str, str]:
+        """The pages answer fast: 503 while the start-up build of the derived columns still runs."""
+        if not _warm.is_set():
+            response.status_code = 503
+            response.headers["Retry-After"] = "5"
+            return {"status": "warming"}
+        return {"status": "ready"}
 
     for r in (
         instruments.router,

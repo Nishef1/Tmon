@@ -359,6 +359,11 @@ _lock = threading.Lock()
 _compute_lock = threading.Lock()
 
 
+def price_fingerprint(session: Session, last: dt.date) -> tuple[object, ...]:
+    """What the stored bars of the window look like now; other caches key on it too."""
+    return _fingerprint(session, last)
+
+
 def _fingerprint(session: Session, last: dt.date) -> tuple[object, ...]:
     """What the block is computed from. A new or removed bar changes the row count of the whole
     window (answered from the date index); a corrected recent bar changes the fetch time and sums

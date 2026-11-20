@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import statistics
+import threading
 from itertools import pairwise
 from typing import Annotated, Any
 
@@ -32,6 +33,7 @@ from tmon.api.schemas import (
 )
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
+from tmon.features import columns as colmod
 from tmon.storage.models import (
     ClientTypeDaily,
     Instrument,
@@ -320,15 +322,37 @@ def _index_series(
     )
 
 
+_index_cache: dict[int, tuple[tuple[object, ...], MarketIndexOut]] = {}
+_index_lock = threading.Lock()
+
+
 @router.get("/market/index", response_model=MarketIndexOut)
 def index_detail(
     session: SessionDep, days: Annotated[int, Query(ge=20, le=1500)] = 250
 ) -> MarketIndexOut:
     """The two official indices with candles, the day's range and period returns, plus breadth,
-    value and median move of the last full days. End-of-day only."""
+    value and median move of the last full days. End-of-day only. The answer is kept while the
+    stored bars and index rows are unchanged (a fingerprint, never a clock)."""
     last = _latest_full(session, PriceDaily.date)
     if last is None:
         return MarketIndexOut(available=False)
+    idx = session.execute(
+        select(func.count(), func.max(MarketIndexDaily.date), func.sum(MarketIndexDaily.close))
+    ).one()
+    key = (*colmod.price_fingerprint(session, last), *idx, get_engine_config().benchmarks.indices)
+    with _index_lock:
+        hit = _index_cache.get(days)
+        if hit is not None and hit[0] == key:
+            return hit[1]
+    out = _build_index(session, days, last)
+    with _index_lock:
+        if len(_index_cache) >= 8:
+            _index_cache.clear()
+        _index_cache[days] = (key, out)
+    return out
+
+
+def _build_index(session: Session, days: int, last: dt.date) -> MarketIndexOut:
     since = last - dt.timedelta(days=int(max(days, 300) * 1.6) + 10)
     by_day = session.execute(
         select(PriceDaily.date, func.sum(PriceDaily.value))
