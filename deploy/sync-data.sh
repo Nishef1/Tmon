@@ -44,10 +44,12 @@ delta_sync() {
   else
     fp=-
   fi
-  res=$("$PY" deploy/syncdb.py delta data/tmon-live.sqlite3 "$fp" "$OUT/delta.sqlite3")
-  echo "delta: $res" | cut -c1-400
-  if "$PY" -c "import json,sys; sys.exit(0 if not json.loads(sys.argv[1])['full'] else 1)" "$res"; then :; else
-    echo "full copy needed: $("$PY" -c "import json,sys; print(json.loads(sys.argv[1])['reason'])" "$res")"
+  # the plan can list hundreds of days: read it from a file, an argument this long fails on Windows
+  res="$OUT/delta-plan.json"
+  "$PY" deploy/syncdb.py delta data/tmon-live.sqlite3 "$fp" "$OUT/delta.sqlite3" > "$res"
+  echo "delta: $(cut -c1-400 "$res")"
+  if "$PY" -c "import json,sys; sys.exit(0 if not json.load(open(sys.argv[1]))['full'] else 1)" "$res"; then :; else
+    echo "full copy needed: $("$PY" -c "import json,sys; print(json.load(open(sys.argv[1]))['reason'])" "$res")"
     return 1
   fi
   zstd -19 -T0 -q "$OUT/delta.sqlite3" -o "$OUT/delta.sqlite3.zst"
