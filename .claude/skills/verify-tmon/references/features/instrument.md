@@ -49,11 +49,18 @@ and the AGM calculator.
   (docs/reports/trend-audit-2026-11.md).
 - The «اگر این مدت نگه دارید» card (`data-testid="outlook"`, `?p=day|days3|week|month|quarter|half`,
   default quarter) comes from `GET /instruments/{id}/forecast`. Compare `low`, `mid`, `high` times
-  `price` with the card, and check the chart draws the same range after the last candle as dotted
-  «سقف بازه» and «کف بازه» and a dashed «میانه». Every period must end with the page's one
+  `price` with the card. Every period must end with the page's one
   three-month verdict; a short period claiming its own buy is a bug
   (docs/reports/verdict-parts-2026-11.md). Check شکام (quarter, calibrated) and کوثر (week, trend
   entry inside the range). A period with too few separate windows says «بازه آزموده نیست».
+- The «پیش‌بینی کندل‌های بعد» section (`data-testid="next-candles"`, `#forecast`, under the price
+  chart, `components/stock/NextCandles.tsx`) draws one candle per period (`nc-candle-<key>`):
+  open = forecast `price`, close = `price*(1+mid)`, wicks `low`/`high`; `data-up="1"` exactly when
+  `mid >= 0` (green), a period with `reliable=false` dashed and «آزموده نیست». `nc-summary` repeats
+  the chosen period; clicking a candle goes to `?p=<key>#forecast` and the outlook card follows.
+  The «سابقهٔ خود سهم» toggle (`nc-own`) switches to `entry.windows[].odds` of the dashboard
+  (q10/q50/q90, «X بار از ۱۰ بالاتر بسته شد»). The price chart itself draws no forecast range.
+  No hydration warning in the console (coordinates are rounded).
 - A tradable fund (type `etf_*`, e.g. پیشران id 1419, a leveraged fund) has every section of a stock
   page: gauge and month verdict (`final_verdict`, grade always «ثابت‌نشده», never «بخر»), trend ride
   (`ride_only`, `fund_rides` in turning.json), ranges and the checklist. Each carries its fund test

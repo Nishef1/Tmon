@@ -33,7 +33,8 @@ import { DriversCard } from "@/components/DriversCard";
 import { StockHeader } from "@/components/stock/StockHeader";
 import { JumpNav, type JumpItem } from "@/components/stock/JumpNav";
 import { HorizonOutlook } from "@/components/stock/HorizonOutlook";
-import { conePoints, pickPeriod } from "@/components/stock/outlook";
+import { PERIOD_KEYS, pickPeriod } from "@/components/stock/outlook";
+import { NextCandles } from "@/components/stock/NextCandles";
 import { StockNews } from "@/components/stock/StockNews";
 import { LiveWhenOpen } from "@/components/stock/LiveWhenOpen";
 import { StockAlerts } from "@/components/stock/StockAlerts";
@@ -136,13 +137,11 @@ export default async function InstrumentPage({
   const dd = dash.ok ? dash.data : null;
   const forecast = fc.ok && fc.data.available ? fc.data : null;
   const period = forecast ? pickPeriod(forecast, q.p) : undefined;
-  const lastDay = d.candles[d.candles.length - 1]?.date;
-  const cone = forecast && period && lastDay ? conePoints(forecast, period, lastDay) : null;
-  const periodHref = (key: string) => {
+  const periodHref = (key: string, at = "outlook") => {
     const keep = new URLSearchParams(
       Object.entries({ ...q, p: key }).flatMap(([k, v]) => (v === undefined ? [] : [[k, v]])),
     );
-    return `?${keep.toString()}#outlook`;
+    return `?${keep.toString()}#${at}`;
   };
   const firedHere = (dd?.technical?.fired.length ?? 0) > 0;
   // the entry lab only earns a card when a state of today beat or trailed the rest of the market
@@ -152,6 +151,7 @@ export default async function InstrumentPage({
   const jumps: JumpItem[] = [
     ...(dd ? [{ id: "decision", label: "چه کنم؟" }] : []),
     ...(d.candles.length > 0 ? [{ id: "chart", label: "نمودار" }] : []),
+    ...(forecast || entry?.windows.length ? [{ id: "forecast", label: "کندل‌های بعد" }] : []),
     ...(forecast && dd ? [{ id: "outlook", label: "بازه‌ها" }] : []),
     ...(ride ? [{ id: "ride", label: "ورود و خروج روند" }] : []),
     ...(dd?.peers ? [{ id: "peers", label: "همگروه‌ها" }] : []),
@@ -208,7 +208,6 @@ export default async function InstrumentPage({
               marks={marks}
               paths={ride ? ridePaths(ride) : undefined}
               levels={ride ? rideLevels(ride) : undefined}
-              cone={cone}
             />
             <p className="mt-2 text-xs text-muted">
               قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
@@ -227,12 +226,18 @@ export default async function InstrumentPage({
               {ride &&
                 (ride.swings?.length ?? 0) > 0 &&
                 " «کف» و «سقف» خاکستری کف‌ها و سقف‌هایی‌اند که فقط بعداً معلوم شد: بعد از هرکدام قیمت دست‌کم به اندازهٔ خط فروش برگشت. نشانهٔ خرید و فروش نیستند."}
-              {cone &&
-                ` نقطه‌چین‌های بعد از آخرین کندل بازهٔ قیمت ${cone.label} آینده‌اند (۸ بار از ۱۰ داخلش) و خط‌چین وسط میانه؛ بازه را از کارت «اگر این مدت نگه دارید» عوض کنید.`}
             </p>
           </>
         )}
       </section>
+
+      <NextCandles
+        f={forecast}
+        entry={entry}
+        recent={d.candles.slice(-30)}
+        period={period?.key}
+        hrefs={Object.fromEntries(PERIOD_KEYS.map((k) => [k, periodHref(k, "forecast")]))}
+      />
 
       {ride && (
         <div id="ride" className="scroll-mt-28">

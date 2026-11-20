@@ -51,12 +51,6 @@ export type Path = {
   dotted?: boolean;
 };
 
-/** A forecast range drawn into the days after the last candle: the 80% range and the median. */
-export type Cone = {
-  points: { time: string; low: number; mid: number; high: number }[];
-  label: string;
-};
-
 type Kind = "candle" | "ha" | "bar" | "line";
 type Pane = "none" | "rsi" | "macd" | "stoch" | "mfi" | "adx" | "atr" | "obv";
 type Overlay = "ma1" | "ma2" | "ma3" | "ema" | "bb" | "ichi" | "vwap" | "lv" | "reg" | "fvg" | "ew";
@@ -273,13 +267,11 @@ export function CandleChart({
   levels = NO_LEVELS,
   marks: dailyMarks = NO_MARKS,
   paths: dailyPaths = NO_PATHS,
-  cone: dailyCone,
 }: {
   candles: Candle[];
   levels?: Level[];
   marks?: Mark[];
   paths?: Path[];
-  cone?: Cone | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
@@ -304,13 +296,6 @@ export function CandleChart({
         ? dailyPaths
         : dailyPaths.map((p) => ({ ...p, points: regroup(p.points, tf, at) })),
     [dailyPaths, tf, at],
-  );
-  const cone = useMemo(
-    () =>
-      dailyCone && tf !== "1d"
-        ? { ...dailyCone, points: regroup(dailyCone.points, tf, at) }
-        : dailyCone,
-    [dailyCone, tf, at],
   );
   const [panel, setPanel] = useState(false);
   const [full, setFull] = useState(false);
@@ -395,8 +380,6 @@ export function CandleChart({
     };
   }, []);
 
-  // future days of the forecast range, kept in view beside the last n candles
-  const ahead = cone ? cone.points.length - 1 : 0;
   const applySpan = useCallback(
     (chart: IChartApi, days: number) => {
       // the span buttons count trading days; a longer candle shows fewer of them, at least four
@@ -404,13 +387,13 @@ export function CandleChart({
       if (n > 0 && real.length > n) {
         // n bars fill the plot less the gap; the gap is n bars scaled by its share of the width
         const w = Math.max(chart.timeScale().width() - GAP, 100);
-        const to = real.length - 0.5 + ahead + (n * GAP) / w;
+        const to = real.length - 0.5 + (n * GAP) / w;
         chart.timeScale().setVisibleLogicalRange({ from: real.length - n, to });
       } else {
         chart.timeScale().fitContent();
       }
     },
-    [real.length, ahead, tf],
+    [real.length, tf],
   );
 
   useEffect(() => {
@@ -432,6 +415,7 @@ export function CandleChart({
       const up = tok("var(--up)");
       const down = tok("var(--down)");
       const accent = tok("var(--accent)");
+      const ink = tok("var(--ink)");
       const tracked: Tracked[] = [];
 
       const chart = lc.createChart(el, {
@@ -444,11 +428,11 @@ export function CandleChart({
           attributionLogo: false,
           panes: { separatorColor: strong, separatorHoverColor: faded(accent, "33") },
         },
-        grid: { vertLines: { visible: false }, horzLines: { color: line } },
+        grid: { vertLines: { visible: false }, horzLines: { color: faded(line, "99") } },
         crosshair: {
           mode: cfg.magnet ? lc.CrosshairMode.MagnetOHLC : lc.CrosshairMode.Normal,
-          vertLine: { color: strong, labelBackgroundColor: accent, style: lc.LineStyle.Dashed },
-          horzLine: { color: strong, labelBackgroundColor: accent, style: lc.LineStyle.Dashed },
+          vertLine: { color: strong, labelBackgroundColor: ink, style: lc.LineStyle.Dashed },
+          horzLine: { color: strong, labelBackgroundColor: ink, style: lc.LineStyle.Dashed },
         },
         rightPriceScale: {
           borderVisible: false,
@@ -587,7 +571,7 @@ export function CandleChart({
           regime(real).map((x) => ({
             time: x.time as Time,
             value: 1,
-            color: faded(x.value > 0 ? up : x.value < 0 ? down : muted, "14"),
+            color: faded(x.value > 0 ? up : x.value < 0 ? down : muted, "0f"),
           })),
         );
       }
@@ -733,30 +717,6 @@ export function CandleChart({
             tracked.push({ label: p.title, color: tok(p.color), series: s, ended: !open });
         }
       }
-      if (cone && cone.points.length > 1) {
-        const line = (key: "low" | "mid" | "high", title: string) => {
-          const s = chart.addSeries(
-            lc.LineSeries,
-            {
-              color: accent,
-              lineWidth: key === "mid" ? 2 : 1,
-              lineStyle: key === "mid" ? Dashed : Dotted,
-              priceFormat: FA,
-              priceLineVisible: false,
-              lastValueVisible: key !== "mid",
-              crosshairMarkerVisible: false,
-              title,
-            },
-            0,
-          );
-          s.setData(cone.points.map((q) => ({ time: q.time as Time, value: q[key] })));
-          // at rest the legend shows the value at the period's end
-          tracked.push({ label: `${title} ${cone.label}`, color: accent, series: s });
-        };
-        line("high", "سقف بازه");
-        line("mid", "میانه");
-        line("low", "کف بازه");
-      }
       const allMarks = [...marks, ...waves];
       if (allMarks.length > 0) {
         const known = new Set(times);
@@ -824,9 +784,9 @@ export function CandleChart({
         });
       }
       const v = view.current;
-      if (v.range && v.n === real.length + ahead) chart.timeScale().setVisibleLogicalRange(v.range);
+      if (v.range && v.n === real.length) chart.timeScale().setVisibleLogicalRange(v.range);
       else applySpan(chart, span);
-      v.n = real.length + ahead;
+      v.n = real.length;
       const mark = (r: LogicalRange | null) => {
         view.current.range = r;
         // the visible span, for tests and for anyone inspecting the page
@@ -855,7 +815,7 @@ export function CandleChart({
     };
     // `span` is applied by its own effect; a rebuild keeps the user's zoom instead
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [real, levels, marks, paths, cone, volumes, vbars, times, cfg, applySpan]);
+  }, [real, levels, marks, paths, volumes, vbars, times, cfg, applySpan]);
 
   const pickSpan = (n: number) => {
     setSpan(n);
