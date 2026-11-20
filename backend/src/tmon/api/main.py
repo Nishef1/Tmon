@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+import logging
+import threading
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,11 +25,32 @@ from tmon.api.routers import (
     search,
 )
 from tmon.core.config import get_settings
+from tmon.core.db import session_scope
+
+log = logging.getLogger(__name__)
+
+
+def _warm_columns() -> None:
+    """Builds the derived-columns table once at start, off the request path. Without it the first
+    stock page after every restart waits for the whole build (a minute or more on the server)."""
+    try:
+        with session_scope() as session:
+            columns.table_for(session)
+    except Exception:
+        log.warning("warm-up of the derived columns failed", exc_info=True)
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    threading.Thread(target=_warm_columns, name="warm-columns", daemon=True).start()
+    yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="Tmon API", version="0.1.0", docs_url="/docs", redoc_url=None)
+    app = FastAPI(
+        title="Tmon API", version="0.1.0", docs_url="/docs", redoc_url=None, lifespan=_lifespan
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

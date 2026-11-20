@@ -16,6 +16,7 @@ import json
 import logging
 import statistics
 import sys
+import threading
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
@@ -82,6 +83,55 @@ def _counts(session: Session, model: Any, *, traded_only: bool = False) -> dict[
     return dict(session.execute(q).all())
 
 
+_counts_cache: dict[
+    tuple[object, ...], tuple[dict[date, int], dict[date, int], dict[date, int]]
+] = {}
+_counts_lock = threading.Lock()
+
+
+def _window_fingerprint(session: Session) -> tuple[object, ...]:
+    """What the three day-counts are made from: rows of the checked window (a new, removed or
+    refetched row moves the count, the newest fetch time or the sum) and the symbol table. Far
+    cheaper than the counts themselves, which join every row to its symbol."""
+    start = select(func.max(PriceDaily.date)).scalar_subquery() - timedelta(
+        days=WINDOW_DAYS + REFERENCE_DAYS * 2
+    )
+    prices = session.execute(
+        select(func.count(), func.max(PriceDaily.fetched_at), func.sum(PriceDaily.volume)).where(
+            PriceDaily.date >= start
+        )
+    ).one()
+    flows = session.execute(
+        select(
+            func.count(),
+            func.max(ClientTypeDaily.fetched_at),
+            func.sum(ClientTypeDaily.buy_value_i),
+        ).where(ClientTypeDaily.date >= start)
+    ).one()
+    insts = session.scalar(select(func.count()).select_from(Instrument))
+    return (*tuple(prices), *tuple(flows), insts)
+
+
+def _all_counts(
+    session: Session,
+) -> tuple[dict[date, int], dict[date, int], dict[date, int]]:
+    """Traded prices, all prices and flows per day, kept while the rows behind them are unchanged
+    (a fingerprint of the data, never a clock); one request builds them, the others wait."""
+    key = _window_fingerprint(session)
+    with _counts_lock:
+        hit = _counts_cache.get(key)
+        if hit is not None:
+            return hit
+        out = (
+            _counts(session, PriceDaily, traded_only=True),
+            _counts(session, PriceDaily),
+            _counts(session, ClientTypeDaily),
+        )
+        _counts_cache.clear()  # only the latest state is ever asked for
+        _counts_cache[key] = out
+        return out
+
+
 def _ref(counts: dict[date, int], d: date, days: list[date]) -> int | None:
     older = [counts.get(x, 0) for x in days if x < d][-REFERENCE_DAYS:]
     return int(statistics.median(older)) if len(older) >= 5 else None
@@ -94,9 +144,7 @@ def tehran_now(now: datetime | None = None) -> datetime:
 def check(session: Session, now: datetime | None = None) -> dict[str, Any]:
     """The numbers: per-day counts, the days that fall short, and whether today's prices are
     still missing."""
-    traded = _counts(session, PriceDaily, traded_only=True)
-    rows = _counts(session, PriceDaily)
-    flows = _counts(session, ClientTypeDaily)
+    traded, rows, flows = _all_counts(session)
     all_days = sorted(rows)
     days: list[Day] = []
     for d in all_days[-WINDOW_DAYS:]:

@@ -34,6 +34,7 @@ from tmon.features import fundamentals
 from tmon.features.adjustment import apply_adjustments
 from tmon.storage.models import (
     ClientTypeDaily,
+    FinancialStatement,
     Instrument,
     MacroSeries,
     MarketIndexDaily,
@@ -818,8 +819,66 @@ def _band(session: Session, last: dt.date) -> float:
     return float(pct) if pct else DEFAULT_BAND
 
 
+_table_cache: dict[tuple[object, ...], Table] = {}
+_table_lock = threading.Lock()  # not _compute_lock: building the table builds the price block
+
+
+def _table_fingerprint(
+    session: Session, last: dt.date, flow_date: dt.date | None
+) -> tuple[object, ...]:
+    """Everything :func:`_compute` reads besides the price block: flows of one day, the book days,
+    the dollar series, symbols (share counts live in the tags), holders and statements. A changed
+    or added row moves a count, a fetch time or a sum, so the key changes at once; no clock."""
+
+    def rows_of(model: Any, *where: Any) -> tuple[object, ...]:
+        return tuple(
+            session.execute(select(func.count(), func.max(model.fetched_at)).where(*where)).one()
+        )
+
+    inst = session.execute(
+        select(func.count(), func.sum(func.length(cast(Instrument.tags, String))))
+    ).one()
+    return (
+        *rows_of(ClientTypeDaily, ClientTypeDaily.date == flow_date),
+        *rows_of(
+            OrderBookDaily,
+            OrderBookDaily.date <= last,
+            OrderBookDaily.date >= last - timedelta(days=10),
+        ),
+        *rows_of(MacroSeries, MacroSeries.series == USD_SERIES),
+        *rows_of(Shareholder),
+        *rows_of(FinancialStatement),
+        *tuple(inst),
+    )
+
+
 def compute(session: Session, last: dt.date, flow_date: dt.date | None) -> Table:
-    """Every derived column of every stock that traded on ``last``."""
+    """Every derived column of every stock that traded on ``last``. Kept while the data behind
+    it is unchanged (a fingerprint of the tables, never a clock); one request builds it and the
+    others wait for it. The table is shared, so callers must only read it."""
+    key = (
+        *_fingerprint(session, last),
+        _band(session, last),
+        flow_date,
+        *_table_fingerprint(session, last, flow_date),
+    )
+    with _lock:
+        hit = _table_cache.get(key)
+    if hit is not None:
+        return hit
+    with _table_lock:
+        with _lock:
+            hit = _table_cache.get(key)
+        if hit is not None:
+            return hit
+        out = _compute(session, last, flow_date)
+        with _lock:
+            _table_cache.clear()  # only the latest state is ever asked for
+            _table_cache[key] = out
+    return out
+
+
+def _compute(session: Session, last: dt.date, flow_date: dt.date | None) -> Table:
     prices = price_block(session, last, _band(session, last))
     flows = flow_block(session, flow_date)
     closes = {i: c for i, p in prices.items() if (c := _num(p.get("_close")))}
