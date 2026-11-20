@@ -7,11 +7,14 @@ import { faDigits, faNumber, faPrice, jalali } from "@/lib/format";
 import { signedPct } from "@/lib/ui";
 import { PERIOD_KEYS, PERIOD_SHORT } from "@/components/stock/outlook";
 
-/** One forecast candle: it opens at today's price and closes at the median, its wicks reach the
- *  low and high of the range 8 in 10 past outcomes fell in. Fractions of today's price. */
+/** One forecast point: the median close ``days`` trading days after today and the low and high of
+ *  the range 8 in 10 past outcomes fell in. Fractions of today's price. */
 type Row = {
   key: string;
   label: string;
+  /** the short label under the time axis */
+  axis: string;
+  days: number;
   low: number;
   mid: number;
   high: number;
@@ -25,9 +28,13 @@ type Row = {
 
 type Source = "sim" | "own";
 
+/** Trading days the fan shows unless a longer period is chosen. */
+const SPAN = 20;
+
 const per100 = (x: number) => faNumber(Math.round(x * 100));
 const per10 = (x: number) => faNumber(Math.round(x * 10));
 const afterCandles = (h: number) => (h === 1 ? "کندل بعد" : `${faNumber(h)} کندل بعد`);
+const pctText = (x: number) => faDigits(`${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(1)}٪`);
 
 function simRows(f: SymbolForecast, hrefs: Record<string, string>): Row[] {
   return PERIOD_KEYS.flatMap((k) => {
@@ -37,6 +44,8 @@ function simRows(f: SymbolForecast, hrefs: Record<string, string>): Row[] {
       {
         key: k,
         label: PERIOD_SHORT[k] ?? x.label,
+        axis: PERIOD_SHORT[k] ?? x.label,
+        days: x.days,
         low: x.low,
         mid: x.mid,
         high: x.high,
@@ -61,6 +70,8 @@ function ownRows(w: DashEntry["windows"][number]): Row[] {
           {
             key: `h${x.h}`,
             label: afterCandles(x.h),
+            axis: `${faNumber(x.h)} روز`,
+            days: x.h,
             low: x.q10,
             mid: x.q50,
             high: x.q90,
@@ -84,11 +95,16 @@ function ticks(lo: number, hi: number, n = 5): number[] {
   return out;
 }
 
-/** The last real candles, then one forecast candle per period, on one price axis. */
+/** Rounded so the server and the browser draw the same coordinates. */
+const r2 = (v: number) => Math.round(v * 100) / 100;
+
+/** The last real closes as a line, then from today a fan out to ``span`` trading days: the median
+ *  line and the band 8 in 10 past outcomes fell in. Longer periods stay in the chips above. */
 function Plot({
   rows,
   price,
   recent,
+  span,
   active,
   onPick,
   onHover,
@@ -96,58 +112,77 @@ function Plot({
   rows: Row[];
   price: number;
   recent: Candle[];
+  span: number;
   active: number;
   onPick: (i: number) => void;
   onHover: (i: number | null) => void;
 }) {
   const W = 820;
-  const H = 330;
-  const P = { t: 16, b: 64, l: 10, r: 76 };
-  const past = recent.filter(
-    (c) => c.open != null && c.high != null && c.low != null && c.close != null,
-  );
-  const split = P.l + (W - P.l - P.r) * (past.length > 0 ? 0.36 : 0);
+  const H = 320;
+  const P = { t: 18, b: 58, l: 10, r: 76 };
+  const past = recent.filter((c) => c.close != null).map((c) => c.close as number);
+  const xToday = P.l + (W - P.l - P.r) * (past.length > 1 ? 0.4 : 0.04);
+  const xEnd = W - P.r - 14;
+  const X = (d: number) =>
+    r2(
+      d <= 0
+        ? xToday + (d * (xToday - P.l - 4)) / Math.max(past.length - 1, 1)
+        : xToday + (d * (xEnd - xToday)) / span,
+    );
+  const shown = rows.map((r, i) => ({ ...r, i })).filter((r) => r.days <= span);
   const prices = [
-    ...past.flatMap((c) => [c.high as number, c.low as number]),
-    ...rows.flatMap((r) => [price * (1 + r.low), price * (1 + r.high)]),
+    ...past,
+    ...shown.flatMap((r) => [price * (1 + r.low), price * (1 + r.high)]),
     price,
   ];
-  // a log axis: a rise and a fall of the same size look the same, and the long periods' wide
-  // ranges do not flatten the recent candles
-  const lo = Math.min(...prices) * 0.97;
-  const hi = Math.max(...prices) * 1.03;
+  // a log axis: a rise and a fall of the same size look the same
+  const lo = Math.min(...prices) * 0.985;
+  const hi = Math.max(...prices) * 1.015;
   const L = (v: number) => Math.log(Math.max(v, 1e-9));
-  // rounded: Math.log may differ in the last digits between the server and the browser
-  const Y = (v: number) =>
-    Math.round((P.t + ((H - P.t - P.b) * (L(hi) - L(v))) / (L(hi) - L(lo) || 1)) * 100) / 100;
-  const pw = past.length > 0 ? (split - P.l) / past.length : 0;
-  const slot = (W - P.r - split - 8) / Math.max(rows.length, 1);
-  const cx = (i: number) => split + 8 + slot * (i + 0.5);
-  const bw = Math.min(34, slot * 0.38);
+  const Y = (v: number) => r2(P.t + ((H - P.t - P.b) * (L(hi) - L(v))) / (L(hi) - L(lo) || 1));
+  const at = (q: number) => Y(price * (1 + q));
   const yToday = Y(price);
+  const pts = [{ key: "today", days: 0, low: 0, mid: 0, high: 0, reliable: true }, ...shown];
+  const segs = pts.slice(1).map((b, k) => ({ a: pts[k], b }));
+  const pastPath = past
+    .map((v, i) => `${i === 0 ? "M" : "L"}${X(i - (past.length - 1))},${Y(v)}`)
+    .join("");
+  const sel = shown.find((r) => r.i === active);
+  // a period label that would touch the one before it (or «امروز») is left out
+  const labelled = new Set<number>();
+  let lastX = xToday;
+  for (const r of shown) {
+    if (X(r.days) - lastX >= 40) {
+      labelled.add(r.i);
+      lastX = X(r.days);
+    }
+  }
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="h-auto w-full select-none"
       style={{ direction: "ltr" }}
       role="img"
-      aria-label="کندل‌های گذشته و کندل پیش‌بینی هر بازه"
+      aria-label="قیمت روزهای گذشته و از امروز به بعد خط میانه و بازهٔ پیش‌بینی"
       onMouseLeave={() => onHover(null)}
     >
       <defs>
-        <linearGradient id="nc-future" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" stopColor="var(--accent)" stopOpacity="0.07" />
-          <stop offset="1" stopColor="var(--accent)" stopOpacity="0.01" />
+        <linearGradient id="nc-past" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="var(--ink)" stopOpacity="0.09" />
+          <stop offset="1" stopColor="var(--ink)" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient
+          id="nc-band"
+          gradientUnits="userSpaceOnUse"
+          x1={xToday}
+          x2={xEnd}
+          y1="0"
+          y2="0"
+        >
+          <stop offset="0" stopColor="var(--accent)" stopOpacity="0.32" />
+          <stop offset="1" stopColor="var(--accent)" stopOpacity="0.14" />
         </linearGradient>
       </defs>
-      <rect
-        x={split}
-        y={P.t - 6}
-        width={W - P.r - split}
-        height={H - P.t - P.b + 12}
-        rx="10"
-        fill="url(#nc-future)"
-      />
       {ticks(lo, hi, 6)
         .filter((v, i, all) => i === 0 || Y(all[i - 1]) - Y(v) > 22)
         .map((v) => (
@@ -158,38 +193,23 @@ function Plot({
             </text>
           </g>
         ))}
-      {past.map((c, i) => {
-        const up = (c.close as number) >= (c.open as number);
-        const col = up ? "var(--up)" : "var(--down)";
-        const x = P.l + pw * (i + 0.5);
-        const top = Y(Math.max(c.open as number, c.close as number));
-        const bot = Y(Math.min(c.open as number, c.close as number));
-        return (
-          <g key={c.date} opacity="0.55">
-            <line x1={x} x2={x} y1={Y(c.high as number)} y2={Y(c.low as number)} stroke={col} />
-            <rect
-              x={x - Math.max(1, pw * 0.32)}
-              y={top}
-              width={Math.max(2, pw * 0.64)}
-              height={Math.max(1, bot - top)}
-              fill={col}
-            />
-          </g>
-        );
-      })}
-      {past.length > 0 && (
+      {past.length > 1 && (
         <>
-          <line
-            x1={split}
-            x2={split}
-            y1={P.t - 6}
-            y2={H - P.b + 6}
-            stroke="var(--line-strong)"
-            strokeDasharray="2 4"
+          <path
+            d={`${pastPath}L${X(0)},${H - P.b}L${X(1 - past.length)},${H - P.b}Z`}
+            fill="url(#nc-past)"
+          />
+          <path
+            d={pastPath}
+            fill="none"
+            stroke="var(--ink)"
+            strokeOpacity="0.75"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
           />
           <text
-            x={(P.l + split) / 2}
-            y={H - P.b + 20}
+            x={(P.l + xToday) / 2}
+            y={H - P.b + 18}
             fontSize="11"
             textAnchor="middle"
             fill="var(--muted)"
@@ -199,140 +219,186 @@ function Plot({
           </text>
         </>
       )}
+      {/* today's price carried forward: a median above it gains, one below it loses */}
       <line
-        x1={split}
+        x1={xToday}
         x2={W - P.r}
         y1={yToday}
         y2={yToday}
         stroke="var(--ink)"
-        strokeOpacity="0.45"
-        strokeDasharray="5 4"
+        strokeOpacity="0.35"
+        strokeDasharray="4 4"
       />
-      <g>
-        <rect
-          x={W - P.r + 2}
-          y={yToday - 10}
-          width={P.r - 4}
-          height="20"
-          rx="6"
-          fill="var(--ink)"
+      <path
+        d={`${pts.map((p, k) => `${k === 0 ? "M" : "L"}${X(p.days)},${at(p.high)}`).join("")}${[
+          ...pts,
+        ]
+          .reverse()
+          .map((p) => `L${X(p.days)},${at(p.low)}`)
+          .join("")}Z`}
+        fill="url(#nc-band)"
+      />
+      {(["high", "low"] as const).map((edge) => (
+        <path
+          key={edge}
+          d={pts.map((p, k) => `${k === 0 ? "M" : "L"}${X(p.days)},${at(p[edge])}`).join("")}
+          fill="none"
+          stroke="var(--accent)"
+          strokeOpacity="0.45"
+          strokeWidth="1"
+          strokeLinejoin="round"
         />
-        <text
-          x={W - P.r + P.r / 2}
-          y={yToday + 4}
-          fontSize="11"
-          fontWeight="700"
-          textAnchor="middle"
-          fill="var(--surface)"
-        >
-          {faPrice(price)}
-        </text>
-      </g>
-      {rows.map((r, i) => {
+      ))}
+      {segs.map(({ a, b }) => (
+        <line
+          key={`mid-${b.key}`}
+          x1={X(a.days)}
+          y1={at(a.mid)}
+          x2={X(b.days)}
+          y2={at(b.mid)}
+          stroke="var(--accent)"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeDasharray={b.reliable ? undefined : "5 4"}
+        />
+      ))}
+      <line
+        x1={xToday}
+        x2={xToday}
+        y1={P.t - 8}
+        y2={H - P.b + 4}
+        stroke="var(--line-strong)"
+        strokeDasharray="2 4"
+      />
+      <text
+        x={xToday}
+        y={H - P.b + 18}
+        fontSize="11"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="var(--ink)"
+      >
+        امروز
+      </text>
+      <circle cx={xToday} cy={yToday} r="4" fill="var(--ink)" />
+      {sel && (
+        <g pointerEvents="none">
+          <line
+            x1={X(sel.days)}
+            x2={X(sel.days)}
+            y1={at(sel.high)}
+            y2={at(sel.low)}
+            stroke="var(--accent)"
+            strokeWidth="1.5"
+          />
+          {(
+            [
+              ["high", -4, "var(--up)"],
+              ["mid", 4, "var(--ink)"],
+              ["low", 13, "var(--down)"],
+            ] as const
+          ).map(([q, dy, fill]) => {
+            const right = X(sel.days) < xEnd - 80;
+            return (
+              <text
+                key={q}
+                x={X(sel.days) + (right ? 10 : -10)}
+                y={Math.min(H - P.b - 4, Math.max(P.t + 2, at(sel[q]) + dy))}
+                fontSize="11"
+                fontWeight={q === "mid" ? 800 : 600}
+                textAnchor={right ? "start" : "end"}
+                fill={fill}
+                paintOrder="stroke"
+                stroke="var(--surface)"
+                strokeWidth="4"
+                strokeLinejoin="round"
+              >
+                {faPrice(price * (1 + sel[q]))}
+              </text>
+            );
+          })}
+        </g>
+      )}
+      {shown.map((r, k) => {
         const up = r.mid >= 0;
         const col = up ? "var(--up)" : "var(--down)";
-        const soft = up ? "var(--up-soft)" : "var(--down-soft)";
-        const x = cx(i);
-        const close = Y(price * (1 + r.mid));
-        const sel = i === active;
+        const x = X(r.days);
+        const prev = k === 0 ? xToday : X(shown[k - 1].days);
+        const next = k === shown.length - 1 ? W - P.r : X(shown[k + 1].days);
+        const isSel = r.i === active;
         return (
           <g
             key={r.key}
             className="cursor-pointer"
-            onClick={() => onPick(i)}
-            onMouseEnter={() => onHover(i)}
-            data-testid={`nc-candle-${r.key}`}
+            onClick={() => onPick(r.i)}
+            onMouseEnter={() => onHover(r.i)}
+            data-testid={`nc-point-${r.key}`}
             data-up={up ? "1" : "0"}
           >
             <title>
               {`${r.label}: ${faPrice(price * (1 + r.low))} تا ${faPrice(price * (1 + r.high))}، میانه ${faPrice(price * (1 + r.mid))}`}
             </title>
             <rect
-              x={x - slot / 2 + 3}
-              y={P.t - 6}
-              width={slot - 6}
-              height={H - P.t - 6}
-              rx="10"
-              fill={sel ? "var(--accent-soft)" : "transparent"}
-              stroke={sel ? "var(--accent)" : "none"}
-              strokeOpacity="0.35"
+              x={(prev + x) / 2}
+              y={P.t - 8}
+              width={(next - prev) / 2}
+              height={H - P.t + 8}
+              fill="transparent"
             />
-            <line
-              x1={x}
-              x2={x}
-              y1={Y(price * (1 + r.high))}
-              y2={Y(price * (1 + r.low))}
+            <circle
+              cx={x}
+              cy={at(r.mid)}
+              r={isSel ? 6 : 4.5}
+              fill={isSel ? col : "var(--surface)"}
               stroke={col}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeDasharray={r.reliable ? undefined : "4 3"}
+              strokeWidth="2.2"
             />
-            {[r.high, r.low].map((q) => (
-              <line
-                key={q}
-                x1={x - 6}
-                x2={x + 6}
-                y1={Y(price * (1 + q))}
-                y2={Y(price * (1 + q))}
-                stroke={col}
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            ))}
-            <rect
-              x={x - bw / 2}
-              y={Math.min(yToday, close)}
-              width={bw}
-              height={Math.max(3, Math.abs(close - yToday))}
-              rx="3"
-              fill={sel ? col : soft}
-              stroke={col}
-              strokeWidth="1.5"
-              strokeDasharray={r.reliable ? undefined : "4 3"}
-            />
-            <text
-              x={x}
-              y={H - P.b + 20}
-              fontSize="12"
-              fontWeight="700"
-              textAnchor="middle"
-              fill="var(--ink)"
-              style={{ direction: "rtl" }}
-            >
-              {r.label}
-            </text>
-            <text
-              x={x}
-              y={H - P.b + 38}
-              fontSize="12"
-              fontWeight="700"
-              textAnchor="middle"
-              fill={col}
-              style={{ direction: "ltr", unicodeBidi: "plaintext" }}
-            >
-              {`${up ? "▲" : "▼"} ${faDigits(`${r.mid >= 0 ? "+" : "−"}${Math.abs(r.mid * 100).toFixed(1)}٪`)}`}
-            </text>
-            {!r.reliable && (
-              <text
-                x={x}
-                y={H - P.b + 54}
-                fontSize="10"
-                textAnchor="middle"
-                fill="var(--muted)"
-                style={{ direction: "rtl" }}
-              >
-                آزموده نیست
-              </text>
+            {labelled.has(r.i) && (
+              <>
+                <text
+                  x={x}
+                  y={H - P.b + 18}
+                  fontSize="11.5"
+                  fontWeight={isSel ? 800 : 600}
+                  textAnchor="middle"
+                  fill={isSel ? "var(--accent)" : "var(--ink)"}
+                  style={{ direction: "rtl" }}
+                >
+                  {r.axis}
+                </text>
+                <text
+                  x={x}
+                  y={H - P.b + 34}
+                  fontSize="11.5"
+                  fontWeight="700"
+                  textAnchor="middle"
+                  fill={col}
+                  style={{ direction: "ltr", unicodeBidi: "plaintext" }}
+                >
+                  {pctText(r.mid)}
+                </text>
+              </>
             )}
           </g>
         );
       })}
+      <rect x={W - P.r + 2} y={yToday - 10} width={P.r - 4} height="20" rx="6" fill="var(--ink)" />
+      <text
+        x={W - P.r + P.r / 2}
+        y={yToday + 4}
+        fontSize="11"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="var(--surface)"
+      >
+        {faPrice(price)}
+      </text>
     </svg>
   );
 }
 
-/** «کندل‌های بعد»: where the price may close after each period, drawn as candles that continue the
- *  real ones. Two sources: the tested simulation of the portfolio forecast (1 day to 6 months) and
+/** «کندل‌های بعد»: where the price may close after each period, drawn as a fan of median and range
+ *  that continues the real closes. Two sources: the tested simulation of the portfolio forecast (1 day to 6 months) and
  *  the symbol's own record after any day of a chosen past window. Past statistics, not advice. */
 export function NextCandles({
   f,
@@ -356,6 +422,8 @@ export function NextCandles({
   );
   const [hover, setHover] = useState<number | null>(null);
   const [ownPick, setOwnPick] = useState(0);
+  // the fan stops at SPAN days; picking a longer period stretches it to that period
+  const [long, setLong] = useState(false);
   const win = windows.find((w) => w.key === winKey) ?? windows[0];
 
   const sim = source === "sim" && f?.price != null;
@@ -369,9 +437,11 @@ export function NextCandles({
       )
     : ownPick;
   const shown = rows[hover ?? chosen];
+  const span = long ? Math.max(SPAN, rows[chosen]?.days ?? SPAN) : SPAN;
   const at = (q: number) => faPrice(price * (1 + q));
 
   const pick = (i: number) => {
+    setLong(rows[i].days > SPAN);
     if (sim) {
       const h = rows[i].href;
       if (h) router.push(h, { scroll: false });
@@ -389,8 +459,8 @@ export function NextCandles({
         <div>
           <h2 className="text-lg font-extrabold">پیش‌بینی کندل‌های بعد</h2>
           <p className="mt-0.5 text-xs text-muted">
-            هر کندل از قیمت امروز باز می‌شود و روی میانه بسته می‌شود؛ سایه‌ها کف و سقف بازه‌ای‌اند
-            که ۸ بار از ۱۰ قیمت پایانی داخلش ماند. سبز یعنی میانه بالاتر از امروز است.
+            خط تیره قیمت پایانی روزهای گذشته است. از امروز به بعد، خط پررنگ میانه است و نوار دورش
+            بازه‌ای که ۸ بار از ۱۰ قیمت پایانی داخلش ماند. نقطهٔ سبز یعنی میانه بالاتر از امروز است.
           </p>
         </div>
         {f?.price != null && windows.length > 0 && (
@@ -462,15 +532,46 @@ export function NextCandles({
         </div>
       )}
 
+      <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="بازهٔ پیش‌بینی">
+        {rows.map((r, i) => (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => pick(i)}
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover(null)}
+            aria-pressed={i === chosen}
+            className="tab tab-pill tab-sm gap-1.5"
+            data-testid={`nc-chip-${r.key}`}
+          >
+            {r.label}
+            <span
+              className={`text-[11px] font-bold tabular-nums ${i === chosen ? "opacity-90" : r.mid >= 0 ? "text-up" : "text-down"}`}
+              dir="ltr"
+            >
+              {pctText(r.mid)}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="mt-2">
         <Plot
           rows={rows}
           price={price}
           recent={recent}
+          span={span}
           active={chosen}
           onPick={pick}
           onHover={setHover}
         />
+        {rows.some((r) => !r.reliable) && (
+          <p className="mt-1 text-[11px] text-muted">
+            {sim
+              ? "خط‌چین: این بازه روی دوره‌های جدای کافی آزموده نیست."
+              : "خط‌چین: کمتر از ۳۰ آزمون جدا دارد، پس آزموده نیست."}
+          </p>
+        )}
       </div>
 
       <details className="mt-2 text-sm">

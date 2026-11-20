@@ -54,13 +54,15 @@ and the AGM calculator.
   (docs/reports/verdict-parts-2026-11.md). Check شکام (quarter, calibrated) and کوثر (week, trend
   entry inside the range). A period with too few separate windows says «بازه آزموده نیست».
 - The «پیش‌بینی کندل‌های بعد» section (`data-testid="next-candles"`, `#forecast`, under the price
-  chart, `components/stock/NextCandles.tsx`) draws one candle per period (`nc-candle-<key>`):
-  open = forecast `price`, close = `price*(1+mid)`, wicks `low`/`high`; `data-up="1"` exactly when
-  `mid >= 0` (green), a period with `reliable=false` dashed and «آزموده نیست». `nc-summary` repeats
-  the chosen period; clicking a candle goes to `?p=<key>#forecast` and the outlook card follows.
-  The «سابقهٔ خود سهم» toggle (`nc-own`) switches to `entry.windows[].odds` of the dashboard
-  (q10/q50/q90, «X بار از ۱۰ بالاتر بسته شد»). The price chart itself draws no forecast range.
-  No hydration warning in the console (coordinates are rounded).
+  chart, `components/stock/NextCandles.tsx`) draws the last 30 closes as a line, then from today a
+  fan: the median line through one point per period (`nc-point-<key>`, `data-up="1"` exactly when
+  `mid >= 0`) and the `low`..`high` band, on a log price axis. The fan stops at 20 trading days
+  (day to month); a chip (`nc-chip-<key>`) for quarter or half stretches it to that period. A period
+  with `reliable=false` is a dashed median segment with a note under the chart. `nc-summary` repeats
+  the chosen period; clicking a point or chip goes to `?p=<key>#forecast` and the outlook card
+  follows. The «سابقهٔ خود سهم» toggle (`nc-own`) switches to `entry.windows[].odds` of the
+  dashboard (q10/q50/q90 after 1 to 20 candles, «X بار از ۱۰ بالاتر بسته شد»). The price chart
+  itself draws no forecast range. No hydration warning in the console (coordinates are rounded).
 - A tradable fund (type `etf_*`, e.g. پیشران id 1419, a leveraged fund) has every section of a stock
   page: gauge and month verdict (`final_verdict`, grade always «ثابت‌نشده», never «بخر»), trend ride
   (`ride_only`, `fund_rides` in turning.json), ranges and the checklist. Each carries its fund test

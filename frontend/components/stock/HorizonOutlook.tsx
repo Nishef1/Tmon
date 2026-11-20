@@ -111,8 +111,8 @@ export function HorizonOutlook({
             {rial(low)} تا {rial(high)}
           </dd>
           <dd className="mt-1 text-xs text-muted">
-            میانه {rial(mid)} ({signedPct(period.mid)}). کندل هر بازه در بخش «پیش‌بینی کندل‌های بعد»
-            است.
+            میانه {rial(mid)} ({signedPct(period.mid)}). نمودار میانه و بازهٔ هر دوره در بخش
+            «پیش‌بینی کندل‌های بعد» است.
           </dd>
         </div>
         <div className="rounded-lg bg-surface-2 p-3" data-testid="outlook-chance">
