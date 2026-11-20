@@ -49,6 +49,8 @@ export type Path = {
   color: string;
   title?: string;
   dotted?: boolean;
+  /** Straight solid segments between the points (a zigzag of swings) instead of dashed steps. */
+  straight?: boolean;
 };
 
 type Kind = "candle" | "ha" | "bar" | "line";
@@ -691,8 +693,8 @@ export function CandleChart({
             {
               color: tok(p.color),
               lineWidth: p.dotted ? 1 : 2,
-              lineStyle: p.dotted ? Dotted : Dashed,
-              lineType: lc.LineType.WithSteps,
+              lineStyle: p.straight ? lc.LineStyle.Solid : p.dotted ? Dotted : Dashed,
+              lineType: p.straight ? lc.LineType.Simple : lc.LineType.WithSteps,
               priceFormat: FA,
               priceLineVisible: false,
               lastValueVisible: false,

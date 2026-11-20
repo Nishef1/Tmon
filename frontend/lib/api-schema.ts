@@ -3899,6 +3899,11 @@ export interface components {
       shareholders: components["schemas"]["ShareholderOut"][];
       /** Shareholders At */
       shareholders_at: string | null;
+      /**
+       * Trend Scales
+       * @default []
+       */
+      trend_scales: components["schemas"]["TrendScale"][];
     };
     /** InstrumentOut */
     InstrumentOut: {
@@ -5663,6 +5668,31 @@ export interface components {
       source: string;
       /** Symbol */
       symbol: string;
+    };
+    /**
+     * TrendScale
+     * @description Past lows and highs of one size on the chart's own closes, and where the price stands now
+     *     (``tmon.backtest.trend_ride.swing_leg``). A description of the past, not a signal: a swing is
+     *     only known after the price moved ``size`` the other way. The sizes are display choices.
+     */
+    TrendScale: {
+      /** Direction */
+      direction: ("up" | "down") | null;
+      extreme: components["schemas"]["Swing"] | null;
+      /** From Extreme */
+      from_extreme: number | null;
+      /** From Since */
+      from_since: number | null;
+      /** Label */
+      label: string;
+      since: components["schemas"]["Swing"] | null;
+      /** Size */
+      size: number;
+      /**
+       * Swings
+       * @default []
+       */
+      swings: components["schemas"]["Swing"][];
     };
     /** TurningHorizon */
     TurningHorizon: {

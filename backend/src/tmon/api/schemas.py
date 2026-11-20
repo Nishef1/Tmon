@@ -112,10 +112,35 @@ class ShareholderOut(ApiModel):
     change_amount: int | None = None  # shares bought (+) or sold (-) since the previous list
 
 
+class Swing(ApiModel):
+    """A past low or high that only hindsight shows: the price then moved ``trail`` or more the
+    other way (``tmon.backtest.trend_ride.swings``). Not a signal."""
+
+    date: dt.date
+    kind: Literal["low", "high"]
+    close: float
+
+
+class TrendScale(ApiModel):
+    """Past lows and highs of one size on the chart's own closes, and where the price stands now
+    (``tmon.backtest.trend_ride.swing_leg``). A description of the past, not a signal: a swing is
+    only known after the price moved ``size`` the other way. The sizes are display choices."""
+
+    size: float  # the move that confirms a swing
+    label: str
+    swings: list[Swing] = []
+    direction: Literal["up", "down"] | None = None  # the leg since the newest confirmed swing
+    since: Swing | None = None  # that swing
+    extreme: Swing | None = None  # the running high (up leg) or low (down leg), not yet confirmed
+    from_since: float | None = None  # last close against the newest confirmed swing
+    from_extreme: float | None = None  # last close against the running extreme
+
+
 class InstrumentDetail(ApiModel):
     instrument: InstrumentOut
     adjusted: bool
     candles: list[Candle]
+    trend_scales: list[TrendScale] = []
     features_date: dt.date | None
     features: list[FeatureValue]
     events: list[CorporateEventOut] = []
@@ -960,15 +985,6 @@ class PastRide(ApiModel):
     entry_date: dt.date
     exit_date: dt.date | None = None  # None while the ride is open or the sale is still next
     gain: float  # from the buy to the sale, or to the last close while open
-
-
-class Swing(ApiModel):
-    """A past low or high that only hindsight shows: the price then moved ``trail`` or more the
-    other way (``tmon.backtest.trend_ride.swings``). Not a signal."""
-
-    date: dt.date
-    kind: Literal["low", "high"]
-    close: float
 
 
 class RideLinePoint(ApiModel):

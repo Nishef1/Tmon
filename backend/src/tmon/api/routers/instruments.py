@@ -4,6 +4,7 @@ import datetime as dt
 import re
 from typing import Annotated, Any
 
+import numpy as np
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, select
@@ -25,11 +26,14 @@ from tmon.api.schemas import (
     LiveFlowOut,
     LiveOut,
     ShareholderOut,
+    Swing,
     SymbolForecastOut,
     SymbolNewsOut,
+    TrendScale,
     instrument_out,
 )
 from tmon.api.slugs import sector_slug, slugify
+from tmon.backtest.trend_ride import swing_leg
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
 from tmon.core.timeutil import TEHRAN, tehran_today, utcnow
@@ -68,6 +72,44 @@ EVENTS_SHOWN = 20  # latest Codal events on the instrument page
 STALE_AFTER_SECONDS = 300  # a snapshot older than this is shown as stale
 
 PRICE_FIELDS = ("open", "high", "low", "close", "last", "prev_close", "volume")
+
+
+# Sizes of the swings drawn on the chart: display choices, each a move that confirms a low or high.
+# They describe the past and are no entry rule; the rule's own 35% trail is drawn as before.
+TREND_SIZES = ((0.08, "کوتاه"), (0.15, "میانی"), (0.25, "بلند"))
+
+
+def trend_scales(candles: list[Candle]) -> list[TrendScale]:
+    """Past lows and highs of three sizes on the chart's closes, and the leg the price is in."""
+    pts = [(c.date, c.close) for c in candles if c.close is not None]
+    if len(pts) < 30:
+        return []
+    close = np.array([p[1] for p in pts], dtype=float)
+
+    def swing(i: int, kind: str) -> Swing:
+        return Swing(date=pts[i][0], kind="low" if kind == "low" else "high", close=pts[i][1])
+
+    out: list[TrendScale] = []
+    for size, label in TREND_SIZES:
+        leg = swing_leg(close, size)
+        sw = [swing(i, k) for i, k in leg["swings"]]
+        if leg["direction"] is None:
+            out.append(TrendScale(size=size, label=label, swings=sw))
+            continue
+        up = leg["direction"] == "up"
+        out.append(
+            TrendScale(
+                size=size,
+                label=label,
+                swings=sw,
+                direction=leg["direction"],
+                since=sw[-1],
+                extreme=swing(leg["extreme"], "high" if up else "low"),
+                from_since=leg["from_since"],
+                from_extreme=leg["from_extreme"],
+            )
+        )
+    return out
 
 
 def _slug_of(session: Session, inst: Instrument) -> InstrumentSlug:
@@ -156,6 +198,7 @@ def instrument_detail(
         ]
 
     fs = get_feature_set("D1")
+    scales = trend_scales(candles)
     frow = session.scalars(
         select(FeatureRow)
         .where(FeatureRow.instrument_id == instrument_id, FeatureRow.feature_set_version == fs.key)
@@ -190,6 +233,7 @@ def instrument_detail(
         instrument=instrument_out(inst),
         adjusted=True,
         candles=candles,
+        trend_scales=scales,
         features_date=frow.date if frow else None,
         features=features,
         shareholders=[

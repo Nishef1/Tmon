@@ -8833,12 +8833,21 @@
               }
             ],
             "title": "Shareholders At"
+          },
+          "trend_scales": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TrendScale"
+            },
+            "title": "Trend Scales",
+            "type": "array"
           }
         },
         "required": [
           "instrument",
           "adjusted",
           "candles",
+          "trend_scales",
           "features_date",
           "features",
           "events",
@@ -14642,6 +14651,96 @@
           "note"
         ],
         "title": "TradeOut",
+        "type": "object"
+      },
+      "TrendScale": {
+        "description": "Past lows and highs of one size on the chart's own closes, and where the price stands now\n(``tmon.backtest.trend_ride.swing_leg``). A description of the past, not a signal: a swing is\nonly known after the price moved ``size`` the other way. The sizes are display choices.",
+        "properties": {
+          "direction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "up",
+                  "down"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "extreme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Swing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_extreme": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Extreme"
+          },
+          "from_since": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Since"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Swing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "size": {
+            "title": "Size",
+            "type": "number"
+          },
+          "swings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Swing"
+            },
+            "title": "Swings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "size",
+          "label",
+          "swings",
+          "direction",
+          "since",
+          "extreme",
+          "from_since",
+          "from_extreme"
+        ],
+        "title": "TrendScale",
         "type": "object"
       },
       "TurningHorizon": {

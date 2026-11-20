@@ -171,6 +171,28 @@ def swings(close: np.ndarray, size: float) -> list[tuple[int, str]]:
     return out
 
 
+def swing_leg(close: np.ndarray, size: float) -> dict[str, Any]:
+    """The swings of ``size`` plus where the price stands now: the newest confirmed extreme, the
+    direction since it, and the running extreme the leg has reached (not yet confirmed, so a
+    reversal of ``size`` from it would still confirm it). Descriptive, from closes up to the last
+    one: nothing here looks ahead, but a swing is only known ``size`` later."""
+    sw = swings(close, size)
+    last = len(close) - 1
+    if not sw or last < 1:
+        return {"swings": sw, "direction": None}
+    i, kind = sw[-1]
+    leg = close[i:]
+    k = int(np.argmax(leg) if kind == "low" else np.argmin(leg)) + i
+    return {
+        "swings": sw,
+        "direction": "up" if kind == "low" else "down",
+        "since": i,
+        "extreme": k,
+        "from_since": float(close[last] / close[i] - 1),
+        "from_extreme": float(close[last] / close[k] - 1),
+    }
+
+
 def all_rides(
     panel: pl.DataFrame, near_high: float, trail: float, max_hold: int, same_day: bool = False
 ) -> dict[int, tuple[pl.DataFrame, list[Ride]]]:

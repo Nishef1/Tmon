@@ -39,7 +39,8 @@ import { StockNews } from "@/components/stock/StockNews";
 import { LiveWhenOpen } from "@/components/stock/LiveWhenOpen";
 import { StockAlerts } from "@/components/stock/StockAlerts";
 import { AGM_FIELDS, AgmCalculator } from "@/components/stock/AgmCalculator";
-import { CandleChart, type Mark } from "@/components/CandleChart";
+import type { Mark } from "@/components/CandleChart";
+import { PriceChartTrends } from "@/components/stock/PriceChartTrends";
 import { BookCard } from "@/components/book/BookCard";
 import { EntryOddsCard } from "@/components/entry/EntryOddsCard";
 import { labelColor } from "@/components/entry/EntryParts";
@@ -203,11 +204,13 @@ export default async function InstrumentPage({
           <p className="text-sm text-muted">دادهٔ قیمتی برای این نماد موجود نیست.</p>
         ) : (
           <>
-            <CandleChart
+            <PriceChartTrends
               candles={d.candles}
               marks={marks}
               paths={ride ? ridePaths(ride) : undefined}
               levels={ride ? rideLevels(ride) : undefined}
+              scales={d.trend_scales}
+              ride={ride}
             />
             <p className="mt-2 text-xs text-muted">
               قیمت‌ها برای سود نقدی و افزایش سرمایه{" "}
@@ -223,6 +226,8 @@ export default async function InstrumentPage({
               {ride &&
                 ride.sell_line.length + ride.buy_line.length > 0 &&
                 " خط‌چین قرمز «خط فروش» قاعده در دوره‌های خرید و خط‌چین سبز «قیمت ورود» است وقتی ورود نزدیک بوده؛ هر روز همان قیمتی را نشان می‌دهد که قیمت پایانی آن روز با آن سنجیده شد. نقطه‌چین کنار هرکدام مرز هشدار است: قیمت بین خط و نقطه‌چین یعنی خرید یا فروش نزدیک است. خط افقی «فردا» قیمت روز بعد است."}
+              {d.trend_scales.length > 0 &&
+                " خط «روند» کف‌ها و سقف‌های گذشته را به هم وصل می‌کند؛ با دکمه‌های بالای نمودار اندازه‌اش را از کوتاه تا بلند عوض کنید."}
               {ride &&
                 (ride.swings?.length ?? 0) > 0 &&
                 " «کف» و «سقف» خاکستری کف‌ها و سقف‌هایی‌اند که فقط بعداً معلوم شد: بعد از هرکدام قیمت دست‌کم به اندازهٔ خط فروش برگشت. نشانهٔ خرید و فروش نیستند."}
