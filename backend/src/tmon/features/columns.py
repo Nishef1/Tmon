@@ -852,16 +852,22 @@ def _table_fingerprint(
     )
 
 
-def compute(session: Session, last: dt.date, flow_date: dt.date | None) -> Table:
-    """Every derived column of every stock that traded on ``last``. Kept while the data behind
-    it is unchanged (a fingerprint of the tables, never a clock); one request builds it and the
-    others wait for it. The table is shared, so callers must only read it."""
-    key = (
+def data_key(session: Session, last: dt.date, flow_date: dt.date | None) -> tuple[object, ...]:
+    """A key that changes whenever any data behind the columns changes. Pages built from the same
+    tables keep their answer under it."""
+    return (
         *_fingerprint(session, last),
         _band(session, last),
         flow_date,
         *_table_fingerprint(session, last, flow_date),
     )
+
+
+def compute(session: Session, last: dt.date, flow_date: dt.date | None) -> Table:
+    """Every derived column of every stock that traded on ``last``. Kept while the data behind
+    it is unchanged (a fingerprint of the tables, never a clock); one request builds it and the
+    others wait for it. The table is shared, so callers must only read it."""
+    key = data_key(session, last, flow_date)
     with _lock:
         hit = _table_cache.get(key)
     if hit is not None:

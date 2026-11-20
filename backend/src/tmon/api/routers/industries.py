@@ -4,6 +4,7 @@ row per symbol. End-of-day only; the candles are described in ``tmon.api.industr
 from __future__ import annotations
 
 import datetime as dt
+import threading
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -45,6 +46,10 @@ from tmon.storage.models import (
     PriceDaily,
     SectorName,
 )
+
+# The overview is kept while the data behind it is unchanged (a fingerprint, never a clock).
+_overview_cache: dict[str, object] = {}
+_overview_lock = threading.Lock()
 
 router = APIRouter(tags=["industries"])
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -129,6 +134,15 @@ def overview(session: SessionDep) -> IndustryOverview:
     last = _latest_full(session, PriceDaily.date)
     if last is None:
         return IndustryOverview(available=False)
+    fd = _latest_full(session, ClientTypeDaily.date)
+    key = colmod.data_key(session, last, fd)
+    with _overview_lock:  # one request builds it; the others wait and then find it kept
+        if _overview_cache.get("key") != key:
+            _overview_cache["key"], _overview_cache["doc"] = key, _build_overview(session, last)
+        return _overview_cache["doc"]  # type: ignore[return-value]
+
+
+def _build_overview(session: Session, last: dt.date) -> IndustryOverview:
     adj, sector = load_adjusted(session, last)
     moves = member_moves(adj)
     eq = composites(moves, sector, "equal")

@@ -68,6 +68,13 @@ class Day:
     flows_ok: bool
 
 
+def _window_start(session: Session) -> date | None:
+    """First day of the checked window, as a plain date. Inline as a subquery it is evaluated
+    again for every row scanned (seconds), so it is read once."""
+    newest = session.scalar(select(func.max(PriceDaily.date)))
+    return None if newest is None else newest - timedelta(days=WINDOW_DAYS + REFERENCE_DAYS * 2)
+
+
 def _counts(session: Session, model: Any, *, traded_only: bool = False) -> dict[date, int]:
     """Rows per day for the instruments the daily run fetches (stocks and funds). Options, rights
     and bonds are left out of the count: older days that were loaded market-wide hold them, newer
@@ -77,9 +84,7 @@ def _counts(session: Session, model: Any, *, traded_only: bool = False) -> dict[
     q = q.where(Instrument.instrument_type.in_(kinds))
     if traded_only:
         q = q.where(model.volume > 0)
-    sub = select(func.max(PriceDaily.date)).scalar_subquery()
-    start = sub - timedelta(days=WINDOW_DAYS + REFERENCE_DAYS * 2)
-    q = q.where(model.date >= start).group_by(model.date)
+    q = q.where(model.date >= _window_start(session)).group_by(model.date)
     return dict(session.execute(q).all())
 
 
@@ -93,9 +98,7 @@ def _window_fingerprint(session: Session) -> tuple[object, ...]:
     """What the three day-counts are made from: rows of the checked window (a new, removed or
     refetched row moves the count, the newest fetch time or the sum) and the symbol table. Far
     cheaper than the counts themselves, which join every row to its symbol."""
-    start = select(func.max(PriceDaily.date)).scalar_subquery() - timedelta(
-        days=WINDOW_DAYS + REFERENCE_DAYS * 2
-    )
+    start = _window_start(session)
     prices = session.execute(
         select(func.count(), func.max(PriceDaily.fetched_at), func.sum(PriceDaily.volume)).where(
             PriceDaily.date >= start
