@@ -514,33 +514,29 @@ def _betas(adj: pl.DataFrame, index: pl.DataFrame, last: dt.date) -> dict[int, R
 def _rows(session: Session, last: dt.date) -> tuple[pl.DataFrame, pl.DataFrame]:
     since = last - timedelta(days=HISTORY_DAYS)
     # Core execution on the connection skips the ORM row machinery, which costs seconds here
-    rows = (
-        session.connection()
-        .execute(
-            select(
-                PriceDaily.instrument_id,
-                # text dates skip the per-row date parser, which is most of the load time
-                cast(PriceDaily.date, String),
-                PriceDaily.open,
-                PriceDaily.high,
-                PriceDaily.low,
-                PriceDaily.close,
-                PriceDaily.prev_close,
-                PriceDaily.volume,
-                PriceDaily.value,
-                PriceDaily.limit_up,
-                PriceDaily.limit_down,
-            )
-            .join(Instrument, Instrument.id == PriceDaily.instrument_id)
-            .where(
-                Instrument.instrument_type == InstrumentType.STOCK.value,
-                PriceDaily.date >= since,
-                PriceDaily.date <= last,
-                PriceDaily.market_halt.is_(False),
-            )
-            .order_by(PriceDaily.instrument_id, PriceDaily.date)
+    stmt = (
+        select(
+            PriceDaily.instrument_id,
+            # text dates skip the per-row date parser, which is most of the load time
+            cast(PriceDaily.date, String),
+            PriceDaily.open,
+            PriceDaily.high,
+            PriceDaily.low,
+            PriceDaily.close,
+            PriceDaily.prev_close,
+            PriceDaily.volume,
+            PriceDaily.value,
+            PriceDaily.limit_up,
+            PriceDaily.limit_down,
         )
-        .all()
+        .join(Instrument, Instrument.id == PriceDaily.instrument_id)
+        .where(
+            Instrument.instrument_type == InstrumentType.STOCK.value,
+            PriceDaily.date >= since,
+            PriceDaily.date <= last,
+            PriceDaily.market_halt.is_(False),
+        )
+        .order_by(PriceDaily.instrument_id, PriceDaily.date)
     )
     names = (
         "instrument_id",
@@ -557,12 +553,15 @@ def _rows(session: Session, last: dt.date) -> tuple[pl.DataFrame, pl.DataFrame]:
     )
     schema: dict[str, Any] = dict.fromkeys(names, pl.Float64)
     schema.update(instrument_id=pl.Int64, date=pl.String)
-    cols = list(zip(*rows, strict=True)) if rows else [()] * len(names)
-    raw = (
-        pl.DataFrame(dict(zip(names, cols, strict=True)), schema=schema)
-        .with_columns(pl.col("date").str.to_date("%Y-%m-%d"))
-        .filter(pl.col("close") > 0)
-    )
+    # Read in chunks and turn each into columns at once: holding every row as Python objects
+    # (over a million) and then a transposed copy needs about a gigabyte more than the frame.
+    result = session.connection().execution_options(stream_results=True).execute(stmt)
+    parts: list[pl.DataFrame] = []
+    while chunk := result.fetchmany(100_000):
+        cols = list(zip(*chunk, strict=True))
+        parts.append(pl.DataFrame(dict(zip(names, cols, strict=True)), schema=schema))
+    frame = pl.concat(parts) if parts else pl.DataFrame(schema=schema)
+    raw = frame.with_columns(pl.col("date").str.to_date("%Y-%m-%d")).filter(pl.col("close") > 0)
     raw = raw.with_columns(
         pl.col("open").fill_null(pl.col("close")),
         pl.col("high").fill_null(pl.col("close")),
