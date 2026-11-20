@@ -10,6 +10,7 @@
 | [m3-baseline-d1-real](m3-baseline-d1-real.md) | baseline قاعده‌محور D1 روی دادهٔ واقعی |
 | [m4-lgbm-d1-real](m4-lgbm-d1-real.md)، [w1](m4-lgbm-w1-real.md)، [m1](m4-lgbm-m1-real.md) | LightGBM در سه افق از baseline بهتر نیست |
 | [extra-columns-2026-11](extra-columns-2026-11.md) | ستون‌های ترکیبی جدید در آموزش D1: دروازه رد شد، مدل قدیمی می‌ماند؛ شامل نسبت به روند و همتا |
+| [columns-deep-2026-11](columns-deep-2026-11.md) | بررسی بدبینانهٔ ستون‌های تازه: روند بازار رد، پله‌های خاک دلبخواهی، سمت فروش ridge فقط برای آزمون آینده‌نگر |
 | [ablation-w1](ablation-w1.md) * | حذف گروه ویژگی‌ها: گروه بازار حذف شد، کلان کمکی نکرد |
 | [r0-survivorship](r0-survivorship.md) | سوگیری بقا: کران بدبینانه، G6 رفع نشد |
 | [r1-signal-decay](r1-signal-decay.md) | افت چهار سیگنال مبنا با افق |
