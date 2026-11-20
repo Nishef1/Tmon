@@ -14,6 +14,7 @@ differs, or too much differs. The caller then ships the whole database instead.
     python syncdb.py fingerprint DB [--deep-from JSON] [--deep]
     python syncdb.py delta PC_DB SERVER_FINGERPRINT.json OUT_DB
     python syncdb.py apply SERVER_DB DELTA_DB
+    python syncdb.py slim DB                         (full copy: drop what the server never reads)
     python syncdb.py preserve OLD_SERVER_DB NEW_DB   (full copy: keep what the server owns)
 
 Two kinds of table never travel blindly. SERVER_OWNED tables (alerts, intraday snapshots, order
@@ -56,7 +57,11 @@ PARTITIONED: dict[str, tuple[str, str, bool]] = {
     "fund_nav": ("date", "round(sum(net_asset),2)", True),
     "share_changes": ("date", "sum(shares_new)", True),
     "trading_calendar": ("date", "sum(is_open)", True),
-    "raw_payloads": ("substr(fetched_at,1,10)", "sum(size_bytes)", True),
+    "fund_nav_history": (
+        "date",
+        "round(sum(coalesce(cancel_nav,0)),2), round(sum(coalesce(units,0)),2)",
+        True,
+    ),
     "intraday_profile_daily": (
         "date",
         "round(sum(coalesce(ask_min,0)+coalesce(bid_max,0)),2), round(sum(coalesce(secs,0)),1)",
@@ -74,8 +79,41 @@ SERVER_OWNED = frozenset(
 USER_STATE = frozenset(
     {"portfolios", "portfolio_trades", "holdings", "broker_links", "tracked_picks"}
 )
+# Read only by the PC's feature build and research (statements, report cells, dated share counts
+# and holders, the raw-payload index): the server copy holds them empty and the comparison skips
+# them, so neither a delta nor a full copy carries their rows.
+PC_ONLY = frozenset(
+    {
+        "financial_statements",
+        "codal_report_cells",
+        "shareholders_history",
+        "shares_history",
+        "raw_payloads",
+    }
+)
+# Day tables the site reads only near their newest rows; the server keeps the rows this condition
+# holds for (``o`` is the row, ``{s}`` the schema of the table). features: the newest row of each
+# symbol; fund_nav_history: a fund's newest site NAV and the one 30 days before it.
+WINDOWS = {
+    "features": "o.date >= (select min(date) from"
+    " (select distinct date from {s}features order by date desc limit 60))",
+    "fund_nav_history": "o.date >= (select date(max(h.date), '-60 days')"
+    " from {s}fund_nav_history h where h.reg_no = o.reg_no)",
+}
+# Day tables whose provenance the server never shows: source_url is dropped, and fetched_at is
+# kept only on the last FETCHED_DAYS days (freshness and the API's input fingerprints read the
+# newest stamps, over at most a year and two weeks).
+NO_PROVENANCE = frozenset(
+    {
+        "prices_daily",
+        "client_types_daily",
+        "fund_nav_history",
+        "intraday_profile_daily",
+        "order_book_daily",
+    }
+)
+FETCHED_DAYS = 400
 SYNC_STATE = "_sync_state"
-FEATURE_KEYS = 60  # the site reads only the newest feature rows; the server keeps this many days
 DEEP_KEYS = 30
 MAX_DELTA_ROWS = 600_000  # beyond this a delta is no smaller than the full copy
 FULL_IF_SHIPPED_ABOVE = 0.35  # share of prices_daily rows a delta may carry before a full copy wins
@@ -99,7 +137,7 @@ def _tables(db: sqlite3.Connection) -> list[str]:
             "select name from sqlite_master where type='table' and name not like 'sqlite_%' "
             "order by name"
         )
-        if r[0] not in SERVER_OWNED and not r[0].startswith("_")
+        if r[0] not in SERVER_OWNED | PC_ONLY and not r[0].startswith("_")
     ]
 
 
@@ -173,8 +211,8 @@ def fingerprint(
     window: bool = False,
 ) -> dict[str, Any]:
     """``deep_cut`` is the PC's own cut (table -> oldest deep key) so both sides sum the same days.
-    ``window`` (the PC side) limits features to the days the server keeps; the server's own
-    fingerprint lists all its days, so older ones show up as days to drop."""
+    ``window`` (the PC side) limits the WINDOWS tables to the rows the server keeps; the server's
+    own fingerprint lists all its rows, so older days show up as days to drop."""
     cut = deep_cut if deep_cut is not None else deep_from(db)
     tables: dict[str, Any] = {}
     names = _tables(db)
@@ -186,17 +224,13 @@ def fingerprint(
             continue
         expr, sums, always = PARTITIONED[t]
         parts: dict[str, list[Any]] = {}
-        first = None
-        if t == "features" and window:
-            keys = _keys(db, t)
-            first = keys[-FEATURE_KEYS:][0] if keys else None
-        counts = db.execute(f'select {expr}, count(*) from "{t}" group by 1')
+        cond = WINDOWS[t].format(s="") if window and t in WINDOWS else "1"
+        counts = db.execute(f'select {expr}, count(*) from "{t}" as o where {cond} group by 1')
         for k, n in counts:
-            if first is None or str(k) >= first:
-                parts[str(k)] = [n]
+            parts[str(k)] = [n]
         if parts:
             lo = None if (always or deep) else cut.get(t, "")
-            q = f'select {expr}, {sums} from "{t}" where {expr} >= ? group by 1'
+            q = f'select {expr}, {sums} from "{t}" as o where {expr} >= ? and {cond} group by 1'
             floor = min(parts) if lo is None else max(lo, min(parts))
             for row in db.execute(q, (floor,)):
                 if str(row[0]) in parts:
@@ -261,12 +295,15 @@ def delta(pc_path: str, srv_fp: dict[str, Any] | None, out_path: str) -> dict[st
     shipped = 0
     for t, keys in plan["parts"].items():
         expr = PARTITIONED[t][0]
+        cond = WINDOWS[t].format(s="pc.") if t in WINDOWS else "1"
         out.execute(f'create table "{t}" as select * from pc."{t}" where 0')
         for i in range(0, len(keys), 500):
             chunk = keys[i : i + 500]
             marks = ",".join("?" * len(chunk))
             out.execute(
-                f'insert into "{t}" select * from pc."{t}" where {expr} in ({marks})', chunk
+                f'insert into "{t}" select * from pc."{t}" as o where {expr} in ({marks})'
+                f" and {cond}",
+                chunk,
             )
         shipped += out.execute(f'select count(*) from "{t}"').fetchone()[0]
     for t in plan["whole"]:
@@ -274,7 +311,7 @@ def delta(pc_path: str, srv_fp: dict[str, Any] | None, out_path: str) -> dict[st
         shipped += out.execute(f'select count(*) from "{t}"').fetchone()[0]
     out.commit()
     out.execute("detach database pc")
-    _trim_urls(out)
+    slim(out, whole=False)
     out.execute("create table _plan (doc text)")
     expect = {t: pc["tables"][t] for t in [*plan["parts"], *plan["drop"], *plan["whole"]]}
     out.execute(
@@ -298,12 +335,31 @@ def _count_rows(db: sqlite3.Connection, table: str, keys: list[str]) -> int:
     return n
 
 
-def _trim_urls(db: sqlite3.Connection) -> None:
-    for t in _tables(db):
-        if t.startswith("_"):
+def slim(db: sqlite3.Connection, whole: bool = True) -> None:
+    """Leave out of a server copy what the server never reads. ``whole`` is the full copy: empty
+    the PC_ONLY tables, cut the WINDOWS tables and drop old fetch stamps. A delta's rows are
+    already cut, so it only loses its URLs."""
+    names = _tables(db)
+    if whole:
+        for t in sorted(PC_ONLY):
+            if _exists(db, t):
+                db.execute(f'delete from "{t}"')
+        for t, cond in WINDOWS.items():
+            if t in names:
+                db.execute(f'delete from "{t}" as o where not ({cond.format(s="")})')
+    for t in names:
+        cols = _columns(db, t)
+        if "source_url" not in cols:
             continue
-        if "source_url" in _columns(db, t):
+        if t not in NO_PROVENANCE:
             db.execute(TRIM_SQL.format(t=t, n=MAX_URL))
+            continue
+        db.execute(f'update "{t}" set source_url = null where source_url is not null')
+        if whole and "fetched_at" in cols:
+            db.execute(
+                f'update "{t}" set fetched_at = null where date < '
+                f"(select date(max(date), '-{FETCHED_DAYS} days') from \"{t}\")"
+            )
     db.commit()
 
 
@@ -409,6 +465,10 @@ def main(argv: list[str]) -> int:
                 srv = json.load(f)
         res = delta(argv[2], srv, argv[4])
         print(json.dumps(res))
+        return 0
+    if cmd == "slim":
+        db = sqlite3.connect(argv[2])
+        slim(db)
         return 0
     if cmd == "preserve":
         print(json.dumps(preserve(argv[2], argv[3])))

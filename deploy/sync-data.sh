@@ -16,7 +16,6 @@ SSH=(ssh -p 1415 -i ~/.ssh/tmon_vps -o BatchMode=yes "$HOST")
 SCP=(scp -q -P 1415 -i ~/.ssh/tmon_vps)
 PY=backend/.venv/Scripts/python.exe
 OUT=data/ship
-FEATURE_DATES=60  # the site reads only the newest feature row of each symbol
 
 mkdir -p "$OUT" && rm -f "$OUT"/*
 SRV_DB=/var/lib/tmon/tmon-live.sqlite3
@@ -64,28 +63,21 @@ delta_sync() {
 }
 
 full_sync() {
-"$PY" - "$OUT/tmon-live.sqlite3" "$FEATURE_DATES" <<'EOF'
+"$PY" - "$OUT/tmon-live.sqlite3" <<'EOF'
 import sqlite3, sys
-dst, keep = sys.argv[1], int(sys.argv[2])
+sys.path.insert(0, "deploy")
+import syncdb
+dst = sys.argv[1]
 src = sqlite3.connect("file:data/tmon-live.sqlite3?mode=ro", uri=True)
 src.execute(f"vacuum into '{dst}'")
 c = sqlite3.connect(dst)
-cut = c.execute(
-    "select min(date) from (select distinct date from features order by date desc limit ?)", (keep,)
-).fetchone()[0]
-c.execute("delete from features where date < ?", (cut,))
-# the batch URLs of the history download are 1.5 KB per price row; keep the endpoint only
-for (t,) in c.execute("select name from sqlite_master where type='table'").fetchall():
-    if "source_url" in [r[1] for r in c.execute(f'pragma table_info("{t}")')]:
-        c.execute(
-            f"""update "{t}" set source_url = substr(source_url, 1, instr(source_url, '&a=') + 2) || '...'
-                where length(source_url) > 300 and instr(source_url, '&a=') > 0"""
-        )
-c.commit()
+# the tables only research reads stay empty, features and fund NAVs keep their recent window,
+# day tables lose their request URLs and old fetch stamps (deploy/syncdb.py, slim)
+syncdb.slim(c)
 c.execute("vacuum")
 ok = c.execute("pragma integrity_check").fetchone()[0]
 c.execute("pragma journal_mode=delete")
-print("db", ok, "features from", cut)
+print("db", ok)
 assert ok == "ok"
 EOF
 zstd -19 -T0 -q "$OUT/tmon-live.sqlite3" -o "$OUT/tmon-live.sqlite3.zst"

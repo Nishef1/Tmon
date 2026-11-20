@@ -146,19 +146,67 @@ def test_full_copy_is_chosen_when_a_delta_is_not_safe(tmp_path: Path, case: str)
     assert res["full"] is True and res["reason"]
 
 
-def test_urls_of_batch_downloads_are_shortened_in_the_delta(tmp_path: Path) -> None:
+def test_urls_are_dropped_from_day_tables_and_shortened_elsewhere(tmp_path: Path) -> None:
     pc = _make(tmp_path / "pc.db", 10)
     _make(tmp_path / "srv.db", 10)
     long = "https://x/y?t=ClosingPrices&a=" + "1," * 400
     pc.execute("insert into prices_daily values (0,'2026-11-01',1,1,1,?,'t')", (long,))
+    pc.execute("create table macro_series (k int primary key, source_url text)")
+    pc.execute("insert into macro_series values (1, ?)", (long,))
     pc.commit()
-    _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
-    url = (
-        sqlite3.connect(tmp_path / "delta.db")
-        .execute("select source_url from prices_daily")
-        .fetchone()[0]
-    )
+    sd.slim(pc)
+    assert pc.execute("select count(source_url) from prices_daily").fetchone()[0] == 0
+    url = pc.execute("select source_url from macro_series").fetchone()[0]
     assert url.endswith("&a=...") and len(url) < 60
+
+
+def test_pc_only_tables_are_emptied_and_never_compared(tmp_path: Path) -> None:
+    pc = _make(tmp_path / "pc.db", 5)
+    srv = _make(tmp_path / "srv.db", 5)
+    for db in (pc, srv):
+        db.execute("create table financial_statements (id int primary key, body text)")
+    pc.execute("insert into financial_statements values (1, 'big')")
+    pc.commit()
+    srv.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert not res["full"] and res["whole"] == [] and res["parts"] == {}
+    sd.slim(pc)
+    assert pc.execute("select count(*) from financial_statements").fetchone()[0] == 0
+
+
+def test_fund_navs_keep_sixty_days_below_each_funds_newest(tmp_path: Path) -> None:
+    pc = _make(tmp_path / "pc.db", 3)
+    srv = _make(tmp_path / "srv.db", 3)
+    for db in (pc, srv):
+        db.execute(
+            "create table fund_nav_history (reg_no text, date date, instrument_id int,"
+            " cancel_nav real, units real, source_url text, fetched_at text,"
+            " primary key (reg_no, date))"
+        )
+    days = ["2026-01-01", "2026-08-05", "2026-09-15", "2026-10-01"]
+    for d in days:  # fund a is current; fund b stopped in August
+        pc.execute("insert into fund_nav_history values ('a',?,1,100,5,'u','t')", (d,))
+    pc.execute("insert into fund_nav_history values ('b','2026-07-01',2,9,9,'u','t')")
+    pc.execute("insert into fund_nav_history values ('b','2026-04-01',2,9,9,'u','t')")
+    pc.commit()
+    srv.commit()
+    res = _run(tmp_path / "pc.db", tmp_path / "srv.db", tmp_path / "delta.db")
+    assert res["parts"]["fund_nav_history"] == [
+        "2026-07-01",
+        "2026-08-05",
+        "2026-09-15",
+        "2026-10-01",
+    ]
+    assert sd.apply(str(tmp_path / "srv.db"), str(tmp_path / "delta.db"))["mismatch"] == []
+    got = srv.execute("select reg_no, date from fund_nav_history order by 1, 2").fetchall()
+    assert got == [
+        ("a", "2026-08-05"),
+        ("a", "2026-09-15"),
+        ("a", "2026-10-01"),
+        ("b", "2026-07-01"),
+    ]
+    sd.slim(pc)  # the full copy keeps the same rows
+    assert pc.execute("select reg_no, date from fund_nav_history order by 1, 2").fetchall() == got
 
 
 def _with_state(path: Path, alerts: int, trades: list[tuple[int, str]]) -> sqlite3.Connection:
