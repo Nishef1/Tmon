@@ -79,14 +79,9 @@ def _prob(pred: pl.DataFrame, ds: pl.DataFrame) -> dict[str, Any]:
     return out
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="tmon-extra-columns-study")
-    ap.add_argument("--timeframe", default="D1")
-    ap.add_argument("--json", type=Path)
-    ap.add_argument("--relative", action="store_true")
-    args = ap.parse_args(argv)
-    tf = args.timeframe
-
+def load_columns() -> dict[str, Any]:
+    """Stored inputs and the extra columns built from them (point in time); shared by the studies
+    that test the columns (this one and ``research/market_method/khak_columns.py``)."""
     from tmon.core.db import session_scope
     from tmon.features.store import load_benchmark_inputs, load_inputs
 
@@ -130,6 +125,23 @@ def main(argv: list[str] | None = None) -> int:
         stmts=stmts,
         order_book=ob,
     )
+    return {
+        "prices": prices, "clients": clients, "sectors": sectors, "index_daily": index_daily,
+        "rf": rf, "rules": rules, "extra": extra, "ix": ix,
+    }  # fmt: skip
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="tmon-extra-columns-study")
+    ap.add_argument("--timeframe", default="D1")
+    ap.add_argument("--json", type=Path)
+    ap.add_argument("--relative", action="store_true")
+    args = ap.parse_args(argv)
+    tf = args.timeframe
+
+    w = load_columns()
+    prices, clients, sectors = w["prices"], w["clients"], w["sectors"]
+    index_daily, rf, rules, extra, ix = w["index_daily"], w["rf"], w["rules"], w["extra"], w["ix"]
     ds = prepare_dataset(prices, clients, rules, sectors=sectors, timeframe=tf).join(
         extra, on=list(KEYS), how="left"
     )
