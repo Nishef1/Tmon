@@ -11,10 +11,16 @@ Per column and per half of time (cut at the median event date): the Spearman cor
 column with x60 over the events. A column "agrees" when both halves have the same sign and each
 |IC| >= 0.05. Because ~90 columns are tried, the number of columns that agree is compared with how
 many agree when the outcomes are shuffled (200 permutations), which is what chance alone gives.
-Then each agreeing column is used as a filter: events in its favourable third, mean x60 per half.
+Then each agreeing column is used as a filter: events in its favourable third, mean x60 per half,
+alone and among sound companies only.
+
+The chance level shuffles outcomes only among events of the same calendar month (events cluster in
+sell-offs). The "sound" filter (EPS TTM > 0, liabilities / assets < 0.7) is tested on its own with
+the same month-clustered shuffle of its label. With TMON_UNIVERSE=pit (universe.py) the events and
+the basket mean are those of the day's 100 most traded stocks.
 
 Run from backend/ with the live env: python research/market_method/khak_columns.py
-Output: docs/data/khak-columns-study.json
+Output: docs/data/khak-columns-study.json (khak-columns-study-pit.json for the pit universe)
 """
 
 from __future__ import annotations
@@ -29,6 +35,7 @@ import polars as pl
 sys.path.insert(0, str(Path(__file__).parent))
 import drawdown_floor as dfl
 import fundamental_model as fm
+import universe as uv
 
 from tmon.backtest.extra_columns_study import load_columns
 from tmon.features.adjustment import apply_adjustments
@@ -40,7 +47,7 @@ G = "instrument_id"
 MIN_IC = 0.05
 MIN_N = 150
 PERMS = 200
-OUT = Path(__file__).resolve().parents[3] / "docs" / "data" / "khak-columns-study.json"
+DATA = Path(__file__).resolve().parents[3] / "docs" / "data"
 
 
 def events() -> pl.DataFrame:
@@ -58,16 +65,15 @@ def events() -> pl.DataFrame:
         f60=(c.shift(-61) / c.shift(-1) - 1 - dfl.COST).over(G),
         f250=(c.shift(-251) / c.shift(-1) - 1 - dfl.COST).over(G),
     )
-    a = a.with_columns(
-        x60=C("f60") - C("f60").mean().over("date"),
-        x250=C("f250") - C("f250").mean().over("date"),
-    )
+    a = dfl.with_basket_excess(a, w["prices"], ids)
     rows = []
     for (iid,), g in a.group_by(G, maintain_order=True):
         dts = g["date"].to_numpy().astype("datetime64[D]")
         ev, _rep, _st = dfl.scan(dts, g["adj_close"].to_numpy())
         rows.extend({G: iid, "date": g["date"][x.pop("i")], **x} for x in ev)
-    e = pl.DataFrame(rows).join(a.select(G, "date", "x60", "x250"), on=[G, "date"], how="left")
+    e = pl.DataFrame(rows).join(
+        a.filter(C("member")).select(G, "date", "x60", "x250"), on=[G, "date"], how="inner"
+    )
     e = e.sort("date").join_asof(fund.sort("date"), on="date", by=G, strategy="backward")
     e = e.with_columns(sound=(C("eps_ttm") > 0) & (C("liab_ratio") < 0.7))
     rel = build_relative(
@@ -89,12 +95,54 @@ def ic(x: np.ndarray, y: np.ndarray) -> tuple[float | None, int]:
     return float(np.corrcoef(_rank(x[ok]), _rank(y[ok]))[0, 1]), n
 
 
+def month_shuffle(y: np.ndarray, month: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """``y`` shuffled only among events of the same calendar month. Events cluster in sell-offs,
+    so a shuffle across the whole half would break that clustering and make chance look narrower
+    than it is."""
+    out = y.copy()
+    for m in np.unique(month):
+        idx = np.flatnonzero(month == m)
+        out[idx] = y[rng.permutation(idx)]
+    return out
+
+
+def sound_test(first: pl.DataFrame, second: pl.DataFrame, rng: np.random.Generator) -> dict:
+    """Mean x60 of sound and other events per half, and how often a month-clustered shuffle of
+    the sound label gives a gap (sound minus other) at least as large in both halves."""
+    out: dict = {}
+    gaps = []
+    for name, df in (("first", first), ("second", second)):
+        d = df.filter(C("sound").is_not_null())
+        snd = d["sound"].to_numpy().astype(bool)
+        y = d["x60"].to_numpy()
+        gap = float(y[snd].mean() - y[~snd].mean()) if snd.any() and (~snd).any() else None
+        out[name] = {
+            "sound_mean_x60": float(y[snd].mean()) if snd.any() else None,
+            "other_mean_x60": float(y[~snd].mean()) if (~snd).any() else None,
+            "n_sound": int(snd.sum()),
+            "n_other": int((~snd).sum()),
+            "gap": gap,
+        }
+        gaps.append((y, snd, d["month"].to_numpy(), gap))
+    if all(g[3] is not None for g in gaps):
+        hits = 0
+        for _ in range(PERMS):
+            ok = True
+            for y, snd, month, gap in gaps:
+                s = month_shuffle(snd, month, rng)
+                if not s.any() or s.all() or y[s].mean() - y[~s].mean() < gap:
+                    ok = False
+            hits += ok
+        out["p_both_halves"] = (hits + 1) / (PERMS + 1)
+    return out
+
+
 def agree(a: float | None, b: float | None) -> bool:
     return a is not None and b is not None and a * b > 0 and min(abs(a), abs(b)) >= MIN_IC
 
 
 def main() -> None:
-    e = events().filter(C("x60").is_not_null())
+    e = events().filter(C("x60").is_not_null()).with_columns(month=C("date").dt.strftime("%Y-%m"))
     cut = e["date"].sort()[e.height // 2]
     first, second = e.filter(C("date") < cut), e.filter(C("date") >= cut)
     cols = [*EXTRA_COLUMNS, *REL_COLUMNS, "depth_vs_usual"]
@@ -109,9 +157,10 @@ def main() -> None:
     rng = np.random.default_rng(7)
     xs1 = {c: first[c].to_numpy().astype(float) for c in cols}
     xs2 = {c: second[c].to_numpy().astype(float) for c in cols}
+    m1, m2 = first["month"].to_numpy(), second["month"].to_numpy()
     null_counts = []
     for _ in range(PERMS):
-        p1, p2 = rng.permutation(y1), rng.permutation(y2)
+        p1, p2 = month_shuffle(y1, m1, rng), month_shuffle(y2, m2, rng)
         k = 0
         for col in cols:
             if table[col]["ic1"] is None or table[col]["ic2"] is None:
@@ -142,7 +191,15 @@ def main() -> None:
             "mean_x60_second": float(f2["x60"].mean()),
             "n": [f1.height, f2.height],
         }
+        s1, s2 = (third(d.filter(C("sound").fill_null(False)), col, sign) for d in (first, second))
+        filters[col]["with_sound"] = {
+            "mean_x60_first": float(s1["x60"].mean()) if s1.height else None,
+            "mean_x60_second": float(s2["x60"].mean()) if s2.height else None,
+            "n": [s1.height, s2.height],
+        }
     out = {
+        "universe": uv.mode(),
+        "sound": sound_test(first, second, rng),
         "split_date": str(cut),
         "events": base,
         "columns_tried": len(cols),
@@ -155,12 +212,15 @@ def main() -> None:
         "table": table,
         "filters": filters,
     }
-    OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    (DATA / f"khak-columns-study{uv.suffix().replace('_', '-')}.json").write_text(
+        json.dumps(out, ensure_ascii=False, indent=1, default=str), encoding="utf-8"
+    )
     print("events", base, "cut", cut)
+    print("sound", out["sound"])
     print("agree", n_agree, "of", len(cols), "chance", out["chance_agreeing"])
-    for col, f in sorted(filters.items(), key=lambda kv: -min(
-        kv[1]["mean_x60_first"], kv[1]["mean_x60_second"]
-    )):
+    for col, f in sorted(
+        filters.items(), key=lambda kv: -min(kv[1]["mean_x60_first"], kv[1]["mean_x60_second"])
+    ):
         print(col, f)
 
 

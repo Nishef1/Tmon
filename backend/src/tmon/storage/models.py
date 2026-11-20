@@ -427,6 +427,40 @@ class FundNav(Base, Provenance):
     manager: Mapped[str | None] = mapped_column(String(256))
 
 
+class FundNavHistory(Base, Provenance):
+    """Daily NAV, units and asset mix of a fund from its own website (docs/06), back to launch.
+
+    The NAVs are those of the **traded unit**: for a leveraged fund the premium (ممتاز) unit that
+    trades on the exchange, with the base (عادی) unit's NAV in ``base_nav``. fipiran's ``fund_nav``
+    gives one fund-level NAV a day, which is wrong for leveraged funds (OPEN_QUESTIONS 78).
+    Percentages are of total assets; ``stock_pct`` includes ``top5_pct``."""
+
+    __tablename__ = "fund_nav_history"
+
+    reg_no: Mapped[str] = mapped_column(String(16), primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    instrument_id: Mapped[int | None] = mapped_column(ForeignKey("instruments.id"), index=True)
+    platform: Mapped[str | None] = mapped_column(String(16))
+    issue_nav: Mapped[float | None] = mapped_column(Float)
+    cancel_nav: Mapped[float | None] = mapped_column(Float)
+    statistical_nav: Mapped[float | None] = mapped_column(Float)
+    base_nav: Mapped[float | None] = mapped_column(Float)
+    units: Mapped[float | None] = mapped_column(Float)
+    base_units: Mapped[float | None] = mapped_column(Float)
+    units_issued: Mapped[float | None] = mapped_column(Float)
+    units_revoked: Mapped[float | None] = mapped_column(Float)
+    net_asset: Mapped[float | None] = mapped_column(Float)
+    leverage: Mapped[float | None] = mapped_column(Float)
+    unitholders: Mapped[float | None] = mapped_column(Float)
+    stock_pct: Mapped[float | None] = mapped_column(Float)
+    top5_pct: Mapped[float | None] = mapped_column(Float)
+    bond_pct: Mapped[float | None] = mapped_column(Float)
+    commodity_pct: Mapped[float | None] = mapped_column(Float)
+    cash_pct: Mapped[float | None] = mapped_column(Float)
+    fund_unit_pct: Mapped[float | None] = mapped_column(Float)
+    other_pct: Mapped[float | None] = mapped_column(Float)
+
+
 class NewsRaw(Base, Provenance):
     """One news item as collected (docs/08 step 1), with its normalised title (step 2) and the
     first item of its duplicate cluster (step 3)."""
@@ -476,6 +510,33 @@ class Shareholder(Base, Provenance):
     shares: Mapped[int | None] = mapped_column(BigInteger)
     percent: Mapped[float | None] = mapped_column(Float)
     change_amount: Mapped[int | None] = mapped_column(BigInteger)  # shares bought (+) or sold (-)
+
+
+class SharesHistory(Base, Provenance):
+    """Share count (``zTitad``) of an instrument on a past day, from TSETMC's dated instrument
+    page. Sampled once a month, so a study can use the count in force point in time instead of
+    today's count."""
+
+    __tablename__ = "shares_history"
+
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    shares: Mapped[float | None] = mapped_column(Float)
+    base_volume: Mapped[float | None] = mapped_column(Float)
+
+
+class ShareholderHistory(Base, Provenance):
+    """The major-shareholder list (about 1% or more) of an instrument as TSETMC showed it on a past
+    day, sampled once a month. ``shareholders`` holds only today's list."""
+
+    __tablename__ = "shareholders_history"
+
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    holder_key: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    name: Mapped[str] = mapped_column(Text)
+    shares: Mapped[float | None] = mapped_column(Float)
+    percent: Mapped[float | None] = mapped_column(Float)
 
 
 class FinancialStatement(Base, Provenance):

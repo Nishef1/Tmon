@@ -133,6 +133,11 @@ def default_steps() -> list[Step]:
 
         return run_daily()
 
+    def fund_nav() -> Any:
+        from tmon.ingest.macro.fund_sites import run_daily
+
+        return run_daily()
+
     def risk_free() -> Any:
         from tmon.ingest.tsetmc.pipeline import run_risk_free
 
@@ -170,6 +175,7 @@ def default_steps() -> list[Step]:
         Step("indices", indices, required=False),
         Step("gaps", gaps, required=False),
         Step("order_book", order_book, required=False),
+        Step("fund_nav", fund_nav, required=False),
         Step("risk_free", risk_free, required=False),
         Step("macro", macro, required=False),
         Step("news", news, required=False),

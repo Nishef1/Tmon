@@ -47,7 +47,10 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod            # قیمت دسته‌ای و حقیقی/حقوقی سراسری
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli eod --full     # همهٔ نمادها یکی‌یکی (حدود یک ساعت)
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli backfill --since 2021-01-01 --limit 20
-.venv/Scripts/python.exe -m tmon.ingest.tsetmc.book_history --top 60 --days 60
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.book_history --top 100 --days 365 --extra-types etf_leveraged  # تابلو و برش روزانه، صندوق‌های اهرمی هم
+.venv/Scripts/python.exe -m tmon.ingest.tsetmc.dated_holders --top 100 --months 36   # تعداد سهام و سهامداران اول هر ماه
+.venv/Scripts/python.exe -m tmon.ingest.macro.fund_sites                           # تاریخچهٔ NAV و ترکیب دارایی از سایت صندوق‌ها
+.venv/Scripts/python.exe -m tmon.ingest.codal.backfill --state ../data/codal-backfill-funds.json --types etf_equity etf_leveraged etf_fixed_income etf_commodity etf_mixed  # نامه‌های کدال صندوق‌ها
 .venv/Scripts/python.exe -m tmon.ingest.tsetmc.cli statements --basket ../data/liquid-basket.json  # ترازنامه و سود و زیان ۱۰۰ نماد (حدود ۴ دقیقه)
 .venv/Scripts/python.exe -m tmon.ingest.codal.cli letters --symbol فملی
 .venv/Scripts/python.exe -m tmon.ingest.codal.cli reports --code ن-۳۰ --limit 20

@@ -2206,14 +2206,41 @@ export interface components {
       /** Sell Volume N */
       sell_volume_n: number | null;
     };
-    /** DashFund */
+    /**
+     * DashFund
+     * @description NAV and bubble of a fund. ``source`` is "site" when the NAV is the fund website's daily
+     *     figure for the traded unit (for leveraged funds the premium unit), "fipiran" otherwise. The
+     *     asset mix and unit counts come from the website history (``fund_nav_history``), when there.
+     */
     DashFund: {
+      /** Asset Date */
+      asset_date: string | null;
+      /** Bond Pct */
+      bond_pct: number | null;
       /** Bubble */
       bubble: number | null;
+      /** Cash Pct */
+      cash_pct: number | null;
+      /** Commodity Pct */
+      commodity_pct: number | null;
+      /** Fund Unit Pct */
+      fund_unit_pct: number | null;
       /** Nav */
       nav: number;
       /** Nav Date */
       nav_date: string;
+      /**
+       * Source
+       * @default fipiran
+       * @enum {string}
+       */
+      source: "site" | "fipiran";
+      /** Stock Pct */
+      stock_pct: number | null;
+      /** Unit */
+      unit: string | null;
+      /** Units Change 30D */
+      units_change_30d: number | null;
     };
     /**
      * DashFundTest

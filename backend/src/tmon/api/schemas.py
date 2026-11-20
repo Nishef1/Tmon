@@ -752,9 +752,22 @@ class DashFlow(ApiModel):
 
 
 class DashFund(ApiModel):
+    """NAV and bubble of a fund. ``source`` is "site" when the NAV is the fund website's daily
+    figure for the traded unit (for leveraged funds the premium unit), "fipiran" otherwise. The
+    asset mix and unit counts come from the website history (``fund_nav_history``), when there."""
+
     nav_date: str
     nav: float
     bubble: float | None = None
+    source: Literal["site", "fipiran"] = "fipiran"
+    unit: str | None = None
+    asset_date: str | None = None
+    stock_pct: float | None = None
+    bond_pct: float | None = None
+    cash_pct: float | None = None
+    commodity_pct: float | None = None
+    fund_unit_pct: float | None = None
+    units_change_30d: float | None = None  # change in units outstanding over 30 days (ratio)
 
 
 class DashSignal(ApiModel):

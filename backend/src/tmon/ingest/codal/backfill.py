@@ -1,7 +1,8 @@
 """Codal coverage backfill: the full letter index of every equity issuer, resumable.
 
 ``python -m tmon.ingest.codal.backfill`` walks every distinct stock symbol (listed or delisted),
-or with ``--basket`` only the liquid basket (most liquid first),
+or with ``--basket`` only the liquid basket (most liquid first), or with ``--types`` the symbols of
+other instrument types (the funds: ``--types etf_equity etf_leveraged ...``),
 pages its letter index to the end and records the symbol in a state file when its last page was
 a short one. Codal answers HTTP 429 once its request quota is used up; the run then waits
 ``--cooldown`` seconds and resumes the same page, giving up after ``--max-waits`` consecutive
@@ -37,10 +38,14 @@ def basket_symbols(path: Path) -> list[str]:
     return [str(x) for x in json.loads(path.read_text("utf-8"))["symbols"]]
 
 
-def stock_symbols(session: Session) -> list[str]:
+def stock_symbols(
+    session: Session, types: tuple[str, ...] = (InstrumentType.STOCK.value,)
+) -> list[str]:
+    """Distinct symbols of the given instrument types (stocks by default; ``--types`` adds the
+    funds, which file their own NAV, portfolio and meeting letters on Codal)."""
     rows = session.execute(
         select(Instrument.symbol_fa)
-        .where(Instrument.instrument_type == InstrumentType.STOCK.value)
+        .where(Instrument.instrument_type.in_(types))
         .order_by(Instrument.id)
     ).all()
     seen: dict[str, None] = {}
@@ -55,6 +60,7 @@ async def run(
     max_waits: int,
     limit: int | None,
     basket: Path | None = None,
+    types: tuple[str, ...] = (InstrumentType.STOCK.value,),
 ) -> dict[str, Any]:
     state = json.loads(state_path.read_text("utf-8")) if state_path.exists() else {}
     done: set[str] = set(state.get("done", []))
@@ -63,7 +69,7 @@ async def run(
     try:
         with session_scope() as s:
             ctx = CodalCtx(s, client, get_object_store())
-            order = basket_symbols(basket) if basket else stock_symbols(s)
+            order = basket_symbols(basket) if basket else stock_symbols(s, types)
             todo = [x for x in order if x not in done]
             if limit:
                 todo = todo[:limit]
@@ -108,9 +114,12 @@ def main() -> None:
     ap.add_argument("--max-waits", type=int, default=6)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--basket", default=None, help="liquid_basket JSON; only its symbols")
+    ap.add_argument(
+        "--types", nargs="*", default=[InstrumentType.STOCK.value], help="e.g. etf_equity"
+    )
     a = ap.parse_args()
     basket = Path(a.basket) if a.basket else None
-    print(asyncio.run(run(Path(a.state), a.cooldown, a.max_waits, a.limit, basket)))
+    print(asyncio.run(run(Path(a.state), a.cooldown, a.max_waits, a.limit, basket, tuple(a.types))))
 
 
 if __name__ == "__main__":

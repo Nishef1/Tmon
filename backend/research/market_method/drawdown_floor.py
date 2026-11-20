@@ -18,8 +18,11 @@ Each step is an event; entry = close of t+1, hold 60 and 250 trading days, cost 
 trip, excess over the basket mean on the same entry day. Events from 2023-04 (last three years),
 both halves. Also: does the usual depth repeat? (correlation of the past median with the next
 episode's depth, and how often the next trough fell inside the usual range [p25, p75]).
+With TMON_UNIVERSE=pit (universe.py) a step counts only on a day the stock is among that day's 100
+most traded, and the excess is over the mean of that day's 100, which removes the survivorship of
+the fixed basket.
 Run from backend/ with the live env:  python research/market_method/drawdown_floor.py
-Output: results_drawdown_floor.json
+Output: results_drawdown_floor.json (results_drawdown_floor_pit.json for the pit universe)
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent))
 import fundamental_model as fm
+import universe as uv
 
 from tmon.core.db import session_scope
 from tmon.features.adjustment import apply_adjustments
@@ -129,6 +133,21 @@ def judge(e: pl.DataFrame, name: str) -> dict:
     return out
 
 
+def with_basket_excess(a: pl.DataFrame, prices: pl.DataFrame, ids: dict[int, str]) -> pl.DataFrame:
+    """``member``: the stock is in the study's universe that day (always, for the fixed basket;
+    the day's 100 most traded for TMON_UNIVERSE=pit). x60/x250: f60/f250 minus the mean of that
+    day's members, so the comparison is with the basket of the same day."""
+    if uv.mode() == "pit":
+        m = uv.pit_members(prices, ids).with_columns(member=pl.lit(True))
+        a = a.join(m, on=["date", G], how="left").with_columns(C("member").fill_null(False))
+    else:
+        a = a.with_columns(member=pl.lit(True))
+    return a.with_columns(
+        x60=C("f60") - C("f60").filter(C("member")).mean().over("date"),
+        x250=C("f250") - C("f250").filter(C("member")).mean().over("date"),
+    )
+
+
 def main() -> None:
     p, ids = fm.build()
     fund = p.select("date", G, "eps_ttm", "liab_ratio")
@@ -143,10 +162,7 @@ def main() -> None:
         hi60=(c >= c.rolling_max(60)).over(G),
         up7=((c > c.shift(1)).cast(pl.Int8).rolling_sum(7) >= 5).over(G),
     )
-    a = a.with_columns(
-        x60=C("f60") - C("f60").mean().over("date"),
-        x250=C("f250") - C("f250").mean().over("date"),
-    )
+    a = with_basket_excess(a, prices, ids)
     rows, reps, table = [], [], []
     for (iid,), g in a.group_by(G, maintain_order=True):
         dts = g["date"].to_numpy().astype("datetime64[D]")
@@ -154,10 +170,12 @@ def main() -> None:
         reps += rep
         table.append({"symbol": ids[iid], **st})
         rows.extend({G: iid, "date": g["date"][x.pop("i")], **x} for x in ev)
-    e = pl.DataFrame(rows).join(a.select(G, "date", "x60", "x250"), on=[G, "date"], how="left")
+    e = pl.DataFrame(rows).join(
+        a.filter(C("member")).select(G, "date", "x60", "x250"), on=[G, "date"], how="inner"
+    )
     e = e.sort("date").join_asof(fund.sort("date"), on="date", by=G, strategy="backward")
     e = e.with_columns(sound=(C("eps_ttm") > 0) & (C("liab_ratio") < 0.7))
-    green = a.filter((C("date") >= pl.date(2023, 4, 1)) & C("hi60") & C("up7"))
+    green = a.filter((C("date") >= pl.date(2023, 4, 1)) & C("hi60") & C("up7") & C("member"))
 
     res = [judge(e.filter(C("step") == s), s) for s in STEPS]
     res += [judge(e.filter((C("step") == s) & C("sound")), s + "+sound") for s in STEPS]
@@ -174,7 +192,8 @@ def main() -> None:
     }
     table.sort(key=lambda t: t["median"] if t["median"] is not None else 0)
     out = {"results": res, "repeat": repeat, "table": table}
-    (HERE / "results_drawdown_floor.json").write_text(
+    out["universe"] = uv.mode()
+    (HERE / f"results_drawdown_floor{uv.suffix()}.json").write_text(
         json.dumps(out, ensure_ascii=False, indent=1, default=str), encoding="utf-8"
     )
     for x in res:

@@ -450,9 +450,31 @@ export function SymbolFacts({ d }: { d: D }) {
       </bdi>,
     ]);
   if (d.fund) {
-    rows.push(["ارزش خالص دارایی (NAV ابطال)", faNumber(d.fund.nav)]);
-    if (d.fund.bubble != null) {
-      rows.push(["حباب صندوق (قیمت بازار نسبت به NAV)", faPercent(d.fund.bubble, 2, true)]);
+    const fd = d.fund;
+    const src = fd.source === "site" ? "سایت صندوق" : "فیپیران";
+    rows.push([
+      fd.unit ? `NAV ابطال ${fd.unit}` : "ارزش خالص دارایی (NAV ابطال)",
+      `${faNumber(fd.nav)} (${src})`,
+    ]);
+    if (fd.bubble != null) {
+      rows.push(["حباب صندوق (قیمت بازار نسبت به NAV)", faPercent(fd.bubble, 2, true)]);
+    }
+    const mix: [string, number | null | undefined][] = [
+      ["سهام", fd.stock_pct],
+      ["اوراق", fd.bond_pct],
+      ["نقد و سپرده", fd.cash_pct],
+      ["کالا", fd.commodity_pct],
+      ["واحد صندوق", fd.fund_unit_pct],
+    ];
+    const shown = mix.filter(([, v]) => v != null && v > 0);
+    if (shown.length > 0) {
+      rows.push([
+        "ترکیب دارایی",
+        shown.map(([k, v]) => `${k} ${faPercent((v as number) / 100, 0)}`).join("، "),
+      ]);
+    }
+    if (fd.units_change_30d != null) {
+      rows.push(["تغییر تعداد واحدها در ۳۰ روز", faPercent(fd.units_change_30d, 1, true)]);
     }
   }
   if (rows.length === 0) return null;

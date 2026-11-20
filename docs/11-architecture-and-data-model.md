@@ -56,8 +56,8 @@ TSETMC / کدال / fipiran / tgju / yahoo / RSS
 | نماد و قواعد | `instruments`، `sector_names` (هر بار که حلقهٔ لحظه‌ای شروع می‌شود از `GetStaticData` تازه می‌شود)، `market_rules`، `trading_calendar` |
 | بازار روزانه | `prices_daily`، `price_adjustments`، `client_types_daily`، `market_index_daily`، `order_book_daily`، `intraday_profile_daily` |
 | لحظه‌ای | `intraday_snapshots`، `order_book_snapshots` |
-| رویداد و کدال | `corporate_events`، `share_changes`، `shareholders`، `financial_statements`، `codal_letters`، `codal_reports`، `codal_report_cells` |
-| کلان، صندوق، خبر | `macro_series`، `fund_nav`، `news_raw`، `news_events` |
+| رویداد و کدال | `corporate_events`، `share_changes`، `shareholders`، `shares_history` و `shareholders_history` (اول هر ماه، مهاجرت 0019)، `financial_statements`، `codal_letters`، `codal_reports`، `codal_report_cells` |
+| کلان، صندوق، خبر | `macro_series`، `fund_nav`، `fund_nav_history` (از سایت صندوق، مهاجرت 0018)، `news_raw`، `news_events` |
 | ویژگی و مدل v1 | `features`، `labels`؛ و `model_runs`، `signals`، `signal_runs`، `backtests` که از ۲۸ آبان ۱۴۰۵ فقط سابقه‌اند |
 | پرتفوی | `portfolios`، `holdings`، `portfolio_trades`، `broker_links`، `portfolio_alerts`، `portfolio_briefings`، `tracked_picks` |
 | خام | `raw_payloads` |

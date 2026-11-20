@@ -72,29 +72,36 @@ def _roll_beta(r: pl.Expr, m: pl.Expr, n: int) -> pl.Expr:
 def shares_frame(
     changes: Sequence[tuple[int, dt.date, float | None, float | None]],
     tag_shares: Mapping[int, float],
+    dated: Sequence[tuple[int, dt.date, float | None]] = (),
 ) -> pl.DataFrame:
     """Share count in force from each date, per instrument. ``changes`` are ``(instrument_id,
-    date, shares_old, shares_new)``. Before the first change the old count of that change is used;
-    an instrument with no change keeps its current count (it never changed)."""
+    date, shares_old, shares_new)``; ``dated`` are ``(instrument_id, date, shares)`` read from
+    TSETMC's page of that day (``shares_history``, sampled monthly). Both are observations of the
+    count in force from their date on. Before the earliest observation the earliest known count is
+    used (the old count of the first change, or the first dated sample, whichever is earlier); an
+    instrument with neither keeps its current count (today's count applied to the past)."""
+    schema = {G: pl.Int64, "date": pl.Date, "shares": pl.Float64}
     rows: list[tuple[int, dt.date, float]] = []
+    first: dict[int, tuple[dt.date, float]] = {}
     for iid, d, old, new in sorted(changes, key=lambda x: (x[0], x[1])):
         rows.append((iid, d, float(new)) if new else (iid, d, float(old or 0) or float("nan")))
-    out = pl.DataFrame(
-        rows,
-        schema={G: pl.Int64, "date": pl.Date, "shares": pl.Float64},
-        orient="row",
-    ).filter(pl.col("shares").is_not_nan() & (pl.col("shares") > 0))
-    first_old = {}
-    for iid, d, old, _new in sorted(changes, key=lambda x: (x[0], x[1])):
-        if iid not in first_old and old:
-            first_old[iid] = (d, float(old))
-    base = [
-        (iid, dt.date(1990, 1, 1), s) for iid, s in tag_shares.items() if s and iid not in first_old
-    ] + [(iid, dt.date(1990, 1, 1), old) for iid, (_d, old) in first_old.items()]
-    base_df = pl.DataFrame(
-        base, schema={G: pl.Int64, "date": pl.Date, "shares": pl.Float64}, orient="row"
+        if iid not in first and old:
+            first[iid] = (d, float(old))
+    for iid, d, n in sorted(dated, key=lambda x: (x[0], x[1])):
+        if not n or n <= 0:
+            continue
+        rows.append((iid, d, float(n)))
+        if iid not in first or d < first[iid][0]:
+            first[iid] = (d, float(n))
+    out = pl.DataFrame(rows, schema=schema, orient="row").filter(
+        pl.col("shares").is_not_nan() & (pl.col("shares") > 0)
     )
-    return pl.concat([base_df, out]).sort(G, "date")
+    base = [
+        (iid, dt.date(1990, 1, 1), s) for iid, s in tag_shares.items() if s and iid not in first
+    ] + [(iid, dt.date(1990, 1, 1), old) for iid, (_d, old) in first.items()]
+    base_df = pl.DataFrame(base, schema=schema, orient="row")
+    # a dated sample and a change on the same day: keep one row (the later one in the list)
+    return pl.concat([base_df, out]).unique([G, "date"], keep="last").sort(G, "date")
 
 
 def fundamentals_frame(stmts: Mapping[int, list[Stmt]]) -> pl.DataFrame:

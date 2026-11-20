@@ -41,7 +41,14 @@ from tmon.domain.compare import (
 from tmon.ingest.macro.fipiran import bubble
 from tmon.ingest.tsetmc.parsers import normalize_fa
 from tmon.ingest.tsetmc.risk_free import SERIES as RF_SERIES
-from tmon.storage.models import FundNav, Instrument, MacroSeries, PriceDaily, SectorName
+from tmon.storage.models import (
+    FundNav,
+    FundNavHistory,
+    Instrument,
+    MacroSeries,
+    PriceDaily,
+    SectorName,
+)
 from tmon.storage.objectstore import read_artifact
 from tmon.tools.leveraged_funds import KEY as LEVERAGED_KEY
 
@@ -189,6 +196,48 @@ def compare(
     )
 
 
+def _leveraged_site_nav(
+    session: Session, ids: list[int]
+) -> dict[int, tuple[date, float, float | None, float | None]]:
+    """Newest premium-unit cancel and issue NAV of each leveraged fund from its website
+    (``fund_nav_history``), with the close of that day: ``id -> (date, nav, issue, close)``."""
+    latest = (
+        select(FundNavHistory.instrument_id, func.max(FundNavHistory.date).label("d"))
+        .join(Instrument, Instrument.id == FundNavHistory.instrument_id)
+        .where(
+            Instrument.instrument_type == "etf_leveraged",
+            FundNavHistory.cancel_nav.is_not(None),
+            FundNavHistory.instrument_id.in_(ids),
+        )
+        .group_by(FundNavHistory.instrument_id)
+        .subquery()
+    )
+    rows = session.execute(
+        select(
+            FundNavHistory.instrument_id,
+            FundNavHistory.date,
+            FundNavHistory.cancel_nav,
+            FundNavHistory.issue_nav,
+            PriceDaily.close,
+        )
+        .join(
+            latest,
+            (FundNavHistory.instrument_id == latest.c.instrument_id)
+            & (FundNavHistory.date == latest.c.d),
+        )
+        .outerjoin(
+            PriceDaily,
+            (PriceDaily.instrument_id == FundNavHistory.instrument_id)
+            & (PriceDaily.date == FundNavHistory.date),
+        )
+    ).all()
+    return {
+        int(i): (d, float(nav), float(iss) if iss else None, float(c) if c else None)
+        for i, d, nav, iss, c in rows
+        if i is not None and nav
+    }
+
+
 @router.get("/funds", response_model=FundsOut)
 def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
     """Latest NAV per fund (fipiran) and, for listed units, the bubble against the close of
@@ -216,6 +265,7 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
             )
         )
     }
+    lev = _leveraged_site_nav(session, ids)
     out = []
     for n in navs:
         price = closes.get((n.instrument_id, n.date)) if n.instrument_id else None
@@ -228,9 +278,22 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
             tags.get("fund_desc"),
         )
         b, note = None, None
+        nav_day, cancel, issue = n.date, n.cancel_nav, n.issue_nav
         if n.instrument_id:
             if n.fund_type == LEVERAGED_FUND_TYPE:
-                note = "صندوق اهرمی: NAV واحد معامله‌شونده در دسترس نیست"
+                site = lev.get(n.instrument_id)
+                if site is None:
+                    note = "صندوق اهرمی: NAV واحد معامله‌شونده در دسترس نیست"
+                else:
+                    # the row shows the traded (premium) unit throughout, not fipiran's whole-fund
+                    # figure, so price, NAV and bubble refer to the same unit and day
+                    nav_day, cancel, issue, price = site
+                    b = bubble(price, cancel) if price else None
+                    note = (
+                        f"NAV واحد ممتاز از سایت صندوق، روز {site[0]}"
+                        if b is not None
+                        else "قیمت پایانی روز NAV سایت صندوق ثبت نشده است"
+                    )
             elif price is None:
                 note = "قیمت پایانی روز NAV ثبت نشده است"
             else:
@@ -249,9 +312,9 @@ def funds(session: SessionDep, listed_only: bool = True) -> FundsOut:
                 kind=kind,
                 industry=industry,
                 listed=n.instrument_id is not None,
-                nav_date=n.date,
-                cancel_nav=n.cancel_nav,
-                issue_nav=n.issue_nav,
+                nav_date=nav_day,
+                cancel_nav=cancel,
+                issue_nav=issue,
                 net_asset=n.net_asset,
                 price=float(price) if price is not None else None,
                 bubble=b,

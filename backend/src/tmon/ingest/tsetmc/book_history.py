@@ -6,8 +6,9 @@ after every event, and keeps only what the models use: the closing book, the boo
 trading, time-weighted averages over the continuous session and the share of the session spent in
 a buy or sell queue (``OrderBookDaily``). The raw log is not stored.
 
-``python -m tmon.ingest.tsetmc.book_history --top 100 --days 300`` fills the table for the most
-traded names. It is resumable: days already stored are skipped.
+``python -m tmon.ingest.tsetmc.book_history --top 100 --days 300 --extra-types etf_leveraged``
+fills the table for the most traded names and every leveraged fund. It is resumable: days
+already stored are skipped.
 """
 
 from __future__ import annotations
@@ -278,20 +279,30 @@ async def collect(
     return written
 
 
-def plan_jobs(top: int, days: int) -> list[tuple[int, str, date]]:
-    """The ``top`` most traded stocks (median traded value of their last 20 days) and their
-    last ``days`` trading days, minus the days already stored."""
+def plan_jobs(top: int, days: int, extra_types: Sequence[str] = ()) -> list[tuple[int, str, date]]:
+    """The ``top`` most traded stocks (mean traded value of their last 30 days), plus every
+    instrument of ``extra_types`` (e.g. ``etf_leveraged``), and their last ``days`` trading days,
+    minus the days already stored."""
+    extra = ",".join(f"'{t}'" for t in extra_types if t.replace("_", "").isalnum()) or "''"
     q = text(
         """
         with last as (
             select max(date) as d from prices_daily where volume > 0
-        ), liq as (
+        ), top_stocks as (
             select p.instrument_id, avg(p.value) as v
             from prices_daily p, last, instruments ii
             where ii.id = p.instrument_id and ii.instrument_type = 'stock'
               and p.date > date(last.d, '-30 day') and p.volume > 0
             group by p.instrument_id
             order by v desc limit :top
+        ), liq as (
+            select * from top_stocks
+            union
+            select p.instrument_id, avg(p.value) as v
+            from prices_daily p, last, instruments ii
+            where ii.id = p.instrument_id and ii.instrument_type in ({extra})
+              and p.date > date(last.d, '-30 day') and p.volume > 0
+            group by p.instrument_id
         )
         select i.id, i.ins_code, p.date
         from liq
@@ -311,7 +322,7 @@ def plan_jobs(top: int, days: int) -> list[tuple[int, str, date]]:
             )
         )
         order by p.date desc, liq.v desc
-        """
+        """.replace("{extra}", extra)
     )
     ensure_profile_table()
     with session_scope() as s:
@@ -319,9 +330,15 @@ def plan_jobs(top: int, days: int) -> list[tuple[int, str, date]]:
     return [(int(r[0]), str(r[1]), date.fromisoformat(str(r[2])[:10])) for r in rows]
 
 
-def run_daily(top: int = 100, days: int = 5, concurrency: int = 6) -> dict[str, int]:
-    """The daily cycle step: fill the missing book days of the most traded names (resumable)."""
-    jobs = plan_jobs(top, days)
+def run_daily(
+    top: int = 100,
+    days: int = 5,
+    concurrency: int = 6,
+    extra_types: Sequence[str] = ("etf_leveraged",),
+) -> dict[str, int]:
+    """The daily cycle step: fill the missing book days of the most traded names and of every
+    leveraged fund (resumable)."""
+    jobs = plan_jobs(top, days, extra_types)
     written = asyncio.run(collect(jobs, concurrency)) if jobs else 0
     return {"jobs": len(jobs), "stored": written}
 
@@ -331,8 +348,14 @@ def main() -> None:
     ap.add_argument("--top", type=int, default=100)
     ap.add_argument("--days", type=int, default=300)
     ap.add_argument("--concurrency", type=int, default=6)
+    ap.add_argument(
+        "--extra-types",
+        nargs="*",
+        default=[],
+        help="instrument types added in full, e.g. etf_leveraged",
+    )
     args = ap.parse_args()
-    jobs = plan_jobs(args.top, args.days)
+    jobs = plan_jobs(args.top, args.days, args.extra_types)
     print("jobs", len(jobs), flush=True)
     asyncio.run(collect(jobs, args.concurrency))
 

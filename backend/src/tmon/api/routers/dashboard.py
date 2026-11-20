@@ -7,6 +7,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import statistics
+from collections.abc import Sequence
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -65,6 +66,7 @@ from tmon.storage.models import (
     ClientTypeDaily,
     CorporateEvent,
     FundNav,
+    FundNavHistory,
     Instrument,
     PriceDaily,
     SectorName,
@@ -737,6 +739,71 @@ def decide(
     )
 
 
+def _fund_block(
+    session: Session, inst: Instrument, prices: Sequence[PriceDaily]
+) -> DashFund | None:
+    """NAV and bubble of a fund: the website's daily NAV of the traded unit when it is as new as
+    fipiran's (leveraged funds: only the website's, since fipiran's is the fund-level figure), with
+    the asset mix and the 30-day change in units (docs/06)."""
+    nav = session.scalars(
+        select(FundNav)
+        .where(FundNav.instrument_id == inst.id)
+        .order_by(FundNav.date.desc())
+        .limit(1)
+    ).first()
+    site = session.scalars(
+        select(FundNavHistory)
+        .where(FundNavHistory.instrument_id == inst.id, FundNavHistory.cancel_nav.is_not(None))
+        .order_by(FundNavHistory.date.desc())
+        .limit(1)
+    ).first()
+    leveraged = inst.instrument_type == "etf_leveraged"
+    close_on = {p.date: float(p.close) for p in prices if p.close}
+    out: DashFund | None = None
+    if site is not None and site.cancel_nav and (nav is None or site.date >= nav.date or leveraged):
+        c = close_on.get(site.date)
+        out = DashFund(
+            nav_date=str(site.date),
+            nav=float(site.cancel_nav),
+            bubble=(c / float(site.cancel_nav) - 1) if c else None,
+            source="site",
+            unit="واحد ممتاز (معامله‌شونده)" if leveraged else None,
+        )
+    elif nav is not None and nav.cancel_nav and not leveraged:
+        c = close_on.get(nav.date)
+        out = DashFund(
+            nav_date=str(nav.date),
+            nav=float(nav.cancel_nav),
+            bubble=(c / float(nav.cancel_nav) - 1) if c else None,
+        )
+    if out is None:
+        return None
+    mix = session.scalars(
+        select(FundNavHistory)
+        .where(FundNavHistory.instrument_id == inst.id, FundNavHistory.stock_pct.is_not(None))
+        .order_by(FundNavHistory.date.desc())
+        .limit(1)
+    ).first()
+    if mix is not None:
+        out.asset_date = str(mix.date)
+        out.stock_pct, out.bond_pct, out.cash_pct = mix.stock_pct, mix.bond_pct, mix.cash_pct
+        out.commodity_pct, out.fund_unit_pct = mix.commodity_pct, mix.fund_unit_pct
+    if site is not None and site.units:
+        before = session.scalars(
+            select(FundNavHistory)
+            .where(
+                FundNavHistory.instrument_id == inst.id,
+                FundNavHistory.units.is_not(None),
+                FundNavHistory.date <= site.date - dt.timedelta(days=30),
+            )
+            .order_by(FundNavHistory.date.desc())
+            .limit(1)
+        ).first()
+        if before is not None and before.units:
+            out.units_change_30d = float(site.units) / float(before.units) - 1
+    return out
+
+
 @router.get("/instruments/{instrument_id}/dashboard", response_model=InstrumentDashboard)
 def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
     inst = session.get(Instrument, instrument_id)
@@ -767,19 +834,7 @@ def dashboard(instrument_id: int, session: SessionDep) -> InstrumentDashboard:
         .limit(1)
     ).first()
     close = price.close if price else None
-    fund = None
-    nav = session.scalars(
-        select(FundNav)
-        .where(FundNav.instrument_id == instrument_id)
-        .order_by(FundNav.date.desc())
-        .limit(1)
-    ).first()
-    if nav is not None and nav.cancel_nav:
-        fund = DashFund(
-            nav_date=str(nav.date),
-            nav=float(nav.cancel_nav),
-            bubble=(close / float(nav.cancel_nav) - 1) if close else None,
-        )
+    fund = _fund_block(session, inst, prices)
     vals = [float(r.value) for r in prices[:20] if r.value]
     events = list(
         session.scalars(

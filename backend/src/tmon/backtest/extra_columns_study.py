@@ -29,7 +29,7 @@ from tmon.features.extra import GROUPS, build_extra, shares_frame
 from tmon.features.fundamentals import load_statements
 from tmon.features.relative import REL_GROUPS, build_relative
 from tmon.models.lgbm import LightGBMStrategy
-from tmon.storage.models import Instrument, OrderBookDaily, ShareChange
+from tmon.storage.models import Instrument, OrderBookDaily, ShareChange, SharesHistory
 
 
 def variants(timeframe: str, relative: bool = False) -> dict[str, list[str]]:
@@ -96,6 +96,9 @@ def load_columns() -> dict[str, Any]:
             for r in session.scalars(select(ShareChange))
             if r.instrument_id is not None
         ]
+        dated = [
+            (r.instrument_id, r.date, r.shares) for r in session.scalars(select(SharesHistory))
+        ]
         tags = {
             i: float((t or {}).get("shares") or 0)
             for i, t in session.execute(select(Instrument.id, Instrument.tags))
@@ -121,7 +124,7 @@ def load_columns() -> dict[str, Any]:
         rules,
         sectors=sectors,
         index_close=ix,
-        shares=shares_frame(changes, tags),
+        shares=shares_frame(changes, tags, dated),
         stmts=stmts,
         order_book=ob,
     )

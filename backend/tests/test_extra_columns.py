@@ -89,6 +89,17 @@ def test_share_count_in_force_changes_the_market_cap_weight() -> None:
     assert got["shares"].to_list() == [1e6, 2e6]  # before the change: the old count
 
 
+def test_dated_samples_replace_todays_count_in_the_past() -> None:
+    # instrument 2: today's count is 9e6, but the dated pages showed 3e6 then 4e6
+    dated = [(2, date(2023, 3, 1), 3e6), (2, date(2023, 9, 1), 4e6)]
+    sh = shares_frame([], {2: 9e6}, dated).filter(pl.col("instrument_id") == 2)
+    assert sh["shares"].to_list() == [3e6, 3e6, 4e6]  # base from the first sample, not 9e6
+    # a change and a sample: the earlier of the two sets the count before both
+    sh = shares_frame([(1, date(2023, 6, 1), 1e6, 2e6)], {}, [(1, date(2023, 3, 1), 1e6)])
+    got = sh.filter(pl.col("instrument_id") == 1)
+    assert got["shares"].to_list() == [1e6, 1e6, 2e6]
+
+
 def test_every_extra_column_is_present_once() -> None:
     prices, clients, ix, shares, stmts = _inputs()
     e = _build(prices, clients, ix, shares, stmts)

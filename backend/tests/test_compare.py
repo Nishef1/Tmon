@@ -18,7 +18,7 @@ from tmon.domain.compare import (
     real_return,
     value_on_or_before,
 )
-from tmon.storage.models import FundNav, Instrument, MacroSeries, PriceDaily
+from tmon.storage.models import FundNav, FundNavHistory, Instrument, MacroSeries, PriceDaily
 
 
 def test_formulas():
@@ -139,6 +139,26 @@ def test_funds_bubble(session, client):
     assert by["1"]["bubble"] == pytest.approx(0.03) and by["1"]["bubble_note"] is None
     assert by["2"]["bubble"] is None and "اهرمی" in by["2"]["bubble_note"]
     assert len(client.get("/funds?listed_only=false").json()["funds"]) == 3
+
+
+def test_leveraged_bubble_uses_the_premium_unit_nav_from_the_site(session, client):
+    lev = Instrument(ins_code="2", symbol_fa="شتاب", instrument_type="etf_leveraged")
+    session.add(lev)
+    session.flush()
+    d = date(2026, 11, 17)
+    session.add_all(
+        [
+            # fipiran's fund-level NAV is far from the traded unit's
+            FundNav(reg_no="2", date=d, instrument_id=lev.id, fund_type=22, cancel_nav=48643.0),
+            FundNavHistory(reg_no="2", date=d, instrument_id=lev.id, cancel_nav=76123.0),
+            PriceDaily(instrument_id=lev.id, date=d, close=70758),
+        ]
+    )
+    session.flush()
+    f = client.get("/funds").json()["funds"][0]
+    assert f["bubble"] == pytest.approx(70758 / 76123 - 1)
+    assert f["cancel_nav"] == 76123 and f["price"] == 70758  # the premium unit, not fipiran's
+    assert "ممتاز" in f["bubble_note"]
 
 
 def test_fund_kind_and_industry(session, client):

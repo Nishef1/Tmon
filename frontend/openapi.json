@@ -3327,7 +3327,30 @@
         "type": "object"
       },
       "DashFund": {
+        "description": "NAV and bubble of a fund. ``source`` is \"site\" when the NAV is the fund website's daily\nfigure for the traded unit (for leveraged funds the premium unit), \"fipiran\" otherwise. The\nasset mix and unit counts come from the website history (``fund_nav_history``), when there.",
         "properties": {
+          "asset_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Date"
+          },
+          "bond_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bond Pct"
+          },
           "bubble": {
             "anyOf": [
               {
@@ -3339,6 +3362,39 @@
             ],
             "title": "Bubble"
           },
+          "cash_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cash Pct"
+          },
+          "commodity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commodity Pct"
+          },
+          "fund_unit_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fund Unit Pct"
+          },
           "nav": {
             "title": "Nav",
             "type": "number"
@@ -3346,12 +3402,63 @@
           "nav_date": {
             "title": "Nav Date",
             "type": "string"
+          },
+          "source": {
+            "default": "fipiran",
+            "enum": [
+              "site",
+              "fipiran"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "stock_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stock Pct"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "units_change_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Units Change 30D"
           }
         },
         "required": [
           "nav_date",
           "nav",
-          "bubble"
+          "bubble",
+          "source",
+          "unit",
+          "asset_date",
+          "stock_pct",
+          "bond_pct",
+          "cash_pct",
+          "commodity_pct",
+          "fund_unit_pct",
+          "units_change_30d"
         ],
         "title": "DashFund",
         "type": "object"
