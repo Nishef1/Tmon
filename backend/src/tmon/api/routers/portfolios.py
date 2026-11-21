@@ -8,6 +8,7 @@ returned in full.
 from __future__ import annotations
 
 import datetime as dt
+import time
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -209,7 +210,12 @@ def _auth(session: Session, pid: int, key: str | None) -> Portfolio:
         ledger.ensure_schema(session)
         _schema_ready = True
     p = session.get(Portfolio, pid)
-    if p is None or not key or not keys.matches(key, p.key_hash):
+    if p is None or not key:
+        raise HTTPException(404, "portfolio not found or key does not match")
+    st = get_settings()
+    if not keys.matches(key, p.key_hash) and not keys.owner_token_ok(
+        key, st.owner_secret, st.owner_password_hash
+    ):
         raise HTTPException(404, "portfolio not found or key does not match")
     return p
 
@@ -454,6 +460,46 @@ def create_portfolio(body: PortfolioCreate, session: SessionDep) -> CreatedOut:
     session.add(p)
     session.commit()
     return CreatedOut(id=p.id, key=key, name=p.name)
+
+
+class OwnerLogin(BaseModel):
+    password: str = Field(max_length=200)
+
+
+class OwnerPortfolio(BaseModel):
+    id: int
+    name: str
+
+
+class OwnerSession(BaseModel):
+    token: str
+    portfolios: list[OwnerPortfolio]
+
+
+_failed: list[float] = []  # monotonic times of wrong passwords, for the lockout below
+LOCK_AFTER, LOCK_SECONDS = 5, 900
+
+
+@router.post("/owner/login", response_model=OwnerSession)
+def owner_login(body: OwnerLogin, session: SessionDep) -> OwnerSession:
+    """The owner's password gives this browser a token that opens every portfolio. Five wrong
+    passwords lock the sign-in for 15 minutes (for everyone: the web proxy hides who asked)."""
+    st = get_settings()
+    if not st.owner_password_hash or not st.owner_secret:
+        raise HTTPException(503, "ورود مالک روی این سرور تنظیم نشده است")
+    now = time.monotonic()
+    _failed[:] = [t for t in _failed if now - t < LOCK_SECONDS]
+    if len(_failed) >= LOCK_AFTER:
+        raise HTTPException(429, "چند رمز نادرست پشت هم؛ ۱۵ دقیقهٔ دیگر دوباره امتحان کن")
+    if not keys.password_ok(body.password, st.owner_password_hash):
+        _failed.append(now)
+        raise HTTPException(401, "رمز نادرست است")
+    _failed.clear()
+    rows = session.execute(select(Portfolio.id, Portfolio.name).order_by(Portfolio.id)).all()
+    return OwnerSession(
+        token=keys.owner_token(st.owner_secret, st.owner_password_hash),
+        portfolios=[OwnerPortfolio(id=i, name=n) for i, n in rows],
+    )
 
 
 @router.get("/{portfolio_id}", response_model=PortfolioOut)

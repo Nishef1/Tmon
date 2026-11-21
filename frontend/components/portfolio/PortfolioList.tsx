@@ -20,6 +20,33 @@ export function PortfolioList() {
   const [created, setCreated] = useState<Created | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [signedIn, setSignedIn] = useState<number | null>(null);
+
+  async function ownerLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setSignedIn(null);
+    try {
+      const r = await call<{ token: string; portfolios: { id: number; name: string }[] }>(
+        "/owner/login",
+        null,
+        { method: "POST", body: { password } },
+      );
+      // own keys already in this browser stay; the others open with the owner token
+      const have = new Set(list.map((x) => x.id));
+      for (const p of r.portfolios) {
+        if (!have.has(p.id)) savePortfolio({ id: p.id, key: r.token, name: p.name });
+      }
+      setSignedIn(r.portfolios.length);
+      setPassword("");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -126,6 +153,45 @@ export function PortfolioList() {
             بساز
           </button>
         </form>
+      </section>
+
+      <section className="card" data-testid="owner-login">
+        <h2 className="font-bold">ورود مالک</h2>
+        <p className="mt-1 text-sm text-muted">
+          با رمز مالک همهٔ پرتفوی‌ها در همین مرورگر ذخیره می‌شوند و دفعهٔ بعد بی‌رمز باز می‌شوند. این
+          رمز جدا از رمز مفید است؛ Tmon رمز مفید را نمی‌بیند و با آن وارد نمی‌شود.
+        </p>
+        <form onSubmit={ownerLogin} className="mt-2 flex flex-wrap items-end gap-2">
+          <input
+            type="text"
+            name="username"
+            value="owner"
+            autoComplete="username"
+            hidden
+            readOnly
+          />
+          <label className="grid gap-1 text-sm">
+            رمز مالک
+            <input
+              className="ctl"
+              type="password"
+              dir="ltr"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <button className="btn btn-primary" disabled={busy || !password}>
+            ورود
+          </button>
+        </form>
+        {signedIn !== null && (
+          <p className="mt-2 text-sm" role="status">
+            {signedIn
+              ? `${signedIn.toLocaleString("fa-IR")} پرتفوی در این مرورگر ذخیره شد.`
+              : "پرتفویی روی سرور نیست."}
+          </p>
+        )}
       </section>
 
       <section className="card">

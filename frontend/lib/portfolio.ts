@@ -21,7 +21,10 @@ export type MofidStatus = {
   status: string;
   message?: string | null;
   busy: boolean;
+  /** linked, but no sync can run now: the holdings are the last copy */
+  stale?: boolean;
   token_valid?: boolean;
+  expires_at?: string | null;
   last_sync_at?: string | null;
   last_result?: {
     positions: {

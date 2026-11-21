@@ -10659,6 +10659,59 @@
         "title": "OwnWindow",
         "type": "object"
       },
+      "OwnerLogin": {
+        "properties": {
+          "password": {
+            "maxLength": 200,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "OwnerLogin",
+        "type": "object"
+      },
+      "OwnerPortfolio": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "OwnerPortfolio",
+        "type": "object"
+      },
+      "OwnerSession": {
+        "properties": {
+          "portfolios": {
+            "items": {
+              "$ref": "#/components/schemas/OwnerPortfolio"
+            },
+            "title": "Portfolios",
+            "type": "array"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "portfolios"
+        ],
+        "title": "OwnerSession",
+        "type": "object"
+      },
       "PastRide": {
         "description": "One finished or running ride of the symbol, for the marks on the chart.",
         "properties": {
@@ -16532,6 +16585,48 @@
           }
         },
         "summary": "Create Portfolio",
+        "tags": [
+          "portfolios"
+        ]
+      }
+    },
+    "/portfolios/owner/login": {
+      "post": {
+        "description": "The owner's password gives this browser a token that opens every portfolio. Five wrong\npasswords lock the sign-in for 15 minutes (for everyone: the web proxy hides who asked).",
+        "operationId": "owner_login_portfolios_owner_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnerLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerSession"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Owner Login",
         "tags": [
           "portfolios"
         ]

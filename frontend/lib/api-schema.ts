@@ -578,6 +578,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/portfolios/owner/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Owner Login
+     * @description The owner's password gives this browser a token that opens every portfolio. Five wrong
+     *     passwords lock the sign-in for 15 minutes (for everyone: the web proxy hides who asked).
+     */
+    post: operations["owner_login_portfolios_owner_login_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/portfolios/{portfolio_id}": {
     parameters: {
       query?: never;
@@ -4557,6 +4578,25 @@ export interface components {
        */
       since: string;
     };
+    /** OwnerLogin */
+    OwnerLogin: {
+      /** Password */
+      password: string;
+    };
+    /** OwnerPortfolio */
+    OwnerPortfolio: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+    };
+    /** OwnerSession */
+    OwnerSession: {
+      /** Portfolios */
+      portfolios: components["schemas"]["OwnerPortfolio"][];
+      /** Token */
+      token: string;
+    };
     /**
      * PastRide
      * @description One finished or running ride of the symbol, for the marks on the chart.
@@ -6759,6 +6799,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["CreatedOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  owner_login_portfolios_owner_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OwnerLogin"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OwnerSession"];
         };
       };
       /** @description Validation Error */

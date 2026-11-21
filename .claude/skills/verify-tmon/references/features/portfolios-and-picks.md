@@ -15,6 +15,9 @@
   Buy candidates show `gap-guard` («در بازگشایی نخرید…») only during the session, when the
   symbol opened at least 0.5% above yesterday's close and still trades near the open; compare
   `guard.gap_rule` in `/instruments/{id}/entry`. Outside market hours it is absent by design.
+- `/portfolios` has `owner-login` («ورود مالک»): the owner password saves every portfolio in
+  this browser with an owner token. It answers 503 where `TMON_OWNER_PASSWORD_HASH` is unset (the
+  PC by default). Never type the owner's password yourself; test with a password set in a test.
 - `/picks`: symbols the owner is tracking live, with return since the pick.
 
 API: `/portfolios/*` with the `X-Portfolio-Key` header (proxied by `frontend/app/api/portfolios`),
@@ -34,6 +37,9 @@ and `/picks`.
 - A Mofid line dated the sync day, or a unit count that grew after a bonus issue, is a bug: the
   line takes Mofid's period date, moved past any later share-count change. Compare
   `GET /portfolios/{id}/trades` with `last_result.items[].date` in `GET /portfolios/{id}/mofid`.
+- A Mofid link that cannot sync (`stale: true` in `GET /portfolios/{id}/mofid`) must show
+  `mofid-stale` («اتصال به مفید قطع است») at the top of the portfolio page with the last sync in
+  Tehran time. Missing it, or showing it while `stale` is false, is a bug.
 - No notification channel set: the page must say so, rather than staying silent.
 - Advice says «تأییدنشده» while `recommendation_allowed` is false (today it is). Missing that
   label is a bug.

@@ -7,16 +7,20 @@ token the site then sends to ``api-mts.orbis.easytrader.ir``. The profile keeps 
 later tokens come from a hidden Chrome without asking again until Mofid ends the session.
 
 A sync reads ``assetmodule/api/performance`` (every position with its average price) and
-``easy/api/money`` (buying power). Each Mofid position becomes one ``mofid`` ledger line dated the
-sync day, at Mofid's average price, so Mofid's own handling of capital increases is not applied a
-second time. Lines of other sources for the same symbols are replaced; symbols Mofid does not
-report are left alone. The cash becomes the buying power.
+``easy/api/money`` (buying power). Each Mofid position becomes one ``mofid`` ledger line at
+Mofid's average price, dated at Mofid's period start or the last share-count change after it, so
+a bonus Mofid already counted is not applied a second time. Lines of other sources for the same
+symbols are replaced; symbols Mofid does not report are left alone. The cash becomes the buying
+power.
 
-Mofid's average can be wrong: after the 10-for-1 split of طلا it reported 9,129 rial a unit for
-units that never traded below 160,000. An average that cannot have been paid (outside half the
-lowest low to twice the highest high since the position's period began) is not used: the line
-is left without a price (so it is valued at that day's close and marked estimated) until the
-owner gives the real cost (``settings['mofid_cost'][isin]``, total rial), which always wins.
+An average that cannot have been paid (outside half the lowest low to twice the highest high
+since the period began, when every unit was bought in it) is not used: the line is valued at that
+day's close and marked estimated until the owner gives the real cost
+(``settings['mofid_cost'][isin]``, total rial), which always wins.
+
+Only a machine with Chrome and the saved login can renew a token (about 12 hours each). The PC
+does it every morning and hands the token to the server (``python -m tmon.portfolio.mofid renew
+--ssh ...``); a sync that fails marks the link broken, and the monitor tells the owner once.
 """
 
 from __future__ import annotations
@@ -32,13 +36,15 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import jdatetime
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from tmon.core.config import get_settings
 from tmon.core.db import session_scope
-from tmon.core.timeutil import utcnow
+from tmon.core.timeutil import TEHRAN, utcnow
 from tmon.portfolio import ledger
+from tmon.portfolio.watch import WARN, Finding
 from tmon.storage.models import BrokerLink, Instrument, Portfolio, PortfolioTrade, PriceDaily
 
 log = logging.getLogger(__name__)
@@ -53,6 +59,10 @@ _lock = threading.Lock()
 
 class MofidError(RuntimeError):
     pass
+
+
+FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+EXPIRED = "ورود به مفید تمام شده است؛ دوباره «اتصال به مفید» را بزن"
 
 
 def profile_dir(portfolio_id: int) -> Path:
@@ -149,12 +159,12 @@ def connect(portfolio_id: int) -> None:
         if token is None:
             with session_scope() as s:
                 link = _link(s, portfolio_id)
-                link.status, link.message = "login", "log in to Mofid in the Chrome window"
+                link.status, link.message = "login", "در پنجرهٔ کروم وارد حساب مفید شو"
             token = capture_token(portfolio_id, visible=True, wait=LOGIN_WAIT)
         with session_scope() as s:
             if token is None:
                 link = _link(s, portfolio_id)
-                link.status, link.message = "error", "no login within the time allowed"
+                link.status, link.message = "error", "در زمان داده‌شده ورودی انجام نشد"
                 return
             _store(s, portfolio_id, token)
         with session_scope() as s:
@@ -200,20 +210,24 @@ def fetch(
     """Mofid's positions and money, renewing the token from the saved login when needed."""
     link = session.get(BrokerLink, p.id)
     if not _valid(link) and refresh:
-        token = capture_token(p.id, visible=False, wait=HIDDEN_WAIT)
+        try:
+            token = capture_token(p.id, visible=False, wait=HIDDEN_WAIT)
+        except Exception as e:  # no Chrome here (the server): only the PC can renew
+            log.info("mofid renew on this machine failed: %s", e)
+            token = None
         if token is None:
-            raise MofidError("login expired: connect again")
+            raise MofidError(EXPIRED)
         _store(session, p.id, token)
         session.flush()
         link = session.get(BrokerLink, p.id)
     if link is None or not link.token:
-        raise MofidError("not linked")
+        raise MofidError("حساب مفید وصل نیست")
     try:
         perf = _get(link.token, "/assetmodule/api/performance")
         money = _get(link.token, "/easy/api/money")
     except PermissionError:
         if not refresh:
-            raise MofidError("login expired: connect again") from None
+            raise MofidError(EXPIRED) from None
         link.token = None
         return fetch(session, p, refresh=True)
     return list(perf.get("items") or []), dict(money or {})
@@ -361,8 +375,9 @@ def sync(session: Session, p: Portfolio, *, refresh: bool = True) -> dict[str, A
     link = _link(session, p.id)
     try:
         items, money = fetch(session, p, refresh=refresh)
-    except MofidError as e:
-        link.status, link.message = "error", str(e)
+    except Exception as e:
+        link.status = "error"
+        link.message = str(e) if isinstance(e, MofidError) else "مفید پاسخ نداد؛ بعداً دوباره"
         session.commit()
         raise
     result = apply(session, p, items, money)
@@ -377,8 +392,11 @@ def status(session: Session, portfolio_id: int) -> dict[str, Any]:
     link = session.get(BrokerLink, portfolio_id)
     if link is None:
         return {"linked": False, "status": "none", "busy": busy(portfolio_id)}
+    linked = link.status == "linked" or bool(link.last_sync_at)
     return {
-        "linked": link.status == "linked" or bool(link.last_sync_at),
+        "linked": linked,
+        # holdings are only as fresh as the last sync: say so when no sync can run now
+        "stale": linked and not busy(portfolio_id) and (link.status == "error" or not _valid(link)),
         "status": link.status,
         "message": link.message,
         "busy": busy(portfolio_id),
@@ -399,10 +417,32 @@ def unlink(session: Session, portfolio_id: int) -> None:
     shutil.rmtree(profile_dir(portfolio_id), ignore_errors=True)
 
 
-def sync_all() -> None:
-    """Refresh every linked portfolio (from the monitor); a failure is kept on the link."""
+def broken_finding(link: BrokerLink) -> Finding:
+    """The alert for a link that stopped working; one per last good sync."""
+    since = link.last_sync_at
+    when = since.replace(tzinfo=dt.UTC).astimezone(TEHRAN) if since else None
+    body = (link.message or EXPIRED) + "."
+    if when is not None:
+        day = jdatetime.date.fromgregorian(date=when.date()).strftime("%Y/%m/%d")
+        stamp = f"{day} ساعت {when:%H:%M}".translate(FA_DIGITS)
+        body += f" دارایی‌ها و نقد صفحه همان آخرین دریافت در {stamp} است و خرید و فروش بعد از آن"
+        body += " را نشان نمی‌دهد."
+    return Finding(
+        kind="mofid_link",
+        severity=WARN,
+        instrument_id=None,
+        title="اتصال به مفید قطع شد",
+        body=body,
+        key=f"mofid_link:{since.isoformat() if since else 'never'}",
+    )
+
+
+def sync_all() -> dict[int, Finding]:
+    """Refresh every linked portfolio (from the monitor); a failure is kept on the link. Returns
+    an alert for each link that worked before this round and failed in it."""
     with session_scope() as s:
         ids = s.scalars(select(BrokerLink.portfolio_id).where(BrokerLink.broker == "mofid")).all()
+    broke: dict[int, Finding] = {}
     for pid in ids:
         if busy(pid):
             continue
@@ -413,3 +453,91 @@ def sync_all() -> None:
                     sync(s, p)
         except Exception as e:
             log.warning("mofid sync %s: %s", pid, e)
+            with session_scope() as s:
+                link = s.get(BrokerLink, pid)
+                if link is not None and link.last_sync_at is not None:
+                    broke[pid] = broken_finding(link)
+    return broke
+
+
+def accept(portfolio_id: int, token: str) -> dict[str, Any]:
+    """Take a token renewed elsewhere (the PC) and sync with it at once."""
+    with session_scope() as s:
+        if s.get(Portfolio, portfolio_id) is None:
+            raise MofidError(f"portfolio {portfolio_id} not found")
+        _store(s, portfolio_id, token)
+    with session_scope() as s:
+        p = s.get(Portfolio, portfolio_id)
+        assert p is not None
+        return sync(s, p, refresh=False)
+
+
+def renew(ssh: list[str] | None = None, remote: str = "") -> int:
+    """Renew every link from its saved login, sync here, and hand the token to the server over
+    ``ssh`` (stdin, never the command line). Prints one line per portfolio, never the token.
+    Returns how many links need the owner to log in again."""
+    import subprocess
+
+    with session_scope() as s:
+        ids = s.scalars(select(BrokerLink.portfolio_id).where(BrokerLink.broker == "mofid")).all()
+    need_login = 0
+    for pid in ids:
+        token = capture_token(pid, visible=False, wait=HIDDEN_WAIT)
+        if token is None:
+            need_login += 1
+            with session_scope() as s:
+                link = _link(s, pid)
+                link.status, link.message = "error", EXPIRED
+            print(f"portfolio {pid}: saved login ended, the owner must connect again")
+            continue
+        try:
+            result = accept(pid, token)
+            print(f"portfolio {pid}: renewed here, {len(result['positions'])} positions")
+        except Exception as e:
+            print(f"portfolio {pid}: renewed, local sync failed: {e}")
+        if ssh:
+            r = subprocess.run(
+                [*ssh, f"{remote} accept {pid}"],
+                check=False,
+                input=token,
+                text=True,
+                capture_output=True,
+                timeout=180,
+            )
+            out = (r.stdout or r.stderr).strip().splitlines()
+            print(f"portfolio {pid}: server: {out[-1] if out else r.returncode}")
+    return need_login
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    import shlex
+    import sys
+
+    ap = argparse.ArgumentParser(prog="python -m tmon.portfolio.mofid")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    rn = sub.add_parser("renew", help="renew every link from its saved login (the PC)")
+    rn.add_argument("--ssh", default="", help='e.g. "ssh -p 1415 -i KEY root@HOST"')
+    rn.add_argument(
+        "--remote",
+        default="cd /opt/tmon/backend && set -a && . /etc/tmon.env && set +a && "
+        ".venv/bin/python -m tmon.portfolio.mofid",
+        help="the command on the server that runs this module",
+    )
+    ac = sub.add_parser("accept", help="read a token from stdin and sync (the server)")
+    ac.add_argument("portfolio_id", type=int)
+    a = ap.parse_args(argv)
+    logging.basicConfig(level=logging.WARNING)
+    if a.cmd == "renew":
+        return 1 if renew(shlex.split(a.ssh) if a.ssh else None, a.remote) else 0
+    token = sys.stdin.read().strip()
+    if not token:
+        print("no token on stdin")
+        return 2
+    result = accept(a.portfolio_id, token)
+    print(f"synced {len(result['positions'])} positions")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -306,3 +306,101 @@ def test_a_mofid_line_is_dated_when_mofid_says_it_was_bought(session: Session) -
     mofid.apply(session, p, [item], {"buyPowerT0": 0})
     line = session.query(PortfolioTrade).filter_by(portfolio_id=p.id, instrument_id=a).one()
     assert line.date == D0 + dt.timedelta(days=3)
+
+
+def test_an_expired_mofid_login_marks_the_link_broken_and_alerts_once(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tmon.portfolio import alerts
+    from tmon.storage.models import BrokerLink
+
+    def no_chrome(*a: object, **k: object) -> str:
+        raise RuntimeError("chrome not found")  # the server
+
+    monkeypatch.setattr(mofid, "capture_token", no_chrome)
+    p = _portfolio(session)
+    session.add(
+        BrokerLink(
+            portfolio_id=p.id,
+            broker="mofid",
+            status="linked",
+            token="old",
+            expires_at=AT - dt.timedelta(hours=1),
+            last_sync_at=dt.datetime(2026, 11, 21, 6, 0),
+        )
+    )
+    session.flush()
+    with pytest.raises(mofid.MofidError):
+        mofid.sync(session, p)
+    st = mofid.status(session, p.id)
+    assert st["status"] == "error" and st["stale"]
+    assert st["message"] == mofid.EXPIRED
+    f = mofid.broken_finding(session.get(BrokerLink, p.id))  # type: ignore[arg-type]
+    assert "۱۴۰۵/۰۸/۳۰ ساعت ۰۹:۳۰" in f.body  # the last good copy, Tehran time
+    assert len(alerts.record(session, p.id, [f], AT)) == 1
+    assert alerts.record(session, p.id, [f], AT) == []  # the same break alerts once
+
+
+def test_a_token_renewed_on_the_pc_is_accepted_and_synced(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import contextlib
+
+    _stock(session, "الف", [1000.0] * 5, isin="IRO1AAAA0001")
+    p = _portfolio(session)
+    seen: dict[str, str] = {}
+
+    def fake_get(token: str, path: str) -> object:
+        seen["token"] = token
+        if path.endswith("money"):
+            return {"buyPowerT0": 5}
+        return {"items": [{"symbolIsin": "IRO1AAAA0001", "symbolName": "الف", "asset": 3}]}
+
+    @contextlib.contextmanager
+    def same() -> Iterator[Session]:
+        yield session
+
+    monkeypatch.setattr(mofid, "_get", fake_get)
+    monkeypatch.setattr(mofid, "session_scope", same)
+    out = mofid.accept(p.id, "a.b.c")
+    assert seen["token"] == "a.b.c" and out["positions"][0]["shares"] == 3
+    st = mofid.status(session, p.id)
+    assert st["status"] == "linked" and not st["stale"] and "token" not in st
+
+
+def test_the_owner_password_opens_every_portfolio_in_a_new_browser(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tmon.api.routers import portfolios as router
+    from tmon.core.config import get_settings
+    from tmon.portfolio import keys
+
+    a = client.post("/portfolios", json={"name": "یک"}).json()
+    b = client.post("/portfolios", json={"name": "دو"}).json()
+    assert client.post("/portfolios/owner/login", json={"password": "x"}).status_code == 503
+    st = get_settings()
+    monkeypatch.setattr(st, "owner_password_hash", keys.hash_password("درست-است-۱۲۳"))
+    monkeypatch.setattr(st, "owner_secret", "s" * 64)
+    monkeypatch.setattr(router, "_failed", [])
+    r = client.post("/portfolios/owner/login", json={"password": "درست-است-۱۲۳"})
+    assert r.status_code == 200, r.text
+    tok = r.json()["token"]
+    assert [x["name"] for x in r.json()["portfolios"]] == ["یک", "دو"]
+    for pid in (a["id"], b["id"]):
+        assert client.get(f"/portfolios/{pid}", headers={"X-Portfolio-Key": tok}).status_code == 200
+    assert (
+        client.get(f"/portfolios/{a['id']}", headers={"X-Portfolio-Key": a["key"]}).status_code
+        == 200
+    )
+    forged = tok[:-4] + "0000"
+    assert (
+        client.get(f"/portfolios/{a['id']}", headers={"X-Portfolio-Key": forged}).status_code == 404
+    )
+    # a new password ends the tokens given before it
+    monkeypatch.setattr(st, "owner_password_hash", keys.hash_password("رمز-تازه-۴۵۶"))
+    assert client.get(f"/portfolios/{a['id']}", headers={"X-Portfolio-Key": tok}).status_code == 404
+    codes = [
+        client.post("/portfolios/owner/login", json={"password": "غلط"}).status_code
+        for _ in range(6)
+    ]
+    assert codes == [401] * 5 + [429]

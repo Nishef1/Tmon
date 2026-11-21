@@ -170,14 +170,44 @@ export function HoldingEvents({ p }: { p: Portfolio }) {
 }
 
 // -- Mofid ------------------------------------------------------------------------------------
+/** The API stores UTC without a zone mark. */
+const utc = (s: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(s) ? s : `${s}Z`);
+const fa = (s: string) =>
+  utc(s).toLocaleString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+
+/** Top of the page: the Mofid copy can no longer refresh, so the numbers below are old. */
+export function MofidBanner({ s }: { s: MofidStatus | null }) {
+  if (!s?.stale) return null;
+  return (
+    <div role="alert" className="card border-2 border-down" data-testid="mofid-stale">
+      <p className="font-bold text-down">اتصال به مفید قطع است</p>
+      <p className="mt-1 text-sm">
+        {s.message ?? "ورود به مفید تمام شده است"}.{" "}
+        {s.last_sync_at
+          ? `دارایی‌ها و نقد این صفحه همان آخرین دریافت در ${fa(s.last_sync_at)} است و خرید و فروش بعد از آن را نشان نمی‌دهد.`
+          : "هنوز چیزی از مفید دریافت نشده است."}
+      </p>
+      <p className="mt-1 text-sm text-muted">
+        برای وصل دوباره، روی رایانهٔ خانه در بخش «اتصال به کارگزاری مفید» دکمهٔ اتصال را بزن.
+      </p>
+    </div>
+  );
+}
+
 export function MofidCard({
   p,
   pkey,
   onChange,
+  onStatus,
 }: {
   p: Portfolio;
   pkey: string;
   onChange: (p: Portfolio) => void;
+  onStatus?: (s: MofidStatus) => void;
 }) {
   const [s, setS] = useState<MofidStatus | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -190,6 +220,7 @@ export function MofidCard({
       const st = await call<MofidStatus>(`/${p.id}/mofid`, pkey).catch(() => null);
       if (!alive || !st) return;
       setS(st);
+      onStatus?.(st);
       if (wasBusy && !st.busy && st.status === "linked") {
         onChange(await call<Portfolio>(`/${p.id}`, pkey));
       }
@@ -201,7 +232,7 @@ export function MofidCard({
       alive = false;
       clearInterval(t);
     };
-  }, [p.id, pkey, onChange]);
+  }, [p.id, pkey, onChange, onStatus]);
 
   async function connect() {
     setMsg(null);
@@ -260,7 +291,9 @@ export function MofidCard({
       <p className="mt-1 text-sm text-muted">
         با زدن «اتصال» کروم روی همین رایانه باز می‌شود و خودت در سایت مفید وارد می‌شوی؛ Tmon رمز را
         نمی‌بیند و فقط دسترسی‌ای را که سایت مفید پس از ورود می‌دهد نگه می‌دارد. دارایی‌ها و قدرت
-        خرید هر ساعت در جلسهٔ بازار خودکار به‌روز می‌شوند.
+        خرید هر ساعت در جلسهٔ بازار خودکار به‌روز می‌شوند، تا وقتی ورود به مفید برقرار است. هر ورود
+        حدود ۱۲ ساعت می‌ماند و رایانهٔ خانه هر صبح پیش از بازار آن را تازه می‌کند؛ اگر قطع شود، بالای
+        صفحه و در پیام‌رسان خبر می‌دهد.
       </p>
       {s?.busy && s.status === "login" && (
         <p className="mt-2 text-sm font-bold">پنجرهٔ کروم باز شد؛ در آن وارد حساب مفید شو.</p>
@@ -268,7 +301,7 @@ export function MofidCard({
       {s?.status === "error" && s.message && <p className="mt-2 text-sm text-down">{s.message}</p>}
       {linked && s?.last_sync_at && (
         <p className="mt-2 text-sm">
-          آخرین دریافت: {new Date(s.last_sync_at).toLocaleString("fa-IR")}
+          آخرین دریافت: {fa(s.last_sync_at)}
           {r && (
             <>
               {" "}

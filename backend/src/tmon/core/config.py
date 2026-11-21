@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://tmon:tmon@localhost:5432/tmon"
     # Chrome profile per Mofid-linked portfolio; empty means <repo>/data/mofid-profile
     mofid_profile_dir: str = ""
+    # owner sign-in (``python -m tmon.portfolio.keys set-password``): scrypt hash and the secret
+    # that signs owner tokens; empty means no owner sign-in on this machine
+    owner_password_hash: str = ""
+    owner_secret: str = ""
 
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "tmon"

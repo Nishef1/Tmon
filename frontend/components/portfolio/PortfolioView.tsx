@@ -13,13 +13,14 @@ import {
   type BriefingDoc,
   type Entries,
   type Forecast,
+  type MofidStatus,
   type Portfolio,
   type Position,
 } from "@/lib/portfolio";
 import { signedPct, signTone } from "@/lib/ui";
 import { BuyPlan, SellPlan } from "./BuyPlan";
 import { ForecastCandles } from "./ForecastCandles";
-import { HistoryCard, HoldingEvents, MofidCard, Summary, Trades } from "./Ledger";
+import { HistoryCard, HoldingEvents, MofidBanner, MofidCard, Summary, Trades } from "./Ledger";
 
 const POLL_MS = 10_000;
 const SEV = {
@@ -1127,6 +1128,7 @@ export function PortfolioView({ id }: { id: number }) {
   const [p, setP] = useState<Portfolio | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [mofid, setMofid] = useState<MofidStatus | null>(null);
 
   useEffect(() => {
     if (!pkey) return;
@@ -1156,10 +1158,11 @@ export function PortfolioView({ id }: { id: number }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       <h1 className="page-title">{p.name}</h1>
+      <MofidBanner s={mofid} />
       <Summary p={p} />
       <AlertsFeed id={id} pkey={pkey} hasChannel={p.channels.length > 0} />
       <Holdings p={p} pkey={pkey} onChange={changed} />
-      <MofidCard p={p} pkey={pkey} onChange={changed} />
+      <MofidCard p={p} pkey={pkey} onChange={changed} onStatus={setMofid} />
       <Trades p={p} pkey={pkey} version={version} onChange={changed} />
       <EntriesCard id={id} pkey={pkey} version={version} />
       <HistoryCard id={id} pkey={pkey} version={version} />

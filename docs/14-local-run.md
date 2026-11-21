@@ -21,12 +21,13 @@ export TMON_OBJECT_STORE_DIR="D:/Data/Tmon/data/objects"
 
 ## چرخهٔ روزانه
 
-دو کار زمان‌بندی‌شدهٔ ویندوز `backend/scripts/run_collectors.ps1` را اجرا می‌کنند:
+کارهای زمان‌بندی‌شدهٔ ویندوز (دو تای اول `backend/scripts/run_collectors.ps1` را اجرا می‌کنند):
 
 | کار | زمان | دستور |
 | --- | --- | --- |
 | `Tmon-Intraday` | ساعت بازار | `python -m tmon.ingest.tsetmc.cli intraday --follow` |
 | `Tmon-EOD` | ۱۹:۳۰، شنبه تا چهارشنبه (از ۱۴۰۵/۰۸/۲۵ به خواست مالک غیرفعال است؛ چرخه دستی اجرا می‌شود) | `run_collectors.ps1 -Eod` |
+| `Tmon-Mofid` | هر روز ۸:۰۰، یا وقتی رایانه روشن شد | `renew_mofid.ps1` (تمدید ورود مفید و فرستادن به سرور؛ ساخت کار با `-Register`) |
 
 `-Eod` به‌ترتیب اجرا می‌کند:
 
