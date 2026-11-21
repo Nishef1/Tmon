@@ -14,6 +14,7 @@ import {
   type Entries,
   type Forecast,
   type Portfolio,
+  type Position,
 } from "@/lib/portfolio";
 import { signedPct, signTone } from "@/lib/ui";
 import { BuyPlan, SellPlan } from "./BuyPlan";
@@ -411,6 +412,45 @@ function Holdings({
 }
 
 // -- advice -----------------------------------------------------------------------------------
+function PositionBlock({ p }: { p: Position }) {
+  return (
+    <div className="mt-1 rounded border border-line p-2" data-testid="position">
+      <div className="font-bold">وضع این دارایی برای شما</div>
+      <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        <div>
+          <dt className="inline text-muted">اگر امروز بفروشید: </dt>
+          <dd className={`inline ${signTone(p.net_if_sold)}`}>
+            {p.net_if_sold >= 0 ? "سود" : "زیان"} {faToman(Math.abs(p.net_if_sold))} تومان
+          </dd>
+        </div>
+        <div>
+          <dt className="inline text-muted">قیمت سربه‌سر: </dt>
+          <dd className="inline">{faPrice(p.breakeven)} ریال</dd>
+        </div>
+        {p.stop != null && (
+          <div>
+            <dt className="inline text-muted">
+              {p.stop_source === "user" ? "حد ضرر شما: " : "حد ضرر پیش‌فرض: "}
+            </dt>
+            <dd className="inline">{faPrice(p.stop)} ریال</dd>
+          </div>
+        )}
+        {p.days_held != null && (
+          <div>
+            <dt className="inline text-muted">روزهای نگه داشتن: </dt>
+            <dd className="inline">{faDigits(String(p.days_held))}</dd>
+          </div>
+        )}
+      </dl>
+      <ul className="mt-1 grid gap-1">
+        {p.lines.map((line) => (
+          <li key={line}>{faDigits(line)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: number }) {
   const [a, setA] = useState<Advice | null>(null);
   useEffect(() => {
@@ -455,6 +495,7 @@ function AdviceCard({ id, pkey, version }: { id: number; pkey: string; version: 
                 </span>
               )}
               <span className="text-muted"> — {faDigits(h.reasons.join(" "))}</span>
+              {h.position && <PositionBlock p={h.position} />}
               <SellPlan instrumentId={h.instrument_id} />
             </li>
           ))}

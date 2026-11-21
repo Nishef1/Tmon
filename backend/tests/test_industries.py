@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import itertools
 from collections.abc import Iterator
 
 import polars as pl
@@ -221,7 +222,7 @@ def test_detail_gives_consensus_candles_and_a_row_per_symbol(
     assert last["high"] >= max(last["open"], last["close"])
     # a candle is green exactly when the level rose against the day before
     cs = j["candles"]
-    for prev, cur in zip(cs, cs[1:], strict=False):
+    for prev, cur in itertools.pairwise(cs):
         assert (cur["close"] >= cur["open"]) == (cur["close"] >= prev["close"])
     assert j["breadth"]["up"] == 1 and j["breadth"]["down"] == 1
     assert j["breadth"]["above_sma20"] == 1

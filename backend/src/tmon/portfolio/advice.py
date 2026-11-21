@@ -29,6 +29,9 @@ from tmon.core.timeutil import tehran_today
 from tmon.domain.compare import Release, inflation_since, real_return
 from tmon.engine.verdict import final_verdict
 from tmon.portfolio import liveprice
+from tmon.portfolio.ledger import fee_rates
+from tmon.portfolio.position import position_plan
+from tmon.portfolio.watch import settings_for
 from tmon.storage.models import Holding, Instrument, MacroSeries, Portfolio, PriceDaily
 from tmon.storage.objectstore import read_artifact
 from tmon.tools.v2_ranking import KEY
@@ -299,15 +302,15 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
     market_off = exposure is not None and exposure <= 1e-9
     ids = sorted(held | {c.id for c in candidates[:20]})
     prices = last_prices(session, ids, live=True)
-    names = {
-        i.id: (i.symbol_fa, i.name_fa)
-        for i in session.scalars(select(Instrument).where(Instrument.id.in_(ids)))
-    }
+    instruments = list(session.scalars(select(Instrument).where(Instrument.id.in_(ids))))
+    names = {i.id: (i.symbol_fa, i.name_fa) for i in instruments}
+    itypes = {i.id: i.instrument_type for i in instruments}
     edge = _edge(doc)
     cpi = _cpi_releases(session)
     today = tehran_today()
     validated = bool((doc or {}).get("recommendation_allowed"))
     cost = float((doc or {}).get("round_trip_cost") or ROUND_TRIP)
+    default_stop = settings_for(portfolio.settings).get("stop_loss_pct")
 
     def cand_out(s: Scored) -> dict[str, Any]:
         sym, name = names.get(s.id, (str(s.id), None))
@@ -344,6 +347,17 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
         if infl_text:
             reasons.append(infl_text)
         sym, name = names.get(h.instrument_id, (str(h.instrument_id), None))
+        position = position_plan(
+            avg_price=h.avg_price,
+            shares=h.shares,
+            price=last or close,
+            sell_rate=fee_rates(session, itypes.get(h.instrument_id) or "stock", today)[1],
+            stop_price=h.stop_price,
+            default_stop_pct=default_stop,
+            bought_on=h.bought_on,
+            today=today,
+            buyer_code=sc.code if sc else None,
+        )
         mv = (last or h.avg_price) * h.shares
         value += mv
         out_h.append(
@@ -368,6 +382,7 @@ def advise(session: Session, portfolio: Portfolio) -> dict[str, Any]:
                 "verdict": verdict,
                 "verdict_fa": VERDICT_FA[verdict],
                 "reasons": reasons,
+                "position": position,
             }
         )
         if verdict not in ("weak", "sell") or sc is None or sc.score is None:

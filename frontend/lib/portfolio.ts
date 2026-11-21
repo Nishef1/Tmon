@@ -125,6 +125,20 @@ type AdviceHolding = {
   inflation_since_buy?: number | null;
   real_pnl_pct?: number | null;
   ahead_of_inflation?: boolean | null;
+  /** Where this holding stands in the owner's own money: breakeven after the sell fee and tax,
+   *  the result of selling now, the stop the monitor watches, and plain sentences (docs/17). */
+  position?: Position | null;
+};
+export type Position = {
+  breakeven: number;
+  net_if_sold: number;
+  net_if_sold_pct: number;
+  stop: number | null;
+  stop_source: "user" | "default" | null;
+  to_stop_pct: number | null;
+  loss_at_stop: number | null;
+  days_held: number | null;
+  lines: string[];
 };
 type Candidate = {
   instrument_id: number;

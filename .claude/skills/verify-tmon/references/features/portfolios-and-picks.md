@@ -9,6 +9,9 @@
   In the advice card, each holding with a buy date has an `inflation-badge` («جلوتر از تورم» or
   «عقب از تورم») and a reason with inflation since the buy and the gain after it; compare
   `real_pnl_pct` in `/portfolios/{id}/advice`. A holding without a buy date says to enter one.
+  Each holding in the advice card has a `position` block («وضع این دارایی برای شما»): profit or
+  loss in toman if sold today, the breakeven price, the stop (own or the default 10%) and the
+  buyer's verdict. Check its numbers against `position` in `/portfolios/{id}/advice`.
 - `/picks`: symbols the owner is tracking live, with return since the pick.
 
 API: `/portfolios/*` with the `X-Portfolio-Key` header (proxied by `frontend/app/api/portfolios`),
