@@ -100,6 +100,8 @@ def capture_token(portfolio_id: int, *, visible: bool, wait: float) -> str | Non
             channel="chrome",
             headless=not visible,
             no_viewport=visible,
+            # the site's service worker makes the API calls itself, out of sight of on_request
+            service_workers="block",
             args=["--disable-blink-features=AutomationControlled"]
             + (["--start-maximized"] if visible else []),
             ignore_default_args=["--enable-automation"],
@@ -224,14 +226,32 @@ def _paid_range(session: Session, iid: int, x: dict[str, Any]) -> tuple[float, f
         start = dt.date.fromisoformat(str(x.get("date"))[:10])
     except ValueError:
         return None
-    if float(x.get("periodicBoughtVolume") or 0) < float(x.get("asset") or 0):
+    bought = float(x.get("periodicBoughtVolume") or 0)
+    if bought < float(x.get("asset") or 0):
         return None
+    if float(x.get("totalBoughtVolume") or 0) > bought:
+        return None  # older buys: Mofid restarts the period at a bonus and counts it as bought
     lo, hi = session.execute(
         select(func.min(PriceDaily.low), func.max(PriceDaily.high)).where(
             PriceDaily.instrument_id == iid, PriceDaily.date >= start, PriceDaily.low > 0
         )
     ).one()
     return (float(lo), float(hi)) if lo and hi else None
+
+
+def _held_since(session: Session, iid: int, x: dict[str, Any], day: dt.date) -> dt.date:
+    """Mofid's period start, moved past any later share-count change: the shares Mofid gives
+    are today's count, so the ledger must not multiply them by a bonus or rights issue again."""
+    try:
+        start = min(dt.date.fromisoformat(str(x.get("date"))[:10]), day)
+    except ValueError:
+        return day
+    moves = [
+        a.date
+        for a in ledger.corporate_actions(session, iid, start - dt.timedelta(days=1))
+        if a.ratio != 1 and a.date <= day
+    ]
+    return max([start, *moves])
 
 
 def costs(p: Portfolio) -> dict[str, float]:
@@ -302,7 +322,7 @@ def apply(
                 portfolio_id=p.id,
                 instrument_id=inst.id,
                 side="buy",
-                date=day,
+                date=_held_since(session, inst.id, x, day),
                 shares=shares,
                 price=avg or None,
                 fee=0.0 if source == "owner" else None,  # the owner gives what they paid

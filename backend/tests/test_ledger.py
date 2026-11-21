@@ -263,3 +263,46 @@ def test_a_deleted_line_is_not_brought_back_from_the_old_holdings(session: Sessi
     session.execute(delete(PortfolioTrade).where(PortfolioTrade.portfolio_id == p.id))
     session.flush()
     assert a not in ledger.rebuild(session, p)
+
+
+def test_a_mofid_line_after_a_bonus_keeps_its_cost_shares_and_date(session: Session) -> None:
+    a = _stock(session, "طلا", [1_800_000.0] * 5 + [180_000.0] * 5, isin="IRTKLOTF0001")
+    bonus = D0 + dt.timedelta(days=5)
+    session.add(
+        PriceAdjustment(
+            instrument_id=a,
+            date=bonus,
+            close_before=1_800_000,
+            price_after=180_000,
+            adj_factor=0.1,
+        )
+    )
+    session.add(
+        ShareChange(
+            idn=1, ins_code="x", instrument_id=a, date=bonus, shares_old=1000,
+            shares_new=10_000, fetched_at=AT, source_url="x",
+        )
+    )  # fmt: skip
+    session.flush()
+    p = _portfolio(session)
+    # Mofid restarts the period at the bonus and counts the bonus shares as bought there
+    item = {"symbolIsin": "IRTKLOTF0001", "symbolName": "طلا", "asset": 3280,
+            "date": str(D0), "periodicBoughtVolume": 3280, "totalBoughtVolume": 3380,
+            "periodicBuyAveragePrice": 9129.1}  # fmt: skip
+    out = mofid.apply(session, p, [item], {"buyPowerT0": 0})
+    assert out["positions"][0]["cost_source"] == "mofid"
+    pos = ledger.replay(session, p)[a]
+    assert pos.shares == 3280  # today's count, not multiplied by the bonus again
+    assert pos.cost == pytest.approx(3280 * 9129.1, rel=0.01)  # plus the buy fee
+    line = session.query(PortfolioTrade).filter_by(portfolio_id=p.id).one()
+    assert line.date == bonus  # moved past the bonus, never the sync day
+
+
+def test_a_mofid_line_is_dated_when_mofid_says_it_was_bought(session: Session) -> None:
+    a = _stock(session, "الف", [1000.0] * 10, isin="IRO1AAAA0001")
+    p = _portfolio(session)
+    item = {"symbolIsin": "IRO1AAAA0001", "symbolName": "الف", "asset": 10,
+            "date": str(D0 + dt.timedelta(days=3)), "periodicBuyAveragePrice": 1000}  # fmt: skip
+    mofid.apply(session, p, [item], {"buyPowerT0": 0})
+    line = session.query(PortfolioTrade).filter_by(portfolio_id=p.id, instrument_id=a).one()
+    assert line.date == D0 + dt.timedelta(days=3)

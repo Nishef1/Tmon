@@ -31,6 +31,9 @@ and `/picks`.
 
 **What usually lies:**
 - A holding marked «برآوردی» (estimated) is expected when price or quantity was missing.
+- A Mofid line dated the sync day, or a unit count that grew after a bonus issue, is a bug: the
+  line takes Mofid's period date, moved past any later share-count change. Compare
+  `GET /portfolios/{id}/trades` with `last_result.items[].date` in `GET /portfolios/{id}/mofid`.
 - No notification channel set: the page must say so, rather than staying silent.
 - Advice says «تأییدنشده» while `recommendation_allowed` is false (today it is). Missing that
   label is a bug.
