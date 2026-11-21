@@ -9,7 +9,9 @@ measured against its own previous adjusted close:
 The level starts at 100 at the first day of the window and moves by the average close-to-close
 move. Open, high and low are the same average of each member's open, high and low. The high and
 low of the day are therefore approximate (members peak at different times), and the open is not
-forced to equal the previous close. Nothing here is a tradable index; it only describes the day.
+forced to equal the previous close here (the candles the API shows do use the previous close,
+kept inside the day's range, so a candle is green exactly when the level rose). Nothing here is
+a tradable index; it only describes the day.
 """
 
 from __future__ import annotations

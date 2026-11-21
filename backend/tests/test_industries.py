@@ -219,6 +219,10 @@ def test_detail_gives_consensus_candles_and_a_row_per_symbol(
     last = j["candles"][-1]
     assert last["low"] <= min(last["open"], last["close"])
     assert last["high"] >= max(last["open"], last["close"])
+    # a candle is green exactly when the level rose against the day before
+    cs = j["candles"]
+    for prev, cur in zip(cs, cs[1:], strict=False):
+        assert (cur["close"] >= cur["open"]) == (cur["close"] >= prev["close"])
     assert j["breadth"]["up"] == 1 and j["breadth"]["down"] == 1
     assert j["breadth"]["above_sma20"] == 1
     assert [r["label"] for r in j["returns"]] == ["هفته", "ماه", "سه ماه", "سال"]
@@ -245,6 +249,19 @@ def test_empty_database_says_unavailable(client: TestClient) -> None:
     assert client.get("/industries/overview").json()["available"] is False
     assert client.get("/market/index").json()["available"] is False
     assert client.get("/industries/27/detail").status_code == 404
+
+
+def test_detail_answers_to_the_industry_name_and_gives_readable_member_links(
+    client: TestClient, session: Session
+) -> None:
+    _market(session)
+    by_code = client.get("/industries/27/detail?days=60").json()
+    assert by_code["slug"] and all(m["symbol_slug"] for m in by_code["members"])
+    by_name = client.get(f"/industries/{by_code['slug']}/detail?days=60")
+    assert by_name.status_code == 200 and by_name.json()["code"] == by_code["code"]
+    assert client.get("/industries/no-such-industry/detail").status_code == 404
+    cards = client.get("/industries/overview").json()["industries"]
+    assert {c["slug"] for c in cards} >= {by_code["slug"]}
 
 
 def test_market_index_candles_clamp_the_open_into_the_day(

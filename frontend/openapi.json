@@ -7305,6 +7305,11 @@
             ],
             "title": "Net Real Flow"
           },
+          "slug": {
+            "default": "",
+            "title": "Slug",
+            "type": "string"
+          },
           "spark": {
             "default": [],
             "items": {
@@ -7354,6 +7359,7 @@
         "required": [
           "medians",
           "code",
+          "slug",
           "name",
           "n",
           "n_traded",
@@ -7549,6 +7555,11 @@
             "title": "Returns",
             "type": "array"
           },
+          "slug": {
+            "default": "",
+            "title": "Slug",
+            "type": "string"
+          },
           "value": {
             "default": 0.0,
             "title": "Value",
@@ -7564,6 +7575,7 @@
           "medians",
           "market_medians",
           "code",
+          "slug",
           "name",
           "as_of",
           "n_members",
@@ -8033,6 +8045,11 @@
             "title": "Symbol",
             "type": "string"
           },
+          "symbol_slug": {
+            "default": "",
+            "title": "Symbol Slug",
+            "type": "string"
+          },
           "value": {
             "anyOf": [
               {
@@ -8092,6 +8109,7 @@
           "cols",
           "instrument_id",
           "symbol",
+          "symbol_slug",
           "name",
           "close",
           "day",

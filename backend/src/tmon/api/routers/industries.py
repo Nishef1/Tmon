@@ -36,6 +36,7 @@ from tmon.api.schemas import (
     IndustryReturn,
     MarketBlock,
 )
+from tmon.api.slugs import sector_slug, slugify
 from tmon.core.db import get_session
 from tmon.core.engine_config import get_engine_config
 from tmon.core.memory import release_memory
@@ -119,10 +120,17 @@ def _flows(session: Session, sector_of: dict[int, str]) -> dict[str, float]:
 def _candles(c: Composite | None, days: int) -> list[Candle]:
     if c is None:
         return []
-    return [
-        Candle(date=d, open=o, high=h, low=lo, close=cl, volume=None)
-        for d, o, h, lo, cl in zip(c.dates, c.open, c.high, c.low, c.close, strict=True)
-    ][-days:]
+    # the shown open is the previous close, kept inside the day's range (as on the index page):
+    # the members' own average open can sit above a close that is still above yesterday's, and a
+    # red candle on a rising day reads as a contradiction
+    out: list[Candle] = []
+    for i, (d, o, h, lo, cl) in enumerate(
+        zip(c.dates, c.open, c.high, c.low, c.close, strict=True)
+    ):
+        hi_, lo_ = max(h, cl), min(lo, cl)
+        opened = min(max(c.close[i - 1], lo_), hi_) if i else o
+        out.append(Candle(date=d, open=opened, high=hi_, low=lo_, close=cl, volume=None))
+    return out[-days:]
 
 
 def _day(c: Composite | None) -> float | None:
@@ -169,6 +177,7 @@ def _build_overview(session: Session, last: dt.date) -> IndustryOverview:
         cards.append(
             IndustryCard(
                 code=sec,
+                slug=sector_slug(names.get(_code(sec))),
                 name=names.get(_code(sec), sec),
                 n=sum(1 for s in sector.values() if s == sec),
                 n_traded=c.members[-1],
@@ -210,6 +219,9 @@ def detail(
     sec = code.strip()
     last = _latest_full(session, PriceDaily.date)
     names = _names(session)
+    if not sec.isdigit():  # the readable address: the industry's name
+        want = slugify(sec)
+        sec = next((k for k, n in names.items() if want and sector_slug(n) == want), "")
     if last is None or not sec.isdigit() or _code(sec) not in names:
         raise HTTPException(404, "industry not found")
     insts = list(
@@ -295,6 +307,7 @@ def detail(
             IndustryMember(
                 instrument_id=inst.id,
                 symbol=inst.symbol_fa,
+                symbol_slug=slugify(inst.symbol_fa) or str(inst.id),
                 name=inst.name_fa,
                 close=close,
                 day=day_change(close, prev),
@@ -319,6 +332,7 @@ def detail(
     ts = [trend[m.instrument_id] for m in members]
     return IndustryDetail(
         code=sec,
+        slug=sector_slug(names[_code(sec)]),
         name=names[_code(sec)],
         as_of=str(last),
         n_members=len(insts),

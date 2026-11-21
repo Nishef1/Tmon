@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Candle, IndustryDetail, IndustryMember } from "@/lib/api";
 import { faNumber, faPercent, faPrice, faToman, jalali } from "@/lib/format";
+import { memberPath } from "@/lib/slug";
 import { signTone, verdictPill } from "@/lib/ui";
 import type { ColumnCatalog } from "@/lib/columns";
 import { CandleChart } from "@/components/CandleChart";
@@ -103,7 +104,15 @@ function MemberChart({ id }: { id: number }) {
   return <CandleChart candles={state.candles} />;
 }
 
-function MemberDetail({ m, colSpan }: { m: IndustryMember; colSpan: number }) {
+function MemberDetail({
+  d,
+  m,
+  colSpan,
+}: {
+  d: IndustryDetail;
+  m: IndustryMember;
+  colSpan: number;
+}) {
   return (
     <tr className="id-open" data-testid="member-detail">
       <td colSpan={colSpan}>
@@ -127,7 +136,7 @@ function MemberDetail({ m, colSpan }: { m: IndustryMember; colSpan: number }) {
               <b className="num">{m.value_share == null ? "—" : faPercent(m.value_share, 0)}</b>
             </span>
             <span className={verdictPill(m.verdict)}>{m.verdict_label}</span>
-            <Link href={`/instruments/${m.instrument_id}`} className="text-accent underline">
+            <Link href={memberPath(d, m)} className="text-accent underline">
               صفحهٔ کامل {m.symbol}
             </Link>
           </div>
@@ -255,7 +264,7 @@ function Members({ d }: { d: IndustryDetail }) {
                     <span className={verdictPill(m.verdict)}>{m.verdict_label}</span>
                   </td>
                 </tr>,
-                on && <MemberDetail key={`${m.instrument_id}-d`} m={m} colSpan={colSpan} />,
+                on && <MemberDetail key={`${m.instrument_id}-d`} d={d} m={m} colSpan={colSpan} />,
               ];
             })}
           </tbody>

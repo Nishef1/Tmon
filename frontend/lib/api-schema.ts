@@ -3479,6 +3479,11 @@ export interface components {
       /** Net Real Flow */
       net_real_flow: number | null;
       /**
+       * Slug
+       * @default
+       */
+      slug: string;
+      /**
        * Spark
        * @default []
        */
@@ -3570,6 +3575,11 @@ export interface components {
        * @default []
        */
       returns: components["schemas"]["IndustryReturn"][];
+      /**
+       * Slug
+       * @default
+       */
+      slug: string;
       /**
        * Value
        * @default 0
@@ -3702,6 +3712,11 @@ export interface components {
       spark: number[];
       /** Symbol */
       symbol: string;
+      /**
+       * Symbol Slug
+       * @default
+       */
+      symbol_slug: string;
       /** Value */
       value: number | null;
       /** Value Share */

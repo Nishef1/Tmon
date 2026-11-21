@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { IndustryDetail } from "@/lib/api";
+import { memberPath } from "@/lib/slug";
 import { colTone, fmtCol, type ColumnCatalog, type ColumnDef } from "@/lib/columns";
 
 const KEYS = [
@@ -119,10 +120,7 @@ export function IndustryColumns({ d, catalog }: { d: IndustryDetail; catalog: Co
                   scope="row"
                   className="sticky start-0 z-10 border-b border-line bg-surface px-3 py-1.5 text-start font-normal"
                 >
-                  <Link
-                    href={`/instruments/${m.instrument_id}`}
-                    className="font-bold hover:text-accent"
-                  >
+                  <Link href={memberPath(d, m)} className="font-bold hover:text-accent">
                     {m.symbol}
                   </Link>
                 </th>

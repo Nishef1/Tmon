@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { apiGet, type IndustryDetail } from "@/lib/api";
 import type { ColumnCatalog } from "@/lib/columns";
 import { ErrorState } from "@/components/ErrorState";
@@ -12,20 +12,32 @@ type Props = { params: Promise<{ code: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { code } = await params;
-  const res = /^\d{1,3}$/.test(code)
-    ? await apiGet<IndustryDetail>(`/industries/${code}/detail`)
-    : null;
-  return { title: res?.ok ? `صنعت ${res.data.name}` : "صنعت" };
+  const res = await apiGet<IndustryDetail>(
+    `/industries/${encodeURIComponent(readable(code))}/detail`,
+  );
+  return { title: res.ok ? `صنعت ${res.data.name}` : "صنعت" };
+}
+
+/** The address carries the industry's name (``/industries/<name>``); the old numeric code works
+ *  and leads to the name. */
+function readable(code: string): string {
+  try {
+    return decodeURIComponent(code);
+  } catch {
+    return code;
+  }
 }
 
 export default async function IndustryPage({ params }: Props) {
-  const { code } = await params;
-  if (!/^\d{1,3}$/.test(code)) notFound();
+  const key = readable((await params).code);
   const [res, catalog] = await Promise.all([
-    apiGet<IndustryDetail>(`/industries/${code}/detail`, { days: 300 }),
+    apiGet<IndustryDetail>(`/industries/${encodeURIComponent(key)}/detail`, { days: 300 }),
     apiGet<ColumnCatalog>("/columns/catalog"),
   ]);
   if (!res.ok && res.status === 404) notFound();
+  if (res.ok && /^\d{1,3}$/.test(key) && res.data.slug) {
+    redirect(`/industries/${encodeURIComponent(res.data.slug)}`);
+  }
   return (
     <main className="space-y-5">
       <div className="space-y-1">

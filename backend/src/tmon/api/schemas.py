@@ -1848,6 +1848,7 @@ class IndustryMember(ApiModel):
     cols: dict[str, float | str | None] = {}
     instrument_id: int
     symbol: str
+    symbol_slug: str = ""  # the symbol part of its page address
     name: str | None = None
     close: float | None = None
     day: float | None = None
@@ -1871,6 +1872,7 @@ class IndustryDetail(ApiModel):
     medians: dict[str, float | None] = {}  # median of the members' derived columns
     market_medians: dict[str, float | None] = {}  # the same over every stock that traded
     code: str
+    slug: str = ""  # the industry part of its page address
     name: str
     as_of: str
     n_members: int
@@ -1901,6 +1903,7 @@ class MarketBlock(ApiModel):
 class IndustryCard(ApiModel):
     medians: dict[str, float | None] = {}
     code: str
+    slug: str = ""
     name: str
     n: int
     n_traded: int

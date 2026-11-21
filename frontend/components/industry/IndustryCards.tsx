@@ -38,7 +38,7 @@ function Card({ c, market }: { c: IndustryCard; market: number | null | undefine
   const gap = c.day != null && market != null ? c.day - market : null;
   return (
     <Link
-      href={`/industries/${encodeURIComponent(c.code)}`}
+      href={`/industries/${encodeURIComponent(c.slug || c.code)}`}
       className="card ic"
       data-testid="industry-card"
       data-code={c.code}
