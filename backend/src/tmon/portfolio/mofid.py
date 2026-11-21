@@ -520,8 +520,10 @@ def main(argv: list[str] | None = None) -> int:
     rn.add_argument("--ssh", default="", help='e.g. "ssh -p 1415 -i KEY root@HOST"')
     rn.add_argument(
         "--remote",
-        default="cd /opt/tmon/backend && set -a && . /etc/tmon.env && set +a && "
-        ".venv/bin/python -m tmon.portfolio.mofid",
+        # the services' own environment file, read by systemd (a shell would mangle its JSON)
+        default="systemd-run --quiet --wait --pipe -p EnvironmentFile=/etc/tmon.env "
+        "-p WorkingDirectory=/opt/tmon/backend /opt/tmon/backend/.venv/bin/python "
+        "-m tmon.portfolio.mofid",
         help="the command on the server that runs this module",
     )
     ac = sub.add_parser("accept", help="read a token from stdin and sync (the server)")
