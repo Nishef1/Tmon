@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tmon.portfolio.entry import bucket_for, guard, review_entry
+from tmon.portfolio.entry import bucket_for, gap_reason, guard, review_entry
 from tmon.portfolio.liveprice import Bar
 
 # Opened 2.9% above yesterday, closed (volume-weighted) above yesterday, last trade below the buy.
@@ -331,3 +331,23 @@ def test_entry_endpoint_carries_the_exit_ladder_and_the_time_of_day(session) -> 
     assert body["exit_plan"]["now"] > 0 and "ladder" in body["exit_plan"]
     # no 15-minute history stored: the answer says so instead of inventing an hour
     assert body["timing"]["available"] is False and body["timing"]["message"]
+
+
+def test_gap_rule_says_wait_while_the_price_holds_above_the_open() -> None:
+    bar = Bar(None, 19_450, 19_520, 19_400, 19_480, 19_470, 18_900, 19_740, 18_600)
+    fade = {"open_to_last": -0.01, "label": "x", "n": 9}
+    g = guard(bar, edge=None, cost=0.0175, fade=fade, now_minutes=60)
+    assert g["state"] == "wait"
+    gap = [r for r in g["reasons"] if "واحد درصد" in r]
+    assert len(gap) == 1 and "37 روز از ۱۰۰" in gap[0] and "18,900" in gap[0]
+    assert not any("بازهٔ امروز" in r or "شکافی مثل امروز" in r for r in g["reasons"])
+
+
+def test_gap_rule_needs_the_session_a_real_gap_and_a_price_near_the_open() -> None:
+    gapped = Bar(None, 19_450, 19_520, 19_400, 19_480, 19_470, 18_900)
+    assert gap_reason(gapped, 19_480, None) is None  # outside the session
+    assert gap_reason(gapped, 19_480, 200) is None  # the last minutes
+    assert gap_reason(gapped, 19_000, 60) is None  # the price already fell back
+    small = Bar(None, 18_950, 19_000, 18_850, 18_940, 18_940, 18_900)
+    assert gap_reason(small, 18_950, 60) is None
+    assert gap_reason(gapped, 19_480, 60) is not None

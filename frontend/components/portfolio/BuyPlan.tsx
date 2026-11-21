@@ -9,7 +9,7 @@ const POLL_MS = 30_000;
 type Step = { price: number; day_fill_prob: number; vs_now: number };
 type Reply = {
   available?: boolean;
-  guard?: { state: string; max_price?: number | null };
+  guard?: { state: string; max_price?: number | null; gap_rule?: string | null };
   plan?: { available: boolean; mode?: "today" | "next"; recommended?: Step | null };
 };
 
@@ -36,12 +36,22 @@ export function BuyPlan({ instrumentId }: { instrumentId: number }) {
     };
   }, [instrumentId]);
   const best = r?.plan?.available ? r.plan.recommended : null;
-  if (!best) return null;
+  const gap = r?.guard?.gap_rule;
+  if (!best && !gap) return null;
   return (
     <span className="text-muted" data-testid="buy-plan">
-      {" "}
-      — سفارش حدی در <b className="text-up">{faPrice(best.price)}</b> (شانس پرشدن{" "}
-      {faPercent(best.day_fill_prob, 0)}؛ اگر تا پایان روز پر نشد دنبالش نروید)
+      {best && (
+        <>
+          {" "}
+          — سفارش حدی در <b className="text-up">{faPrice(best.price)}</b> (شانس پرشدن{" "}
+          {faPercent(best.day_fill_prob, 0)}؛ اگر تا پایان روز پر نشد دنبالش نروید)
+        </>
+      )}
+      {gap && (
+        <span className="block text-down" data-testid="gap-guard">
+          در بازگشایی نخرید: {faDigits(gap)}
+        </span>
+      )}
     </span>
   );
 }

@@ -12,6 +12,9 @@
   Each holding in the advice card has a `position` block («وضع این دارایی برای شما»): profit or
   loss in toman if sold today, the breakeven price, the stop (own or the default 10%) and the
   buyer's verdict. Check its numbers against `position` in `/portfolios/{id}/advice`.
+  Buy candidates show `gap-guard` («در بازگشایی نخرید…») only during the session, when the
+  symbol opened at least 0.5% above yesterday's close and still trades near the open; compare
+  `guard.gap_rule` in `/instruments/{id}/entry`. Outside market hours it is absent by design.
 - `/picks`: symbols the owner is tracking live, with return since the pick.
 
 API: `/portfolios/*` with the `X-Portfolio-Key` header (proxied by `frontend/app/api/portfolios`),

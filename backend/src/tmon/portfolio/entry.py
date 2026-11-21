@@ -40,6 +40,17 @@ GAP_LABELS = (
     "۱.۵ تا ۲.۵٪ بالاتر",
     "بیش از ۲.۵٪ بالاتر (نزدیک سقف مجاز)",
 )
+# docs/reports/gap-entry-2026-11.md: the last three years, 100 liquid stocks, both halves. After
+# an open at least GAP_TESTED_MIN above yesterday's close, buying at the end of the session (or
+# with a limit at yesterday's close) paid less than buying at the open. Per band: (lower edge,
+# the saving in units of percent in the two halves, fills of a limit at yesterday's close per 100).
+GAP_TESTED_MIN = 0.005
+GAP_TESTED = (
+    (0.025, "۰٫۹ تا ۱٫۳", 37),
+    (0.015, "حدود ۱٫۱", 60),
+    (0.005, "۰٫۶ تا ۰٫۸", 77),
+)
+GAP_LATE_MINUTES = 15  # the last minutes of the session: waiting no longer means anything
 WINDOW_DAYS = 260
 MIN_DAYS_FOR_STATS = 40
 FM_HALF_LIFE = 60.0  # days: older daily fits count half as much every 60 days
@@ -427,6 +438,31 @@ def review_entry(
     }
 
 
+def gap_reason(bar: Bar, price: float, now_minutes: int | None) -> str | None:
+    """The tested gap rule, or None: during the session, after an open at least
+    :data:`GAP_TESTED_MIN` above yesterday's close, while the price is still near or above the
+    open (docs/reports/gap-entry-2026-11.md)."""
+    gap = bar.gap
+    if (
+        gap is None
+        or gap < GAP_TESTED_MIN
+        or now_minutes is None
+        or not 0 <= now_minutes < SESSION_MINUTES - GAP_LATE_MINUTES
+        or not bar.first
+        or not bar.yesterday
+        or price < bar.first * 0.995
+    ):
+        return None
+    saving, fills = next((s, f) for lo, s, f in GAP_TESTED if gap >= lo)
+    return (
+        f"امروز سهم {_pct(gap)} بالاتر از پایانی دیروز باز شد. در سه سال اخیر، بعد از چنین "
+        f"بازگشایی، خرید در آخر جلسه به‌طور میانگین {saving} واحد درصد ارزان‌تر از خرید در "
+        "بازگشایی بود و این در هر دو نیمهٔ زمان تکرار شد. سفارش محدود روی پایانی دیروز "
+        f"({bar.yesterday:,.0f} ریال) حدود {fills} روز از ۱۰۰ پر شد؛ اگر پر نشد، آخر جلسه "
+        "بخرید، نه در بازگشایی."
+    )
+
+
 def guard(
     bar: Bar,
     *,
@@ -487,9 +523,17 @@ def guard(
                 f"از برتری پس از کارمزد ({_pct(net or 0)}) فقط {_pct(left)} مانده است؛ منتظر قیمت "
                 "پایین‌تر بمانید.",
             )
-    if pos is not None and pos >= 0.8 and premium > 0.01:
+    gap_rule = gap_reason(bar, price, now_minutes)
+    if gap_rule:
+        bump("wait", gap_rule)
+    if not gap_rule and pos is not None and pos >= 0.8 and premium > 0.01:
         bump("wait", f"قیمت در {_pct(pos, 0)} بالای بازهٔ امروز است؛ خرید در قله بعد از شکاف.")
-    if fade and fade.get("open_to_last") is not None and fade["open_to_last"] < -0.003:
+    if (
+        not gap_rule
+        and fade
+        and fade.get("open_to_last") is not None
+        and fade["open_to_last"] < -0.003
+    ):
         bump(
             "wait",
             f"روزهایی که با شکافی مثل امروز ({fade['label']}) باز شده‌اند، تا آخرین معامله به‌طور "
@@ -550,6 +594,7 @@ def guard(
         "edge_left": left,
         "max_price": max_price,
         "gap": bar.gap,
+        "gap_rule": gap_rule,
         "fade": fade,
         "drift": drift,
     }
